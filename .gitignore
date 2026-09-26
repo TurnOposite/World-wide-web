@@ -23,3 +23,6 @@ music/*
 # The rooms' private working folders (contact sheets of personal photos,
 # staging). Never served by the station either — see server/lib/collections.js.
 collections/_*/
+
+# The assembled static site (scripts/site-build.mjs) — built by the Pages workflow, never committed.
+dist/

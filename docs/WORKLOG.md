@@ -2138,3 +2138,34 @@ once at home before relying on it.
 - The music crates were in the shortlist Ortis answered without striking
   anything, and matched his original ask ("the music folders"), so they were
   added. They sit in one folder, `music/Crates/`, if he wants them out.
+
+---
+
+## 2026-09-26 — The cloud edition, first shift (Ortis away, unattended)
+
+Request: GitHub + the web, a modern site with map, portfolio, a working radio
+with a real queue and visuals control. Plan and reasoning: `docs/CLOUD.md`,
+`docs/DECISIONS.md` 2026-09-26.
+
+**Built:** `site/` — a static single-page site (no bundler) where every
+browser runs the station's own clock (`server/lib/schedule.js`, copied
+verbatim) over the 28 tracks already on Ortis's Wix media. Pages: Seuil,
+Radio, Atlas, Écrits, Portfolio (the three rooms, ported), DJ booth. The
+music survives page changes; a full-page visualiser paints nine layers on one
+canvas (roadmap #28's goal, now a failable check); a Visuals panel for every
+listener plus a DJ broadcast look; the queue editor and Spontaneous Emissions
+commit `site/station/control.json` through the GitHub contents API.
+`.github/workflows/` runs the self-test and deploys Pages.
+
+**Shared code touched, defaults preserved:** `Station` gains `shuffle`
+(default true); `/api/station|queue|schedule` bodies moved to
+`server/lib/payloads.js`. `npm test` count unchanged for the old suites.
+
+**Verified (this container):** `bash scripts/build-test.sh` → 257 tests,
+43/43 browser checks, **32/32 site checks** (new stage 7: two listeners on the
+same second, music across navigation, 85–91 % stage coverage, booth commit
+adopted by a second listener, 390 px phone, dist/ under /radio-tower/, tower
+mode against a real server). "The tower is sound."
+
+**Not verified here:** playback of the real Wix URLs and a real Pages deploy —
+the container cannot reach static.wixstatic.com or github.io.

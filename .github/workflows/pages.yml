@@ -1,0 +1,65 @@
+# Publish the static site (site/ → dist/) to GitHub Pages.
+#
+# One-time setup, by the repository owner: Settings → Pages → Build and
+# deployment → Source: "GitHub Actions". After that every push to main
+# redeploys, including the DJ booth's commits to control.json (listeners read
+# that file through the GitHub API first, so they hear a change before this
+# finishes; the deployed copy is the fallback).
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'collections/**'
+      - 'writing/**'
+      - 'server/lib/schedule.js'
+      - 'server/lib/payloads.js'
+      - 'public/viz.js'
+      - 'public/queue.js'
+      - 'dj/moods.json'
+      - 'scripts/site-*.mjs'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Assemble dist/
+        env:
+          SITE_BASE: ${{ steps.pages.outputs.base_path }}/
+        run: node scripts/site-build.mjs
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

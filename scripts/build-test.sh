@@ -329,6 +329,26 @@ if [[ $DO_BROWSER -eq 1 ]]; then
   fi
 fi
 
+# ------------------------------------------------------- 7. the static site --
+# The cloud half (docs/CLOUD.md): the same station computed in the browser,
+# served as static files. Generated inputs must match their sources, then a
+# real browser drives the site — and, pointed at the server started above,
+# the same front end in tower mode.
+stage "Static site"
+for chk in "site-sync.mjs --check" "site-texts.mjs --check" "site-collections.mjs --check" "cloud-library.mjs check"; do
+  # shellcheck disable=SC2086
+  if OUT="$(node scripts/$chk 2>&1)"; then ok "$(tail -1 <<<"$OUT" | sed 's/^ *✓ *//')"; else bad "$(tail -1 <<<"$OUT" | sed 's/^ *✗ *//')"; fi
+done
+if [[ $DO_BROWSER -eq 1 ]] && node -e "import('playwright').then(()=>process.exit(0)).catch(()=>process.exit(1))" 2>/dev/null; then
+  if node scripts/site-smoke.mjs "http://127.0.0.1:$PORT" 2>&1 | sed 's/^/  /'; then
+    ok "the site plays, syncs, reorders and renders in a real browser"
+  else
+    bad "site smoke test failed"
+  fi
+else
+  info "site browser checks skipped (--no-browser, or playwright missing)"
+fi
+
 # ------------------------------------------------------------------ verdict --
 stage "Verdict"
 if [[ $FAILURES -eq 0 ]]; then

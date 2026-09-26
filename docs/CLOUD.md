@@ -126,13 +126,13 @@ back ends.
 | # | Phase | State |
 |---|---|---|
 | 0 | Intake: project, Web-Creative mocks, music manifest pulled to the cloud; baseline green | done 2026-09-26 |
-| 1 | Station core in the browser: `payloads.js`, `shuffle` option, cloud engine, `library.json`, `control.json`, tests | |
-| 2 | Site shell: tokens, mark, router, persistent mini-player | |
-| 3 | Radio page: on air, echoes, full-page visualiser (roadmap #28 done properly), Visuals panel | |
-| 4 | Working queue: listener view, booth (drag/keys, moods, clear, broadcast look), GitHub control plane | |
-| 5 | Atlas, Écrits, Portfolio | |
-| 6 | GitHub-ready: workflows, README, secret scan, publish script, GO-LIVE | |
-| 7 | Verification: e2e (two listeners same second, reorder reaches both, visuals), mobile, review | |
+| 1 | Station core in the browser: `payloads.js`, `shuffle` option, cloud engine, `library.json`, `control.json`, tests | done 2026-09-26 |
+| 2 | Site shell: tokens, mark, router, persistent mini-player | done 2026-09-26 |
+| 3 | Radio page: on air, echoes, full-page visualiser (roadmap #28 done properly), Visuals panel | done 2026-09-26 (polish continues) |
+| 4 | Working queue: listener view, booth (drag/keys, moods, clear, broadcast look), GitHub control plane | done 2026-09-26 |
+| 5 | Atlas, Écrits, Portfolio | done 2026-09-26 |
+| 6 | GitHub-ready: workflows, README, secret scan, publish script, GO-LIVE | workflows done; README, secret scan, publish script, GO-LIVE next |
+| 7 | Verification: e2e (two listeners same second, reorder reaches both, visuals), mobile, review | self-test green: 257 tests, 43/43 browser, 32/32 site checks; review next |
 | 8 | Delivery: preview, write-back to the laptop folder, bundle, Project docs | |
 
 The state column is updated by each shift; `docs/WORKLOG.md` has the detail.

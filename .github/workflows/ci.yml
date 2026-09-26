@@ -1,0 +1,47 @@
+# The self-test on every push: the same gate the Pi and every agent run use
+# (BRIEF.md rule 2). Green before, red after = the change is wrong.
+name: self-test
+
+on:
+  push:
+    # A DJ's queue change is a commit to control.json; it changes what plays,
+    # not the code, so it does not need the full test run.
+    paths-ignore:
+      - 'site/station/control.json'
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: ffmpeg (fixture audio for the live stages)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Chromium for the browser stages
+        run: npx playwright install --with-deps chromium
+
+      - name: Site inputs are up to date
+        run: |
+          node scripts/site-sync.mjs --check
+          node scripts/site-texts.mjs --check
+          node scripts/site-collections.mjs --check
+          node scripts/cloud-library.mjs check
+
+      - name: Self-test
+        run: bash scripts/build-test.sh
