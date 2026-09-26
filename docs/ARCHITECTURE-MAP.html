@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Radio Tower — Architecture Map</title>
+<style>
+:root{--bg:#0d1013;--panel:#151a1f;--panel2:#1b2229;--line:#252d36;--ink:#e6ebf0;--dim:#8b98a5;--amber:#e8a33d;--green:#3fb27f;--blue:#5b9fd6;--violet:#9b7fd4;--red:#e05c5c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.62 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 20px 90px}
+header{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:26px}
+h1{margin:0 0 5px;font-size:26px;letter-spacing:-.02em}.sig{color:var(--amber)}
+.sub{color:var(--dim);font-size:14px;max-width:70ch}
+h2{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:38px 0 14px;font-weight:600}
+.idea{border-left:3px solid var(--amber);background:#1a1509;padding:16px 20px;border-radius:0 10px 10px 0;margin:18px 0}
+.idea b{color:var(--amber)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:#0a0d10;border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--amber)}
+.layer{background:var(--panel);border:1px solid var(--line);border-radius:11px;margin-bottom:10px;overflow:hidden}
+.lhead{display:flex;align-items:center;gap:12px;padding:13px 18px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.num{width:26px;height:26px;flex:0 0 26px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:700;background:#0a0d10;border:1px solid var(--line);color:var(--dim)}
+.ltitle{font-weight:600;font-size:15.5px}
+.lwhere{margin-left:auto;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);border:1px solid var(--line);border-radius:99px;padding:3px 10px;white-space:nowrap}
+.lbody{padding:14px 18px}
+.mods{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:9px}
+.mod{background:#0f1418;border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:8px;padding:11px 13px}
+.mod.core{border-left-color:var(--amber)}
+.mod.new{border-left-color:var(--green)}
+.mod.todo{border-left-color:var(--violet);border-style:dashed;opacity:.85}
+.mod.risk{border-left-color:var(--red)}
+.mn{font-family:ui-monospace,monospace;font-size:12.5px;color:var(--ink);font-weight:600}
+.md{color:var(--dim);font-size:12.8px;margin-top:4px;line-height:1.5}
+.flow{text-align:center;color:var(--dim);font-size:19px;margin:-4px 0 6px}
+.note{border-left:3px solid var(--blue);background:#101820;padding:12px 16px;border-radius:0 8px 8px 0;font-size:13.6px;color:#c3d2de;margin:12px 0}
+.note.warn{border-left-color:var(--red);background:#1c1012}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--dim);margin:8px 0 22px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+table{width:100%;border-collapse:collapse;font-size:13.4px;margin-top:8px}
+th{text-align:left;color:var(--dim);font-weight:600;font-size:11px;letter-spacing:.07em;text-transform:uppercase;padding:7px 10px;border-bottom:1px solid var(--line)}
+td{padding:8px 10px;border-bottom:1px solid #1b2229;vertical-align:top}
+td:first-child{font-family:ui-monospace,monospace;font-size:12.3px;color:var(--amber);white-space:nowrap}
+pre{background:#0a0d10;border:1px solid var(--line);border-radius:8px;padding:13px;overflow-x:auto;font-size:12.4px;color:#cfd8e0;margin:10px 0}
+footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:12.5px}
+</style></head><body><div class="wrap">
+
+<header>
+<h1><span class="sig">◟◞</span> Radio Tower — Architecture Map</h1>
+<div class="sub">Every layer between an MP3 on a USB stick and a stranger's phone playing it on the same second as yours. · 18 Aug 2026</div>
+</header>
+
+<div class="idea">
+<b>The one idea everything rests on.</b> The programme is a <b>pure function of wall-clock time</b>. There is no playlist object, no "current track" variable, no per-listener position, no websocket. <code>Station.at(now)</code> takes an instant and computes which track is on air and how far into it — deterministically, from the library plus a fixed <code>STATION_EPOCH</code>.<br><br>
+Two consequences worth understanding, because they explain most of the design below: <b>restarting the server does not interrupt the broadcast</b> (the function doesn't care that the process died), and <b>sync is free</b> (two machines computing the same function of the same clock agree, with nothing passing between them). That is how a 512MB single-board computer serves a synchronised station without coordination machinery.
+</div>
+
+<div class="legend">
+<span><i style="background:var(--amber)"></i>the sacred core</span>
+<span><i style="background:var(--blue)"></i>built &amp; tested</span>
+<span><i style="background:var(--green)"></i>new this session</span>
+<span><i style="background:var(--violet)"></i>not built yet</span>
+<span><i style="background:var(--red)"></i>known defect</span>
+</div>
+
+<h2>The stack, bottom to top</h2>
+
+<div class="layer">
+<div class="lhead"><span class="num">1</span><span class="ltitle">Hardware &amp; OS</span><span class="lwhere">Raspberry Pi 4 / 5</span></div>
+<div class="lbody"><div class="mods">
+<div class="mod new"><div class="mn">Raspberry Pi OS Lite (64-bit)</div><div class="md">Debian Trixie. No desktop — all RAM and CPU goes to serving audio. Flashed with Raspberry Pi Imager.</div></div>
+<div class="mod new"><div class="mn">pi/install.sh</div><div class="md">One command over SSH. Node 22, app → <code>/opt/radio-tower</code>, finds music, writes env, installs the service. 259 lines, <b>never yet run on real hardware</b>.</div></div>
+<div class="mod"><div class="mn">radiotower.service</div><div class="md">systemd. Restarts on crash, starts on boot, runs as an unprivileged user with no login shell.</div></div>
+<div class="mod new"><div class="mn">Ethernet → router</div><div class="md">DHCP, mDNS via avahi. Stable, unlike Wi-Fi under load. <code>radiotower.local:8080</code>.</div></div>
+</div></div></div>
+
+<div class="flow">↑</div>
+
+<div class="layer">
+<div class="lhead"><span class="num">2</span><span class="ltitle">The library — turning files into facts</span><span class="lwhere">server/lib/library.js</span></div>
+<div class="lbody"><div class="mods">
+<div class="mod new"><div class="mn">music/ → MUSIC_DIR</div><div class="md">Your MP3s. Walked recursively, read-only, never modified. USB stick or SD card.</div></div>
+<div class="mod"><div class="mn">metadata extraction</div><div class="md"><code>music-metadata</code> reads title, artist, duration, cover art. Duration is the load-bearing field — it's what the clock arithmetic runs on.</div></div>
+<div class="mod"><div class="mn">.cache/library.json</div><div class="md">So a restart doesn't re-read every file over USB 2.0. Keyed on path + mtime + size.</div></div>
+<div class="mod risk"><div class="mn">auto-rescan · every 30 min</div><div class="md"><b>Roadmap #5.</b> Adding one file changes the cycle length, which moves where "now" lands — by <b>hours</b>, growing with uptime. Everyone listening hears the music cut mid-bar.</div></div>
+</div></div></div>
+
+<div class="flow">↑ <span style="font-size:13px">a sorted list of {path, title, artist, duration}</span></div>
+
+<div class="layer">
+<div class="lhead"><span class="num">3</span><span class="ltitle">The station clock — the sacred layer</span><span class="lwhere">server/lib/schedule.js</span></div>
+<div class="lbody"><div class="mods">
+<div class="mod core"><div class="mn">STATION_EPOCH</div><div class="md">A fixed instant. Everything is measured from here. <b>Change it on a live station and you re-deal the entire programme forever.</b></div></div>
+<div class="mod core"><div class="mn">cycleSeconds</div><div class="md">Sum of every track's duration. The programme loops with this period.</div></div>
+<div class="mod core"><div class="mn">Station.at(now) → {track, offset}</div><div class="md"><code>elapsed = now − epoch</code> → <code>position = elapsed % cycleSeconds</code> → walk the list. <b>No state is read or written.</b> This is the whole engine.</div></div>
+<div class="mod core"><div class="mn">.upcoming() / .history()</div><div class="md">Same function, different instants. Future and past are equally computable — which is why a programme guide is nearly free.</div></div>
+</div>
+<div class="note"><b>The hard rule.</b> This file must stay a pure function of wall-clock time. If a feature seems to need stored playback state, it is the wrong feature. That constraint is what makes everything above and below it simple.</div>
+</div></div>
+
+<div class="flow">↑</div>
+
+<div class="layer">
+<div class="lhead"><span class="num">4</span><span class="ltitle">HTTP surface</span><span class="lwhere">server/index.js · routes/api.js · lib/stream.js</span></div>
+<div class="lbody">
+<table>
+<tr><th>Endpoint</th><th>What it does</th></tr>
+<tr><td>GET /api/station</td><td>What's on air, the offset into it, the next 5, server time. The one endpoint that matters.</td></tr>
+<tr><td>GET /api/health</td><td>Track count, cycle length, memory, warm-up state.</td></tr>
+<tr><td>GET /track/:id/stream</td><td>The audio. <b>HTTP range requests</b> — the browser asks for bytes N…M, so a listener joining mid-track fetches only from where they join. No transcoding, ever; the Pi couldn't.</td></tr>
+<tr><td>GET /track/:id/art</td><td>Cover art. Re-parses the file per request — flagged as a probable problem on real hardware.</td></tr>
+<tr><td>POST /api/rescan</td><td>Force a library re-read. <b style="color:var(--red)">Unauthenticated — roadmap #6.</b></td></tr>
+<tr><td style="color:var(--violet)">GET /api/schedule</td><td style="color:var(--dim)"><i>Not built.</i> The programme guide you asked for. Pure arithmetic over layer 3.</td></tr>
+</table>
+<div class="note">Static files are served straight from <code>public/</code>. There is no build step, no bundler, no framework — nothing to compile, nothing to break between writing a line and it running on the Pi.</div>
+</div></div>
+
+<div class="flow">↑ <span style="font-size:13px">JSON + audio bytes over the network</span></div>
+
+<div class="layer">
+<div class="lhead"><span class="num">5</span><span class="ltitle">The player — where sync actually happens</span><span class="lwhere">public/app.js · index.html · styles.css</span></div>
+<div class="lbody"><div class="mods">
+<div class="mod"><div class="mn">clock-skew correction</div><div class="md">Compares the server's clock to the device's and keeps the delta. A phone that's 40s off still lands on the right second.</div></div>
+<div class="mod core"><div class="mn">join at offset</div><div class="md">On tune-in: fetch <code>/api/station</code>, set <code>audio.currentTime = offset</code>, play. <b>This one line is the sync.</b></div></div>
+<div class="mod"><div class="mn">drift correction</div><div class="md">Re-checks periodically. Small drift → nudge playback rate. Large → hard reseek.</div></div>
+<div class="mod"><div class="mn">rollover</div><div class="md">Loads the next track before the current one ends and switches at the boundary.</div></div>
+<div class="mod todo"><div class="mn">navigator.mediaSession</div><div class="md"><i>Not built — roadmap #3.</i> Without it a locked phone shows no track name and no controls, and on iOS may stop entirely.</div></div>
+<div class="mod todo"><div class="mn">programme guide page</div><div class="md"><i>Not built — roadmap #0b.</i> A timeline of what plays when, in the listener's own timezone.</div></div>
+</div>
+<div class="note warn"><b>The largest unproven surface in the project.</b> Nothing has ever tested a real phone. iOS Safari needs a user gesture before audio starts, is historically fussy about setting <code>currentTime</code> — which this player does on <i>every</i> join — and suspends audio when a tab backgrounds. Emulated Chromium in the test suite does not settle any of that.</div>
+</div></div>
+
+<div class="flow">↑</div>
+
+<div class="layer">
+<div class="lhead"><span class="num">6</span><span class="ltitle">Getting out of the house</span><span class="lwhere">scripts/setup-tunnel.sh · deploy/</span></div>
+<div class="lbody"><div class="mods">
+<div class="mod"><div class="mn">Cloudflare Tunnel</div><div class="md">Outbound-only connection. No port forwarding, works behind CGNAT, your home IP stays private.</div></div>
+<div class="mod risk"><div class="mn">the terms question</div><div class="md">Cloudflare's Service-Specific Terms (2 Jun 2026) reserve the right to limit CDN use for "a disproportionate percentage of … audio files". That is literally the product. <b>Your call, not an agent's.</b></div></div>
+</div></div></div>
+
+<h2>What happens when someone opens the URL</h2>
+<pre>  listener taps "Tune in"
+        │
+        ├─→ GET /api/station ────────────────→ Station.at(Date.now())
+        │                                            │
+        │                                     library (cached) + STATION_EPOCH
+        │                                            │
+        │   ← { track, offsetSeconds: 87.4, serverTime, upNext[] }
+        │
+        ├─→ correct for this device's clock skew
+        ├─→ audio.src = /track/abc123/stream
+        ├─→ audio.currentTime = 87.4      ← the sync, in one line
+        └─→ play()
+              │
+              └─→ GET /track/abc123/stream   Range: bytes=1400000-
+                        └─→ fs.createReadStream(path, {start})   no transcode
+
+  every few seconds:  re-check offset → drift < 0.5s ? nudge rate : reseek
+  at track end:       roll over to upNext[0]
+
+  ── nothing above was coordinated with any other listener ──
+  ── they all computed the same answer from the same clock ──</pre>
+
+<h2>Where the code lives</h2>
+<table>
+<tr><th>Path</th><th></th></tr>
+<tr><td>server/lib/schedule.js</td><td>The clock. Pure function. Touch with extreme care.</td></tr>
+<tr><td>server/lib/library.js</td><td>Filesystem walk, metadata, cache.</td></tr>
+<tr><td>server/lib/stream.js</td><td>HTTP range streaming.</td></tr>
+<tr><td>server/lib/listeners.js</td><td>In-memory listener count. Dies on restart, by design.</td></tr>
+<tr><td>server/routes/api.js</td><td>All endpoints.</td></tr>
+<tr><td>server/config.js</td><td>Every knob, all env-overridable.</td></tr>
+<tr><td>public/app.js</td><td>The entire client. Vanilla JS, no build step.</td></tr>
+<tr><td>music/</td><td><b>New.</b> Drop MP3s here. Never committed, never modified.</td></tr>
+<tr><td>pi/</td><td><b>New.</b> Blank SD card → running station.</td></tr>
+<tr><td>scripts/build-test.sh</td><td>7-stage self-test. Boots a real server, drives a real browser.</td></tr>
+<tr><td>BRIEF.md</td><td>The constitution. Read before changing anything.</td></tr>
+<tr><td>docs/ROADMAP.md</td><td>Ranked work. #0 is now the Pi.</td></tr>
+</table>
+
+<footer>Two runtime dependencies: <code>express</code>, <code>music-metadata</code>. No accounts, no cookies, no tracking. A listener opens a URL and hears music — that is the whole contract.</footer>
+</div></body></html>

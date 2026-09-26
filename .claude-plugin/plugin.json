@@ -1,0 +1,14 @@
+{
+  "name": "radio-tower-ops",
+  "displayName": "Radio Tower Ops",
+  "version": "0.3.0",
+  "description": "The agents, skills and commands that build, test and deploy Radio Tower — a Raspberry Pi radio station. Travels with the project folder rather than living in one conversation.",
+  "author": {
+    "name": "Ortis"
+  },
+  "keywords": ["raspberry-pi", "radio", "streaming", "self-hosting", "music"],
+  "license": "MIT",
+  "agents": "./.claude/agents/",
+  "skills": "./.claude/skills/",
+  "commands": "./.claude/commands/"
+}

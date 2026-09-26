@@ -1,0 +1,25 @@
+node_modules/
+.cache/
+*.log
+.DS_Store
+Thumbs.db
+
+# Never commit audio — the library lives outside the repo at MUSIC_DIR.
+music/*
+!music/.gitkeep
+!music/README.md
+*.mp3
+*.m4a
+*.flac
+*.wav
+*.ogg
+*.opus
+*.aac
+
+# Local overrides
+.env
+.claude/settings.local.json
+
+# The rooms' private working folders (contact sheets of personal photos,
+# staging). Never served by the station either — see server/lib/collections.js.
+collections/_*/

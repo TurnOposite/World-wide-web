@@ -1,0 +1,44 @@
+[Unit]
+Description=Radio Tower — synced music station
+Documentation=file:///opt/radio-tower/docs/DEPLOY.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/opt/radio-tower
+# Keeps server/lib/devReload.js's fs.watch and the /api/dev/reload SSE
+# endpoint off a real station. Placed before EnvironmentFile so an operator
+# who genuinely wants dev mode on a real box can still override it there.
+Environment=NODE_ENV=production
+EnvironmentFile=-/etc/radio-tower.env
+ExecStart=/usr/bin/node server/index.js
+Restart=always
+RestartSec=5
+# A Pi Zero can take a while to scan a big library on a USB drive.
+TimeoutStartSec=180
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=radiotower
+
+# Hardening. The station only ever reads audio and writes its cache, so it
+# does not need write access to anything else on the Pi.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/opt/radio-tower/.cache
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+
+[Install]
+WantedBy=multi-user.target

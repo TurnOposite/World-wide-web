@@ -1,0 +1,31 @@
+# Cloudflare Tunnel — puts the Pi on the public internet with no port
+# forwarding, no static IP, and free TLS. The Pi makes an outbound connection
+# to Cloudflare; nothing inbound is ever opened on your router.
+#
+# Install to /etc/cloudflared/config.yml, then:
+#   sudo cloudflared service install
+#   sudo systemctl enable --now cloudflared
+#
+# See docs/DEPLOY.md for the full walkthrough including tunnel creation.
+
+tunnel: REPLACE_WITH_TUNNEL_ID
+credentials-file: /etc/cloudflared/REPLACE_WITH_TUNNEL_ID.json
+
+# Keep a couple of connections warm so a listener's first request is not
+# waiting on a cold tunnel.
+protocol: quic
+no-autoupdate: false
+
+ingress:
+  - hostname: REPLACE_WITH_HOSTNAME     # e.g. tower.example.com
+    service: http://localhost:8080
+    originRequest:
+      # Audio responses stream; do not let cloudflared buffer or time them out.
+      disableChunkedEncoding: false
+      connectTimeout: 10s
+      # A long track served to a slow connection can legitimately take a while.
+      noHappyEyeballs: false
+      keepAliveTimeout: 90s
+
+  # Everything else gets a 404 rather than reaching the Pi.
+  - service: http_status:404

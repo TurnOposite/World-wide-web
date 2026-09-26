@@ -1,0 +1,607 @@
+{
+  "version": 1,
+  "about": "The manifest behind /library.html, /photos.html and /crates.html. Every path is relative to this folder (COLLECTIONS_DIR). Folders starting with _ are never served. Edit by hand or ask the tower-curator agent — `npm run collections` checks it.",
+  "university": {
+    "title": "The Library",
+    "intro": "Essays, papers and a thesis from McGill, the University of Copenhagen and the Institut Français de Presse. Hover a spine to pull the book off the shelf; click to open it.",
+    "shelves": [
+      {
+        "id": "ifp",
+        "label": "Institut Français de Presse · M1 Global Journalism and Communication",
+        "books": [
+          {
+            "id": "barber-beats-thesis",
+            "title": "Platformized Music Subcultures and the Algorithmic Formation of Community",
+            "subtitle": "A Social Network Analysis of Barber Beats on YouTube",
+            "course": "Master's thesis",
+            "kind": "Thesis · June 2026",
+            "file": "university/thesis/barber-beats-thesis-2026.pdf",
+            "cover": "university/covers/barber-beats-thesis-2026.jpg",
+            "pages": 63,
+            "featured": true,
+            "blurb": "5,668 videos and roughly 300,000 tags across twelve channels, mapped as three network layers: co-commenting, tag co-usage and channel ties. The algorithm creates the conditions of encounter; the community creates the conditions of belonging.",
+            "mapsLink": true
+          },
+          {
+            "id": "thesis-proposal",
+            "title": "From Algorithmic Subcultures to Post-Pandemic Media Norms",
+            "course": "Thesis proposal",
+            "kind": "Slides",
+            "file": "university/thesis/thesis-proposal-slides.pdf",
+            "cover": "university/covers/thesis-proposal-slides.jpg",
+            "pages": 8
+          }
+        ]
+      },
+      {
+        "id": "ucph",
+        "label": "University of Copenhagen · exchange",
+        "books": [
+          {
+            "id": "ucph-sna",
+            "title": "Mapping Vaporwave: a Co-commenting Network of 5,500 Videos",
+            "course": "Social Network Analysis",
+            "kind": "Network maps",
+            "mapsLink": true,
+            "cover": "university/maps/ucph-vaporwave-forceatlas1.png",
+            "blurb": "The first map: YouTube Data Tools, R and Gephi turned 5,500 vaporwave videos into a co-commenting network. The method that became the thesis."
+          },
+          {
+            "id": "ucph-regression",
+            "title": "Internet Activity, Religion and Success: a Multiple Regression Analysis",
+            "course": "Multiple Regression",
+            "kind": "Exam paper",
+            "file": "university/essays/ucph-regression-internet-religion.pdf",
+            "cover": "university/covers/ucph-regression-internet-religion.jpg",
+            "pages": 12,
+            "extra": {
+              "label": "Interaction chart",
+              "file": "university/essays/ucph-regression-chart.pdf"
+            }
+          }
+        ]
+      },
+      {
+        "id": "mcgill",
+        "label": "McGill University · Political Science & International Development",
+        "books": [
+          {
+            "id": "lacs497-digital-lifelines",
+            "title": "Digital Lifelines: Virtual Spaces in Pandemic Latin America",
+            "course": "LACS 497",
+            "kind": "Final paper",
+            "file": "university/essays/lacs497-digital-lifelines.pdf",
+            "cover": "university/covers/lacs497-digital-lifelines.jpg",
+            "pages": 13
+          },
+          {
+            "id": "lacs497-reinventing-identity",
+            "title": "Reinventing Identity in the Digital Space: the Social Effect of Quarantine",
+            "course": "LACS 497",
+            "kind": "Midterm essay",
+            "file": "university/essays/lacs497-reinventing-identity.pdf",
+            "cover": "university/covers/lacs497-reinventing-identity.jpg",
+            "pages": 4
+          },
+          {
+            "id": "poli369-symbiosis-of-power",
+            "title": "Symbiosis of Power: Colonial History and Malaysia's Electoral Authoritarianism",
+            "course": "POLI 369",
+            "kind": "Analytical paper",
+            "file": "university/essays/poli369-symbiosis-of-power.pdf",
+            "cover": "university/covers/poli369-symbiosis-of-power.jpg",
+            "pages": 8
+          },
+          {
+            "id": "poli459-compulsory-voting",
+            "title": "Examining Compulsory Voting: Brazil's Unique Democratic Approach",
+            "course": "POLI 459",
+            "kind": "Final paper",
+            "file": "university/essays/poli459-compulsory-voting.pdf",
+            "cover": "university/covers/poli459-compulsory-voting.jpg",
+            "pages": 8
+          },
+          {
+            "id": "poli459-liquid-democracy",
+            "title": "Liquid Democracy and the Pirate Parties",
+            "course": "POLI 459",
+            "kind": "Response paper",
+            "file": "university/essays/poli459-liquid-democracy.pdf",
+            "cover": "university/covers/poli459-liquid-democracy.jpg",
+            "pages": 3
+          },
+          {
+            "id": "poli227-nicaragua-costa-rica",
+            "title": "The Divergent Political Trajectories of Nicaragua and Costa Rica",
+            "course": "POLI 227",
+            "kind": "Research essay",
+            "file": "university/essays/poli227-nicaragua-costa-rica.pdf",
+            "cover": "university/covers/poli227-nicaragua-costa-rica.jpg",
+            "pages": 11
+          },
+          {
+            "id": "poli345-libya-r2p",
+            "title": "The Libyan Intervention and the Limitations of R2P",
+            "course": "POLI 345",
+            "kind": "Short paper",
+            "file": "university/essays/poli345-libya-r2p.pdf",
+            "cover": "university/covers/poli345-libya-r2p.jpg",
+            "pages": 4
+          },
+          {
+            "id": "poli345-public-health-brazil",
+            "title": "Policy Memo: Improving Public Health in Brazil",
+            "course": "POLI 345",
+            "kind": "Policy memo",
+            "file": "university/essays/poli345-public-health-brazil.pdf",
+            "cover": "university/covers/poli345-public-health-brazil.jpg",
+            "pages": 3
+          },
+          {
+            "id": "poli334-seeking-the-common-good",
+            "title": "Seeking the Common Good: Aquinas, Aristotle and Christianity",
+            "course": "POLI 334",
+            "kind": "Paper",
+            "file": "university/essays/poli334-seeking-the-common-good.pdf",
+            "cover": "university/covers/poli334-seeking-the-common-good.jpg",
+            "pages": 7
+          },
+          {
+            "id": "poli333-socratic-ideals",
+            "title": "Socratic Ideals and the Complexities of Justice",
+            "course": "POLI 333",
+            "kind": "Paper",
+            "file": "university/essays/poli333-socratic-ideals.pdf",
+            "cover": "university/covers/poli333-socratic-ideals.jpg",
+            "pages": 5
+          },
+          {
+            "id": "poli333-freedom-in-natural-chains",
+            "title": "Freedom in Natural Chains: Aristotle on Freedom and Slavery",
+            "course": "POLI 333",
+            "kind": "Paper",
+            "file": "university/essays/poli333-freedom-in-natural-chains.pdf",
+            "cover": "university/covers/poli333-freedom-in-natural-chains.jpg",
+            "pages": 4
+          },
+          {
+            "id": "intd497-trapped-by-design",
+            "title": "Trapped by Design: Passport Confiscation and the Failure of Migrant Protections",
+            "course": "INTD 497",
+            "kind": "Final paper",
+            "file": "university/essays/intd497-trapped-by-design.pdf",
+            "cover": "university/covers/intd497-trapped-by-design.jpg",
+            "pages": 7
+          },
+          {
+            "id": "intd497-illusion-of-choice",
+            "title": "The Illusion of Choice: Weaponized Debt and Structural Coercion",
+            "course": "INTD 497",
+            "kind": "Short analytical essay",
+            "file": "university/essays/intd497-illusion-of-choice.pdf",
+            "cover": "university/covers/intd497-illusion-of-choice.jpg",
+            "pages": 7
+          },
+          {
+            "id": "intd350-power-of-labels",
+            "title": "The Power of Labels: 'Illegal Aliens', Law's Bias and Structural Violence",
+            "course": "INTD 350",
+            "kind": "Final research essay",
+            "file": "university/essays/intd350-power-of-labels.pdf",
+            "cover": "university/covers/intd350-power-of-labels.jpg",
+            "pages": 7
+          },
+          {
+            "id": "intd350-shaping-narratives",
+            "title": "Shaping Narratives and Forging Control: the Dynamics of Culture and Power",
+            "course": "INTD 350",
+            "kind": "Short analytical essay",
+            "file": "university/essays/intd350-shaping-narratives.pdf",
+            "cover": "university/covers/intd350-shaping-narratives.jpg",
+            "pages": 7
+          },
+          {
+            "id": "intd200-sante-droit-humain",
+            "title": "La santé en tant que droit humain : l'exemple canadien face au VIH",
+            "course": "INTD 200",
+            "kind": "Final research essay",
+            "lang": "fr",
+            "file": "university/essays/intd200-sante-droit-humain.pdf",
+            "cover": "university/covers/intd200-sante-droit-humain.jpg",
+            "pages": 9
+          },
+          {
+            "id": "intd200-liberation-development",
+            "title": "On How Liberation Interconnects Development Theories",
+            "course": "INTD 200",
+            "kind": "Short analytical essay",
+            "file": "university/essays/intd200-liberation-development.pdf",
+            "cover": "university/covers/intd200-liberation-development.jpg",
+            "pages": 7
+          },
+          {
+            "id": "hisp320-cultural-cannibalism",
+            "title": "The Celebration of Cultural Cannibalism in the 2016 Rio Olympics Opening Ceremony",
+            "course": "HISP 320",
+            "kind": "Final paper",
+            "file": "university/essays/hisp320-cultural-cannibalism.pdf",
+            "cover": "university/covers/hisp320-cultural-cannibalism.jpg",
+            "pages": 11
+          },
+          {
+            "id": "hist223-water-lily",
+            "title": "The All-Reaching Water Lily: Tenochtitlan and City Building in the Nahua Empire",
+            "course": "HIST 223",
+            "kind": "Essay",
+            "file": "university/essays/hist223-water-lily.pdf",
+            "cover": "university/covers/hist223-water-lily.jpg",
+            "pages": 7
+          },
+          {
+            "id": "hist223-macuilxochitl-map",
+            "title": "Cartographic Confluences: the Macuilxochitl Map",
+            "course": "HIST 223",
+            "kind": "Essay",
+            "file": "university/essays/hist223-macuilxochitl-map.pdf",
+            "cover": "university/covers/hist223-macuilxochitl-map.jpg",
+            "pages": 6
+          },
+          {
+            "id": "soci254-anthropology-development",
+            "title": "Anthropology's Role in Development: a Sociological Perspective",
+            "course": "SOCI 254",
+            "kind": "Final essay",
+            "file": "university/essays/soci254-anthropology-development.pdf",
+            "cover": "university/covers/soci254-anthropology-development.jpg",
+            "pages": 6
+          }
+        ]
+      }
+    ],
+    "maps": {
+      "title": "The map room",
+      "intro": "The social network analysis behind the thesis, at full size. Drag to pan, scroll or pinch to zoom, download any layer.",
+      "layers": [
+        {
+          "id": "co-commenting",
+          "title": "Co-commented videos",
+          "source": "Thesis · Figure 1",
+          "file": "university/maps/thesis-figure-1.png",
+          "caption": "Every dot is a video; two videos are linked when the same people comment on both. Colour is the channel. Vapor Memory's audience is the continent; the smaller artists sit on its coast.",
+          "legend": [
+            {
+              "label": "Vapor Memory",
+              "share": 69.1,
+              "color": "#e8193c"
+            },
+            {
+              "label": "theuppermostinlife",
+              "share": 10.17,
+              "color": "#f7a07a"
+            },
+            {
+              "label": "Flamingosis",
+              "share": 4.78,
+              "color": "#f5f53d"
+            },
+            {
+              "label": "Macroblank",
+              "share": 4.1,
+              "color": "#46e83c"
+            },
+            {
+              "label": "Mabisyo",
+              "share": 3.8,
+              "color": "#2ef0f0"
+            },
+            {
+              "label": "Opal Vessel",
+              "share": 2.51,
+              "color": "#1f3cf0"
+            },
+            {
+              "label": "slowerpace 音楽",
+              "share": 2.13,
+              "color": "#a51ff0"
+            },
+            {
+              "label": "Denz1000",
+              "share": 1.44,
+              "color": "#8f1a8f"
+            },
+            {
+              "label": "what is ?",
+              "share": 0.76,
+              "color": "#f01ff0"
+            },
+            {
+              "label": "THE WORLD WE LIVE IN 星",
+              "share": 0.76,
+              "color": "#f5b3d9"
+            },
+            {
+              "label": "snowpoint lounge",
+              "share": 0.46,
+              "color": "#0b1030"
+            }
+          ]
+        },
+        {
+          "id": "co-commenting-edges",
+          "title": "Edges by channel",
+          "source": "Thesis · Figure 3",
+          "file": "university/maps/thesis-figure-3.png",
+          "caption": "The same network with each link coloured by the channels it joins."
+        },
+        {
+          "id": "communities",
+          "title": "Within-community links",
+          "source": "Thesis · Figure 4",
+          "file": "university/maps/thesis-figure-4.png",
+          "caption": "The co-commenting data again, drawn to show the linkages inside each community."
+        },
+        {
+          "id": "channels",
+          "title": "Channel network",
+          "source": "Thesis · Figure 5",
+          "file": "university/maps/thesis-figure-5.png",
+          "caption": "Channels linked by shared commenters. The yellow dots are channels with weaker centrality."
+        },
+        {
+          "id": "co-tags",
+          "title": "Tag co-usage",
+          "source": "Thesis · Figure 6",
+          "file": "university/maps/thesis-figure-6.png",
+          "caption": "Tags used together across vaporwave videos; bigger, darker titles are the more central tags."
+        },
+        {
+          "id": "ucph-fa1",
+          "title": "Vaporwave, 5,500 videos",
+          "source": "UCPH · ForceAtlas",
+          "file": "university/maps/ucph-vaporwave-forceatlas1.png",
+          "caption": "The Copenhagen study that came first: a co-commenting network of 5,500 vaporwave videos."
+        },
+        {
+          "id": "ucph-fa2-circle",
+          "title": "Vaporwave, ForceAtlas 2",
+          "source": "UCPH · ForceAtlas 2",
+          "file": "university/maps/ucph-vaporwave-forceatlas2-circle.png",
+          "caption": "The same 5,500 videos under ForceAtlas 2: one dominant audience and a ring of satellites."
+        },
+        {
+          "id": "ucph-fa2-splash",
+          "title": "The splash",
+          "source": "UCPH · ForceAtlas 2",
+          "file": "university/maps/ucph-vaporwave-forceatlas2-splash.png",
+          "caption": "A sparser cut of the vaporwave network, where only the strongest links survive."
+        }
+      ]
+    }
+  },
+  "photos": {
+    "title": "Photos",
+    "intro": "Taken on the road. Location data stripped from every file.",
+    "albums": [
+      {
+        "id": "kruger",
+        "title": "Kruger",
+        "subtitle": "Kruger National Park, South Africa · July 2026",
+        "items": [
+          {
+            "file": "photos/kruger/kruger-01.jpg",
+            "thumb": "photos/kruger/thumbs/kruger-01.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Blue wildebeest"
+          },
+          {
+            "file": "photos/kruger/kruger-02.jpg",
+            "thumb": "photos/kruger/thumbs/kruger-02.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Hippos on the sandbank"
+          },
+          {
+            "file": "photos/kruger/kruger-03.jpg",
+            "thumb": "photos/kruger/thumbs/kruger-03.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "A young giraffe"
+          },
+          {
+            "file": "photos/kruger/kruger-04.jpg",
+            "thumb": "photos/kruger/thumbs/kruger-04.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Impala"
+          },
+          {
+            "file": "photos/kruger/kruger-05.jpg",
+            "thumb": "photos/kruger/thumbs/kruger-05.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Eagle on the lookout"
+          },
+          {
+            "file": "photos/kruger/kruger-06.jpg",
+            "thumb": "photos/kruger/thumbs/kruger-06.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Two giraffes"
+          },
+          {
+            "file": "photos/kruger/kruger-07.jpg",
+            "thumb": "photos/kruger/thumbs/kruger-07.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "White rhino, close"
+          },
+          {
+            "file": "photos/kruger/kruger-08.jpg",
+            "thumb": "photos/kruger/thumbs/kruger-08.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Baby baboon"
+          },
+          {
+            "file": "photos/kruger/kruger-09.jpg",
+            "thumb": "photos/kruger/thumbs/kruger-09.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Elephant under the tree"
+          },
+          {
+            "file": "photos/kruger/kruger-10.jpg",
+            "thumb": "photos/kruger/thumbs/kruger-10.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Greater kudu"
+          },
+          {
+            "file": "photos/kruger/kruger-11.jpg",
+            "thumb": "photos/kruger/thumbs/kruger-11.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Zebras at golden hour"
+          },
+          {
+            "file": "photos/kruger/kruger-12.jpg",
+            "thumb": "photos/kruger/thumbs/kruger-12.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Vervet monkey"
+          }
+        ]
+      },
+      {
+        "id": "travels",
+        "title": "Travels",
+        "subtitle": "Skies, coasts and corridors",
+        "items": [
+          {
+            "file": "photos/travels/travels-01.jpg",
+            "thumb": "photos/travels/thumbs/travels-01.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Pink sky over the rooftops"
+          },
+          {
+            "file": "photos/travels/travels-02.jpg",
+            "thumb": "photos/travels/thumbs/travels-02.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Storm rolling over the valley"
+          },
+          {
+            "file": "photos/travels/travels-03.jpg",
+            "thumb": "photos/travels/thumbs/travels-03.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Beach at sundown"
+          },
+          {
+            "file": "photos/travels/travels-04.jpg",
+            "thumb": "photos/travels/thumbs/travels-04.jpg",
+            "w": 1350,
+            "h": 1800,
+            "caption": "Night path through the woods"
+          },
+          {
+            "file": "photos/travels/travels-05.jpg",
+            "thumb": "photos/travels/thumbs/travels-05.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "The square after dark"
+          },
+          {
+            "file": "photos/travels/travels-06.jpg",
+            "thumb": "photos/travels/thumbs/travels-06.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Harbour"
+          },
+          {
+            "file": "photos/travels/travels-07.jpg",
+            "thumb": "photos/travels/thumbs/travels-07.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "First snow"
+          },
+          {
+            "file": "photos/travels/travels-08.jpg",
+            "thumb": "photos/travels/thumbs/travels-08.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Canyon lookout"
+          },
+          {
+            "file": "photos/travels/travels-09.jpg",
+            "thumb": "photos/travels/thumbs/travels-09.jpg",
+            "w": 1350,
+            "h": 1800,
+            "caption": "The cove"
+          },
+          {
+            "file": "photos/travels/travels-10.jpg",
+            "thumb": "photos/travels/thumbs/travels-10.jpg",
+            "w": 1350,
+            "h": 1800,
+            "caption": "Arcades"
+          },
+          {
+            "file": "photos/travels/travels-11.jpg",
+            "thumb": "photos/travels/thumbs/travels-11.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Tulips"
+          },
+          {
+            "file": "photos/travels/travels-12.jpg",
+            "thumb": "photos/travels/thumbs/travels-12.jpg",
+            "w": 1800,
+            "h": 1350,
+            "caption": "Wisteria over the pond"
+          }
+        ]
+      }
+    ]
+  },
+  "music": {
+    "title": "Crates",
+    "intro": "What the tower plays, sorted into its categories. This is a radio, not a jukebox: nothing here plays on demand, but every track shows when it is next on air.",
+    "crates": [
+      {
+        "id": "hyrule-dreams",
+        "match": {
+          "album": "HYRULE DREAMS"
+        },
+        "cover": "music/covers/hyrule-dreams.jpg",
+        "note": "Zelda themes slowed into liminal ambience."
+      },
+      {
+        "id": "by-thy-doors-of-ash",
+        "match": {
+          "album": "By Thy Doors of Ash"
+        },
+        "cover": "music/covers/by-thy-doors-of-ash.jpg",
+        "note": "undersaken's barber beats album."
+      },
+      {
+        "id": "omoide-no-mori",
+        "match": {
+          "album": "思い出の森"
+        },
+        "cover": "music/covers/omoide-no-mori.jpg",
+        "note": "snowpoint lounge's forest of memories."
+      },
+      {
+        "id": "orre-region",
+        "match": {
+          "album": "Orre Region"
+        },
+        "cover": "music/covers/orre-region.jpg",
+        "note": "silph skyline's Pokémon Colosseum reworks."
+      }
+    ]
+  }
+}

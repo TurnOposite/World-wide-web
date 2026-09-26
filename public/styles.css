@@ -1,0 +1,338 @@
+:root{
+  --bg:#0b0d10;
+  --bg-raise:#12161b;
+  --bg-raise-2:#171c23;
+  --line:#232a33;
+  --text:#e8edf3;
+  --text-dim:#96a1ae;
+  --text-faint:#67717d;
+  --signal:#ffb340;
+  --signal-soft:#ffb34022;
+  --live:#ff4d4d;
+  --ok:#3ddc84;
+  --radius:14px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+/* `display:block` in component rules would otherwise beat the [hidden] UA rule. */
+[hidden]{display:none!important}
+body{
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #1a2029 0%, transparent 60%),
+    var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+  font-size:15px;
+  line-height:1.5;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  padding-bottom:64px;
+}
+
+.scanlines{
+  position:fixed;inset:0;pointer-events:none;z-index:100;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px);
+  mix-blend-mode:overlay;
+}
+
+/* ---------- backdrop ----------
+   Atmosphere, not wallpaper: a genre-matched image, heavily darkened and
+   blurred, at low opacity, behind literally everything (z-index:-1, under
+   body's own background). Two stacked layers so a track change can cross-
+   fade the incoming image over the outgoing one instead of popping; JS only
+   ever toggles the `.visible` class, so whether that's an animated fade or
+   an instant cut is entirely CSS's call — see the reduced-motion block
+   below, which already exists project-wide and needs no special case here. */
+.backdrop{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+
+/* ---------- visualiser stage ----------
+   Full-viewport, behind every text-bearing element and above .backdrop.
+   main/.masthead/footer below are given an explicit z-index so nothing ever
+   ends up underneath this by accident. See viz.js's Visualizer for how it
+   shares one audio graph with #viz (the small art-frame canvas) instead of
+   building a second one. */
+/* width/height:100% is load-bearing, not decorative: a <canvas> is a
+   replaced element, and inset:0 alone sizes a replaced element to its own
+   width/height *content attribute* rather than stretching it — unlike a div.
+   Without this, _resizeStage() reads that same attribute back as
+   clientWidth, multiplies by devicePixelRatio, and writes a bigger value
+   into it every frame: an unbounded feedback loop, caught live during this
+   feature's own verification pass (see docs/DECISIONS.md). #viz below
+   already has this for the same reason. */
+#vizStage{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+
+.backdrop-layer{
+  position:absolute;
+  /* Oversized past the viewport so a heavy blur never reveals a hard edge. */
+  inset:-8%;
+  background-size:cover;background-position:center;
+  filter:blur(48px) brightness(.32) saturate(.85);
+  opacity:0;
+  transition:opacity 1.4s ease;
+}
+.backdrop-layer.visible{opacity:.08}
+
+/* ---------- masthead ---------- */
+.masthead{
+  position:relative;z-index:1;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:20px clamp(16px,4vw,40px);
+  border-bottom:1px solid var(--line);
+}
+.mark{display:flex;align-items:center;gap:12px}
+.tower-icon{color:var(--signal);flex:none}
+.masthead h1{font-size:17px;margin:0;letter-spacing:.02em;font-weight:650}
+.masthead p{margin:0;font-size:12.5px;color:var(--text-faint)}
+
+.meters{display:flex;gap:10px;font-size:12px;color:var(--text-dim)}
+.meter{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--bg-raise);border:1px solid var(--line);
+  padding:5px 11px;border-radius:999px;font-variant-numeric:tabular-nums;
+}
+.meter b{color:var(--text);font-weight:600}
+.meter .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.meter.off .dot{background:var(--text-faint);box-shadow:none}
+
+/* ---------- layout ---------- */
+main{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:clamp(20px,4vw,36px) clamp(16px,4vw,40px)}
+
+/* ---------- on air ---------- */
+.onair{
+  display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:clamp(20px,4vw,36px);
+  align-items:center;
+  background:linear-gradient(160deg,var(--bg-raise) 0%,var(--bg-raise-2) 100%);
+  border:1px solid var(--line);border-radius:calc(var(--radius) + 4px);
+  padding:clamp(20px,3.5vw,32px);
+  position:relative;overflow:hidden;
+}
+.onair::before{
+  content:"";position:absolute;inset:-40% -10% auto auto;width:420px;height:420px;
+  background:radial-gradient(circle,var(--signal-soft) 0%,transparent 65%);
+  pointer-events:none;
+}
+
+/* The art frame is the visualiser's whole canvas.
+   The cover sits inset at --art-fraction and the visualiser fills the frame
+   *behind* it, so every layer it draws lands in the margin band around the
+   artwork. That is the brief: it frames the cover, it never covers it.
+   --art-fraction must stay in step with ART_FRACTION in public/viz.js — the
+   renderer places its ring from that number, not by measuring the <img>. */
+.art-frame{
+  --art-fraction:76%;
+  position:relative;aspect-ratio:1;border-radius:var(--radius);overflow:hidden;
+  background:#0e1216;border:1px solid var(--line);
+  display:grid;place-items:center;
+  /* Contain the visualiser's additive blending: without a stacking context of
+     its own, `lighter` composites against whatever is painted behind the
+     frame and the panel gradient bleeds into the glow. */
+  isolation:isolate;
+}
+.art-frame img,
+.art-frame .art-fallback{
+  position:relative;z-index:1;
+  width:var(--art-fraction);height:var(--art-fraction);
+  object-fit:cover;display:block;
+  border-radius:calc(var(--radius) - 3px);
+  /* The shadow is doing real work: it separates the cover from the light
+     behind it, which is what keeps the artwork legible once the visualiser is
+     glowing at full tilt. */
+  box-shadow:0 10px 34px rgba(0,0,0,.62), 0 0 0 1px rgba(255,255,255,.07);
+}
+/* Same quiet-atmosphere treatment as .backdrop-layer (darkened, blurred, low
+   opacity), scoped to this element rather than the viewport. `overflow:
+   hidden` here (not just on the ancestor .art-frame) matters: without it the
+   oversized, blurred ::before bleeds past the fallback's own rounded box and
+   into the visualiser's margin band — exactly the "never draws over/competes
+   with" rule this project already holds itself to for the art itself. */
+.art-frame .art-fallback{
+  position:relative;overflow:hidden;
+  display:grid;place-items:center;background:#0e1216;
+}
+.art-frame .art-fallback::before{
+  content:"";position:absolute;inset:-10%;
+  background-image:url('/assets/backdrops/whattheelephantbluer.webp');
+  background-size:cover;background-position:center;
+  filter:blur(20px) brightness(.3) saturate(.85);
+  opacity:.5;
+}
+.art-frame .art-fallback svg{position:relative}
+/* The placeholder SVG carries width/height attributes; without this it keeps
+   its intrinsic 64px at every frame size and looks stranded in a large frame
+   and oversized in a small one. */
+.art-fallback svg{width:46%;height:auto}
+.art-fallback{color:#2c3540}
+#viz{
+  position:absolute;inset:0;z-index:0;
+  width:100%;height:100%;pointer-events:none;
+}
+
+.onair-text{min-width:0;position:relative}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;margin:0 0 10px;
+  font-size:10.5px;letter-spacing:.16em;font-weight:700;color:var(--live);
+}
+.badge .pulse{width:7px;height:7px;border-radius:50%;background:var(--live);animation:pulse 1.8s ease-in-out infinite}
+.badge.paused{color:var(--text-faint)}
+.badge.paused .pulse{background:var(--text-faint);animation:none}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(255,77,77,.5)}50%{opacity:.55;box-shadow:0 0 0 7px rgba(255,77,77,0)}}
+
+#title{
+  margin:0 0 4px;font-size:clamp(21px,3.4vw,30px);line-height:1.2;font-weight:640;
+  overflow-wrap:anywhere;
+}
+.artist{margin:0;color:var(--signal);font-size:15px;font-weight:520}
+.album{margin:2px 0 0;color:var(--text-faint);font-size:13px}
+
+.progress{
+  height:5px;background:#1e242c;border-radius:99px;margin:20px 0 6px;overflow:hidden;
+}
+.progress-bar{height:100%;width:0;background:linear-gradient(90deg,var(--signal),#ff8a3d);border-radius:99px;transition:width .35s linear}
+.times{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11.5px;color:var(--text-faint)}
+
+.controls{display:flex;align-items:center;gap:14px;margin-top:20px;flex-wrap:wrap}
+button{font-family:inherit;cursor:pointer;border:none}
+.tune{
+  display:inline-flex;align-items:center;gap:9px;
+  background:var(--signal);color:#1a1206;font-weight:650;font-size:14px;
+  padding:11px 22px;border-radius:999px;transition:transform .12s ease,filter .12s ease;
+}
+.tune:hover{filter:brightness(1.08)}
+.tune:active{transform:scale(.97)}
+.tune-icon{font-size:12px}
+.ghost{
+  background:transparent;color:var(--text-dim);border:1px solid var(--line);
+  padding:9px 16px;border-radius:999px;font-size:13px;transition:border-color .15s,color .15s;
+}
+.ghost:hover{border-color:var(--signal);color:var(--text)}
+.ghost.block{display:block;width:100%;margin-top:12px}
+/* Discreet on purpose: a listener who never wants to think about the
+   visualiser's look should barely register this exists. */
+.viz-preset{font-size:11px;padding:7px 12px;color:var(--text-faint)}
+.vol{display:flex;align-items:center;gap:8px;color:var(--text-faint)}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:104px;height:4px;border-radius:99px;background:#2a323c;outline:none;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--text);cursor:pointer;
+}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-radius:50%;background:var(--text);cursor:pointer}
+
+.hint{margin:14px 0 0;font-size:12px;color:var(--text-faint)}
+
+/* ---------- panels ---------- */
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:20px}
+.panel{
+  background:var(--bg-raise);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 20px;
+}
+.panel.wide{margin-top:16px}
+.panel h3{margin:0 0 12px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);font-weight:640}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.panel-head h3{margin:0}
+.count{color:var(--text-faint);letter-spacing:0;text-transform:none;font-weight:400}
+#libSearch{
+  background:#0e1216;border:1px solid var(--line);border-radius:8px;color:var(--text);
+  padding:8px 12px;font-family:inherit;font-size:13px;min-width:200px;flex:1;max-width:320px;
+}
+#libSearch:focus{outline:none;border-color:var(--signal)}
+
+.tracklist{list-style:none;margin:0;padding:0;counter-reset:t}
+.tracklist li{
+  display:flex;align-items:baseline;gap:10px;padding:8px 0;
+  border-bottom:1px solid rgba(35,42,51,.6);font-size:13.5px;min-width:0;
+}
+.tracklist li:last-child{border-bottom:none}
+.tracklist .idx{font-family:var(--mono);font-size:11px;color:var(--text-faint);flex:none;width:22px}
+.tracklist .t{font-weight:520;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tracklist .a{color:var(--text-faint);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.tracklist .d{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text-faint);flex:none}
+.tracklist.muted .t{font-weight:450;color:var(--text-dim)}
+.tracklist.compact li{padding:6px 0}
+.tracklist .empty{color:var(--text-faint);font-style:italic;border:none}
+.tracklist li.now .t{color:var(--signal)}
+
+/* ---------- queue editor ---------- */
+.q-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.q-unlock{display:flex;gap:8px}
+#queueKey{
+  background:#0e1216;border:1px solid var(--line);border-radius:8px;color:var(--text);
+  padding:8px 12px;font-family:inherit;font-size:13px;width:150px;
+}
+#queueKey:focus{outline:none;border-color:var(--signal)}
+
+.queue-list .q-item{
+  gap:10px;padding:9px 8px;border-radius:8px;
+  /* Without this a touch drag scrolls the page instead of moving the row. */
+  touch-action:none;
+  transition:background .12s ease,opacity .12s ease;
+}
+.queue-list .q-item.movable{cursor:grab;background:rgba(255,255,255,.018)}
+.queue-list .q-item.movable:hover{background:rgba(255,255,255,.045)}
+.queue-list .q-item.movable:focus-visible{outline:2px solid var(--signal);outline-offset:-2px}
+.queue-list .q-item.dragging{
+  cursor:grabbing;opacity:.9;background:rgba(255,179,64,.10);
+  box-shadow:0 8px 22px rgba(0,0,0,.45);
+}
+/* A locked slot gets no grab cursor and no hover state — the affordance is
+   absent, not present-then-refused. */
+.queue-list .q-item.locked{opacity:.45;cursor:default}
+.q-grip{
+  flex:none;width:18px;color:var(--text-faint);font-size:11px;letter-spacing:-2px;
+  user-select:none;
+}
+.q-when{
+  margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text-faint);
+  flex:none;min-width:56px;text-align:right;
+}
+.queue-list .d{margin-left:12px;min-width:34px;text-align:right}
+.q-status{margin:10px 0 0;font-size:12px;color:var(--text-faint);min-height:1em}
+.q-status[data-tone=bad]{color:var(--live)}
+
+/* ---------- footer ---------- */
+footer{
+  position:fixed;left:0;right:0;bottom:0;z-index:1;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 16px;font-size:11.5px;color:var(--text-faint);
+  background:rgba(11,13,16,.86);backdrop-filter:blur(10px);border-top:1px solid var(--line);
+}
+.sep{opacity:.4}
+
+/* ---------- programme guide ---------- */
+.span-picker{display:flex;gap:6px}
+.span-btn{padding:6px 13px;font-size:12px}
+.span-btn.active{border-color:var(--signal);color:var(--signal)}
+.guide-list .guide-day{
+  display:block;padding:14px 0 6px;border-bottom:none;
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);font-weight:640;
+}
+.guide-list .guide-day:first-child{padding-top:0}
+.guide-list .idx{width:52px;font-size:12px}
+.guide-list li.now .t{color:var(--signal)}
+.guide-list .guide-now{color:var(--live);font-weight:700;letter-spacing:.04em}
+.guide-note{max-width:640px}
+
+@media (max-width:640px){
+  .onair{grid-template-columns:1fr}
+  /* `justify-self`, not `margin:0 auto`. An auto inline margin on a stretched
+     grid item makes it shrink-to-fit its content instead of filling the
+     column — so the frame collapsed to the intrinsic size of whatever was
+     inside it. With real album art that was the image's natural width (large,
+     so the 220px cap hid the bug); with the no-art fallback it was the 64px
+     SVG, and the whole player rendered a thumbnail on a phone. An explicit
+     width also gives the percentage-sized children something definite to
+     resolve against, which they need. */
+  .art-frame{width:min(100%,260px);justify-self:center}
+  .meters{width:100%;justify-content:flex-start}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  /* Belt and braces: viz.js already never paints the stage under reduced
+     motion, but hiding the element too means a future code path can't
+     accidentally light it up without also fighting this rule. */
+  #vizStage{display:none}
+}

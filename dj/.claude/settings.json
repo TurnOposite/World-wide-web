@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(node dj.mjs:*)",
+      "Bash(node --test:*)",
+      "Bash(curl -s http://localhost:*)",
+      "Bash(curl -s http://127.0.0.1:*)",
+      "Read(./moods.json)",
+      "Edit(./moods.json)"
+    ],
+    "deny": [
+      "Write(../music/**)",
+      "Edit(../music/**)",
+      "Write(../server/**)",
+      "Edit(../server/**)",
+      "Write(../public/**)",
+      "Edit(../public/**)",
+      "Write(../scripts/**)",
+      "Edit(../scripts/**)",
+      "Write(../tests/**)",
+      "Edit(../tests/**)",
+      "Write(../docs/**)",
+      "Edit(../docs/**)",
+      "Bash(rm:*)",
+      "Bash(mv ../music:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  },
+  "env": {
+    "STATION_URL": "http://localhost:8080"
+  }
+}

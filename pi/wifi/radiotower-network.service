@@ -1,0 +1,27 @@
+[Unit]
+Description=Radio Tower — apply Wi-Fi networks from the boot partition
+Documentation=file:///opt/radio-tower/pi/NEW-NETWORK.md
+# NetworkManager must be up before we can add profiles to it. Wants= rather
+# than Requires= so a Pi with NetworkManager disabled (Ethernet-only, or an
+# older image) still boots normally instead of failing this unit and going
+# into a degraded state over a feature it does not use.
+After=NetworkManager.service
+Wants=NetworkManager.service
+# Deliberately ordered before the station: if this run brings up the network,
+# the station starts with an address already in hand and avahi advertises
+# radiotower.local correctly the first time.
+Before=radiotower.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/radiotower-network
+# The tower is not more broken for failing to change networks than it was
+# before it tried, and a failed unit here must never stop the station from
+# starting. The script's own output goes to the journal either way:
+#   journalctl -u radiotower-network
+SuccessExitStatus=0 1
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

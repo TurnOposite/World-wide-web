@@ -1,0 +1,17 @@
+[Unit]
+Description=Radio Tower — read radiotower-online.txt (domain, tunnel token, setup hotspot)
+Documentation=file:///opt/radio-tower/pi/anywhere/README.md
+# Before the network script (it reads the setup-hotspot name from here) and
+# before the tunnel (it reads the token from here).
+Before=radiotower-network.service radiotower-tunnel.service
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/radiotower-online
+# A typo in a text file must never stop the tower from booting.
+SuccessExitStatus=0 1
+
+[Install]
+WantedBy=multi-user.target

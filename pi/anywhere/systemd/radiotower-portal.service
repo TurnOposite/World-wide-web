@@ -1,0 +1,14 @@
+[Unit]
+Description=Radio Tower — Wi-Fi setup page (only while the setup hotspot is up)
+Documentation=file:///opt/radio-tower/pi/anywhere/README.md
+# Not enabled at boot on purpose. radiotower-network starts it when it brings
+# up a hotspot and stops it once the tower is on a real network, so it is
+# never reachable from anyone's LAN.
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/node /opt/radio-tower/pi/anywhere/portal.mjs
+Environment=RT_PORTAL_PORT=80
+Restart=on-failure
+RestartSec=3
+SyslogIdentifier=radiotower-portal

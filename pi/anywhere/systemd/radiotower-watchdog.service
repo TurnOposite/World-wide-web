@@ -1,0 +1,8 @@
+[Unit]
+Description=Radio Tower — watchdog pass (station, network, tunnel)
+Documentation=file:///opt/radio-tower/pi/anywhere/README.md
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/radiotower-watchdog
+SyslogIdentifier=radiotower-watchdog
