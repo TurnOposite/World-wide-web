@@ -131,7 +131,7 @@ back ends.
 | 3 | Radio page: on air, echoes, full-page visualiser (roadmap #28 done properly), Visuals panel | done 2026-09-26 (polish continues) |
 | 4 | Working queue: listener view, booth (drag/keys, moods, clear, broadcast look), GitHub control plane | done 2026-09-26 |
 | 5 | Atlas, Écrits, Portfolio | done 2026-09-26 |
-| 6 | GitHub-ready: workflows, README, secret scan, publish script, GO-LIVE | workflows done; README, secret scan, publish script, GO-LIVE next |
+| 6 | GitHub-ready: workflows, README, secret scan, publish script, GO-LIVE | done 2026-09-26 (shift 2) |
 | 7 | Verification: e2e (two listeners same second, reorder reaches both, visuals), mobile, review | self-test green: 257 tests, 43/43 browser, 32/32 site checks; review next |
 | 8 | Delivery: preview, write-back to the laptop folder, bundle, Project docs | |
 
