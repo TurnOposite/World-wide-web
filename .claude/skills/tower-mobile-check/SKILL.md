@@ -105,6 +105,32 @@ reason to be *reasonably* confident here. WebKit is stricter than Chromium about
 off-by-one `Content-Range` values, so if audio plays everywhere except Safari,
 re-read that file before suspecting the clock.
 
+## The cloud edition's player (`site/js/player.js`), as of 2026-09-26
+
+The static site has its own copy of the player, and it handles the hazards
+above like this — verified in Chromium at phone size (`scripts/site-smoke.mjs`),
+**not** on an iPhone:
+
+- **Gesture (1):** every `play()` goes through `Player._play()`. A refusal
+  (`NotAllowedError`) on a path without a tap — the re-join after a lock or a
+  long background — sets the player to not-playing and gives the Tune in
+  button back with "tap Tune in to land back where the tower is". The site
+  smoke forces a refusal and checks exactly that.
+- **Metadata before seeking (2):** a new source seeks on `loadedmetadata`.
+- **Screen lock / silent switch (3):** the visualiser taps the music through
+  Web Audio, which iOS treats as a UI sound — muted by the silent switch,
+  suspended when the screen locks. `tuneIn()` sets
+  `navigator.audioSession.type = 'playback'` (Safari 16.4+) inside the tap, and
+  on an iOS without that API `webAudioIsSafe()` keeps the music off Web Audio
+  altogether (visuals idle, music plays). Media Session metadata and
+  play/pause handlers are set.
+- **Re-join, not resume (4):** `visibilitychange` → refresh → join at live.
+
+Add to the checklist below, on the iPhone: **silent switch on** (step 1 must
+still be audible) and **lock for 60 s** (step 4 must still be audible). Those
+two are the whole reason for the `audioSession` line; only a phone can say
+whether it did its job.
+
 ## The physical-device checklist
 
 Four minutes, needs a human and a real phone. This is the only thing that

@@ -74,6 +74,11 @@ Open the address on your phone, press **Tune in**.
 
 - If you hear music: the station is live. Open it on a second device — both
   play the same second.
+- On your iPhone, two things only a real phone can prove: flip the **silent
+  switch on** — the music must keep playing — then **lock the screen** for a
+  minute — it must still be playing when you unlock. If either stops it, say
+  so in the next Claude session: the fix is known (`docs/WORKLOG.md`,
+  2026-09-26 shift 5).
 - If it stays silent: open it on the laptop, press F12 → Console. A red line
   about `static.wixstatic.com` means Wix refused the audio; see
   "If something is wrong" below. This is the one thing that could not be

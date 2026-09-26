@@ -2858,3 +2858,23 @@ putting the old token back turns the check red.
 file, no transitive dependencies, and hand-rolled contrast/ARIA checks would be
 a worse copy of it. `dependencies` (runtime) is unchanged: express and
 music-metadata.
+
+## 2026-09-26 — On an iPhone, the music outranks the visualiser
+
+**Context.** The site's visualiser reads the music through Web Audio
+(`createMediaElementSource`). On iOS that re-classifies the station as a UI
+sound: the silent switch mutes it and a locked screen suspends it. For a radio
+whose promise is "open it on a phone" (BRIEF.md §7), that is the worst failure
+available — silent, and in the listener's pocket.
+
+**Decision.** `tuneIn()` declares the page as music with
+`navigator.audioSession.type = 'playback'` (Safari 16.4+, inside the tap). On an
+iOS that has no such API, the player does not route the music through Web
+Audio at all: the visuals idle, the music plays from the `<audio>` element as
+any page's would. Every `play()` outside a tap that the phone refuses turns the
+player back to "not playing" with the Tune in button, rather than a silent
+"on air".
+
+**Not proven.** Chromium at phone size is all the build container has; no
+WebKit. The silent-switch and lock-screen checks are in `docs/GO-LIVE.md` §4 for
+Ortis's phone.

@@ -255,6 +255,24 @@ try {
   } else console.log('SKIP  accessibility (axe-core not installed — npm install)');
   check('the mini-player stays on screen on a phone', await m.$eval('#minibar', (el) => el.getBoundingClientRect().bottom <= innerHeight + 1 && el.offsetHeight > 40));
 
+  // A tap, not a click: the gesture path a phone takes (tower-mobile-check).
+  // Chromium in a phone-shaped window — not iOS Safari; see that skill.
+  await m.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
+  await m.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 10000 });
+  await m.tap('#mbTune');
+  await m.waitForFunction(() => { const au = document.getElementById('audio'); return !au.paused && au.currentTime > 0.3; }, null, { timeout: 10000 }).catch(() => {});
+  const tapped = await m.evaluate(() => ({ paused: document.getElementById('audio').paused, d: document.getElementById('audio').currentTime - window.radioTower.player.livePosition() }));
+  check('on a phone, a tap on the mini-player tunes in on the station\'s second', !tapped.paused && Math.abs(tapped.d) < 1.5, `drift ${tapped.d.toFixed(2)}s`);
+  // Back from a locked screen: the re-join's play() is refused (no tap).
+  // The player must say so and give the button back, not pretend to play.
+  await m.evaluate(() => {
+    HTMLMediaElement.prototype.play = function () { return Promise.reject(new DOMException('needs a tap', 'NotAllowedError')); };
+    window.radioTower.player.join({ force: true });
+  });
+  await m.waitForFunction(() => !window.radioTower.player.playing, null, { timeout: 5000 }).catch(() => {});
+  const refused = await m.evaluate(() => ({ playing: window.radioTower.player.playing, status: window.radioTower.player.status, label: document.getElementById('mbTune').getAttribute('aria-label') }));
+  check('a re-join the phone refuses gives the Tune in button back instead of faking play', !refused.playing && refused.label === 'Tune in' && /tap Tune in/.test(refused.status), refused.status);
+
   /* -------------------------------------- dist/ under a repo sub-path ---- */
   await build({ base: '/radio-tower/', repo: 'ortis/radio-tower', quiet: true });
   const distServer = await createSiteServer({ dist: true, base: '/radio-tower/', fixtures });

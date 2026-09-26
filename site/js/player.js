@@ -20,6 +20,23 @@
 
 const DRIFT_TOLERANCE = 2.0;
 
+/**
+ * May this browser's music go through Web Audio (for the visualiser)?
+ *
+ * On an iPhone, audio routed through an AudioContext is treated as a UI sound
+ * unless the page says otherwise: the silent switch mutes it and a locked
+ * screen suspends it — the music would stop in the listener's pocket. Safari
+ * 16.4+ lets the page declare itself music (`navigator.audioSession.type =
+ * 'playback'`, done in tuneIn()); older iOS cannot, so there the visuals idle
+ * and the music plays straight from the <audio> element, untouched. Music
+ * first: .claude/skills/tower-mobile-check, hazard 3.
+ */
+export function webAudioIsSafe(nav = globalThis.navigator) {
+  if (!nav) return true;
+  const ios = /iPad|iPhone|iPod/.test(nav.userAgent || '') || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1);
+  return !ios || Boolean(nav.audioSession);
+}
+
 export class Player extends EventTarget {
   /**
    * @param {object} client  from engine/transport.js connect()
@@ -166,7 +183,7 @@ export class Player extends EventTarget {
       const p = this.livePosition() ?? 0;
       const max = (this.audio.duration || 1e9) - 0.15;
       try { this.audio.currentTime = Math.max(0, Math.min(p, max)); } catch { /* not seekable yet */ }
-      if (this.playing) this.audio.play().catch(() => {});
+      if (this.playing) this._play();
     };
     if (force || this.audio.src !== want) {
       this.audio.src = want;
@@ -199,7 +216,10 @@ export class Player extends EventTarget {
   tuneIn() {
     if (this.playing) return;
     this.playing = true;
-    this.stage?.attach(this.audio);
+    // Music, not a UI sound: plays with the silent switch on, keeps playing
+    // when the screen locks (Safari 16.4+; ignored everywhere else).
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* read-only on some builds */ }
+    if (webAudioIsSafe()) this.stage?.attach(this.audio);
     this.stage?.resume();
     this.stage?.setPlaying(true);
     const want = this._sources[this._sourceIndex];
@@ -209,16 +229,35 @@ export class Player extends EventTarget {
     } else {
       this._seekLive();
     }
-    const p = this.audio.play();
-    p?.catch?.((e) => {
-      // AbortError = a newer load replaced this one (a rollover mid-click); harmless.
-      if (e?.name !== 'AbortError') this._status('your browser blocked playback — press Tune in again', 'bad');
-    });
+    this._play('your browser blocked playback — press Tune in again');
     this._status('on air');
     this.dispatchEvent(new CustomEvent('playing', { detail: true }));
     if (navigator.mediaSession) navigator.mediaSession.playbackState = 'playing';
     // Skew may have moved since boot; the drift check acts on the new value.
     this.client.syncClock?.();
+  }
+
+  /**
+   * Every play() goes through here. Only a tap may start sound on a phone: a
+   * re-join after the screen was locked, or after a long time in another app,
+   * can be refused. Then the honest state is "not playing" and the Tune in
+   * button, never a spinner that waits for nothing (tower-mobile-check,
+   * hazard 1).
+   */
+  _play(refusedText = 'tap Tune in to land back where the tower is') {
+    const p = this.audio.play();
+    p?.catch?.((e) => {
+      // AbortError = a newer load replaced this one (a rollover mid-click);
+      // NotSupportedError = this copy will not load, which the 'error' event
+      // answers by trying the next source. Only a refusal needs the listener.
+      if (e?.name !== 'NotAllowedError' || !this.playing) return;
+      this.playing = false;
+      this.stage?.setPlaying(false);
+      this._status(refusedText, 'bad');
+      this.dispatchEvent(new CustomEvent('playing', { detail: false }));
+      if (navigator.mediaSession) navigator.mediaSession.playbackState = 'paused';
+    });
+    return p;
   }
 
   _seekLive() {

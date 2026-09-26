@@ -2275,3 +2275,29 @@ Verified: `bash scripts/build-test.sh` — 273 tests, 43/43 browser, 33/33 site;
 
 Verified: `bash scripts/build-test.sh` — 273 tests, 43/43 browser, 34/34 site;
 `npm run preview:smoke` 18/18 three times.
+
+### 2026-09-26, shift 5 — the player on a phone (tower-mobile-check)
+
+Audited `site/js/player.js` against the five hazards in the
+`tower-mobile-check` skill.
+
+- **Found:** the visualiser routes the music through Web Audio, which on an
+  iPhone makes it a UI sound — muted by the silent switch, suspended on screen
+  lock. **Fixed** as far as code can: `navigator.audioSession.type =
+  'playback'` inside the tap (Safari 16.4+); `webAudioIsSafe()` keeps the music
+  off Web Audio on an older iOS (visuals idle there). DECISIONS entry.
+- **Found:** re-joins after a lock or a long background call `play()` without
+  a tap and swallowed the refusal — the page said "on air" in silence.
+  **Fixed:** `Player._play()`; a `NotAllowedError` gives the Tune in button
+  back ("tap Tune in to land back where the tower is"). A source that fails
+  to load still falls through to the next copy as before.
+- Site smoke: +2 checks in the phone context — a *tap* tunes in on the
+  station's second (drift −0.01 s), and a forced refusal restores the button.
+  Unit test for the iOS guard (iPhone with/without audioSession, iPad in
+  desktop mode, Mac, Android).
+- Skill updated with what the cloud edition handles; GO-LIVE §4 gains the two
+  checks only a real iPhone can do (silent switch on, lock 60 s).
+- **Not proven:** this is Chromium at 390 px. No WebKit in the container.
+
+Verified: `bash scripts/build-test.sh` — 274 tests, 43/43 browser, 36/36 site;
+preview smoke 18/18. Preview republished (version 3).

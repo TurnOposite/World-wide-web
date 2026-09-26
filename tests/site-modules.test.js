@@ -16,6 +16,7 @@ import { normalise, lookToSettings, VisualSettings, LOOKS, LAYERS } from '../sit
 import { toHtml, frontMatter, build as buildTexts } from '../scripts/site-texts.mjs';
 import { routes, normaliseBase } from '../scripts/site-build.mjs';
 import { CloudEngine } from '../site/js/engine/cloud.js';
+import { webAudioIsSafe } from '../site/js/player.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MOODS = JSON.parse(fs.readFileSync(path.join(ROOT, 'dj/moods.json'), 'utf8'));
@@ -114,4 +115,13 @@ test('the build writes a shell at every route, including every text', () => {
   assert.equal(normaliseBase('radio-tower'), '/radio-tower/');
   assert.equal(normaliseBase('/radio-tower/'), '/radio-tower/');
   assert.equal(normaliseBase(''), '/');
+});
+
+test('the visualiser may take the music through Web Audio except on an iPhone that cannot call it music', () => {
+  const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+  assert.equal(webAudioIsSafe({ userAgent: iphone, audioSession: { type: 'auto' } }), true, 'iOS 16.4+: declared as playback in tuneIn()');
+  assert.equal(webAudioIsSafe({ userAgent: iphone }), false, 'older iOS: silent switch and screen lock would stop the music');
+  assert.equal(webAudioIsSafe({ userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', platform: 'MacIntel', maxTouchPoints: 5 }), false, 'an iPad asking for the desktop site is still iOS');
+  assert.equal(webAudioIsSafe({ userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', platform: 'MacIntel', maxTouchPoints: 0 }), true, 'a Mac');
+  assert.equal(webAudioIsSafe({ userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/129 Mobile' }), true);
 });
