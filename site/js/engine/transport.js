@@ -89,6 +89,15 @@ class CloudClient extends Emitter {
   get controlStatus() { return this.engine.controlStatus; }
 
   async get(path) {
+    // The portfolio is data, not programme: a file the build writes from the
+    // same manifest code the Pi uses (scripts/site-collections.mjs).
+    if (path.startsWith('/api/collections')) {
+      this._collections ??= fetch(new URL('data/collections.json', this.base)).then((r) => {
+        if (!r.ok) throw new Error(`collections ${r.status}`);
+        return r.json();
+      });
+      return this._collections;
+    }
     const { status, body } = this.engine.get(path);
     if (status >= 400) throw Object.assign(new Error(body.error || `status ${status}`), { status, body });
     return body;

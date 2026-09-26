@@ -19,6 +19,13 @@ export const SYNCED = [
   ['server/lib/schedule.js', 'site/js/lib/schedule.js'],
   ['server/lib/payloads.js', 'site/js/lib/payloads.js'],
   ['dj/moods.json', 'site/station/moods.json'],
+  // The visualiser's pure maths (palette, bands, onset detection, squircle,
+  // tiers) — pinned by tests/viz.test.js. The site's full-page stage builds
+  // on these rather than re-deriving them.
+  ['public/viz.js', 'site/js/lib/viz-core.js'],
+  // The queue editor's pure helpers (movableWindow, applyMove, isPermutation)
+  // — pinned by tests/queue-ui.test.js.
+  ['public/queue.js', 'site/js/lib/queue-core.js'],
 ];
 
 const BANNER = (src) => `// GENERATED — copied verbatim from ${src} by scripts/site-sync.mjs. Edit the source, not this file.\n`;

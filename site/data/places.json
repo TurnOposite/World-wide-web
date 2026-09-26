@@ -1,0 +1,133 @@
+{
+  "_readme": [
+    "The Atlas. One entry per place; lat/lon in decimal degrees. `status`",
+    "is shown on the page when it is not 'verified' — these came from the",
+    "2026-09-09 mock, most still marked 'à confirmer' by Ortis. Edit freely;",
+    "`link` (optional) is a path on this site, e.g. 'ecrits/voyages'.",
+    "The tower's own point comes from config.json → station.origin."
+  ],
+  "places": [
+    {
+      "city": "Maputo",
+      "country": "Mozambique",
+      "lat": -25.97,
+      "lon": 32.58,
+      "years": "2026",
+      "nudge": [
+        5,
+        3
+      ],
+      "projects": [
+        {
+          "name": "Ambassade de France — service de presse",
+          "what": "communication, revues de presse, notes régionales",
+          "status": "à confirmer"
+        },
+        {
+          "name": "CIP — cartographie des influenceurs",
+          "what": "subvention FSIC, suivi et livrables",
+          "status": "à confirmer"
+        }
+      ]
+    },
+    {
+      "city": "Paris",
+      "country": "France",
+      "lat": 48.86,
+      "lon": 2.35,
+      "years": "2024 – 2026",
+      "nudge": [
+        -13,
+        4
+      ],
+      "projects": [
+        {
+          "name": "Assas — Global Journalism & Communication",
+          "what": "master, mémoire sur les Barber Beats",
+          "status": "à confirmer",
+          "link": "portfolio/library"
+        }
+      ]
+    },
+    {
+      "city": "Amsterdam",
+      "country": "Pays-Bas",
+      "lat": 52.37,
+      "lon": 4.9,
+      "years": "à partir d'octobre 2026",
+      "nudge": [
+        5.5,
+        4.6
+      ],
+      "projects": [
+        {
+          "name": "GUT",
+          "what": "stage, trois jours par semaine",
+          "status": "à confirmer"
+        }
+      ]
+    },
+    {
+      "city": "Copenhague",
+      "country": "Danemark",
+      "lat": 55.68,
+      "lon": 12.57,
+      "years": "2024",
+      "nudge": [
+        5.5,
+        -2.6
+      ],
+      "projects": [
+        {
+          "name": "Globe Trotter",
+          "what": "le site est né ici — le compte porte encore le fuseau",
+          "status": "verified",
+          "link": "ecrits"
+        },
+        {
+          "name": "University of Copenhagen — échange",
+          "what": "réseaux vaporwave, régression internet et religion",
+          "status": "à confirmer",
+          "link": "portfolio/library"
+        }
+      ]
+    },
+    {
+      "city": "Montréal",
+      "country": "Canada",
+      "lat": 45.5,
+      "lon": -73.57,
+      "years": "licence",
+      "nudge": [
+        5,
+        3
+      ],
+      "projects": [
+        {
+          "name": "McGill — essais",
+          "what": "sciences politiques, développement international, études latino-américaines",
+          "status": "à confirmer",
+          "link": "portfolio/library"
+        }
+      ]
+    },
+    {
+      "city": "Vilanculos",
+      "country": "Mozambique",
+      "lat": -22.01,
+      "lon": 35.31,
+      "years": "2026",
+      "nudge": [
+        5,
+        -1.6
+      ],
+      "projects": [
+        {
+          "name": "—",
+          "what": "emplacement libre",
+          "status": "à remplir"
+        }
+      ]
+    }
+  ]
+}

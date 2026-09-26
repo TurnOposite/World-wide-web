@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<base href="/">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<title>Globe Trotter — Radio Tower</title>
+<meta name="description" content="Globe Trotter, par Zoneko : une radio où tout le monde entend la même seconde, un atlas, des écrits et un portfolio.">
+<meta name="author" content="Zoneko">
+<meta property="og:title" content="Globe Trotter — Radio Tower">
+<meta property="og:description" content="One signal. Everyone on the same second.">
+<link rel="icon" href="assets/mark-16.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/rooms.css">
+</head>
+<body>
+
+<!-- The full-page visualiser. Fixed, behind everything; the on-air card and
+     every panel sit on opaque backing, so legibility comes from the layout,
+     not from starving the effect of opacity (docs/DESIGN-POSTMORTEM.md). -->
+<canvas id="stage" aria-hidden="true"></canvas>
+<div class="scanlines" aria-hidden="true"></div>
+
+<a class="skip" href="#view">Aller au contenu</a>
+
+<header class="masthead">
+  <a class="brand" href="./" data-link aria-label="Globe Trotter — accueil">
+    <svg class="mark" viewBox="0 0 32 32" width="34" height="34" aria-hidden="true"><use href="#mark"/></svg>
+    <span class="brand-text">
+      <b id="siteTitle">Globe Trotter</b>
+      <small>par <span id="siteAuthor">Zoneko</span></small>
+    </span>
+  </a>
+  <nav class="tabs" aria-label="Sections">
+    <a href="radio" data-link>Radio</a>
+    <a href="atlas" data-link>Atlas</a>
+    <a href="ecrits" data-link>Écrits</a>
+    <a href="portfolio" data-link>Portfolio</a>
+  </nav>
+</header>
+
+<main id="view" tabindex="-1"></main>
+
+<footer class="sitefoot">
+  <span>Globe Trotter · Radio Tower — <span class="credit">Zoneko</span></span>
+  <span class="sep" aria-hidden="true">·</span>
+  <span id="footMode">no server — the schedule is the clock</span>
+  <span class="sep" aria-hidden="true">·</span>
+  <a href="booth" data-link>DJ booth</a>
+</footer>
+
+<!-- The mini-player follows the reader from page to page: the router swaps
+     <main>, never this, and never the <audio> below. -->
+<aside class="minibar" id="minibar" aria-label="Radio Tower, en direct">
+  <button class="mb-tune" id="mbTune" aria-label="Tune in">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path class="i-play" d="M7 5l12 7-12 7z" fill="currentColor"/><path class="i-pause" d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
+  </button>
+  <canvas class="mb-spec" id="mbSpec" width="120" height="32" aria-hidden="true"></canvas>
+  <a class="mb-meta" href="radio" data-link>
+    <span class="mb-live"><span class="dot"></span><span id="mbBadge">ON AIR</span></span>
+    <b id="mbTitle">Tuning in…</b>
+    <span id="mbArtist">Radio Tower</span>
+  </a>
+  <div class="mb-progress" aria-hidden="true"><i id="mbBar"></i></div>
+  <span class="mb-time" id="mbTime">–</span>
+  <button class="mb-visuals" id="mbVisuals" aria-label="Visuals" title="Visuals">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 12c2.5-6 5.5-6 8 0s5.5 6 8 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>
+  </button>
+</aside>
+
+<div id="visualsPanel" class="visuals" hidden></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<audio id="audio" preload="none" crossorigin="anonymous"></audio>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- The mark, docs/DESIGN-BRIEF.md §1: Option A's tower, Option D's arcs
+         turned to radiate sideways, the dot at the tip. -->
+    <symbol id="mark" viewBox="0 0 32 32">
+      <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 29 L16 14 L21 29" stroke-width="2"/>
+        <path d="M12.7 24h6.6M13.8 20.5h4.4" stroke-width="1.6"/>
+        <path d="M20 6.5a7 7 0 0 1 0 9" stroke-width="2"/>
+        <path d="M12 15.5a7 7 0 0 1 0-9" stroke-width="2"/>
+        <path d="M23.5 3.5a11.5 11.5 0 0 1 0 15" stroke-width="1.6" opacity=".45"/>
+        <path d="M8.5 18.5a11.5 11.5 0 0 1 0-15" stroke-width="1.6" opacity=".45"/>
+      </g>
+      <circle cx="16" cy="11" r="1.9" fill="currentColor"/>
+    </symbol>
+  </defs>
+</svg>
+
+<noscript><p class="noscript">Radio Tower computes the programme in your browser: it needs JavaScript to know what is on air.</p></noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

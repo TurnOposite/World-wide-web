@@ -17,7 +17,10 @@
     "selftest": "bash scripts/build-test.sh",
     "collections": "node scripts/collections.mjs",
     "site:sync": "node scripts/site-sync.mjs",
-    "cloud:check": "node scripts/cloud-library.mjs check"
+    "cloud:check": "node scripts/cloud-library.mjs check",
+    "site": "node scripts/site-serve.mjs",
+    "site:texts": "node scripts/site-texts.mjs",
+    "site:collections": "node scripts/site-collections.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",
