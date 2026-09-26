@@ -64,6 +64,9 @@ p{margin:0}
 /* ------------------------------------------------------------ masthead */
 .masthead{position:relative;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
   max-width:var(--wrap);margin:0 auto;padding:22px var(--gutter) 18px}
+/* Only in a preview build: what this copy is not (config.json → preview). */
+.preview-note{position:relative;z-index:5;max-width:var(--wrap);margin:-6px auto 6px;padding:0 var(--gutter);
+  font:12px/1.5 var(--mono);color:var(--warn);text-shadow:0 1px 8px rgba(0,0,0,.95)}
 .brand{display:flex;align-items:center;gap:12px;text-decoration:none;min-width:0}
 .mark{color:var(--signal);flex:none;filter:drop-shadow(0 0 10px rgba(52,211,153,.25))}
 .brand-text{display:flex;flex-direction:column;line-height:1.15;text-shadow:0 1px 10px rgba(0,0,0,.95)}

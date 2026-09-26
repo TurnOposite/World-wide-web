@@ -26,3 +26,4 @@ collections/_*/
 
 # The assembled static site (scripts/site-build.mjs) — built by the Pages workflow, never committed.
 dist/
+dist-preview/

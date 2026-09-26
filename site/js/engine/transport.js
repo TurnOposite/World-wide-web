@@ -13,7 +13,7 @@
  * returns, so none of them knows or cares which one it got.
  */
 import { CloudEngine } from './cloud.js';
-import { GitHubControl, LocalControl, StaticControl, EMPTY_CONTROL, ControlError } from './control.js';
+import { GitHubControl, LocalControl, StaticControl, ArtifactControl, EMPTY_CONTROL, ControlError } from './control.js';
 
 const TOKEN_KEY = 'radiotower.githubToken';
 const CONTROL_POLL_MS = 20_000;
@@ -272,7 +272,11 @@ export async function connect({ base = document.baseURI, overrides = {} } = {}) 
   const gh = config.github || {};
   const wantLocal = params.get('control') === 'local' || config.control === 'local';
   let plane;
-  if (!wantLocal && gh.owner && gh.repo) {
+  if (config.control === 'artifact') {
+    // The claude.ai preview: its own shared database, when the viewer serves one.
+    const use = globalThis.claude?.use;
+    plane = new ArtifactControl({ dbPromise: typeof use === 'function' ? use.call(globalThis.claude, 'db') : null });
+  } else if (!wantLocal && gh.owner && gh.repo) {
     plane = new GitHubControl({
       owner: gh.owner, repo: gh.repo, branch: gh.branch || 'main',
       path: gh.controlPath || 'site/station/control.json',

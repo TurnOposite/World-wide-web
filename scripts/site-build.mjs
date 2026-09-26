@@ -56,7 +56,8 @@ async function copyDir(src, dst, skip = () => false) {
   }
 }
 
-export async function build({ base = process.env.SITE_BASE || '/', repo = process.env.GITHUB_REPOSITORY || '', quiet = false } = {}) {
+export async function build({ base = process.env.SITE_BASE || '/', repo = process.env.GITHUB_REPOSITORY || '', quiet = false, dist = DIST, shells = true } = {}) {
+  const DIST = dist;
   base = normaliseBase(base);
   const log = (...a) => { if (!quiet) console.log(...a); };
 
@@ -83,9 +84,9 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   // 4. <base>, and a shell at every route
   const shell = (await fsp.readFile(path.join(SITE, 'index.html'), 'utf8')).replace(/<base href="[^"]*">/, `<base href="${base}">`);
   await fsp.writeFile(path.join(DIST, 'index.html'), shell);
-  await fsp.writeFile(path.join(DIST, '404.html'), shell);
   const texts = JSON.parse(await fsp.readFile(path.join(DIST, 'data/texts.json'), 'utf8')).texts;
-  for (const r of routes(texts)) {
+  if (shells) await fsp.writeFile(path.join(DIST, '404.html'), shell);
+  for (const r of shells ? routes(texts) : []) {
     await fsp.mkdir(path.join(DIST, r), { recursive: true });
     await fsp.writeFile(path.join(DIST, r, 'index.html'), shell);
   }

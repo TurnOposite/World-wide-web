@@ -22,7 +22,9 @@
     "site:texts": "node scripts/site-texts.mjs",
     "site:collections": "node scripts/site-collections.mjs",
     "site:build": "node scripts/site-build.mjs",
-    "site:smoke": "node scripts/site-smoke.mjs"
+    "site:smoke": "node scripts/site-smoke.mjs",
+    "preview": "node scripts/site-preview.mjs",
+    "preview:smoke": "node scripts/preview-smoke.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

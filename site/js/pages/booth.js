@@ -21,12 +21,15 @@ export const title = 'DJ booth';
 export async function mount(root, ctx) {
   const { client, player, settings, toast } = ctx;
   const gh = client.config.github || {};
-  const planeText = {
+  const planeText = () => ({
+    artifact: client.canWrite
+      ? 'Shared preview: changes are saved with this preview on claude.ai, and everyone it is shared with hears them within seconds.'
+      : 'Shared preview, <b>view-only for you</b>: the person who shared it can change the queue.',
     github: `Changes are committed to <b>${esc(gh.owner)}/${esc(gh.repo)}</b> (<code>${esc(gh.controlPath || 'site/station/control.json')}</code>). Every listener picks them up within about a minute.`,
     local: 'Preview mode: changes are kept <b>in this browser only</b> — open two tabs to see two listeners agree. Nobody else hears them.',
     static: 'This copy of the site has no repository configured, so the booth is read-only. Try it in preview mode, or publish the site from GitHub.',
     tower: `Connected to a Radio Tower server at <b>${esc(client.origin || '')}</b>. Changes need its station key.`,
-  }[client.planeKind] || '';
+  }[client.planeKind] || '');
 
   root.innerHTML = `
     <div class="page-head"><h1>DJ booth</h1>
@@ -46,7 +49,7 @@ export async function mount(root, ctx) {
       <div>
         <div class="panel">
           <h3>Where changes go</h3>
-          <div class="plane" id="bPlane"><span>${planeText}</span></div>
+          <div class="plane" id="bPlane"><span>${planeText()}</span></div>
           <div id="bAuth"></div>
         </div>
         <div class="panel" style="margin-top:18px">
@@ -153,7 +156,17 @@ export async function mount(root, ctx) {
   });
   $('bSendMine').addEventListener('click', () => sendLook({ ...settings.effective }));
   $('bClearLook').addEventListener('click', () => sendLook(null));
-  const off = client.on?.('control', paintLooks);
+  // The preview's shared database can arrive after the booth has drawn.
+  let shownPlane = `${client.planeKind}:${client.canWrite}`;
+  const repaintPlane = () => {
+    const now = `${client.planeKind}:${client.canWrite}`;
+    if (now === shownPlane) return;
+    shownPlane = now;
+    $('bPlane').innerHTML = `<span>${planeText()}</span>`;
+    paintAuth();
+  };
+  const off = client.on?.('control', () => { paintLooks(); repaintPlane(); });
+  const offPlane = client.plane?.onChange?.(repaintPlane);
 
-  return () => { queue.destroy(); off?.(); };
+  return () => { queue.destroy(); off?.(); offPlane?.(); };
 }

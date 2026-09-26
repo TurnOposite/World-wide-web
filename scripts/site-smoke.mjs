@@ -210,6 +210,11 @@ try {
   await a.waitForSelector('.room .book', { timeout: 8000 });
   const books = (await a.$$('.room .book')).length;
   check('Portfolio: the library puts every book on a shelf', books >= 20, `${books} spines`);
+  // "#maps" under <base href="/"> resolves to the site root: the router must keep the reader here.
+  const roomPath = await a.evaluate(() => location.pathname);
+  await a.click('a[data-maps]').catch(() => {});
+  await a.waitForTimeout(500);
+  check('an in-page link (#maps) keeps the reader in the library', (await a.evaluate(() => location.pathname)) === roomPath && Boolean(await a.$('.room .book')), roomPath);
   await a.click('.room-tabs a[href="portfolio/photos"]');
   await a.waitForSelector('.room .ph', { timeout: 8000 });
   check('Portfolio: photos render as tiles', (await a.$$('.room .ph')).length >= 12);

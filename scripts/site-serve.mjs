@@ -65,7 +65,7 @@ async function fixtureLibrary(dir, base) {
   return { name: 'Radio Tower (fixtures)', tagline: 'Self-test signal', epoch: '2026-01-01T00:00:00Z', shuffle: false, gapSeconds: 0, tracks };
 }
 
-async function sendFile(req, res, abs, { cors = false, noCache = true } = {}) {
+export async function sendFile(req, res, abs, { cors = false, noCache = true } = {}) {
   let st;
   try { st = await fsp.stat(abs); } catch { return false; }
   if (!st.isFile()) return false;

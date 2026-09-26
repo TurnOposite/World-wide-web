@@ -66,6 +66,17 @@ async function boot() {
   if (site.author) { $('siteAuthor').textContent = site.author; document.querySelector('.sitefoot .credit').textContent = site.author; }
   $('footMode').textContent = client.mode === 'cloud' ? 'no server — the schedule is the clock' : `tuned to ${client.origin}`;
 
+  // A preview build (scripts/site-preview.mjs) says plainly what it is not.
+  const preview = client.config.preview;
+  if (preview?.note) {
+    const note = document.createElement('p');
+    note.className = 'preview-note';
+    note.id = 'previewNote';
+    note.textContent = preview.note;
+    document.querySelector('.masthead')?.after(note);
+    if (preview.foot) $('footMode').textContent = preview.foot;
+  }
+
   settings.setBroadcast(client.look);
   client.on?.('control', () => settings.setBroadcast(client.look));
 
@@ -91,6 +102,7 @@ async function boot() {
 
   let cleanup = null;
   const router = new Router({
+    mode: client.config.router === 'hash' ? 'hash' : 'history',
     routes: [
       { name: 'home', pattern: /^$/, load: () => import('./pages/home.js') },
       { name: 'radio', pattern: /^radio$/, load: () => import('./pages/radio.js') },
