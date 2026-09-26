@@ -1,0 +1,123 @@
+{
+  "_readme": [
+    "The DJ's vocabulary. Edit this file freely — it is data, not code, and the",
+    "booth re-reads it on every run.",
+    "",
+    "A mood is a scoring rule, not a playlist. `genres` is the strongest signal",
+    "(weight 1 = a full 100 points, 0.5 = a half-hearted match). `keywords` are",
+    "matched against the folded title, artist, album and genre label, 40 points",
+    "each, so they stack. `exclude` subtracts 200 — enough to push something to",
+    "the back of the window without pretending it does not exist. `prefer` is a",
+    "nudge on duration only: 'short' likes anything under 8 minutes, 'long' likes",
+    "half-hour-plus mixes.",
+    "",
+    "Genre slugs come from server/lib/genre.js and must match it exactly:",
+    "barber-beats vaporwave vgm dnb-jungle lofi jazz electronic trip-hop ambient",
+    "french-rap chanson classical rock-pop unsorted",
+    "",
+    "MEASURED 2026-08-19 against the laptop library (30 files, 12.5h cycle).",
+    "Weight a mood against what is ACTUALLY there, not against what the genre",
+    "list makes possible — the first draft of this file leaned on 'ambient' and",
+    "would have matched nothing at all:",
+    "  barber-beats 19 files, 50.2% of the air",
+    "  vaporwave     2 files, 24.4%   (two very long mixes)",
+    "  dnb-jungle    2 files,  9.7%",
+    "  rock-pop      1 file,   7.6%",
+    "  unsorted      2 files,  4.7%",
+    "  vgm           4 files,  3.5%",
+    "  ambient/lofi/jazz/chanson/classical/french-rap/electronic/trip-hop: ZERO",
+    "Re-measure with `node dj.mjs library` after the library changes."
+  ],
+
+  "genres": [
+    { "slug": "barber-beats", "label": "Barber Beats" },
+    { "slug": "vaporwave", "label": "Vaporwave" },
+    { "slug": "vgm", "label": "Video Game" },
+    { "slug": "dnb-jungle", "label": "Atmospheric DnB" },
+    { "slug": "lofi", "label": "Lo-fi" },
+    { "slug": "jazz", "label": "Jazz" },
+    { "slug": "electronic", "label": "Electronic" },
+    { "slug": "trip-hop", "label": "Trip-Hop" },
+    { "slug": "ambient", "label": "Ambient" },
+    { "slug": "french-rap", "label": "Rap FR" },
+    { "slug": "chanson", "label": "Chanson" },
+    { "slug": "classical", "label": "Classical" },
+    { "slug": "rock-pop", "label": "Rock & Pop" },
+    { "slug": "unsorted", "label": "Unsorted" }
+  ],
+
+  "moods": {
+    "night drive": {
+      "aliases": ["night", "nocturne", "late"],
+      "why": "Moving, but not demanding. Barber beats and liquid DnB, nothing that stops the car.",
+      "genres": { "barber-beats": 1, "dnb-jungle": 0.9, "trip-hop": 0.7, "vaporwave": 0.5 },
+      "keywords": ["evening", "night", "midnight", "drive", "city", "neon"],
+      "prefer": null
+    },
+    "liminal": {
+      "aliases": ["liminal atmosphere", "backrooms", "drift", "empty mall"],
+      "why": "The long, unpeopled, slightly-wrong ambience. This is what the folder is for.",
+      "genres": { "vaporwave": 1, "ambient": 1, "barber-beats": 0.5, "dnb-jungle": 0.4 },
+      "keywords": ["liminal", "lost", "mall", "atmosphere", "nostalgic", "epoch", "underwater", "1990s", "low poly", "weltschmerz", "dark desire"],
+      "prefer": "long"
+    },
+    "upbeat": {
+      "aliases": ["up", "energy", "wake up", "funk"],
+      "why": "Something with a pulse. Pulls the Upbeat folder and the funkier game music forward.",
+      "genres": { "rock-pop": 1, "vgm": 0.8, "electronic": 0.7, "french-rap": 0.6 },
+      "keywords": ["funk", "express", "boomi", "cyberfunk", "town", "theme"],
+      "exclude": ["ambient"],
+      "prefer": "short"
+    },
+    "game": {
+      "aliases": ["vgm", "games", "videogame", "console"],
+      "why": "Video game music and the barber beats that are made of it.",
+      "genres": { "vgm": 1, "barber-beats": 0.6 },
+      "keywords": ["balatro", "warframe", "orre", "snowpoint", "espeon", "silph", "zoz", "ost", "theme", "region"],
+      "prefer": null
+    },
+    "study": {
+      "aliases": ["work", "focus", "reading", "background"],
+      "why": "Stays out of the way. No transients, nothing with words demanding attention.",
+      "genres": { "barber-beats": 1, "ambient": 1, "lofi": 0.9, "classical": 0.6, "vaporwave": 0.5 },
+      "keywords": ["contemplation", "downtempo", "soft", "ambience", "atmosphere", "sunday", "idm"],
+      "exclude": ["french-rap", "rock-pop"],
+      "prefer": "long"
+    },
+    "short set": {
+      "aliases": ["quick", "rotation", "variety", "short"],
+      "why": "Turn the station over faster — front-loads everything under eight minutes so the hour has more titles in it.",
+      "genres": {},
+      "keywords": [],
+      "prefer": "short"
+    },
+    "deep": {
+      "aliases": ["long", "one long thing", "sleep"],
+      "why": "The opposite. Full-album and hour-long mixes to the front, for a night nobody is choosing.",
+      "genres": { "vaporwave": 0.8, "ambient": 0.8, "dnb-jungle": 0.6 },
+      "keywords": ["full album", "collection", "mix", "ambience", "utopian", "scholastic", "epoch"],
+      "prefer": "long"
+    },
+    "vapor": {
+      "aliases": ["vaporwave", "mallsoft", "barber"],
+      "why": "Straight down the middle of what this library actually is.",
+      "genres": { "vaporwave": 1, "barber-beats": 1 },
+      "keywords": ["macroblank", "slowerpace", "undersaken", "mabisyo", "dirty river", "tapes"],
+      "prefer": null
+    },
+    "jungle": {
+      "aliases": ["dnb", "drum and bass", "breaks"],
+      "why": "Breakbeats and the atmospheric end of jungle.",
+      "genres": { "dnb-jungle": 1, "electronic": 0.5 },
+      "keywords": ["dnb", "jungle", "liquid", "micromecha", "arcologies", "lake effect"],
+      "prefer": null
+    },
+    "french": {
+      "aliases": ["fr", "francais", "chanson", "air"],
+      "why": "The French end of the library — chanson, rap FR, and Air.",
+      "genres": { "chanson": 1, "french-rap": 1 },
+      "keywords": ["air", "soleil", "brassens", "france"],
+      "prefer": null
+    }
+  }
+}

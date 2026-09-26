@@ -2,7 +2,7 @@
   "name": "radio-tower",
   "version": "0.1.0",
   "private": true,
-  "description": "A Raspberry Pi radio station: one synced stream, everyone hears the same thing.",
+  "description": "A radio station where everyone hears the same second — on a Raspberry Pi, or as a static website where every browser is the station.",
   "type": "module",
   "main": "server/index.js",
   "engines": {
@@ -15,7 +15,9 @@
     "test": "node --test \"tests/*.test.js\"",
     "healthcheck": "node scripts/healthcheck.js",
     "selftest": "bash scripts/build-test.sh",
-    "collections": "node scripts/collections.mjs"
+    "collections": "node scripts/collections.mjs",
+    "site:sync": "node scripts/site-sync.mjs",
+    "cloud:check": "node scripts/cloud-library.mjs check"
   },
   "dependencies": {
     "express": "^4.21.2",

@@ -1,0 +1,412 @@
+{
+  "_readme": [
+    "The cloud channel. Every visitor computes the programme from this file,",
+    "the epoch and the clock — change a duration and everyone after it moves.",
+    "Add a track: append an object with a unique 12-hex id, exact duration in",
+    "seconds, and one or more https sources (tried in order). Then run",
+    "`node scripts/cloud-library.mjs check`. Order matters: shuffle is off,",
+    "the station plays this list top to bottom, forever."
+  ],
+  "name": "Radio Tower",
+  "tagline": "One signal. Everyone on the same second.",
+  "epoch": "2026-01-01T00:00:00Z",
+  "shuffle": false,
+  "gapSeconds": 0,
+  "tracks": [
+    {
+      "id": "dd02b4dc608d",
+      "title": "ocarina of void {title theme}",
+      "artist": "slowerpace 音楽",
+      "album": "HYRULE DREAMS",
+      "duration": 178.28,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_d1e6e3794774462ea61f8db17dd0041a.mp3"
+      ],
+      "art": "collections/music/covers/hyrule-dreams.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "e99c86c8f14a",
+      "title": "kakariko {liminal} village",
+      "artist": "slowerpace 音楽",
+      "album": "HYRULE DREAMS",
+      "duration": 181.21,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_5f73a304d34f4507ba7772218d952c17.mp3"
+      ],
+      "art": "collections/music/covers/hyrule-dreams.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "1b9ed0fe6d14",
+      "title": "papa's old radio {lon lon ranch}",
+      "artist": "slowerpace 音楽",
+      "album": "HYRULE DREAMS",
+      "duration": 240.51,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_bdcbd307f80a44d891b5285e6dda1284.mp3"
+      ],
+      "art": "collections/music/covers/hyrule-dreams.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "7b22b51633bf",
+      "title": "running to nowhere {lost woods}",
+      "artist": "slowerpace 音楽",
+      "album": "HYRULE DREAMS",
+      "duration": 160,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_be88794739b14eef8cc9f0e011fe0f38.mp3"
+      ],
+      "art": "collections/music/covers/hyrule-dreams.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "45280e4fbd4d",
+      "title": "blurred reverie {swamp palace}",
+      "artist": "slowerpace 音楽",
+      "album": "HYRULE DREAMS",
+      "duration": 144.43,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_d51f3d649f374b2eb11dbdb53a838564.mp3"
+      ],
+      "art": "collections/music/covers/hyrule-dreams.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "20d60dbce7c4",
+      "title": "boyhood nightmare {song of healing}",
+      "artist": "slowerpace 音楽",
+      "album": "HYRULE DREAMS",
+      "duration": 110.81,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_6fd96c647a4b4ca599fca1019f5f4316.mp3"
+      ],
+      "art": "collections/music/covers/hyrule-dreams.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "4d17b475413c",
+      "title": "raining in hyrule {song of storms}",
+      "artist": "slowerpace 音楽",
+      "album": "HYRULE DREAMS",
+      "duration": 155.72,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_a3e51fac34884fc3afa8c693380006cf.mp3"
+      ],
+      "art": "collections/music/covers/hyrule-dreams.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "d8f7fd1e6f32",
+      "title": "oblivion dive {zora's domain}",
+      "artist": "slowerpace 音楽",
+      "album": "HYRULE DREAMS",
+      "duration": 203.52,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_84fe9d9764b9460bbfb9f87329902b4f.mp3"
+      ],
+      "art": "collections/music/covers/hyrule-dreams.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "860216b1637e",
+      "title": "sweet dreams came {ilia's theme}",
+      "artist": "slowerpace 音楽",
+      "album": "HYRULE DREAMS",
+      "duration": 116.3,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_18613408dad6475185ffb0216c91eb86.mp3"
+      ],
+      "art": "collections/music/covers/hyrule-dreams.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "12c47bd07451",
+      "title": "the adventures are gone {fi's farewell}",
+      "artist": "slowerpace 音楽",
+      "album": "HYRULE DREAMS",
+      "duration": 99.73,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_970fb089a25f480db2a2f530b35b537e.mp3"
+      ],
+      "art": "collections/music/covers/hyrule-dreams.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "bd795c102c21",
+      "title": "old memories {fairy's fountain}",
+      "artist": "slowerpace 音楽",
+      "album": "HYRULE DREAMS",
+      "duration": 100.2,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_a33142cfd2764aee88b0bac364aa15bd.mp3"
+      ],
+      "art": "collections/music/covers/hyrule-dreams.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "93733742bf9a",
+      "title": "it was a dream {zelda's lullaby}",
+      "artist": "slowerpace 音楽",
+      "album": "HYRULE DREAMS",
+      "duration": 168.44,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_3708f8c6d1d84f9e9196e77fddc4ada6.mp3"
+      ],
+      "art": "collections/music/covers/hyrule-dreams.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "136a318c575f",
+      "title": "He Was Pretty Pleased with Himself",
+      "artist": "undersaken",
+      "album": "By Thy Doors of Ash",
+      "duration": 188.29,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_53957110fe06478d8966beaab0f7a808.mp3"
+      ],
+      "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "7a14803b6632",
+      "title": "Hey Saturday Sun",
+      "artist": "undersaken",
+      "album": "By Thy Doors of Ash",
+      "duration": 208.64,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_13ecbc73cdd74c6c83134b88ec3a67cc.mp3"
+      ],
+      "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285,
+      "scores": "voyages"
+    },
+    {
+      "id": "1086806fae92",
+      "title": "Avant Guardian",
+      "artist": "undersaken",
+      "album": "By Thy Doors of Ash",
+      "duration": 251.87,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_12334ed917554c34b9a646a1f04659ad.mp3"
+      ],
+      "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "0d4112f02536",
+      "title": "Beautiful Stranger",
+      "artist": "undersaken",
+      "album": "By Thy Doors of Ash",
+      "duration": 258.64,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_c31a072f654f4a2f9d03f4b3331c046a.mp3"
+      ],
+      "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "122cb5f467e3",
+      "title": "Jack of No Trades",
+      "artist": "undersaken",
+      "album": "By Thy Doors of Ash",
+      "duration": 267.91,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_ffe8e46ef48b46748083e49b89fb0d9d.mp3"
+      ],
+      "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "9e1404e8cfdc",
+      "title": "Have a Cigar",
+      "artist": "undersaken",
+      "album": "By Thy Doors of Ash",
+      "duration": 287.29,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_91feb708497f4069a7e602b12b5c270b.mp3"
+      ],
+      "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "64441f56d507",
+      "title": "Smirk",
+      "artist": "undersaken",
+      "album": "By Thy Doors of Ash",
+      "duration": 212.95,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_b9be347e12074645bbdd5358e1f9cf9c.mp3"
+      ],
+      "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "1c9a72f3b28f",
+      "title": "That Handsome Devil",
+      "artist": "undersaken",
+      "album": "By Thy Doors of Ash",
+      "duration": 250.44,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_164d11f75bb743588988db2cbb529874.mp3"
+      ],
+      "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "480b1cc5de90",
+      "title": "Lonely Valentine",
+      "artist": "undersaken",
+      "album": "By Thy Doors of Ash",
+      "duration": 266.74,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_b4e726ed1e4a45e09725e9246d4f136e.mp3"
+      ],
+      "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285,
+      "scores": "coracao-sertao"
+    },
+    {
+      "id": "d22f8b8bf219",
+      "title": "Atlantis is Real, I've Seen It",
+      "artist": "undersaken",
+      "album": "By Thy Doors of Ash",
+      "duration": 280.06,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_96f7f87da4c641d2a3a08fc4bf1c2f44.mp3"
+      ],
+      "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "6f716a953160",
+      "title": "By Thy Doors of Ash",
+      "artist": "undersaken",
+      "album": "By Thy Doors of Ash",
+      "duration": 212.64,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_017ccb37a47a40a7b3023ee9d1314153.mp3"
+      ],
+      "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "9da4d0de29b5",
+      "title": "Peace Be With My Friend, GORE",
+      "artist": "undersaken",
+      "album": "By Thy Doors of Ash",
+      "duration": 262.03,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_ef659386575e47bc9a4190cc52230cc5.mp3"
+      ],
+      "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "377e09729020",
+      "title": "Wes",
+      "artist": "silph skyline ◓",
+      "album": "Orre Region",
+      "duration": 215.85,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_ad0abec257e74b9fb141834766d30ea3.mp3"
+      ],
+      "art": "collections/music/covers/orre-region.jpg",
+      "genreSlug": "vgm",
+      "genreLabel": "Video Game",
+      "genreAccent": 195
+    },
+    {
+      "id": "89df644aac18",
+      "title": "Espeon & Umbreon",
+      "artist": "silph skyline ◓",
+      "album": "Orre Region",
+      "duration": 400.18,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_4dc23b304c6a47428646fdec29dc7eb2.mp3"
+      ],
+      "art": "collections/music/covers/orre-region.jpg",
+      "genreSlug": "vgm",
+      "genreLabel": "Video Game",
+      "genreAccent": 195,
+      "scores": "opal-orre"
+    },
+    {
+      "id": "376072b1ee62",
+      "title": "Voice of the Forest",
+      "artist": "snowpoint lounge",
+      "album": "思い出の森",
+      "duration": 341.34,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_b73da30889cf48ca88853646fa747d6a-320.mp3"
+      ],
+      "art": "collections/music/covers/omoide-no-mori.jpg",
+      "genreSlug": "barber-beats",
+      "genreLabel": "Barber Beats",
+      "genreAccent": 285
+    },
+    {
+      "id": "a7a4f3026d61",
+      "title": "ベールストーンを感じます",
+      "artist": "A4",
+      "album": null,
+      "duration": 227.44,
+      "sources": [
+        "https://static.wixstatic.com/mp3/5d78a5_819cc1031d8c47bcb50d1eb17ee3a4e4-320.mp3"
+      ],
+      "art": null,
+      "genreSlug": "unsorted",
+      "genreLabel": "Unsorted",
+      "genreAccent": 210
+    }
+  ]
+}

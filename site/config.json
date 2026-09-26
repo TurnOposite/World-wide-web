@@ -1,0 +1,22 @@
+{
+  "_readme": "Site settings. github.owner/repo are filled in by the Pages workflow from the repository it runs in — leave them empty here. mode 'tower' + tower.url points the site at a Radio Tower server instead of computing the programme in the browser.",
+  "site": {
+    "title": "Globe Trotter",
+    "author": "Zoneko",
+    "lang": "fr"
+  },
+  "mode": "cloud",
+  "tower": { "url": "" },
+  "station": {
+    "lookahead": 5,
+    "queueWindow": 12,
+    "queueLockSeconds": 180,
+    "origin": { "lat": -25.97, "lon": 32.58, "place": "Maputo" }
+  },
+  "github": {
+    "owner": "",
+    "repo": "",
+    "branch": "main",
+    "controlPath": "site/station/control.json"
+  }
+}

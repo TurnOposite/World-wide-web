@@ -2,6 +2,7 @@ import express from 'express';
 import crypto from 'node:crypto';
 import fsp from 'node:fs/promises';
 import { publicTrack } from '../lib/schedule.js';
+import { stationPayload, schedulePayload, queuePayload, checkReorder } from '../lib/payloads.js';
 import { resolveTrackPath } from '../lib/library.js';
 import { sendAudio } from '../lib/stream.js';
 
@@ -73,84 +74,24 @@ export function apiRouter(ctx) {
 
     if (req.query.listener) listeners.ping(String(req.query.listener));
 
-    const onAir = station.at(now);
-    if (!onAir) {
-      // Same warming-up test as /api/health — kept in sync so the player and
-      // an operator's healthcheck never disagree about why nothing is on air.
-      const warmingUp = state.scanning && state.lastScanAt === null;
-      return res.json({
-        serverTime: now,
-        station: { name: config.stationName, tagline: config.stationTagline, revision: station.revision },
-        onAir: null,
-        upcoming: [],
-        warmingUp,
-        message: warmingUp
-          ? 'Warming up — scanning the library for the first time. Hang tight.'
-          : 'No playable audio found. Drop MP3s into the music directory and rescan.',
-      });
-    }
-
-    res.json({
-      serverTime: now,
-      station: {
-        name: config.stationName,
-        tagline: config.stationTagline,
-        revision: station.revision,
-        trackCount: station.tracks.length,
-        cycleSeconds: Math.round(station.cycleSeconds),
-      },
-      onAir: {
-        ...publicTrack(onAir.track),
-        offset: Math.round(onAir.offset * 1000) / 1000,
-        startsAt: onAir.startsAt,
-        endsAt: onAir.endsAt,
-        remaining: Math.max(0, Math.round((onAir.endsAt - now) / 1000)),
-        streamUrl: `/api/track/${onAir.track.id}/stream`,
-        artUrl: onAir.track.hasArt ? `/api/track/${onAir.track.id}/art` : null,
-      },
-      upcoming: station.upcoming(now, config.lookahead).map((t) => ({
-        ...t,
-        artUrl: t.hasArt ? `/api/track/${t.id}/art` : null,
-      })),
-      recent: station.history(now, 3),
+    // The body is built in lib/payloads.js so the static site's in-browser
+    // station (site/js/engine/cloud.js) serves the identical shape.
+    res.json(stationPayload(station, {
+      now,
+      config,
       listeners: listeners.count(),
-    });
+      warmingUp: state.scanning && state.lastScanAt === null,
+    }));
   });
 
-  // --- programme guide -------------------------------------------------------
-  // "See what plays when, and plan ahead" (roadmap #0b). `Station.schedule()`
-  // is already a pure function of time — this route just parses a window and
-  // hands it off. No storage, no stale cache: the answer is only ever as
-  // fresh as `station`'s current tracks, same as every other endpoint here.
   router.get('/schedule', (req, res) => {
     res.set('Cache-Control', 'no-store');
-    const now = Date.now();
-
-    // A "plan ahead" guide, not an infinite scroll — cap the span so a
-    // caller can't make a single request walk months of programme on a Pi.
-    const MAX_SPAN_MS = 48 * 60 * 60 * 1000;
-    const DEFAULT_SPAN_MS = 2 * 60 * 60 * 1000;
-
-    const fromMs = req.query.from ? Date.parse(String(req.query.from)) : now;
-    if (!Number.isFinite(fromMs)) return res.status(400).json({ error: 'invalid_from' });
-
-    let toMs = req.query.to ? Date.parse(String(req.query.to)) : fromMs + DEFAULT_SPAN_MS;
-    if (!Number.isFinite(toMs)) return res.status(400).json({ error: 'invalid_to' });
-    if (toMs <= fromMs) return res.status(400).json({ error: 'to_before_from' });
-    if (toMs - fromMs > MAX_SPAN_MS) toMs = fromMs + MAX_SPAN_MS;
-
-    res.json({
-      from: fromMs,
-      to: toMs,
-      revision: station.revision,
-      items: station.schedule(fromMs, toMs).map((t) => ({
-        ...t,
-        artUrl: t.hasArt ? `/api/track/${t.id}/art` : null,
-      })),
-    });
+    // Span limits (48h max, 2h default) live with the body in lib/payloads.js.
+    const body = schedulePayload(station, { now: Date.now(), from: req.query.from, to: req.query.to });
+    if (body.error) return res.status(body.status).json({ error: body.error });
+    res.json(body);
   });
 
-  // --- library -------------------------------------------------------------
   router.get('/library', (req, res) => {
     const q = String(req.query.q || '').trim().toLowerCase();
     const limit = Math.min(500, Math.max(1, Number.parseInt(req.query.limit, 10) || 100));
@@ -247,80 +188,26 @@ export function apiRouter(ctx) {
 
   router.get('/queue', (req, res) => {
     res.set('Cache-Control', 'no-store');
-    const now = Date.now();
-    const onAir = station.at(now);
-    if (!onAir) return res.json({ editable: false, locked: [], slots: [] });
-
-    const lockUntil = now + config.queueLockSeconds * 1000;
-    const slots = station.upcoming(now, Math.max(config.lookahead, config.queueWindow)).map((t) => ({
-      ...t,
-      artUrl: t.hasArt ? `/api/track/${t.id}/art` : null,
-      // A slot is locked when it starts too soon to be safely moved.
-      locked: t.startsAt < lockUntil,
-    }));
-
-    res.json({
-      serverTime: now,
-      // Whether the *server* permits editing at all. The client uses this to
-      // decide whether to show the editor; the key is still checked on write.
-      editable: Boolean(config.stationKey),
-      lockSeconds: config.queueLockSeconds,
-      onAir: { id: onAir.track.id, endsAt: onAir.endsAt },
-      override: station.queueOverride,
-      revision: station.revision,
-      slots,
-    });
+    res.json(queuePayload(station, { now: Date.now(), config, editable: Boolean(config.stationKey) }));
   });
 
   router.post('/queue/reorder', express.json({ limit: '32kb' }), (req, res) => {
     if (!requireKey(req, res)) return;
 
-    const now = Date.now();
-    const { cycleIndex, startWithin, ids } = req.body ?? {};
-
-    if (!Array.isArray(ids) || ids.length < 2) {
-      return res.status(400).json({ error: 'nothing_to_reorder' });
-    }
-    if (ids.length > 100) return res.status(400).json({ error: 'window_too_large' });
-    if (!Number.isInteger(cycleIndex) || !Number.isInteger(startWithin)) {
-      return res.status(400).json({ error: 'invalid_window' });
+    const verdict = checkReorder(station, { now: Date.now(), lockSeconds: config.queueLockSeconds, body: req.body });
+    if (!verdict.ok) {
+      const { status, ok, ...rest } = verdict;
+      return res.status(status).json(rest);
     }
 
-    // Slots are addressed by (cycleIndex, withinCycle), which is unambiguous
-    // even when the library is smaller than the lookahead window and the same
-    // track id therefore appears more than once in `upcoming`.
-    const windowStart = station.slotStartsAt(cycleIndex, startWithin);
-    if (windowStart === null) return res.status(400).json({ error: 'invalid_window' });
-
-    // The safety fence: never touch what is playing, nor anything about to
-    // start. Checking the *first* slot is sufficient — the window runs
-    // forward from there, so if it is clear, every slot behind it is too.
-    const lockUntil = now + config.queueLockSeconds * 1000;
-    if (windowStart < lockUntil) {
-      return res.status(409).json({
-        error: 'too_close_to_air',
-        detail: `Slots starting within ${config.queueLockSeconds}s cannot be moved.`,
-      });
-    }
-
-    // A permutation cannot straddle a cycle boundary: the two cycles are
-    // different shuffles, so a rearrangement across the seam is not a
-    // permutation of either.
-    if (startWithin + ids.length > station.cycleOrder(cycleIndex).length) {
-      return res.status(409).json({ error: 'window_crosses_cycle' });
-    }
-
+    const { cycleIndex, startWithin, ids } = req.body;
     const result = station.setQueueOrder({ cycleIndex, startWithin, ids });
-    // `not_a_permutation` here almost always means the client was looking at
-    // a stale programme — a rescan reshuffled the cycle under it.
     if (!result.ok) {
       return res.status(409).json({ ...result, detail: 'Refetch /api/queue and try again.' });
     }
 
     res.json({
       ok: true,
-      // Hand back the fresh programme so the client renders the truth rather
-      // than its own optimistic guess.
       slots: station.upcoming(Date.now(), config.lookahead),
     });
   });

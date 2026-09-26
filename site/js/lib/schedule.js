@@ -1,3 +1,4 @@
+// GENERATED — copied verbatim from server/lib/schedule.js by scripts/site-sync.mjs. Edit the source, not this file.
 /**
  * The station clock.
  *
