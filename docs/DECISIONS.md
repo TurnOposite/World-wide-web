@@ -2755,3 +2755,60 @@ whole map of social network analysis" and "the full thesis" downloadable.
   It is additive and in one clearly named folder, so it can be removed by
   moving one directory. Adding tracks re-deals the programme (see
   `music/README.md`). The station was off air when this was done.
+
+---
+
+## 2026-09-26 (Ortis, unattended build) — The station moves to the cloud; the Pi becomes one origin among two
+
+### What changed in the goal
+
+Ortis, 2026-09-26: *"modernize this to the github like and on world wide web
+build the modern website with map, portfolio and working radio with an
+actually functionning queue change and visuals control […] make it all
+cloudyyy"*. `BRIEF.md` §7 defined done as a stranger hearing the station
+"served from a Raspberry Pi in his home". That sentence was written when the
+Pi was the only way to publish; he has now asked for the web, and the Pi has
+been unreachable since 2026-08-28. **This entry records the change of target,
+not a relitigation of §2**: synced radio (not a jukebox), public from day one,
+vanilla JS with no build step, no Spotify — all four stand.
+
+### Why a static site can be the whole station
+
+`Station.at(now)` is pure and `server/lib/schedule.js` imports nothing. Any
+browser holding the library and the epoch computes what the Pi computes. The
+Wix draft of 2026-09-09 (`Web-Creative/_Travail/13_…`) already proved it with
+28 tracks and no server. What that draft could not do — a queue, a player that
+survives navigation, a real visualiser pipeline — is what this build adds.
+
+**Rejected:** a Cloudflare Worker / Durable Object backend (needs Ortis's
+account, which cannot be created for him; kept as a later option); a service
+worker that fakes `/api/*` (the project already lost two deploys to stale
+cached JavaScript — 2026-08-28 — and a service worker is a second, stickier
+cache); moving the audio to new hosts (the tracks are other artists' albums;
+the 28 already on his Wix are his own prior choice, adding hosts is his call).
+
+### The queue on a static host: a file in the repo, written by the booth
+
+The shared mutable state is `site/station/control.json` (override + broadcast
+look). The booth commits it through the GitHub contents API using a
+fine-grained token scoped to this one repository and held only in the DJ's
+browser. Listeners poll it via the GitHub API with ETags (304s are free of the
+rate limit) and fall back to the Pages copy. **The permutation rule is kept
+exactly** — it is what makes a queue change unable to desync anyone — and the
+lock fence grows from 60 s to 180 s to cover propagation.
+
+### Two small changes to shared code, both default-preserving
+
+- `Station` gains `shuffle` (default `true`). The cloud channel plays the
+  deliberate album order the Wix block used, so it lines up to the second with
+  that draft. The Pi's behaviour is byte-identical with the default.
+- The JSON bodies of `/api/station`, `/api/queue` and `/api/schedule` move into
+  `server/lib/payloads.js`, called by both the Express router and the browser
+  engine, so the two front ends cannot disagree about a field.
+
+### Not proven from the build container
+
+The container cannot reach `static.wixstatic.com` or `github.io` (proxy 403),
+so real-audio playback of the Wix URLs and the Pages deploy are **not verified
+here** — the end-to-end tests run against locally generated audio served the
+same way. Stated rather than implied, per `BRIEF.md` rule 9.
