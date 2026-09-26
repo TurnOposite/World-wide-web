@@ -81,12 +81,23 @@ try {
   check('a stream URL was selected', /\/api\/track\/[0-9a-f]{12}\/stream/.test(audio.src), audio.src.split('/').slice(-3).join('/'));
 
   // The point of the whole system: our position matches the tower's.
-  const sync = await page.evaluate(async () => {
-    const a = document.getElementById('audio');
-    const res = await fetch('/api/station', { cache: 'no-store' });
-    const d = await res.json();
-    return { serverOffset: d.onAir.offset, clientTime: a.currentTime, id: d.onAir.id };
-  });
+  // Compare like with like: with 7-15 s fixture tracks the tower can roll
+  // over between our two readings, and "track B at 1 s" against "track A at
+  // 13 s" is a race in this check, not drift in the player (seen 2026-09-26,
+  // also on the untouched 2026-09-23 code). Re-sample until both readings
+  // name the same track; the tolerance is unchanged.
+  let sync;
+  for (let i = 0; i < 4; i++) {
+    sync = await page.evaluate(async () => {
+      const a = document.getElementById('audio');
+      const res = await fetch('/api/station', { cache: 'no-store' });
+      const d = await res.json();
+      const playingId = (a.currentSrc.match(/track\/([0-9a-f]{12})\//) || [])[1];
+      return { serverOffset: d.onAir.offset, clientTime: a.currentTime, id: d.onAir.id, playingId };
+    });
+    if (sync.id === sync.playingId && sync.serverOffset > 0.5) break;
+    await page.waitForTimeout(1200);
+  }
   const drift = Math.abs(sync.clientTime - sync.serverOffset);
   check('playback is in sync with the tower', drift < 2.0, `drift ${drift.toFixed(2)}s`);
 
@@ -211,22 +222,30 @@ try {
     // gone by the time the pointer lands on it. Re-querying and retrying is
     // what a person does too. If three attempts all fail to move anything,
     // that is a real failure and it is reported as one.
+    //
+    // Two refinements (2026-09-26, after this check failed 1 run in 4 on the
+    // untouched 2026-09-23 code): drag the *second* movable row, not the first
+    // — the first is the one about to cross the lock fence — and treat a
+    // "too close to air" refusal as the programme moving under the pointer
+    // (retry), not as success just because the list re-rendered. A DOM that
+    // changed only because time passed is not a reorder.
     let before = null;
     let after = null;
-    for (let attempt = 0; attempt < 3 && !after; attempt++) {
+    for (let attempt = 0; attempt < 4 && !after; attempt++) {
       const rows = await page.$$('.q-item[data-movable="1"]');
       if (rows.length < 3) { await page.waitForTimeout(1200); continue; }
       before = await page.$$eval('.q-item[data-movable="1"] .t', (n) => n.map((x) => x.textContent));
-      const from = await rows[0].boundingBox();
+      const from = await rows[1].boundingBox();
       const to = await rows[2].boundingBox();
       if (!from || !to) { await page.waitForTimeout(800); continue; }
       await page.mouse.move(from.x + 40, from.y + from.height / 2);
       await page.mouse.down();
       for (let i = 1; i <= 10; i++) {
-        await page.mouse.move(from.x + 40, from.y + from.height / 2 + ((to.y - from.y) * i) / 10);
+        await page.mouse.move(from.x + 40, from.y + from.height / 2 + ((to.y - from.y) * 1.4 * i) / 10);
       }
       await page.mouse.up();
       await page.waitForTimeout(1600);
+      if (/too close/i.test((await page.textContent('#queueStatus')) || '')) { await page.waitForTimeout(1500); continue; }
       const now = await page.$$eval('.q-item[data-movable="1"] .t', (n) => n.map((x) => x.textContent));
       if (JSON.stringify(now) !== JSON.stringify(before)) after = now;
     }

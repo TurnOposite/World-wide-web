@@ -2169,3 +2169,32 @@ mode against a real server). "The tower is sound."
 
 **Not verified here:** playback of the real Wix URLs and a real Pages deploy —
 the container cannot reach static.wixstatic.com or github.io.
+
+### 2026-09-26, shift 2 — GitHub-ready
+
+- **README** rewritten for GitHub (screenshots in `docs/screenshots/`, a
+  mermaid diagram of the clock, both ways to run it). **`docs/GO-LIVE.md`**:
+  the one page for Ortis — create repo, push, Pages, booth token, what to
+  review before sharing, bandwidth. **`scripts/publish-to-github.ps1`** does
+  the push from the bundle (not run: no PowerShell here — the manual commands
+  are in GO-LIVE.md too).
+- **Publishing scan** (the repo will be public): no keys or tokens (the one
+  `eyJ…` string is the fake token in `tests/pi-anywhere.test.js`), no student
+  IDs or emails in the 24 published PDFs (`pdftotext`, 9-digit and email
+  patterns), no GPS in the 24 photos. `.claude/settings.local.json` stays
+  gitignored.
+- **`tests/site-modules.test.js`** (8): the browser booth plans all 10 moods ×
+  6 instants exactly as `dj/dj.mjs` does (31 of the 60 actually reorder, so
+  the parity is not vacuous); visual settings clamp and hand control between
+  listener and tower correctly; the texts come through verbatim.
+- **A pre-existing flake, fixed in the harness, not the product.** The Pi
+  browser smoke failed 1 run in 4 *on the untouched 2026-09-23 code* (checked
+  in a worktree of the import commit): its drag picked the movable row about
+  to cross the 20 s fence, and it read a re-render as success. It now drags the
+  second movable row and retries on "too close to air"; the drift check
+  re-samples until both readings name the same track. No tolerance changed.
+- CLAUDE.md, BRIEF.md (dated addendum to §7), docs/README.md point at the
+  cloud edition. `npm run site:build`, `npm run site:smoke`.
+
+Verified: `bash scripts/build-test.sh` three times in a row — 265 tests, 43/43
+browser checks, 32/32 site checks, "the tower is sound" each time.

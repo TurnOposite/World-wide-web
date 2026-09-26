@@ -19,6 +19,14 @@ site has three new rooms — **Library** (essays on a bookshelf, the thesis,
 the network-map room), **Photos**, **Crates** — fed by
 [`collections/collection.json`](./collections/collection.json).
 
+**New since 2026-09-26 — the cloud edition.** The station also runs as a
+static website with no server: every browser computes the programme with the
+same `Station` class, the DJ's reorders live in `site/station/control.json`
+in the GitHub repo, and the site adds an Atlas, the Écrits and the Portfolio
+around the radio. **[`docs/CLOUD.md`](./docs/CLOUD.md)** is the plan and the
+architecture; **[`docs/GO-LIVE.md`](./docs/GO-LIVE.md)** is the one page for
+putting it on GitHub Pages. The Pi version is unchanged and still supported.
+
 ## Read this first
 
 **→ [`BRIEF.md`](./BRIEF.md) is the standing guide for this project.** It holds the
@@ -68,7 +76,17 @@ npm run scan -- --list # …and print every track
 npm run healthcheck    # one-screen status of a running station
 npm run selftest       # the full build-test.sh
 npm run collections    # does collections/collection.json match the files on disk?
+
+npm run site           # the static site on :8090 (add -- --fixtures DIR for local audio)
+npm run site:build     # assemble dist/ (what GitHub Pages serves)
+npm run site:smoke     # drive the static site in a real browser (also stage 7 of the self-test)
+npm run cloud:check    # is site/station/library.json valid?
 ```
+
+The static site lives in `site/` and has no bundler either: `scripts/site-build.mjs`
+only copies. `site/js/lib/*` are **generated copies** of `server/lib/schedule.js`,
+`server/lib/payloads.js`, `public/viz.js` and `public/queue.js` — edit the
+source and run `node scripts/site-sync.mjs`; a test fails if they drift.
 
 Changing what is *playing* — as opposed to what the station is — happens in the
 booth, which is standalone and needs none of the above:

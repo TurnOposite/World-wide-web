@@ -18,6 +18,8 @@ would cost more than the tidiness is worth.
 | Why is the code like this? | [`DECISIONS.md`](./DECISIONS.md) — append-only |
 | What should I build next? | [`ROADMAP.md`](./ROADMAP.md) — ranked |
 | What did previous runs do? | [`WORKLOG.md`](./WORKLOG.md) — append-only |
+| How does the site work without a server? | [`CLOUD.md`](./CLOUD.md) — the cloud edition, 2026-09-26 |
+| How do I put it on GitHub Pages? | [`GO-LIVE.md`](./GO-LIVE.md) — one page, ten minutes |
 | Is this still heading the right way? | [`PLANNING.md`](./PLANNING.md) |
 
 ## Current authorities

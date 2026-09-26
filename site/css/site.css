@@ -76,6 +76,9 @@ p{margin:0}
 .tabs a[aria-current="page"]{color:var(--text);border-color:var(--signal);background:var(--signal-soft)}
 
 main{position:relative;z-index:5;max-width:var(--wrap);margin:0 auto;padding:6px var(--gutter) 40px;outline:none}
+/* <main> takes focus after each page change so screen readers land on the new
+   content; it is not a control, so it gets no ring. */
+main:focus,main:focus-visible{outline:none}
 main.entering{animation:enter .28s ease-out}
 @keyframes enter{from{opacity:.001;transform:translateY(6px)}to{opacity:1;transform:none}}
 

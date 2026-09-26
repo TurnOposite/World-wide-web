@@ -62,12 +62,19 @@ export function mount(root, ctx) {
 
   const $ = (id) => root.querySelector(`#${id}`);
   const cover = $('rCover');
+  const theatreRect = () => {
+    const side = Math.min(innerWidth, innerHeight) * 0.34;
+    const left = (innerWidth - side) / 2;
+    const top = (innerHeight - side) / 2 - 30;
+    return { left, top, width: side, height: side, right: left + side, bottom: top + side };
+  };
   const onairCard = root.querySelector('.onair');
   document.body.classList.add('on-radio');
 
   setScene(() => ({
     mode: 'radio',
-    cover: cover.getBoundingClientRect(),
+    // In full screen the card fades out; the figure moves to the middle of the room.
+    cover: document.body.classList.contains('theatre') ? theatreRect() : cover.getBoundingClientRect(),
     card: onairCard.getBoundingClientRect(),
     bottomInset: document.getElementById('minibar')?.offsetHeight ?? 70,
   }));

@@ -252,8 +252,16 @@ try {
     watch(t, 'tower');
     await t.goto(`${dev}radio?tower=${encodeURIComponent(towerUrl)}`, { waitUntil: 'domcontentloaded' });
     await t.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 }).catch(() => {});
-    const shown = await t.evaluate(() => ({ mode: window.radioTower?.client?.mode, id: window.radioTower?.player?.onAir?.id, pill: document.getElementById('rMode')?.textContent }));
-    const server = await (await fetch(`${towerUrl}/api/station`)).json();
+    // The self-test's fixture tracks are 7–15 s long, so a reading can straddle
+    // a rollover. Read both sides back to back, and retry across a boundary.
+    let shown, server;
+    for (let i = 0; i < 4; i++) {
+      await t.evaluate(() => window.radioTower.player.refresh());
+      shown = await t.evaluate(() => ({ mode: window.radioTower?.client?.mode, id: window.radioTower?.player?.onAir?.id, pill: document.getElementById('rMode')?.textContent }));
+      server = await (await fetch(`${towerUrl}/api/station`)).json();
+      if (shown.id === server.onAir?.id) break;
+      await t.waitForTimeout(700);
+    }
     check('pointed at a Radio Tower server, the same front end plays its programme', shown.mode === 'tower' && shown.id === server.onAir?.id, `${server.onAir?.title}`);
     check('…and shows the server\'s real listener count', /listening/.test(shown.pill || ''), (shown.pill || '').trim());
   }

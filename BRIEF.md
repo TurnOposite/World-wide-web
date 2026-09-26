@@ -211,3 +211,11 @@ it on a phone with no account and no app, and hears the same song Ortis is
 hearing at that moment — served from a Raspberry Pi in his home.
 
 Everything else is in service of that sentence.
+
+> **Addendum, 2026-09-26 (Ortis's request, recorded — not a relitigation).**
+> He asked for the station "on the world wide web", on GitHub, "all cloudy".
+> The sentence above still describes the Pi edition, which keeps working. It
+> now has a sibling: the same programme computed in each visitor's browser on
+> a static site, so a stranger can hear the same song Ortis hears with no Pi
+> switched on at all. §2 and §3 hold unchanged for both. See
+> [`docs/CLOUD.md`](docs/CLOUD.md) and `docs/DECISIONS.md` 2026-09-26.
