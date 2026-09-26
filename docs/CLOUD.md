@@ -134,6 +134,7 @@ back ends.
 | 6 | GitHub-ready: workflows, README, secret scan, publish script, GO-LIVE | done 2026-09-26 (shift 2) |
 | 7 | Verification: e2e (two listeners same second, reorder reaches both, visuals), mobile, review | done 2026-09-26 (shift 3 review; 273 tests, 43/43 browser, 33/33 site) |
 | 8 | Delivery: preview, write-back to the laptop folder, bundle, Project docs | preview published 2026-09-26 (§8); bundle refreshed every shift; laptop write-back waits for the laptop to come online |
+| 9 | Hardening: accessibility (axe-core in the self-test), workflow lint, review of phase 8, page weight | done 2026-09-26 (shift 4): axe clean on every page and state; actionlint clean; portfolio first load 1.5 MB → 0.35 MB |
 
 The state column is updated by each shift; `docs/WORKLOG.md` has the detail.
 

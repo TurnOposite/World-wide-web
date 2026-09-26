@@ -2251,3 +2251,27 @@ Verified: `bash scripts/build-test.sh` — 267 tests, 43/43 browser, 32/32 site.
 
 Verified: `bash scripts/build-test.sh` — 273 tests, 43/43 browser, 33/33 site;
 `npm run preview:smoke` — 18/18.
+
+### 2026-09-26, shift 4 — phase 9: hardening
+
+- **Accessibility.** axe-core over 10 routes × desktop/phone, then the
+  interactive states (unlocked booth, playing + Visuals panel, reading desk,
+  lightbox, crates sleeve, atlas dossier). Fixed everything it found — see
+  DECISIONS "axe-core as a devDependency". Now 0 violations everywhere; the
+  site smoke fails on any above minor (34 site checks with the tower stage).
+- **Workflows.** `actionlint` clean on ci.yml and pages.yml. The Pages build
+  was run from a fresh clone with no `node_modules` (as the workflow does):
+  works, 109 portfolio files, config filled from `GITHUB_REPOSITORY`.
+- **Review of phase 8.** No behaviour bugs found in `ArtifactControl` or the
+  hash router; a malformed `%` in a fragment link no longer throws. The
+  preview smoke had a race (acting on the queue before the database redraws
+  it) — fixed, 3× green.
+- **Weight.** First load is ~300 KB before gzip on every page except the
+  library, which fetched a 1.2 MB network map with the shelves. The map image
+  now loads when the map room comes within 400 px (IntersectionObserver):
+  library first load 1.5 MB → 0.35 MB.
+- Republished the claude.ai preview (version 2) with all of the above.
+- Laptop still unreachable; write-back waits.
+
+Verified: `bash scripts/build-test.sh` — 273 tests, 43/43 browser, 34/34 site;
+`npm run preview:smoke` 18/18 three times.

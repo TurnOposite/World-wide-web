@@ -2837,3 +2837,24 @@ shared).
 **Found on the way.** `<a href="#maps">` under `<base href="/">` resolves to
 the site root, so the router was sending readers of the library home. Fragment
 links are now handled in place in both router modes; the site smoke checks it.
+
+## 2026-09-26 — axe-core as a devDependency: accessibility is part of "the tower is sound"
+
+**Context.** A first axe-core pass over the static site found 5 rules broken
+on every page: `--text-faint` at 3.66:1 on the panels (under WCAG AA's 4.5:1
+for small text — and most of the site's secondary text is small), locked queue
+rows faded to 1.96:1 by `opacity`, panel headings skipping from h1 to h3, a
+focusable map inside an element announced as one image, and photo tiles naming
+themselves twice.
+
+**Decision.** Fix all of them (a lighter `--text-faint`, #838d99, still dimmer
+than `--text-dim`; locked rows marked by colour, not opacity; h2 in panels;
+the map is a group) and keep them fixed: `axe-core` 4.13.0, exact pin, in
+`devDependencies`, run by the site smoke on every page at phone size and on the
+unlocked booth. Anything above *minor* fails the self-test. Mutation-tested:
+putting the old token back turns the check red.
+
+**Why a dependency.** It is test-only (never shipped, never on the Pi), one
+file, no transitive dependencies, and hand-rolled contrast/ARIA checks would be
+a worse copy of it. `dependencies` (runtime) is unchanged: express and
+music-metadata.
