@@ -2198,3 +2198,29 @@ the container cannot reach static.wixstatic.com or github.io.
 
 Verified: `bash scripts/build-test.sh` three times in a row — 265 tests, 43/43
 browser checks, 32/32 site checks, "the tower is sound" each time.
+
+### 2026-09-26, shift 3 — review pass
+
+Read the site's own code as an auditor would. Fixed:
+
+- **`?tower=` could point the site at any server.** A crafted link would have
+  shown a stranger's programme under this site's name — and the booth would
+  have sent the Pi's station key to it. Now only this site's origin,
+  localhost, `config.tower.url` or `config.tower.allowed` (new, empty by
+  default). Tested (`towerAllowed`, 9 cases).
+- **Atlas dossier links** were escaped but not protocol-checked
+  (`javascript:` would have survived `esc`). Only site paths and https now.
+- **Rollover re-joined unconditionally**, re-loading the *same* track 0.2 s
+  before its end on the first tick, and could loop `ended` → reload on a file
+  shorter than its listed duration. It now switches only when the programme
+  really moved (`Player._rollover`).
+- **Router base** came from the document URL, not its directory — wrong on a
+  host that serves `/some/path/index.html`. Now `new URL('./', baseURI)`.
+- A failed portfolio load was cached forever; now retried. The Visuals panel
+  is announced as a dialog.
+
+Checked and left as is: every `innerHTML` in `site/js` interpolates through
+`esc()` or trusted generated HTML (`texts.json` is escaped at build); the
+GitHub token is read only by `GitHubControl` and sent only to `config.github.api`.
+
+Verified: `bash scripts/build-test.sh` — 267 tests, 43/43 browser, 32/32 site.

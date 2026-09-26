@@ -18,7 +18,9 @@ export class Router {
   constructor({ routes, render }) {
     this.routes = routes;
     this.render = render;
-    this.basePath = new URL(document.baseURI).pathname.replace(/\/?$/, '/');
+    // The directory the site lives in: '/' at a domain root, '/<repo>/' on
+    // github.io, or wherever a host serves index.html from.
+    this.basePath = new URL('./', document.baseURI).pathname;
     this.current = null;
   }
 

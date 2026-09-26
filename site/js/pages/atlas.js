@@ -53,11 +53,14 @@ export function mapSvg(world, places, origin, { compact = false } = {}) {
     ${tower}${pins}</svg>`;
 }
 
+/** A dossier link is a path on this site or an https URL — never javascript: or data:. */
+export const safeLink = (href) => (typeof href === 'string' && (/^https:\/\//.test(href) || /^[\w\-./#]+$/.test(href)) ? href : null);
+
 export function dossierHtml(p) {
   if (!p) return '<p class="hint" style="margin:0">Chaque point est un endroit où quelque chose a été fait. Survole-le, ou tabule d\'un point à l\'autre.</p>';
   return `<p class="place">${esc(p.city)} <small>· ${esc(p.country)}</small></p>
     <p class="years">${esc(p.years || '')}</p>
-    <ul>${(p.projects || []).map((pr) => `<li><b>${pr.link ? `<a href="${esc(pr.link)}" data-link>${esc(pr.name)}</a>` : esc(pr.name)}${pr.status && pr.status !== 'verified' ? `<i>${esc(pr.status)}</i>` : ''}</b><span>${esc(pr.what)}</span></li>`).join('')}</ul>`;
+    <ul>${(p.projects || []).map((pr) => `<li><b>${safeLink(pr.link) ? `<a href="${esc(safeLink(pr.link))}"${/^https:/.test(pr.link) ? ' target="_blank" rel="noopener"' : ' data-link'}>${esc(pr.name)}</a>` : esc(pr.name)}${pr.status && pr.status !== 'verified' ? `<i>${esc(pr.status)}</i>` : ''}</b><span>${esc(pr.what)}</span></li>`).join('')}</ul>`;
 }
 
 export function wirePins(svgRoot, places, show) {

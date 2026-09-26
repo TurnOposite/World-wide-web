@@ -52,7 +52,7 @@ export class Player extends EventTarget {
     audio.addEventListener('playing', () => this._status('on air'));
     audio.addEventListener('error', () => this._onError());
     // `ended` is a hint, not the clock: a stalled buffer fires it late.
-    audio.addEventListener('ended', () => this.refresh().then(() => this.playing && this.join({ force: true })));
+    audio.addEventListener('ended', () => this._rollover());
 
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && this.playing) this.refresh().then(() => this.join());
@@ -126,7 +126,7 @@ export class Player extends EventTarget {
     this.dispatchEvent(new CustomEvent('tick', { detail: { pos, dur, pct: Math.max(0, Math.min(1, pos / dur)) } }));
 
     if (pos >= dur - 0.25) {
-      this.refresh().then(() => this.playing && this.join({ force: true }));
+      this._rollover();
       return;
     }
     if (!this.playing || this.audio.paused || this.audio.readyState < 2) return;
@@ -137,6 +137,21 @@ export class Player extends EventTarget {
       this.audio.currentTime = Math.max(0, pos);
       this._status(`re-synced (${drift > 0 ? 'ahead' : 'behind'} ${Math.abs(drift).toFixed(1)}s)`);
     }
+  }
+
+  /**
+   * The clock says this track is (about to be) over: ask what is on now, and
+   * switch only if it really changed. Re-loading the same track 0.2 s before
+   * its end — what an unconditional re-join does on the first tick — is a
+   * wasted download and an audible blip; a file slightly shorter than its
+   * listed duration would otherwise loop `ended` → reload → `ended`.
+   */
+  _rollover() {
+    const was = this.onAir;
+    return this.refresh().then(() => {
+      const now = this.onAir;
+      if (this.playing && now && (now.id !== was?.id || now.startsAt !== was?.startsAt)) this.join({ force: true });
+    });
   }
 
   /** Point the audio at the on-air track and seek to where the tower is. */

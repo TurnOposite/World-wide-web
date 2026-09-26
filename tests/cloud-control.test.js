@@ -11,7 +11,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { GitHubControl, LocalControl, StaticControl, b64encode, b64decode } from '../site/js/engine/control.js';
-import { skewFromDateHeader } from '../site/js/engine/transport.js';
+import { skewFromDateHeader, towerAllowed } from '../site/js/engine/transport.js';
+import { safeLink } from '../site/js/pages/atlas.js';
 
 const json = (status, body, headers = {}) => ({
   status,
@@ -138,4 +139,26 @@ test('clock skew from the Date header: a phone 60 s slow is corrected, sub-secon
   assert.equal(small, 0);
   const broken = await skewFromDateHeader('https://x/', { fetchImpl: async () => ({ headers: { get: () => null } }) });
   assert.equal(broken, 0);
+});
+
+test('?tower= only tunes to a station this site trusts', () => {
+  const here = 'https://ortis.github.io';
+  const cfg = { tower: { url: '', allowed: ['https://radio.example.com'] } };
+  assert.equal(towerAllowed('https://radio.example.com', cfg, here), true);
+  assert.equal(towerAllowed('https://radio.example.com/', cfg, here), true);
+  assert.equal(towerAllowed('https://ortis.github.io', cfg, here), true, 'same origin');
+  assert.equal(towerAllowed('http://127.0.0.1:8080', cfg, here), true, 'this computer');
+  assert.equal(towerAllowed('http://localhost:8080', cfg, here), true);
+  assert.equal(towerAllowed('https://evil.example', cfg, here), false);
+  assert.equal(towerAllowed('https://radio.example.com.evil.example', cfg, here), false);
+  assert.equal(towerAllowed('javascript:alert(1)', cfg, here), false);
+  assert.equal(towerAllowed('not a url', cfg, here), false);
+});
+
+test('an atlas dossier links only to site paths or https', () => {
+  assert.equal(safeLink('portfolio/library'), 'portfolio/library');
+  assert.equal(safeLink('https://example.com/x'), 'https://example.com/x');
+  assert.equal(safeLink('javascript:alert(1)'), null);
+  assert.equal(safeLink('data:text/html,x'), null);
+  assert.equal(safeLink(''), null);
 });

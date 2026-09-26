@@ -95,7 +95,7 @@ class CloudClient extends Emitter {
       this._collections ??= fetch(new URL('data/collections.json', this.base)).then((r) => {
         if (!r.ok) throw new Error(`collections ${r.status}`);
         return r.json();
-      });
+      }).catch((err) => { this._collections = null; throw err; }); // a failed load may be retried
       return this._collections;
     }
     const { status, body } = this.engine.get(path);
@@ -224,6 +224,21 @@ class TowerClient extends Emitter {
 /* ---------------------------------------------------------------- connect */
 
 /**
+ * May this site tune to the station at `url`? Its own origin, a machine on
+ * this computer, the configured tower, or anything listed in
+ * config.tower.allowed (origins, e.g. "https://radio.example.com").
+ */
+export function towerAllowed(url, config = {}, here = globalThis.location?.origin ?? '') {
+  if (url === '') return true;
+  let origin;
+  try { origin = new URL(url).origin; } catch { return false; }
+  if (origin === here) return true;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin)) return true;
+  const list = [config.tower?.url, ...(config.tower?.allowed || [])].filter(Boolean);
+  return list.some((u) => { try { return new URL(u).origin === origin; } catch { return false; } });
+}
+
+/**
  * Read site config and return the right client.
  * @param {object} o
  * @param {string} o.base  the site root (document.baseURI)
@@ -237,7 +252,15 @@ export async function connect({ base = document.baseURI, overrides = {} } = {}) 
   config = { ...config, ...overrides };
 
   // ?tower=https://radio.example.com points this front end at a real station.
-  const towerUrl = params.get('tower') || (config.mode === 'tower' ? config.tower?.url : null);
+  // Only at a station this site trusts: otherwise a crafted link could dress
+  // a stranger's server up in this site's clothes — and the booth would hand
+  // it the station key.
+  let towerUrl = config.mode === 'tower' ? (config.tower?.url ?? '') : null;
+  const asked = params.get('tower');
+  if (asked !== null) {
+    if (towerAllowed(asked, config)) towerUrl = asked;
+    else console.warn(`[radio-tower] ignoring ?tower=${asked} — not this site's station (config.json → tower.allowed)`);
+  }
   if (towerUrl !== null && towerUrl !== undefined) {
     const client = new TowerClient({ config, origin: towerUrl || location.origin });
     await client.syncClock(3);

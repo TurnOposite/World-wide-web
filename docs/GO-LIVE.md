@@ -133,4 +133,8 @@ site moves to the root of your domain on its own.
 
 Nothing here replaced it. When you have the Pi on a network again,
 `docs/PICK-UP-AGAIN.md` still applies, and the new site can play the Pi's whole
-library: `https://YOUR-NAME.github.io/radio-tower/radio?tower=https://your-pi-address`.
+library: add the Pi's public address to `site/config.json` → `tower.allowed`
+(e.g. `["https://radio.example.com"]`), then open
+`https://YOUR-NAME.github.io/radio-tower/radio?tower=https://radio.example.com`.
+The list is there so nobody can send you a link that dresses a stranger's
+server up as your station.
