@@ -43,11 +43,11 @@ export function mapSvg(world, places, origin, { compact = false } = {}) {
   let tower = '';
   if (origin && Number.isFinite(origin.lat) && Number.isFinite(origin.lon)) {
     const { x, y } = project(origin.lat, origin.lon);
-    tower = `<g class="tower-pin" aria-label="Radio Tower broadcasts from ${esc(origin.place || '')}">
+    tower = `<g class="tower-pin" role="img" aria-label="Radio Tower broadcasts from ${esc(origin.place || '')}">
       <circle class="wave" cx="${x}" cy="${y}" r="4"/><circle class="wave" cx="${x}" cy="${y}" r="4"/><circle class="wave" cx="${x}" cy="${y}" r="4"/>
       <circle class="core" cx="${x}" cy="${y}" r="1.1"/></g>`;
   }
-  return `<svg viewBox="${vx} ${vy} ${vw} ${vh}" role="img" aria-label="World map of places where work was made">
+  return `<svg viewBox="${vx} ${vy} ${vw} ${vh}" role="group" aria-label="World map of places where work was made">
     <g class="atlas-grat">${grid.join('')}</g>
     <g class="map-land">${world.paths.map((d) => `<path d="${d}"/>`).join('')}</g>
     ${tower}${pins}</svg>`;

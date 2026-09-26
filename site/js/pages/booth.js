@@ -38,7 +38,7 @@ export async function mount(root, ctx) {
       <div>
         <div class="panel" id="bQueue"></div>
         <div class="panel" style="margin-top:18px">
-          <div class="panel-head"><h3>Spontaneous Emissions</h3></div>
+          <div class="panel-head"><h2>Spontaneous Emissions</h2></div>
           <p class="queue-note">Pick a mood, or type one. The movable part of the queue is reordered so the best matches come first — nothing is added or removed.</p>
           <div class="moods" id="bMoods"></div>
           <form class="field" id="bFree" autocomplete="off"><label for="bFreeIn">Your own words</label>
@@ -48,12 +48,12 @@ export async function mount(root, ctx) {
       </div>
       <div>
         <div class="panel">
-          <h3>Where changes go</h3>
+          <h2>Where changes go</h2>
           <div class="plane" id="bPlane"><span>${planeText()}</span></div>
           <div id="bAuth"></div>
         </div>
         <div class="panel" style="margin-top:18px">
-          <h3>Broadcast look</h3>
+          <h2>Broadcast look</h2>
           <p class="queue-note">The visuals everyone sees — unless a listener picked their own in the Visuals panel.</p>
           <div class="v-looks" id="bLooks"></div>
           <div class="v-row"><button class="btn small" type="button" id="bSendMine">Send my current visuals</button><button class="btn small" type="button" id="bClearLook">No broadcast look</button></div>

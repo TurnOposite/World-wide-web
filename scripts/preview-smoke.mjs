@@ -148,6 +148,7 @@ try {
   await a.waitForFunction(() => /Shared preview/.test(document.querySelector('#bPlane')?.textContent || ''), null, { timeout: 8000 }).catch(() => {});
   check('the booth finds the shared database (it arrives after the page started)', /Shared preview/.test(await a.textContent('#bPlane')), (await a.textContent('#bPlane')).trim().slice(0, 60));
   await a.waitForSelector('#bQueue li[data-movable="1"]', { timeout: 8000 }).catch(() => {});
+  await a.waitForTimeout(300);
   const movable = await a.$$('#bQueue li[data-movable="1"]');
   const beforeIds = await b.evaluate(() => window.radioTower.client.engine.get('/api/queue').body.slots.map((s) => s.id));
   if (movable.length >= 2) {
@@ -168,9 +169,12 @@ try {
   watch(v, 'viewer');
   await v.goto(`${site}?fakedb=ro#/booth`, { waitUntil: 'domcontentloaded' });
   await booted(v);
+  // The database arrives ~0.4 s after boot and the queue redraws: act after that.
+  await v.waitForFunction(() => /Shared preview/.test(document.querySelector('#bPlane')?.textContent || ''), null, { timeout: 8000 }).catch(() => {});
   await v.waitForSelector('#bQueue li[data-movable="1"]', { timeout: 8000 }).catch(() => {});
-  const vm = await v.$$('#bQueue li[data-movable="1"]');
-  if (vm.length >= 2) { await vm[1].focus(); await v.keyboard.press('ArrowUp'); }
+  await v.waitForTimeout(300);
+  const vm = v.locator('#bQueue li[data-movable="1"]');
+  if ((await vm.count()) >= 2) { await vm.nth(1).focus(); await v.keyboard.press('ArrowUp'); }
   await v.waitForFunction(() => /view-only/.test(document.querySelector('#bPlane')?.textContent || ''), null, { timeout: 8000 }).catch(() => {});
   const vText = `${await v.textContent('#bPlane')} ${await v.textContent('#bQueue .qstate')}`;
   check('a viewer below Contributor is told the preview is view-only for them', /view-only/.test(vText), vText.trim().replace(/\s+/g, ' ').slice(0, 90));

@@ -63,7 +63,7 @@ export async function mount(root, ctx) {
             const r = p.w && p.h ? (p.w / p.h).toFixed(4) : 1.3333;
             return (
               `<button type="button" class="ph" style="--r:${r}" data-i="${i}" aria-label="${esc(p.caption || 'Photo')} — open">` +
-              `<i></i><img src="${p.thumb}" alt="${esc(p.caption)}" loading="lazy" decoding="async">` +
+              `<i></i><img src="${p.thumb}" alt="" loading="lazy" decoding="async">` +
               (p.caption ? `<figcaption>${esc(p.caption)}</figcaption>` : '') +
               `</button>`
             );

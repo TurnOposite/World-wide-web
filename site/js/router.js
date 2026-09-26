@@ -69,7 +69,9 @@ export class Router {
       const raw = a.getAttribute('href');
       if (raw.startsWith('#')) {
         e.preventDefault();
-        const target = raw.length > 1 ? document.getElementById(decodeURIComponent(raw.slice(1))) : null;
+        let id = raw.slice(1);
+        try { id = decodeURIComponent(id); } catch { /* a stray %: use it as written */ }
+        const target = id ? document.getElementById(id) : null;
         if (target) {
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
           if (target.tabIndex >= 0 || target.hasAttribute('tabindex')) target.focus({ preventScroll: true });

@@ -48,14 +48,14 @@ export function mount(root, ctx) {
     </section>
 
     <section class="echoes" aria-label="Echoes">
-      <div class="panel"><h3>Up next</h3><ol class="tracklist" id="rNext"></ol></div>
-      <div class="panel"><h3>Just played</h3><ol class="tracklist muted" id="rRecent"></ol></div>
+      <div class="panel"><h2>Up next</h2><ol class="tracklist" id="rNext"></ol></div>
+      <div class="panel"><h2>Just played</h2><ol class="tracklist muted" id="rRecent"></ol></div>
     </section>
 
     <section class="radio-grid">
       <div class="panel" id="rQueue"></div>
       <div class="panel">
-        <div class="panel-head"><h3>Echoes — the next hours</h3><span class="pill" id="rTz"></span></div>
+        <div class="panel-head"><h2>Echoes — the next hours</h2><span class="pill" id="rTz"></span></div>
         <ol class="tracklist guide" id="rGuide"></ol>
       </div>
     </section>`;

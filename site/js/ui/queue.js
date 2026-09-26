@@ -42,7 +42,7 @@ export class QueueEditor {
     this.msg = { text: '', tone: '' };
 
     root.innerHTML = `
-      <div class="panel-head"><h3>${esc(title)}</h3><div class="queue-actions" data-actions></div></div>
+      <div class="panel-head"><h2>${esc(title)}</h2><div class="queue-actions" data-actions></div></div>
       <p class="queue-note" data-note></p>
       <ol class="tracklist queue" data-list></ol>
       <p class="qstate" data-state role="status" aria-live="polite"></p>`;

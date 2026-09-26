@@ -15,7 +15,7 @@
   --line-soft:#1b2129;
   --text:#e8edf3;
   --text-dim:#96a1ae;
-  --text-faint:#67717d;
+  --text-faint:#838d99; /* 4.5:1 or better on every panel surface (axe, 2026-09-26) */
   --signal:#34d399;
   --signal-ink:#06281c;
   --signal-soft:rgba(52,211,153,.14);
@@ -51,6 +51,7 @@ a{color:inherit}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:6px}
 h1,h2,h3{text-wrap:balance;margin:0}
+.panel h2{line-height:1.2}
 p{margin:0}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
@@ -95,9 +96,9 @@ main.entering{animation:enter .28s ease-out}
 /* ------------------------------------------------------------ shared bits */
 .eyebrow{font:600 11px/1 var(--font);letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint)}
 .panel{background:var(--bg-raise);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px}
-.panel h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);font-weight:600;margin-bottom:12px}
+.panel h2,.panel h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);font-weight:600;margin-bottom:12px}
 .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-.panel-head h3{margin:0}
+.panel-head h2,.panel-head h3{margin:0}
 .btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--bg-raise-2);color:var(--text);
   border-radius:999px;padding:8px 16px;font-size:13.5px;cursor:pointer;text-decoration:none;transition:border-color .15s,background .15s}
 .btn:hover{border-color:#3a4654}
@@ -172,7 +173,8 @@ input[type=range]{accent-color:var(--signal)}
 
 /* ---------------------------------------------------------------- queue */
 .queue li{grid-template-columns:auto auto 1fr auto;cursor:default}
-.queue li.locked{opacity:.55}
+/* Locked rows read as settled, not faded: opacity took their text under 2:1. */
+.queue li.locked .t{color:var(--text-dim)}
 .queue li .grip{width:22px;height:22px;display:grid;place-items:center;border-radius:6px;color:var(--text-faint);cursor:grab;touch-action:none;border:1px solid transparent}
 .queue li.locked .grip{visibility:hidden}
 .queue li .grip:hover{border-color:var(--line);color:var(--text)}

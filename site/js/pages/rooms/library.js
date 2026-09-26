@@ -33,7 +33,7 @@ const TEMPLATE = `<div class="room-head">
     <div class="layer-tabs" id="layerTabs" role="tablist" aria-label="Network layers"></div>
     <div class="map-grid">
       <div class="map-stage" id="mapStage" tabindex="0" aria-label="Network map. Drag to pan, scroll or pinch to zoom, plus and minus keys also zoom.">
-        <img id="mapImg" alt="" draggable="false">
+        <img id="mapImg" alt="" draggable="false" decoding="async">
         <span class="map-zoom" id="mapZoom">100%</span>
         <div class="map-controls">
           <button type="button" data-z="in" aria-label="Zoom in">+</button>
@@ -397,6 +397,12 @@ export async function mount(root, ctx) {
     cleanups.push(() => ro.disconnect());
   }
 
+  // The map images are up to 1.6 MB each: fetch one when the map room comes
+  // near the screen, not with the bookshelf (a phone reading one essay never pays for it).
+  let mapNear = typeof IntersectionObserver !== 'function';
+  let pendingSrc = null;
+  const setMapSrc = (url) => { if (mapNear) el.img.src = url; else pendingSrc = url; };
+
   function showLayer(layer, tabs) {
     tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.id === layer.id)));
     el.img.onload = () => {
@@ -406,7 +412,7 @@ export async function mount(root, ctx) {
       el.img.style.height = `${view.ih}px`;
       fitView();
     };
-    el.img.src = layer.url;
+    setMapSrc(layer.url);
     el.img.alt = `${layer.title} — ${layer.caption}`;
     el.download.href = `${layer.url}`;
     el.download.textContent = `Download · ${Math.max(1, Math.round(layer.bytes / 1024))} KB`;
@@ -444,6 +450,16 @@ export async function mount(root, ctx) {
     });
     el.maps.hidden = false;
     wireMap();
+    if (!mapNear) {
+      const io = new IntersectionObserver((entries) => {
+        if (!entries.some((en) => en.isIntersecting)) return;
+        io.disconnect();
+        mapNear = true;
+        if (pendingSrc) el.img.src = pendingSrc;
+      }, { rootMargin: '400px 0px' });
+      io.observe(el.maps);
+      cleanups.push(() => io.disconnect());
+    }
     showLayer(maps.layers[0], tabs);
   }
 

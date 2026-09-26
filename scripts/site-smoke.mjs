@@ -52,6 +52,18 @@ function makeFixtures() {
   return dir;
 }
 
+// Accessibility: axe-core (devDependency) on every page the phone visits and on
+// the unlocked booth. Minor findings are reported, not failed.
+let AXE = null;
+try { AXE = fs.readFileSync(path.join(ROOT, 'node_modules/axe-core/axe.min.js'), 'utf8'); } catch { /* not installed: the check says so */ }
+async function axeRun(page) {
+  if (!AXE) return null;
+  await page.addScriptTag({ content: AXE });
+  return page.evaluate(async () => (await window.axe.run(document, { resultTypes: ['violations'] })).violations
+    .filter((v) => v.impact !== 'minor')
+    .map((v) => `${v.id} (${v.impact}) ${v.nodes[0]?.target.join(' ')}`));
+}
+
 const listen = (server) => new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server.address().port)));
 
 const launchOpts = { args: ['--autoplay-policy=no-user-gesture-required', '--no-sandbox', '--mute-audio'] };
@@ -227,14 +239,20 @@ try {
   const m = await phone.newPage();
   watch(m, 'phone');
   const overflow = [];
-  for (const r of ['', 'radio', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'portfolio', 'portfolio/photos', 'booth']) {
+  const a11y = [];
+  for (const r of ['', 'radio', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
     await m.goto(dev + r, { waitUntil: 'domcontentloaded' });
     await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
     await m.waitForTimeout(700);
     const o = await m.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     if (o > 1) overflow.push(`/${r} ${o}px`);
+    for (const v of (await axeRun(m)) || []) a11y.push(`/${r}: ${v}`);
   }
   check('nothing overflows a 390 px phone', overflow.length === 0, overflow.join(', ') || 'every page fits');
+  if (AXE) {
+    for (const v of (await axeRun(booth)) || []) a11y.push(`booth (unlocked): ${v}`);
+    check('no accessibility violations above minor (axe-core, every page + the unlocked booth)', a11y.length === 0, a11y.slice(0, 3).join(' | ') || 'contrast, names, roles, headings');
+  } else console.log('SKIP  accessibility (axe-core not installed — npm install)');
   check('the mini-player stays on screen on a phone', await m.$eval('#minibar', (el) => el.getBoundingClientRect().bottom <= innerHeight + 1 && el.offsetHeight > 40));
 
   /* -------------------------------------- dist/ under a repo sub-path ---- */
