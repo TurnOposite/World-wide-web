@@ -2224,3 +2224,30 @@ Checked and left as is: every `innerHTML` in `site/js` interpolates through
 GitHub token is read only by `GitHubControl` and sent only to `config.github.api`.
 
 Verified: `bash scripts/build-test.sh` — 267 tests, 43/43 browser, 32/32 site.
+
+### 2026-09-26, shift 3 (cont.) — phase 8: the claude.ai preview
+
+- `scripts/site-preview.mjs` → `dist-preview/`: page-content shell, hash
+  routes, 28 test tones (ffmpeg, cached in `.cache/preview-audio/`, ~80 s
+  cold), `config.control = "artifact"`, and a fit check (177 files, 35.9 MB).
+- `ArtifactControl` in `site/js/engine/control.js`; the booth repaints "where
+  changes go" when the database arrives or refuses a write.
+- Router: `mode: 'hash'` + `routeFromHash`; fragment links stay on the page
+  (bug on the Pages build too — `#maps` in the library went home).
+- Tests: 6 new unit tests (preview plane, hash routes, page content);
+  `scripts/preview-smoke.mjs` 18/18 against a stand-in host; site smoke gains
+  the `#maps` check (33).
+- Before publishing, every file was read or viewed (25 PDFs in full by three
+  reader agents; photos, covers, maps and the thesis appendix viewed). Clean.
+  Optional tidy-ups for Ortis, not privacy issues: the thesis title page names
+  two different supervisors; `hist223-water-lily` ends with a stray fragment;
+  `ucph-regression` still says "Exam number: 2"; `poli459-liquid-democracy`
+  has an unfilled "[citation]".
+- Published as a private artifact, "Globe Trotter", with the `db` capability;
+  seeded `station/control` with the empty document and read it back at
+  Contributor level.
+- Laptop still offline: write-back to `Claude outputs\cloud-transfer\` retried,
+  not possible yet.
+
+Verified: `bash scripts/build-test.sh` — 273 tests, 43/43 browser, 33/33 site;
+`npm run preview:smoke` — 18/18.

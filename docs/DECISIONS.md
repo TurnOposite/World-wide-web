@@ -2812,3 +2812,28 @@ The container cannot reach `static.wixstatic.com` or `github.io` (proxy 403),
 so real-audio playback of the Wix URLs and the Pages deploy are **not verified
 here** — the end-to-end tests run against locally generated audio served the
 same way. Stated rather than implied, per `BRIEF.md` rule 9.
+
+## 2026-09-26 — The claude.ai preview: hash routes, test tones, the artifact's own database
+
+**Context.** Ortis is away until Sunday night and GitHub is not set up yet, so
+the only place the finished site can be clicked through is a private claude.ai
+artifact. That host serves one page, wraps it in its own document, blocks
+every outside host (so no Wix audio, no api.github.com), and offers a small
+shared database to the page.
+
+**Decision.** A separate build (`scripts/site-preview.mjs`), not a fork of the
+site: the same files with (1) the shell as page content and a hash-mode router
+(`Router({ mode: 'hash' })`), (2) a generated test tone per track of exactly
+the track's length, labelled on the page, (3) a fourth control plane,
+`ArtifactControl`, over `claude.use('db')`, which starts as LocalControl and
+upgrades when the database answers — the radio never waits for it.
+
+**Rejected.** Copying the 28 tracks into the artifact (other artists' music on
+a new host); a shorter "preview station" of a few tones (the booth, moods and
+Écrits scores would have nothing real to act on); leaving the booth local-only
+(the one feature Ortis asked for by name — the working queue — would not be
+shared).
+
+**Found on the way.** `<a href="#maps">` under `<base href="/">` resolves to
+the site root, so the router was sending readers of the library home. Fragment
+links are now handled in place in both router modes; the site smoke checks it.

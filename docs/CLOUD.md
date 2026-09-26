@@ -132,7 +132,39 @@ back ends.
 | 4 | Working queue: listener view, booth (drag/keys, moods, clear, broadcast look), GitHub control plane | done 2026-09-26 |
 | 5 | Atlas, Écrits, Portfolio | done 2026-09-26 |
 | 6 | GitHub-ready: workflows, README, secret scan, publish script, GO-LIVE | done 2026-09-26 (shift 2) |
-| 7 | Verification: e2e (two listeners same second, reorder reaches both, visuals), mobile, review | self-test green: 257 tests, 43/43 browser, 32/32 site checks; review next |
-| 8 | Delivery: preview, write-back to the laptop folder, bundle, Project docs | |
+| 7 | Verification: e2e (two listeners same second, reorder reaches both, visuals), mobile, review | done 2026-09-26 (shift 3 review; 273 tests, 43/43 browser, 33/33 site) |
+| 8 | Delivery: preview, write-back to the laptop folder, bundle, Project docs | preview published 2026-09-26 (§8); bundle refreshed every shift; laptop write-back waits for the laptop to come online |
 
 The state column is updated by each shift; `docs/WORKLOG.md` has the detail.
+
+## 8. The claude.ai preview
+
+A private copy of the site on claude.ai, so the whole thing can be clicked
+through before GitHub exists. `npm run preview` builds it into
+`dist-preview/` (gitignored); `npm run preview:smoke` drives it (18 checks)
+through a stand-in for the claude.ai host.
+
+It differs from `dist/` in exactly four ways, all in
+`scripts/site-preview.mjs`:
+
+1. **Page content, not a document.** The host wraps the page in its own
+   skeleton, so `index.html` loses doctype/head/body/`<base>`, and routes go
+   after `#/` (`config.router = "hash"`) because the host serves one page
+   and nothing at `/radio`.
+2. **Test tones instead of the music.** The artifact's CSP blocks every
+   outside host, Wix included. Each track plays a generated tone of exactly
+   its length — its own key and pulse — so the clock, queue, booth, moods and
+   scores all behave as on the live site. The page says so above the fold.
+   No one else's music is copied to a new host.
+3. **The booth writes to the artifact's shared database**
+   (`ArtifactControl`, document `station/control`): everyone the preview is
+   shared with as a Contributor or above hears a reorder live; Viewers are
+   told it is view-only for them. Without that database (any other host) it
+   falls back to one browser.
+4. **One publish:** 177 files, ~36 MB, checked against the limits (255 files,
+   64 MB) before anything is sent.
+
+Every file in it was looked at before publishing: the 25 PDFs read in full
+(no IDs, emails, grades or private individuals; supervisors named in their
+role only), every photo, cover and map viewed (wildlife and landscapes;
+network maps label only public channel names and genre tags).

@@ -12,6 +12,13 @@ it was written); a GitHub account; Git for Windows (already installed in
 
 The bundle *is* the repository: every file and the full history.
 
+**Want to click through it first?** A private copy is already on claude.ai as
+the artifact **"Globe Trotter"** (your artifacts gallery). Everything works
+there, including the DJ booth, except the music: claude.ai cannot reach Wix,
+so each track plays a test tone of the same length. Only you can open it
+until you share it; people you share it with as *Contributor* can use the
+booth, *Viewers* can listen and watch.
+
 ---
 
 ## 1. Create an empty repository on GitHub
