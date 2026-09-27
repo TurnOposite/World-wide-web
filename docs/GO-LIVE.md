@@ -40,7 +40,7 @@ Create it and copy its URL, e.g. `https://github.com/YOUR-NAME/radio-tower.git`.
 > things to look at before you share the link.
 >
 > **Your email address is in the history.** Every commit is signed
-> `Ortis with your personal Gmail address`; a public repository shows it. If your
+> `Ortis` with your personal Gmail address; a public repository shows it. If your
 > GitHub account has *Block command line pushes that expose my email* on, the
 > push in step 2 is refused ("GH007"). To sign the history with GitHub's
 > private address instead, run the block in **1b** after the `cd
@@ -81,10 +81,11 @@ Change the bundle path if you saved it elsewhere, and `YOUR-NAME`. The first
 push opens a browser window to sign in to GitHub — that is Git Credential
 Manager, part of Git for Windows.
 
-Later, to bring GitHub up to date from a newer bundle, the same steps are a
-script inside the repository: from `radio-tower-git`, `powershell
--ExecutionPolicy Bypass -File .\scripts\publish-to-github.ps1 -Bundle <path>
--RepoUrl <url>`.
+From the moment the booth saves its first reorder, **GitHub is the master
+copy**: the booth commits there. Future changes — yours or a Claude
+session's — start from a clone of the GitHub repository, never from an older
+bundle (pushing an old bundle over it is refused, and forcing it would undo
+the booth's commits).
 
 ## 3. Turn on Pages
 

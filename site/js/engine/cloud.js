@@ -123,9 +123,12 @@ export class CloudEngine {
     const lockMs = (this.config.queueLockSeconds ?? 0) * 1000;
     const plan = this.station.planQueueOrder({ cycleIndex, startWithin, ids }, { now, lockMs });
     if (!plan.ok) {
+      const at = plan.until ? new Date(plan.until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       const detail = plan.error === 'earlier_reorder_on_air'
-        ? `An earlier reorder is still playing out. Try again at ${new Date(plan.until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`
-        : 'Refresh the queue and try again.';
+        ? `An earlier reorder is still playing out. Try again at ${at}.`
+        : plan.error === 'other_reorder_waiting'
+          ? `Your earlier reorder is still waiting to play (until ${at}). Press “Back to the station clock” to drop it, or try again after it has played.`
+          : 'Refresh the queue and try again.';
       return { ok: false, status: 409, error: plan.error, detail, until: plan.until ?? null };
     }
     // Dry-run on a throwaway station, so a refusal is reported here rather

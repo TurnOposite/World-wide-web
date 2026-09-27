@@ -153,15 +153,17 @@ test('a listener without a token asks the API at most every 90 s, reads the Page
 
   // The DJ committed; Pages deployed it before the next API turn: the newer document wins.
   pagesDoc = { version: 1, override: { cycleIndex: 2, startWithin: 1, ids: ['a', 'b'] }, look: null, updatedAt: '2026-09-27T10:01:30Z' };
+  gh.state.content = JSON.stringify(pagesDoc); gh.state.sha = 'sha-dj'; gh.state.etag = '"e-dj"';
   t += 5_000;
   const seen = await plane.read();
   assert.equal(seen.changed, true);
   assert.deepEqual(seen.doc.override.ids, ['a', 'b']);
-  // An older document from the API later does not take it back.
+  // The API agrees at its next turn: no change reported twice.
   t += 90_000;
   const again = await plane.read();
   assert.equal(apiCalls, 2);
   assert.deepEqual(again.doc.override?.ids, ['a', 'b']);
+  assert.equal(again.changed, false);
 
   // Rate-limited: silence from the API until the reset, the Pages copy meanwhile.
   limitedUntil = t + 30 * 60_000;
@@ -173,6 +175,29 @@ test('a listener without a token asks the API at most every 90 s, reads the Page
   t = limitedUntil + 1;
   await plane.read();
   assert.equal(apiCalls, calls + 1, 'asks again after the reset');
+});
+
+test('a revert on github.com reaches tabs already open, and a stale Pages copy does not flip it back', async () => {
+  const dj = { version: 1, override: { cycleIndex: 2, startWithin: 1, ids: ['a', 'b'] }, look: null, updatedAt: '2026-09-27T10:05:00Z' };
+  const gh = fakeGitHub({ doc: dj });
+  const pagesDoc = dj; // Pages has not redeployed the revert yet
+  let t = Date.parse('2026-09-27T10:06:00Z');
+  const fetchImpl = async (url, opts) => (String(url).startsWith('https://ortis.github.io') ? json(200, pagesDoc) : gh.fetchImpl(url, opts));
+  const plane = new GitHubControl({ owner: 'o', repo: 'r', fetchImpl, fallbackUrl: 'https://ortis.github.io/radio-tower/station/control.json', now: () => t });
+  await plane.read();
+  t += 20_000; await plane.read(); // the Pages copy, same as the repo
+  // "Revert" on github.com: the older document, with its older date, is back.
+  gh.state.content = JSON.stringify({ version: 1, override: null, look: null, updatedAt: '2026-09-27T09:00:00Z' });
+  gh.state.sha = 'sha-revert'; gh.state.etag = '"e-revert"';
+  t += 90_000;
+  const r = await plane.read();
+  assert.equal(r.changed, true);
+  assert.equal(r.doc.override, null, 'the repository is the authority');
+  for (let i = 0; i < 3; i++) {
+    t += 20_000;
+    const p = await plane.read(); // the stale Pages copy still says `dj`
+    assert.equal(p.doc.override, null, 'no flip-flop while Pages catches up');
+  }
 });
 
 test('the DJ, with a token, asks the API on every read', async () => {

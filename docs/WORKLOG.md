@@ -2388,3 +2388,34 @@ Fixed (each with a test that fails without the fix):
 
 Verified: `bash scripts/build-test.sh` — 292 tests, 43/43 browser, 40/40
 site; preview smoke 18/18.
+
+### 2026-09-27, shift 9 — a second look at shift 8's fixes
+
+A fresh read-only reviewer on commit 5be05f3 (plus its own ~18,000-decision
+property script: gap seconds 0–3, libraries of 2–14, locks up to 600 s, fence
+across cycles, library changes — the fence never moved). Six findings, all
+checked here, all acted on:
+
+- **Hidden tabs did not poll** the DJ's document, so a listener with the tab
+  in the background (a phone in a pocket) could miss a reorder and play a
+  different programme. They poll now; browsers slow them to ~1/min, inside
+  the fence. CLOUD.md says what a fully frozen phone does.
+- **`_settle` regression:** an API document with an older date never replaced
+  the one held, so a revert on github.com never reached open tabs. The
+  repository is now the authority; the Pages copy only wins when it changed
+  since last read *and* is newer. Test for the revert, with a stale Pages copy
+  that must not flip it back; the polling test now models the real flow.
+- **A waiting reorder in another stretch vanished silently** when a new one
+  was planned elsewhere. Refused now (`other_reorder_waiting`, with `until`
+  and what to do). Test on a 28-track no-shuffle station, like the cloud one.
+- **GO-LIVE carried the email address in its own text** — the warning about
+  the address published it. Rewritten; the file's history was rewritten too
+  (filter-branch over the last commit, before any push) so no file in any
+  commit contains it. Commit signatures still carry it until step 1b.
+- **"Update from a newer bundle" would fail** once the booth has committed
+  (non-fast-forward; forcing it would undo the booth). GO-LIVE and the script
+  now say GitHub is the master copy after the first push.
+- **DJ docs** (`dj/CLAUDE.md`, `tower-dj-booth` skill) described the old
+  "replace" semantics; updated, with the two new refusals in the table.
+
+Verified: `bash scripts/build-test.sh` — 294 tests, 43/43 browser, 40/40 site.

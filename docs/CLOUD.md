@@ -83,9 +83,13 @@ sideways arcs), `#34d399`, credit **Zoneko**, "Echoes" not "Guide".
 - **Propagation** — listeners check every 20 s: the GitHub REST API at most
   every 90 s (without a token GitHub allows 60 calls an hour per IP, and a 304
   is only free *with* one — corrected 2026-09-27), the copy on Pages in
-  between; the newer document wins, and a rate-limited listener stays on the
-  Pages copy until the limit resets. Worst case ≈ 2 minutes, inside the
-  3-minute fence.
+  between; the repository wins over a stale Pages copy (a revert on github.com
+  reaches open tabs), and a rate-limited listener stays on the Pages copy
+  until the limit resets. Worst case ≈ 2 minutes, inside the 3-minute fence.
+  Hidden tabs keep polling (browsers slow them to about once a minute). A
+  phone whose browser the system froze entirely catches up when it wakes —
+  if the DJ changed something meanwhile, that listener's song changes then,
+  to what everyone else is hearing.
 - **Auth** — the booth writes with a fine-grained GitHub token (this one repo,
   *Contents: read & write*), kept only in the DJ's own browser
   (`localStorage`), sent only to `api.github.com`. Without it the booth is

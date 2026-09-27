@@ -116,8 +116,9 @@ export class GitHubControl {
     this.apiEveryMs = apiEveryMs;
     this.now = now;
     this._nextApiAt = 0;
-    this._best = null;   // newest document seen from either source
-    this._shown = null;  // JSON of what read() last returned
+    this._best = null;      // the document that stands (see _settle)
+    this._shown = null;     // JSON of what read() last returned
+    this._pagesText = null; // JSON of the Pages copy when last read
   }
 
   get writable() {
@@ -136,18 +137,34 @@ export class GitHubControl {
   }
 
   async read() {
-    if (this.fallback && !this.token && this.now() < this._nextApiAt) return this._settle(await this._fallbackRead(this._gen), false);
-    return this._settle(await this._apiRead(), true);
+    if (this.fallback && !this.token && this.now() < this._nextApiAt) return this._settle(await this._fallbackRead(this._gen), 'pages');
+    const r = await this._apiRead();
+    return this._settle(r, r.source || 'api');
   }
 
-  /** Pick the newer of what we hold and what just arrived; report a change once. */
-  _settle({ doc }, authoritative) {
+  /**
+   * Which document stands. The repository (the API) is the authority: what it
+   * says goes, even an older-looking document — a revert on github.com must
+   * reach tabs already open. The Pages copy only fills the gap between API
+   * calls: it wins when it has *changed since we last read it* and is newer
+   * than what we hold (a fresh deploy of the DJ's commit), never merely
+   * because a not-yet-redeployed copy carries a later date.
+   */
+  _settle({ doc }, source) {
     const ts = (d) => Date.parse(d?.updatedAt) || 0;
-    if (doc && (!this._best || ts(doc) > ts(this._best) || (authoritative && ts(doc) >= ts(this._best)))) this._best = doc;
+    if (doc) {
+      const text = JSON.stringify(doc);
+      if (source === 'api') {
+        this._best = doc;
+      } else if (text !== this._pagesText) {
+        this._pagesText = text;
+        if (!this._best || ts(doc) > ts(this._best)) this._best = doc;
+      }
+    }
     const out = this._best ?? doc;
-    const text = JSON.stringify(out);
-    const changed = text !== this._shown;
-    this._shown = text;
+    const shown = JSON.stringify(out);
+    const changed = shown !== this._shown;
+    this._shown = shown;
     return { doc: out, changed };
   }
 
@@ -165,7 +182,7 @@ export class GitHubControl {
     try {
       res = await this.fetch(url, { headers: this._headers(this.etag ? { 'If-None-Match': this.etag } : {}), cache: 'no-store' });
     } catch (err) {
-      if (this.fallback) return this._fallbackRead(gen);
+      if (this.fallback) return { ...(await this._fallbackRead(gen)), source: 'pages' };
       throw new ControlError(`GitHub unreachable: ${err.message}`, { code: 'network' });
     }
     if (stale()) return { doc: this.last, changed: false };
@@ -178,7 +195,7 @@ export class GitHubControl {
       // 403/429 = rate limited: no more API calls until it resets.
       // 404 = repo private or file missing. The Pages copy still works.
       if (res.status === 403 || res.status === 429) this._nextApiAt = this._limited(res);
-      if (this.fallback) return this._fallbackRead(gen);
+      if (this.fallback) return { ...(await this._fallbackRead(gen)), source: 'pages' };
       throw new ControlError(`GitHub ${res.status}`, { status: res.status });
     }
     const body = await res.json();

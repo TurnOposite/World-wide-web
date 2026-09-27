@@ -110,8 +110,13 @@ So:
   it is a server change (`docs/ROADMAP.md`, "DJ set override"), not a
   cleverer client.
 - **You cannot skip what is playing.** There is no skip endpoint, on purpose.
-- **One override at a time.** A new emission replaces the old one; `clear`
-  drops it. It is dropped automatically if the library changes underneath it.
+- **One override at a time, and what is on air never moves** (since
+  2026-09-27). A new emission in the same stretch *composes* with the old one;
+  one in the next stretch is refused while the old one still waits
+  (`other_reorder_waiting` — `clear` first, or wait). `clear` drops the
+  override except the reordered tracks on air or about to play, which play
+  out (`full: false`, `until`). It is dropped automatically if the library
+  changes underneath it.
 
 ### Moods
 

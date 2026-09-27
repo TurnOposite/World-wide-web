@@ -124,7 +124,11 @@ class CloudClient extends Emitter {
 
   startPolling() {
     if (this._timer) return;
-    this._timer = setInterval(() => { if (!document.hidden) this.pollControl(); }, CONTROL_POLL_MS);
+    // Hidden tabs poll too: a phone in a pocket is still a listener, and one
+    // that missed a reorder would play a different programme from everyone
+    // else. (Browsers slow a hidden tab's timer to about once a minute — well
+    // inside the 3-minute fence; the API is asked at most every 90 s anyway.)
+    this._timer = setInterval(() => this.pollControl(), CONTROL_POLL_MS);
     this.plane.onChange?.(() => this.pollControl());
     document.addEventListener('visibilitychange', () => { if (!document.hidden) this.pollControl(); });
   }

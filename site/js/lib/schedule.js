@@ -474,6 +474,12 @@ export class Station {
       // can reach the fence: the new window itself starts after it.
       return { ok: false, error: 'earlier_reorder_on_air', until: this._overrideEndsAt() };
     }
+    // One override at a time. One still waiting to play in another cycle
+    // would vanish without a word: refuse, and say how to proceed.
+    const current = this._override;
+    if (current && current.cycleIndex !== cycleIndex && this._overrideEndsAt(current) > now) {
+      return { ok: false, error: 'other_reorder_waiting', until: this._overrideEndsAt(current) };
+    }
     return { ok: true, override: candidate };
   }
 

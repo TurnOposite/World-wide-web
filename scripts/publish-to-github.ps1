@@ -1,9 +1,9 @@
 # RUN THIS IN: Windows PowerShell on the laptop (not on the Pi, not in Claude).
 #
-# Puts the Radio Tower repository on GitHub — or, run again later with a newer
-# bundle, brings the GitHub copy up to date. docs/GO-LIVE.md step 2 is the
-# same thing by hand; this script lives inside the repository, so the first
-# time, use the commands there.
+# Puts the Radio Tower repository on GitHub, the first time (docs/GO-LIVE.md
+# step 2 is the same thing by hand). Only for a repository nothing else has
+# pushed to yet: once the DJ booth has committed, GitHub is the master copy
+# and later work starts from a clone of it, not from a bundle.
 #
 #   powershell -ExecutionPolicy Bypass -File .\publish-to-github.ps1 `
 #       -Bundle "$env:USERPROFILE\Downloads\radio-tower.bundle" `

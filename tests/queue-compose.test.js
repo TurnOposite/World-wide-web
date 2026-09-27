@@ -158,7 +158,7 @@ test('property: across hundreds of random DJ decisions, the fence never moves an
         const ids = w.map((s) => s.id);
         for (let i = ids.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
         const plan = st.planQueueOrder({ cycleIndex: w[0].cycleIndex, startWithin: w[0].withinCycle, ids }, { now, lockMs: LOCK });
-        if (!plan.ok) { assert.equal(plan.error, 'earlier_reorder_on_air', plan.error); continue; }
+        if (!plan.ok) { assert.ok(['earlier_reorder_on_air', 'other_reorder_waiting'].includes(plan.error), plan.error); continue; }
         override = plan.override;
       }
       const res = st.applyQueueOverride(override);
@@ -170,4 +170,30 @@ test('property: across hundreds of random DJ decisions, the fence never moves an
     }
     assert.ok(applied > 100, `enough decisions were exercised (${applied})`);
   }
+});
+
+test('a reorder in another stretch does not silently drop one still waiting to play', () => {
+  const st = new Station(makeTracks(28), { epoch: EPOCH, name: 'Test', shuffle: false });
+  const cycle = st.cycleOrder(0).map((t) => t.id);
+  const last = cycle.length - 1;
+  // Decision 1: swap the last two slots of cycle 0, well before they play.
+  let now = st.slotStartsAt(0, last - 1) - 20 * 60_000;
+  const p1 = st.planQueueOrder({ cycleIndex: 0, startWithin: last - 1, ids: [cycle[last], cycle[last - 1]] }, { now, lockMs: LOCK });
+  assert.ok(p1.ok);
+  st.applyQueueOverride(p1.override);
+  // Decision 2, in cycle 1, while decision 1 still waits: refused, with when.
+  const p2 = st.planQueueOrder({ cycleIndex: 1, startWithin: 0, ids: [cycle[1], cycle[0]] }, { now, lockMs: LOCK });
+  assert.equal(p2.ok, false);
+  assert.equal(p2.error, 'other_reorder_waiting');
+  assert.equal(p2.until, st.slotStartsAt(1, 0));
+  // "Back to the station clock" drops it (nothing of it is near air yet), then decision 2 goes through.
+  const c = st.planClearQueueOrder({ now, lockMs: LOCK });
+  assert.equal(c.full, true);
+  st.applyQueueOverride(c.override);
+  assert.ok(st.planQueueOrder({ cycleIndex: 1, startWithin: 0, ids: [cycle[1], cycle[0]] }, { now, lockMs: LOCK }).ok);
+  // Once decision 1 has played, a reorder elsewhere is free to replace it.
+  st.applyQueueOverride(p1.override);
+  const after = st.slotStartsAt(1, 0) + 1_000;
+  const p3 = st.planQueueOrder({ cycleIndex: 1, startWithin: 5, ids: [cycle[6], cycle[5]] }, { now: after, lockMs: LOCK });
+  assert.ok(p3.ok, p3.error);
 });

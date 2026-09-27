@@ -73,8 +73,12 @@ Consequences to state honestly rather than engineer around:
 - You cannot pull an arbitrary track forward from the library. That needs a
   server-side "DJ set" endpoint — a roadmap item, not a client trick.
 - You cannot skip the track on air. There is no endpoint, on purpose.
-- One override at a time; a new emission replaces it. It is dropped
-  automatically when the library changes underneath it.
+- One override at a time, and nothing on air or about to play ever moves
+  (since 2026-09-27, `Station.planQueueOrder`): a new emission in the same
+  stretch composes with the one in force; one in another stretch is refused
+  while the old one still waits. `clear` keeps the reordered tracks on air or
+  inside the fence and returns the rest to the clock (`full: false`, `until`).
+  It is dropped automatically when the library changes underneath it.
 
 ## Reading refusals
 
@@ -85,6 +89,8 @@ Consequences to state honestly rather than engineer around:
 | `409 too_close_to_air` | a slot froze while you were deciding | wait; never lower `QUEUE_LOCK_SECONDS` |
 | `409 not_a_permutation` | a rescan reshuffled the cycle | refetch and retry (`emit` already retries once) |
 | `409 window_crosses_cycle` | the window straddled a seam | the booth prevents this; if you see it, it's a bug |
+| `409 earlier_reorder_on_air` | honouring it would drop a reorder whose tracks are on air now | wait until `until`, then retry |
+| `409 other_reorder_waiting` | an earlier reorder in another stretch has not played yet | `clear` drops it (if none of it is near air), or wait until `until` |
 
 ## Moods
 

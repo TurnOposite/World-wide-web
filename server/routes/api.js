@@ -208,7 +208,9 @@ export function apiRouter(ctx) {
     if (!plan.ok) {
       const detail = plan.error === 'earlier_reorder_on_air'
         ? `An earlier reorder is still playing out; try again after ${new Date(plan.until).toISOString()}.`
-        : 'Refetch /api/queue and try again.';
+        : plan.error === 'other_reorder_waiting'
+          ? `An earlier reorder is still waiting to play (until ${new Date(plan.until).toISOString()}). POST /api/queue/clear drops it; or try again after it has played.`
+          : 'Refetch /api/queue and try again.';
       return res.status(409).json({ ok: false, error: plan.error, until: plan.until ?? null, detail });
     }
     const result = station.applyQueueOverride(plan.override);
