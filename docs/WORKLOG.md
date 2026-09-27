@@ -2391,7 +2391,7 @@ site; preview smoke 18/18.
 
 ### 2026-09-27, shift 9 — a second look at shift 8's fixes
 
-A fresh read-only reviewer on commit 5be05f3 (plus its own ~18,000-decision
+A fresh read-only reviewer on the shift-8 commit (860b693 after the rewrite noted below; plus its own ~18,000-decision
 property script: gap seconds 0–3, libraries of 2–14, locks up to 600 s, fence
 across cycles, library changes — the fence never moved). Six findings, all
 checked here, all acted on:
