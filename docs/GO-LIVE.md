@@ -8,7 +8,8 @@ commands only.
 conversation where this was built, and a copy is in
 `Radio Tower\Claude outputs\cloud-transfer\` if your laptop was online when
 it was written); a GitHub account; Git for Windows (already installed in
-`Documents\Ortis\Git`).
+`Documents\Ortis\Git`). Optional: Node.js (nodejs.org, the LTS version) for
+the one-command check in step 4 — without it, skip to the phone check.
 
 The bundle *is* the repository: every file and the full history.
 
@@ -37,12 +38,38 @@ Create it and copy its URL, e.g. `https://github.com/YOUR-NAME/radio-tower.git`.
 > published — scanned on 2026-09-26: no keys, no student IDs, no emails in the
 > PDFs, no GPS in the photos — but it is your call. Step 5 lists the three
 > things to look at before you share the link.
+>
+> **Your email address is in the history.** Every commit is signed
+> `Ortis with your personal Gmail address`; a public repository shows it. If your
+> GitHub account has *Block command line pushes that expose my email* on, the
+> push in step 2 is refused ("GH007"). To sign the history with GitHub's
+> private address instead, run the block in **1b** after the `cd
+> radio-tower-git` line of step 2 and before `git push`.
+
+### 1b. (Optional) Sign the history with your private GitHub address
+
+github.com → your avatar → **Settings → Emails** → tick *Keep my email
+addresses private* and copy the address it shows (`12345+name@users.noreply.github.com`).
+
+RUN THIS IN: Windows PowerShell, inside radio-tower-git.
+
+```powershell
+git config user.name "Ortis"
+git config user.email "12345+name@users.noreply.github.com"
+git rebase -r --root --exec "git commit --amend --no-edit --reset-author"
+```
+
+Put your own address in the second line. The files do not change, only the
+signature on each commit. (Tested on a copy of the bundle, 2026-09-27.) From
+then on, work from the GitHub copy — a later Claude session clones it — rather
+than from an older bundle.
 
 ## 2. Push
 
 RUN THIS IN: Windows PowerShell on the laptop.
 
 ```powershell
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) { $env:Path += ";$env:USERPROFILE\Documents\Ortis\Git\cmd" }
 cd "$env:USERPROFILE\Documents\Ortis"
 git clone "$env:USERPROFILE\Downloads\radio-tower.bundle" radio-tower-git
 cd radio-tower-git
@@ -54,7 +81,10 @@ Change the bundle path if you saved it elsewhere, and `YOUR-NAME`. The first
 push opens a browser window to sign in to GitHub — that is Git Credential
 Manager, part of Git for Windows.
 
-(The same thing as a script: `scripts\publish-to-github.ps1 -Bundle … -RepoUrl …`.)
+Later, to bring GitHub up to date from a newer bundle, the same steps are a
+script inside the repository: from `radio-tower-git`, `powershell
+-ExecutionPolicy Bypass -File .\scripts\publish-to-github.ps1 -Bundle <path>
+-RepoUrl <url>`.
 
 ## 3. Turn on Pages
 
@@ -131,7 +161,11 @@ tokens → Fine-grained tokens → Generate new token**
 Copy it, open `https://YOUR-NAME.github.io/radio-tower/booth`, paste, **Save
 in this browser**. It stays in that browser only and is sent to nobody but
 api.github.com. Then move a track with the arrow keys: every listener picks
-the change up within about a minute.
+the change up within a minute or two.
+
+(Every site you publish under `YOUR-NAME.github.io` shares that browser
+storage. Today there is only this one; if you ever add another that runs
+someone else's scripts, press **Forget the token** first.)
 
 ---
 
@@ -149,16 +183,40 @@ the change up within about a minute.
 
 The 28 tracks stream from your Wix media. The free Wix plan allows **1 GB a
 month**, roughly **14 hours of listening for all visitors together**. Enough to
-show people; not enough for a station left running. The fix is a data change,
-not a code change: every track in `site/station/library.json` can list several
-`sources`, tried in order. The cheapest home for the audio is **Cloudflare R2**
-(10 GB free, no charge for listening). That needs your Cloudflare account;
-`docs/CLOUD.md` §4.
+show people; not enough for a station left running. When it runs out, the
+site says "the music is not reachable right now" and `npm run cloud:live`
+reports the refusal.
+
+The fix is a data change, not a code change: every track in
+`site/station/library.json` can list several `sources`, tried in order. The
+cheapest second home for the files is **Cloudflare R2** (10 GB free, no charge
+for listening), in your Cloudflare account:
+
+1. Cloudflare dashboard → **R2** → **Create bucket** (e.g. `radio-tower-audio`).
+2. The bucket → **Settings** → **Public access** → allow the **r2.dev**
+   address (or connect a domain of yours). Copy the public URL.
+3. Same page → **CORS policy** → add this, with your own address — the player
+   asks for the audio with `crossorigin`, so without it browsers refuse it:
+
+   ```json
+   [{ "AllowedOrigins": ["https://YOUR-NAME.github.io"], "AllowedMethods": ["GET", "HEAD"],
+      "AllowedHeaders": ["Range"], "ExposeHeaders": ["Content-Length", "Content-Range", "Accept-Ranges"],
+      "MaxAgeSeconds": 86400 }]
+   ```
+4. Upload the same 28 MP3 files you put on Wix.
+5. Ask a Claude session to "add the R2 copies to library.json" with the public
+   URL; each track gets a second source (or a first, to prefer R2). Then
+   `npm run cloud:live` shows every track answering from both hosts.
 
 ## Your own domain (optional)
 
-Settings → Pages → Custom domain. The workflow reads the new address and the
-site moves to the root of your domain on its own.
+1. At your domain's registrar, add the DNS record GitHub asks for (a `CNAME`
+   to `YOUR-NAME.github.io` for a subdomain like `radio.example.com`).
+2. Settings → Pages → **Custom domain** → enter it → Save; tick *Enforce HTTPS*
+   once it is offered.
+3. **Actions → pages → Run workflow.** The build reads the new address and
+   moves the site to the root of your domain; changing the setting alone
+   does not rebuild it.
 
 ## The Pi
 

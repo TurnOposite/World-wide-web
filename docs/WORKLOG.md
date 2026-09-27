@@ -2347,3 +2347,44 @@ the rate limit left. PASS/WARN/FAIL with the fix in plain words; GET only.
   editing the old copy.
 
 Verified: `bash scripts/build-test.sh` — 282 tests, 43/43 browser, 38/38 site.
+
+### 2026-09-27, shift 8 — independent review before go-live, and the fixes
+
+Two read-only reviewer agents: one on the browser code, one on the deploy
+path and the docs. Every finding was re-checked here before acting.
+
+Fixed (each with a test that fails without the fix):
+- **A second decision could change the song on air** — see DECISIONS
+  "composes with the override in force". Station planners, Pi routes, cloud
+  engine, booth and `dj.mjs clear` message. New `tests/queue-compose.test.js`
+  (incl. a 400-step property test) and an engine-level test.
+- **Player:** a track change first noticed by a refresh other than the
+  rollover (a control document, a tab coming back) left the old file playing.
+  `refresh()` now switches the audio itself. Site smoke check, mutation-tested.
+- **Router:** fast clicks could show a slow page over the one asked for last,
+  leak its timers and leave `body.on-radio` behind. Navigations are numbered;
+  each page mounts into its own box; a superseded mount is cleaned up when it
+  finishes. Site smoke check with a slowed portfolio, mutation-tested.
+- **GitHubControl:** a poll in flight across a save could restore the old
+  queue and sha. Reads that straddle a write are ignored. Unit test,
+  mutation-tested.
+- **Rate limit (the doc claim was wrong):** without a token a 304 is not free;
+  listeners polling every 20 s would exhaust 60 calls/hour in 20 minutes.
+  Listeners now ask the API at most every 90 s, read the Pages copy between,
+  newest document wins, and stay off the API until a limit resets. Two unit
+  tests. Claims corrected in control.js, CLOUD.md, GO-LIVE, booth, queue.
+- **Mood emission** said "Emitted" when the reorder was refused. Fixed.
+- **Keyboard reordering** committed on every arrow press (one GitHub commit and
+  Pages deploy each) and lost focus. Presses are one decision after a 0.9 s
+  pause; focus follows the moved track.
+- **Deploy path:** `publish-to-github.ps1` used `git bundle verify`, which
+  fails outside a repository (confirmed) → `list-heads`. GO-LIVE: git PATH
+  fallback in step 2; Node listed as optional for step 4; the email address
+  in every commit (public once pushed; GH007 if blocked) with a tested
+  re-sign block (1b); custom domain needs DNS + a workflow run (it did not
+  move "on its own"); R2 steps written once, with the CORS rule the
+  `crossorigin` player needs; a note on the token and other `*.github.io`
+  sites.
+
+Verified: `bash scripts/build-test.sh` — 292 tests, 43/43 browser, 40/40
+site; preview smoke 18/18.

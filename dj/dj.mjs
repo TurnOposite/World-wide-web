@@ -441,7 +441,13 @@ const commands = {
 
   async clear(args, bridge) {
     const res = await bridge.post('/api/queue/clear', {});
-    console.log(res.cleared ? '\n  Override dropped. Back to the station clock.\n' : '\n  There was no override. Nothing to drop.\n');
+    // Since 2026-09-27 the station keeps a reordered track that is on air (or
+    // about to be) in place and lets it play out: `full` false says so.
+    if (res.full === false && res.until) {
+      console.log(`\n  Back to the station clock from ${new Date(res.until).toLocaleTimeString()} — the reordered tracks on air play out first.\n`);
+    } else {
+      console.log(res.cleared ? '\n  Override dropped. Back to the station clock.\n' : '\n  There was no override. Nothing to drop.\n');
+    }
   },
 
   async rescan(args, bridge) {

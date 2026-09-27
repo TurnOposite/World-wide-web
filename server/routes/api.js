@@ -200,8 +200,18 @@ export function apiRouter(ctx) {
       return res.status(status).json(rest);
     }
 
+    // Composed with the override in force, never touching what is on air
+    // (Station.planQueueOrder; tests/queue-compose.test.js).
     const { cycleIndex, startWithin, ids } = req.body;
-    const result = station.setQueueOrder({ cycleIndex, startWithin, ids });
+    const now = Date.now();
+    const plan = station.planQueueOrder({ cycleIndex, startWithin, ids }, { now, lockMs: config.queueLockSeconds * 1000 });
+    if (!plan.ok) {
+      const detail = plan.error === 'earlier_reorder_on_air'
+        ? `An earlier reorder is still playing out; try again after ${new Date(plan.until).toISOString()}.`
+        : 'Refetch /api/queue and try again.';
+      return res.status(409).json({ ok: false, error: plan.error, until: plan.until ?? null, detail });
+    }
+    const result = station.applyQueueOverride(plan.override);
     if (!result.ok) {
       return res.status(409).json({ ...result, detail: 'Refetch /api/queue and try again.' });
     }
@@ -214,8 +224,11 @@ export function apiRouter(ctx) {
 
   router.post('/queue/clear', express.json(), (req, res) => {
     if (!requireKey(req, res)) return;
-    const had = station.clearQueueOrder();
-    res.json({ ok: true, cleared: had, slots: station.upcoming(Date.now(), config.lookahead) });
+    // What is on air, or inside the fence, keeps its place and plays out.
+    const now = Date.now();
+    const plan = station.planClearQueueOrder({ now, lockMs: config.queueLockSeconds * 1000 });
+    station.applyQueueOverride(plan.override);
+    res.json({ ok: true, cleared: plan.changed, full: plan.full, until: plan.until, slots: station.upcoming(now, config.lookahead) });
   });
 
   // --- operations ----------------------------------------------------------

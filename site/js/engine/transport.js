@@ -134,7 +134,7 @@ class CloudClient extends Emitter {
     await this.plane.write(proposal.doc, { message });
     const status = this.engine.applyControl(proposal.doc);
     this.emit('control', { doc: proposal.doc, status });
-    return { ok: true, status };
+    return { ok: true, status, full: proposal.full, until: proposal.until ?? null };
   }
 
   reorder(req, meta = {}) {

@@ -8,11 +8,12 @@
  * Every plane has the same two verbs — `read()` and `write(doc)` — so the
  * booth does not care where the file lives:
  *
- *   GitHubControl  the static site on GitHub Pages. Reads through the REST
- *                  API with ETags (a 304 costs nothing against the rate
- *                  limit), falls back to the copy Pages serves; writes by
- *                  committing the file with a fine-grained token that never
- *                  leaves the DJ's browser.
+ *   GitHubControl  the static site on GitHub Pages. A listener reads the
+ *                  REST API at most every 90 s (60 unauthenticated calls an
+ *                  hour per IP; a 304 is only free with a token) and the copy
+ *                  Pages serves in between — the newer document wins; writes
+ *                  by committing the file with a fine-grained token that
+ *                  never leaves the DJ's browser.
  *   StaticControl  read-only: any host serving station/control.json.
  *   LocalControl   a preview on one machine: localStorage + BroadcastChannel,
  *                  so two tabs behave like two listeners.
@@ -82,7 +83,7 @@ export class StaticControl {
 /**
  * The repository is the database.
  *
- * `read()` returns `{ doc, changed }`; `changed` is false on a 304, so a
+ * `read()` returns `{ doc, changed }`; `changed` is false when nothing new arrived, so a
  * listener polling every 20 s re-renders only when the DJ actually did
  * something. `write(doc)` commits and returns the new doc; a concurrent edit
  * (409/422 — someone else committed since our read) is retried once against
@@ -90,7 +91,7 @@ export class StaticControl {
  * from what it last saw, and "last writer wins" is the right rule for one DJ.
  */
 export class GitHubControl {
-  constructor({ owner, repo, branch = 'main', path = 'site/station/control.json', api = 'https://api.github.com', token = null, fallbackUrl = null, fetchImpl = globalThis.fetch?.bind(globalThis) }) {
+  constructor({ owner, repo, branch = 'main', path = 'site/station/control.json', api = 'https://api.github.com', token = null, fallbackUrl = null, fetchImpl = globalThis.fetch?.bind(globalThis), apiEveryMs = 90_000, now = () => Date.now() }) {
     if (!owner || !repo) throw new ControlError('GitHubControl needs owner and repo', { code: 'misconfigured' });
     this.owner = owner;
     this.repo = repo;
@@ -104,6 +105,19 @@ export class GitHubControl {
     this.etag = null;
     this.sha = null;
     this.last = null;
+    // Bumped by every write: a read that started before a write and answers
+    // after it carries the document (and sha) the write just replaced.
+    this._gen = 0;
+    // Without a token GitHub allows 60 API calls an hour per IP, and a 304
+    // is only free *with* one. So a listener asks the API at most every
+    // `apiEveryMs` (and not at all while rate-limited), and reads the Pages
+    // copy in between; whichever document is newer wins. The DJ, holding a
+    // token (5,000 an hour), asks the API every time.
+    this.apiEveryMs = apiEveryMs;
+    this.now = now;
+    this._nextApiAt = 0;
+    this._best = null;   // newest document seen from either source
+    this._shown = null;  // JSON of what read() last returned
   }
 
   get writable() {
@@ -122,30 +136,69 @@ export class GitHubControl {
   }
 
   async read() {
+    if (this.fallback && !this.token && this.now() < this._nextApiAt) return this._settle(await this._fallbackRead(this._gen), false);
+    return this._settle(await this._apiRead(), true);
+  }
+
+  /** Pick the newer of what we hold and what just arrived; report a change once. */
+  _settle({ doc }, authoritative) {
+    const ts = (d) => Date.parse(d?.updatedAt) || 0;
+    if (doc && (!this._best || ts(doc) > ts(this._best) || (authoritative && ts(doc) >= ts(this._best)))) this._best = doc;
+    const out = this._best ?? doc;
+    const text = JSON.stringify(out);
+    const changed = text !== this._shown;
+    this._shown = text;
+    return { doc: out, changed };
+  }
+
+  _limited(res) {
+    const raw = res.headers.get('X-RateLimit-Reset') || res.headers.get('x-ratelimit-reset');
+    const reset = raw ? Number(raw) * 1000 : NaN;
+    return Number.isFinite(reset) && reset > this.now() ? reset : this.now() + 15 * 60_000;
+  }
+
+  async _apiRead() {
     const url = `${this.contentsUrl}?ref=${encodeURIComponent(this.branch)}`;
+    const gen = this._gen;
+    const stale = () => gen !== this._gen && this.last;
     let res;
     try {
       res = await this.fetch(url, { headers: this._headers(this.etag ? { 'If-None-Match': this.etag } : {}), cache: 'no-store' });
     } catch (err) {
-      if (this.fallback) return this.fallback.read();
+      if (this.fallback) return this._fallbackRead(gen);
       throw new ControlError(`GitHub unreachable: ${err.message}`, { code: 'network' });
     }
+    if (stale()) return { doc: this.last, changed: false };
+    const leftHeader = res.headers.get('X-RateLimit-Remaining') ?? res.headers.get('x-ratelimit-remaining');
+    const left = leftHeader === null || leftHeader === '' ? NaN : Number(leftHeader);
+    this._nextApiAt = this.now() + (this.token ? 0 : this.apiEveryMs);
+    if (Number.isFinite(left) && left < 5) this._nextApiAt = Math.max(this._nextApiAt, this._limited(res));
     if (res.status === 304 && this.last) return { doc: this.last, changed: false };
     if (!res.ok) {
-      // 403/429 = rate limited (60 unauthenticated requests an hour per IP);
+      // 403/429 = rate limited: no more API calls until it resets.
       // 404 = repo private or file missing. The Pages copy still works.
-      if (this.fallback) return this.fallback.read();
+      if (res.status === 403 || res.status === 429) this._nextApiAt = this._limited(res);
+      if (this.fallback) return this._fallbackRead(gen);
       throw new ControlError(`GitHub ${res.status}`, { status: res.status });
     }
     const body = await res.json();
+    if (stale()) return { doc: this.last, changed: false };
     this.etag = res.headers.get('ETag') || res.headers.get('etag') || null;
     this.sha = body.sha || null;
     this.last = parseDoc(b64decode(body.content || ''));
     return { doc: this.last, changed: true };
   }
 
+  /** The Pages copy — unless a write happened meanwhile (then it is older than what we hold). */
+  async _fallbackRead(gen) {
+    const out = await this.fallback.read();
+    if (gen !== this._gen && this.last) return { doc: this.last, changed: false };
+    return out;
+  }
+
   async write(doc, { message = 'booth: update control.json' } = {}) {
     if (!this.token) throw new ControlError('Paste a GitHub token in the booth to go on air.', { code: 'no_token' });
+    this._gen++;
     const attempt = async () => {
       if (!this.sha) await this.read();
       const res = await this.fetch(this.contentsUrl, {
@@ -176,6 +229,9 @@ export class GitHubControl {
     this.sha = body.content?.sha || null;
     this.etag = null;
     this.last = doc;
+    this._best = doc;                    // the booth applied it already:
+    this._shown = JSON.stringify(doc);   // not news on the next read
+    this._gen++;
     return { doc, commit: body.commit?.sha || null };
   }
 }

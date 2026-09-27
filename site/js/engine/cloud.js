@@ -118,29 +118,49 @@ export class CloudEngine {
     const verdict = checkReorder(this.station, { now, lockSeconds: this.config.queueLockSeconds, body: { cycleIndex, startWithin, ids } });
     if (!verdict.ok) return verdict;
 
-    // Dry-run the permutation on a throwaway station, so a refusal is
-    // reported here rather than discovered by every listener later.
-    const probe = new Station(this.library.tracks || [], {
-      epoch: this.station.epoch, gapSeconds: this.station.gapSeconds, shuffle: this.station.shuffle,
-    });
-    const result = probe.setQueueOrder({ cycleIndex, startWithin, ids });
-    if (!result.ok) return { ok: false, status: 409, error: result.error, detail: 'Refresh the queue and try again.' };
+    // Composed with the override in force — never moving what is on air or
+    // inside the fence (Station.planQueueOrder).
+    const lockMs = (this.config.queueLockSeconds ?? 0) * 1000;
+    const plan = this.station.planQueueOrder({ cycleIndex, startWithin, ids }, { now, lockMs });
+    if (!plan.ok) {
+      const detail = plan.error === 'earlier_reorder_on_air'
+        ? `An earlier reorder is still playing out. Try again at ${new Date(plan.until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`
+        : 'Refresh the queue and try again.';
+      return { ok: false, status: 409, error: plan.error, detail, until: plan.until ?? null };
+    }
+    // Dry-run on a throwaway station, so a refusal is reported here rather
+    // than discovered by every listener later.
+    if (plan.override) {
+      const probe = new Station(this.library.tracks || [], {
+        epoch: this.station.epoch, gapSeconds: this.station.gapSeconds, shuffle: this.station.shuffle,
+      });
+      const result = probe.setQueueOrder(plan.override);
+      if (!result.ok) return { ok: false, status: 409, error: result.error, detail: 'Refresh the queue and try again.' };
+    }
 
     const doc = {
       ...(this.control || {}),
       version: 1,
-      override: { cycleIndex, startWithin, ids: [...ids], setAt: now, by },
+      override: plan.override ? { cycleIndex: plan.override.cycleIndex, startWithin: plan.override.startWithin, ids: [...plan.override.ids], setAt: now, by } : null,
       updatedAt: new Date(now).toISOString(),
     };
     if (note) doc.note = note; else delete doc.note;
     return { ok: true, doc };
   }
 
-  /** The control document with the override removed. */
+  /**
+   * "Back to the station clock": the override removed — except the reordered
+   * tracks on air or inside the fence, which keep their place and play out
+   * (Station.planClearQueueOrder). `full` false + `until` says so.
+   */
   proposeClear() {
-    const doc = { ...(this.control || {}), version: 1, override: null, updatedAt: new Date(this.clock()).toISOString() };
+    const now = this.clock();
+    const plan = this.station.planClearQueueOrder({ now, lockMs: (this.config.queueLockSeconds ?? 0) * 1000 });
+    const prev = this.control?.override;
+    const override = plan.override ? { ...plan.override, ids: [...plan.override.ids], setAt: prev?.setAt ?? now, by: prev?.by ?? 'booth' } : null;
+    const doc = { ...(this.control || {}), version: 1, override, updatedAt: new Date(now).toISOString() };
     delete doc.note;
-    return { ok: true, doc };
+    return { ok: true, doc, full: plan.full, changed: plan.changed, until: plan.until };
   }
 
   /** The control document with a new broadcast look (null clears it). */

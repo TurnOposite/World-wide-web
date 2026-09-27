@@ -102,8 +102,16 @@ export class Player extends EventTarget {
       try {
         const data = await this.client.get('/api/station');
         const changed = data.onAir?.id !== this.onAir?.id || data.onAir?.startsAt !== this.onAir?.startsAt;
+        const hadTrack = Boolean(this.onAir);
         this.data = data;
-        if (changed) this._onTrackChange();
+        if (changed) {
+          this._onTrackChange();
+          // Whoever noticed the change — the clock at a boundary, a DJ's
+          // control document, a tab coming back — the audio follows it here,
+          // once. (Only the rollover used to, so a change seen first by
+          // another refresh left the old file playing, or silence.)
+          if (this.playing && hadTrack) this.join({ force: true });
+        }
         this.dispatchEvent(new CustomEvent('station', { detail: data }));
         if (!this.playing && this.status.startsWith('lost')) this._status('ready');
       } catch (err) {
@@ -165,11 +173,8 @@ export class Player extends EventTarget {
    * listed duration would otherwise loop `ended` → reload → `ended`.
    */
   _rollover() {
-    const was = this.onAir;
-    return this.refresh().then(() => {
-      const now = this.onAir;
-      if (this.playing && now && (now.id !== was?.id || now.startsAt !== was?.startsAt)) this.join({ force: true });
-    });
+    // refresh() switches the audio itself when the programme really moved.
+    return this.refresh();
   }
 
   /** Point the audio at the on-air track and seek to where the tower is. */

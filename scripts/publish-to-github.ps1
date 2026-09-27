@@ -1,7 +1,9 @@
 # RUN THIS IN: Windows PowerShell on the laptop (not on the Pi, not in Claude).
 #
-# Puts the Radio Tower repository on GitHub, once. docs/GO-LIVE.md explains
-# each step; this does steps 2 and 3 for you.
+# Puts the Radio Tower repository on GitHub — or, run again later with a newer
+# bundle, brings the GitHub copy up to date. docs/GO-LIVE.md step 2 is the
+# same thing by hand; this script lives inside the repository, so the first
+# time, use the commands there.
 #
 #   powershell -ExecutionPolicy Bypass -File .\publish-to-github.ps1 `
 #       -Bundle "$env:USERPROFILE\Downloads\radio-tower.bundle" `
@@ -29,7 +31,9 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 if (-not (Test-Path $Bundle)) { throw "No bundle at $Bundle" }
 if ($RepoUrl -notmatch '^https://github\.com/[^/]+/[^/]+?(\.git)?$') { throw "That does not look like a GitHub repository URL: $RepoUrl" }
 
-Git-Run bundle verify $Bundle
+# `git bundle verify` needs to run inside a repository; list-heads does not,
+# and fails just the same on a file that is not a bundle.
+Git-Run bundle list-heads $Bundle
 
 if (Test-Path (Join-Path $Into '.git')) {
   Write-Host "Updating $Into from the bundle"

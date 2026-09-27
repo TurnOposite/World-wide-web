@@ -177,6 +177,33 @@ test('a reorder proposed by the DJ is a control document every listener can appl
   assert.equal(listener.station.at(firstMoved + 1).track.id, reversed[0]);
 });
 
+test('"back to the station clock" while a moved track is on air leaves it on air for every listener', () => {
+  const t = busyInstant();
+  const dj = engineAt(t);
+  const win = movableWindow(dj);
+  const ids = win.map((s) => s.id);
+  const rotated = [ids.at(-1), ...ids.slice(0, -1)];
+  const prop = dj.proposeReorder({ cycleIndex: win[0].cycleIndex, startWithin: win[0].withinCycle, ids: rotated });
+  assert.equal(prop.ok, true);
+
+  // Later: the moved track is playing, and the DJ clears.
+  const later = dj.station.slotStartsAt(win[0].cycleIndex, win[0].withinCycle) + 20_000;
+  const booth = engineAt(later, prop.doc);
+  assert.equal(booth.station.at(later).track.id, ids.at(-1));
+  const clear = booth.proposeClear();
+  assert.equal(clear.full, false);
+  assert.ok(clear.until > later);
+  const listener = engineAt(later, clear.doc);
+  assert.equal(listener.controlStatus, 'applied');
+  assert.equal(listener.station.at(later).track.id, ids.at(-1), 'the song on air did not change under anyone');
+  assert.equal(Math.round(listener.station.at(later).offset), Math.round(booth.station.at(later).offset));
+
+  // Once it has played out, clearing is complete.
+  const done = engineAt(clear.until + 1_000, clear.doc).proposeClear();
+  assert.equal(done.full, true);
+  assert.equal(done.doc.override, null);
+});
+
 test('two listeners holding the same control document agree at every instant', () => {
   const t = busyInstant();
   const dj = engineAt(t);

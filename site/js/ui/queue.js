@@ -69,6 +69,7 @@ export class QueueEditor {
 
   destroy() {
     clearInterval(this._timer);
+    clearTimeout(this._keyTimer);
     this._offControl?.();
     this.player.removeEventListener('track', this._onTrack);
   }
@@ -82,7 +83,7 @@ export class QueueEditor {
   }
 
   async refresh({ force = false } = {}) {
-    if (this.drag || this.busy) return;
+    if (this.drag || this.busy || this._keyTimer) return;
     if (!force && Date.now() - this.lastTouch < 4000) return;
     try {
       const data = await this.client.get('/api/queue');
@@ -184,7 +185,22 @@ export class QueueEditor {
     if (!target) return;
     if (dir < 0) this.els.list.insertBefore(li, target); else target.after(li);
     li.focus();
-    await this._commit();
+    // Several presses are one decision: commit once, when the DJ pauses —
+    // one GitHub commit (and one Pages deploy), not one per step.
+    const id = this.slots[Number(li.dataset.index)]?.id;
+    clearTimeout(this._keyTimer);
+    this._keyTimer = setTimeout(async () => {
+      this._keyTimer = null;
+      await this._commit();
+      this._refocus(id);
+    }, 900);
+  }
+
+  /** After a re-render, keep the keyboard on the track the DJ was moving. */
+  _refocus(id) {
+    if (!id) return;
+    const li = [...this.els.list.querySelectorAll('li[data-movable="1"]')].find((n) => this.slots[Number(n.dataset.index)]?.id === id);
+    li?.focus();
   }
 
   /* --------------------------------------------------------------- commit */
@@ -198,14 +214,19 @@ export class QueueEditor {
     await this.apply({ cycleIndex: w.cycleIndex, startWithin: w.startWithin, ids });
   }
 
-  /** Send a reorder (also used by the booth's moods). */
+  /**
+   * Send a reorder (also used by the booth's moods). Resolves true when it
+   * went on air, false when it was refused — the reason is in `this.msg`.
+   */
   async apply(req, meta = {}) {
     this.busy = true;
     this._state(this.client.mode === 'cloud' && this.client.planeKind === 'github' ? 'saving to GitHub…' : 'saving…');
+    let ok = false;
     try {
       await this.client.reorder(req, meta);
+      ok = true;
       this._state(this.client.planeKind === 'github'
-        ? 'On air. Every listener picks it up within about a minute.'
+        ? 'On air. Every listener picks it up within a minute or two.'
         : 'On air.', 'ok');
     } catch (err) {
       this._state(REASONS[err.code] || err.message || 'refused', 'bad');
@@ -213,14 +234,18 @@ export class QueueEditor {
       this.busy = false;
       await this.refresh({ force: true });
     }
+    return ok;
   }
 
   async clear() {
     this.busy = true;
     this._state('clearing…');
     try {
-      await this.client.clear();
-      this._state('Back to the station clock.', 'ok');
+      const r = await this.client.clear();
+      // The reordered tracks on air (or about to be) keep their place.
+      this._state(r?.full === false && r.until
+        ? `Back to the station clock from ${clock(r.until)} — what is on air or about to play keeps its place.`
+        : 'Back to the station clock.', 'ok');
     } catch (err) {
       this._state(REASONS[err.code] || err.message || 'refused', 'bad');
     } finally {

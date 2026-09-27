@@ -80,9 +80,12 @@ sideways arcs), `#34d399`, credit **Zoneko**, "Echoes" not "Guide".
   of the next *N* slots (default 12) that start more than **3 minutes** from
   now (the Pi uses 60 s; the cloud needs time for the change to reach every
   browser).
-- **Propagation** — listeners poll `control.json` through the GitHub REST API
-  with `If-None-Match` (a 304 does not count against the rate limit), falling
-  back to the copy on Pages. Worst case ≈ 60–90 s.
+- **Propagation** — listeners check every 20 s: the GitHub REST API at most
+  every 90 s (without a token GitHub allows 60 calls an hour per IP, and a 304
+  is only free *with* one — corrected 2026-09-27), the copy on Pages in
+  between; the newer document wins, and a rate-limited listener stays on the
+  Pages copy until the limit resets. Worst case ≈ 2 minutes, inside the
+  3-minute fence.
 - **Auth** — the booth writes with a fine-grained GitHub token (this one repo,
   *Contents: read & write*), kept only in the DJ's own browser
   (`localStorage`), sent only to `api.github.com`. Without it the booth is
@@ -103,7 +106,8 @@ roughly **14 hours of listening per month, all visitors combined**. Fine for a
 preview; not for a public station. The library format already allows several
 `sources` per track, tried in order, so moving audio later is a data change,
 not a code change. Cheapest next host: **Cloudflare R2** (10 GB free, no egress
-fees) — `docs/GO-LIVE.md` has the steps; only Ortis can create that account.
+fees) — `docs/GO-LIVE.md` "Bandwidth" has the steps, CORS rule included; only
+Ortis can create that account.
 
 ## 5. GitHub
 

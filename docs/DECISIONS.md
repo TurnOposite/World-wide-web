@@ -2878,3 +2878,31 @@ player back to "not playing" with the Tune in button, rather than a silent
 **Not proven.** Chromium at phone size is all the build container has; no
 WebKit. The silent-switch and lock-screen checks are in `docs/GO-LIVE.md` §4 for
 Ortis's phone.
+
+## 2026-09-27 — A DJ's request composes with the override in force, and never touches the fence
+
+**Context.** The pre-go-live review found that a second reorder, or "back to
+the station clock", replaced the one override outright. When the override
+being dropped was what put the current track on air, every listener's song
+changed mid-play (simulated: ~10% of accepted mood emissions every 15 min did
+it). The same code path served the Pi (`POST /api/queue/*`) and the booth.
+
+**Decision.** `Station.planQueueOrder()` and `Station.planClearQueueOrder()`:
+a request is validated against the order listeners *hear* (what /api/queue
+shows), composed with the override in force, and expressed as the smallest
+override of the natural order that produces it. Nothing inside the fence (the
+slot on air and every slot starting within the lock) may change: a "clear"
+keeps the reordered tracks there and returns the rest to the clock now,
+reporting `full: false` and `until`; a reorder that could only be honoured by
+dropping an earlier override still on air in another cycle is refused
+(`earlier_reorder_on_air`) with the time it becomes possible. `setQueueOrder()`
+is unchanged — it applies an agreed document — so the control document format
+and every listener's computation are the same.
+
+**Proved by** a property test (hundreds of random decisions at random times
+across three libraries: the fence never moves, every override is a valid
+permutation, the loop length is constant), plus the two scenarios the review
+simulated, at Station and at cloud-engine level.
+
+**Rejected.** Several overrides at once (a list): format change for every
+listener and the Pi, for a case composition already covers within a cycle.

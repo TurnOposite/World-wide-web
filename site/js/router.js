@@ -38,6 +38,9 @@ export class Router {
     // github.io, or wherever a host serves index.html from.
     this.basePath = new URL('./', document.baseURI).pathname;
     this.current = null;
+    // Each navigation's number: a page that finishes loading after the reader
+    // has already moved on must not be shown over the newer one.
+    this._seq = 0;
   }
 
   /** Path relative to the site root, without leading/trailing slashes. */
@@ -115,17 +118,20 @@ export class Router {
 
   async resolve({ fromPop = false } = {}) {
     const route = this.currentRoute();
+    const seq = ++this._seq;
+    const isCurrent = () => seq === this._seq;
     for (const r of this.routes) {
       const m = route.match(r.pattern);
       if (!m) continue;
       const page = await r.load();
+      if (!isCurrent()) return;
       this.current = { name: r.name, route, params: m.groups || {} };
       document.querySelectorAll('.tabs a, .room-tabs a').forEach((a) => {
         const target = this.routeOf(new URL(a.href, document.baseURI).pathname);
         const on = target && (route === target || route.startsWith(target + '/'));
         if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
       });
-      await this.render(page, this.current, { fromPop });
+      await this.render(page, this.current, { fromPop, isCurrent });
       return;
     }
   }

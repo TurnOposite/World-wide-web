@@ -235,6 +235,41 @@ try {
   await a.waitForSelector('.room .sleeve', { timeout: 8000 });
   check('Portfolio: crates render as sleeves, with no play button', (await a.$$('.room .sleeve')).length >= 1 && !(await a.$('.room .sleeve button.play')));
 
+  // Two clicks in quick succession: the page that finishes loading last must
+  // not cover the one the reader asked for last, nor leave its state behind.
+  const race = await a.evaluate(async () => {
+    const { router, client } = window.radioTower;
+    // The portfolio's data arrives slowly (a phone on a bad network).
+    const get = client.get.bind(client);
+    client.get = (p) => (p.startsWith('/api/collections') ? new Promise((r) => setTimeout(r, 700)).then(() => get(p)) : get(p));
+    router.go('portfolio/library');
+    router.go('ecrits/voyages');
+    router.go('radio');
+    await new Promise((r) => setTimeout(r, 1500));
+    const onRadio = { path: location.pathname, radio: Boolean(document.querySelector('#view #rTitle')), pages: document.querySelectorAll('#view > .page').length, flag: document.body.classList.contains('on-radio') };
+    await router.go('atlas');
+    await new Promise((r) => setTimeout(r, 400));
+    client.get = get;
+    return { ...onRadio, flagAfter: document.body.classList.contains('on-radio') };
+  });
+  check('fast clicks: the last page asked for is the one shown, and the others leave nothing behind', race.path === '/radio' && race.radio && race.pages === 1 && race.flag && !race.flagAfter, JSON.stringify(race));
+
+  // A new track noticed by a refresh other than the rollover (a DJ's control
+  // document, a tab coming back) must switch the audio too, not leave the old
+  // file playing under the new title.
+  const switched = await a.evaluate(async () => {
+    const p = window.radioTower.player;
+    const au = document.getElementById('audio');
+    const right = p._sources[p._sourceIndex];
+    const other = window.radioTower.client.engine.library.tracks.map((t) => p.client.sourcesFor(t.id)[0]).find((u) => u && u !== right);
+    au.src = other;                                   // the old file…
+    p.data = { ...p.data, onAir: { ...p.data.onAir, startsAt: p.data.onAir.startsAt - 1 } }; // …under stale data
+    window.radioTower.client.emit('control', { doc: null, status: 'applied' });
+    for (let i = 0; i < 40 && au.src !== right; i++) await new Promise((r) => setTimeout(r, 50));
+    return { ok: au.src === right, src: au.src.split('/').pop() };
+  });
+  check('a track change seen through the DJ\'s channel switches the audio, not just the title', switched.ok, switched.src);
+
   // When the place the music lives stops answering (Wix bandwidth), every
   // track fails: after the second in a row the listener is told plainly.
   const outage = await a.evaluate(async () => {

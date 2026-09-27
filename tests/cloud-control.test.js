@@ -101,6 +101,89 @@ test('GitHub write survives one concurrent edit by re-reading the sha', async ()
   assert.deepEqual(JSON.parse(gh.state.content).look, { preset: 'bands' });
 });
 
+test('a poll that started before the DJ saved cannot put the old queue back', async () => {
+  const gh = fakeGitHub({ doc: { version: 1, override: null, look: null } });
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  let slowNext = false;
+  const fetchImpl = async (url, opts = {}) => {
+    if (slowNext && (opts.method || 'GET') === 'GET') {
+      slowNext = false;
+      const answer = await gh.fetchImpl(url, opts); // the document as it was *before* the save
+      await gate;
+      return answer;
+    }
+    return gh.fetchImpl(url, opts);
+  };
+  const plane = new GitHubControl({ owner: 'o', repo: 'r', token: 't', fetchImpl });
+  await plane.read();
+  await plane.write({ version: 1, override: null, look: { look: 'stage' } }); // an earlier save: no ETag held now
+  slowNext = true;
+  const polling = plane.read(); // a poll, in flight, will answer with that earlier document
+  const reorder = { version: 1, override: { cycleIndex: 3, startWithin: 2, ids: ['a', 'b'] }, look: null };
+  await plane.write(reorder);   // the DJ saves again meanwhile
+  release();
+  const late = await polling;
+  assert.deepEqual(late.doc.override, reorder.override, 'the late answer is ignored');
+  assert.equal(late.changed, false);
+  // …and the next save still carries the reorder, on the right sha.
+  await plane.write({ ...reorder, look: { look: 'quiet' } });
+  const saved = JSON.parse(gh.state.content);
+  assert.deepEqual(saved.override, reorder.override);
+  assert.deepEqual(saved.look, { look: 'quiet' });
+});
+
+test('a listener without a token asks the API at most every 90 s, reads the Pages copy between, and backs off when limited', async () => {
+  const gh = fakeGitHub({ doc: { version: 1, override: null, look: null, updatedAt: '2026-09-27T10:00:00Z' } });
+  let pagesDoc = { version: 1, override: null, look: null, updatedAt: '2026-09-27T10:00:00Z' };
+  let apiCalls = 0;
+  let limitedUntil = 0;
+  let t = Date.parse('2026-09-27T10:00:00Z');
+  const fetchImpl = async (url, opts) => {
+    if (String(url).startsWith('https://ortis.github.io')) return json(200, pagesDoc);
+    apiCalls++;
+    if (t < limitedUntil) return json(403, { message: 'rate limit' }, { 'X-RateLimit-Reset': String(Math.floor(limitedUntil / 1000)), 'X-RateLimit-Remaining': '0' });
+    return gh.fetchImpl(url, opts);
+  };
+  const plane = new GitHubControl({ owner: 'o', repo: 'r', fetchImpl, fallbackUrl: 'https://ortis.github.io/radio-tower/station/control.json', now: () => t });
+  await plane.read();
+  assert.equal(apiCalls, 1);
+  for (let i = 0; i < 4; i++) { t += 20_000; await plane.read(); }
+  assert.equal(apiCalls, 1, 'no API call within 90 s: the Pages copy answers');
+
+  // The DJ committed; Pages deployed it before the next API turn: the newer document wins.
+  pagesDoc = { version: 1, override: { cycleIndex: 2, startWithin: 1, ids: ['a', 'b'] }, look: null, updatedAt: '2026-09-27T10:01:30Z' };
+  t += 5_000;
+  const seen = await plane.read();
+  assert.equal(seen.changed, true);
+  assert.deepEqual(seen.doc.override.ids, ['a', 'b']);
+  // An older document from the API later does not take it back.
+  t += 90_000;
+  const again = await plane.read();
+  assert.equal(apiCalls, 2);
+  assert.deepEqual(again.doc.override?.ids, ['a', 'b']);
+
+  // Rate-limited: silence from the API until the reset, the Pages copy meanwhile.
+  limitedUntil = t + 30 * 60_000;
+  t += 90_000;
+  await plane.read();
+  const calls = apiCalls;
+  for (let i = 0; i < 10; i++) { t += 60_000; await plane.read(); }
+  assert.equal(apiCalls, calls, 'no API calls while limited');
+  t = limitedUntil + 1;
+  await plane.read();
+  assert.equal(apiCalls, calls + 1, 'asks again after the reset');
+});
+
+test('the DJ, with a token, asks the API on every read', async () => {
+  const gh = fakeGitHub();
+  let apiCalls = 0;
+  const fetchImpl = async (url, opts) => { if (!String(url).startsWith('https://ortis.github.io')) apiCalls++; return String(url).startsWith('https://ortis.github.io') ? json(200, {}) : gh.fetchImpl(url, opts); };
+  const plane = new GitHubControl({ owner: 'o', repo: 'r', token: 't', fetchImpl, fallbackUrl: 'https://ortis.github.io/x/station/control.json' });
+  for (let i = 0; i < 3; i++) await plane.read();
+  assert.equal(apiCalls, 3);
+});
+
 test('GitHub write: no token and a refused token both say what to do', async () => {
   const gh = fakeGitHub();
   const anon = new GitHubControl({ owner: 'o', repo: 'r', fetchImpl: gh.fetchImpl });

@@ -25,7 +25,7 @@ export async function mount(root, ctx) {
     artifact: client.canWrite
       ? 'Shared preview: changes are saved with this preview on claude.ai, and everyone it is shared with hears them within seconds.'
       : 'Shared preview, <b>view-only for you</b>: the person who shared it can change the queue.',
-    github: `Changes are committed to <b>${esc(gh.owner)}/${esc(gh.repo)}</b> (<code>${esc(gh.controlPath || 'site/station/control.json')}</code>). Every listener picks them up within about a minute.`,
+    github: `Changes are committed to <b>${esc(gh.owner)}/${esc(gh.repo)}</b> (<code>${esc(gh.controlPath || 'site/station/control.json')}</code>). Every listener picks them up within a minute or two.`,
     local: 'Preview mode: changes are kept <b>in this browser only</b> — open two tabs to see two listeners agree. Nobody else hears them.',
     static: 'This copy of the site has no repository configured, so the booth is read-only. Try it in preview mode, or publish the site from GitHub.',
     tower: `Connected to a Radio Tower server at <b>${esc(client.origin || '')}</b>. Changes need its station key.`,
@@ -117,7 +117,8 @@ export async function mount(root, ctx) {
       if (!plan.ok) { moodState(plan.detail, 'bad'); return; }
       if (!plan.matched) { moodState(`Nothing in the movable part of the queue matches “${mood.name}”. Try another mood in a few minutes.`, 'bad'); return; }
       if (!plan.changed) { moodState(`The queue already leads with “${mood.name}”.`, 'ok'); return; }
-      await queue.apply({ cycleIndex: plan.cycleIndex, startWithin: plan.startWithin, ids: plan.ids }, { by: 'emission', note: `mood: ${mood.name}` });
+      const ok = await queue.apply({ cycleIndex: plan.cycleIndex, startWithin: plan.startWithin, ids: plan.ids }, { by: 'emission', note: `mood: ${mood.name}` });
+      if (!ok) { moodState(`Not emitted: ${queue.msg.text}`, 'bad'); return; }
       moodState(`Emitted “${mood.name}” — ${plan.matched} matching track${plan.matched === 1 ? '' : 's'} brought forward.`, 'ok');
     } catch (err) {
       moodState(err.message, 'bad');

@@ -384,6 +384,145 @@ export class Station {
     return Math.round(this._startOfCycle(cycleIndex) + acc * 1000);
   }
 
+  /* ----------------------------------------------- safe composition --
+   *
+   * `setQueueOrder()` replaces the one override outright. That is right for
+   * applying a document everyone already agreed on, but wrong for a *new*
+   * decision: the override being replaced may be what put the track on air
+   * where it is. Dropping it — by a second reorder, or by "back to the
+   * station clock" — would change what is playing, mid-track, for every
+   * listener. The two planners below are what a DJ's request goes through
+   * instead (the Pi's POST /api/queue/* and the cloud booth alike): they
+   * compose with what is in force, and they never touch the fence — the slot
+   * on air and every slot starting within `lockMs`.
+   */
+
+  /** The slots nothing may change: on air, and every slot starting before now + lockMs. */
+  _fence(now, lockMs) {
+    const cur = this.at(now);
+    if (!cur) return [];
+    const until = now + lockMs;
+    const out = [];
+    let cursor = { cycleIndex: cur.cycleIndex, withinCycle: cur.withinCycle };
+    for (let n = 0; cursor && n < 10_000; n++) {
+      const startsAt = this.slotStartsAt(cursor.cycleIndex, cursor.withinCycle);
+      if (startsAt === null || (n > 0 && startsAt >= until)) break;
+      out.push({ cycleIndex: cursor.cycleIndex, withinCycle: cursor.withinCycle, id: this._trackAtCursor(cursor)?.id ?? null, startsAt });
+      cursor = this._advanceCursor(cursor, +1);
+    }
+    return out;
+  }
+
+  _withOverride(override, fn) {
+    const saved = this._override;
+    this._override = override;
+    this._cycleCache.clear();
+    try { return fn(); } finally { this._override = saved; this._cycleCache.clear(); }
+  }
+
+  /** Would putting `candidate` in force change anything inside the fence? */
+  _fenceHolds(candidate, now, lockMs) {
+    const before = this._fence(now, lockMs);
+    const after = this._withOverride(candidate, () => this._fence(now, lockMs));
+    if (before.length !== after.length) return false;
+    return before.every((b, i) => b.id === after[i].id && b.startsAt === after[i].startsAt);
+  }
+
+  /** When the override in force has played out entirely (ms), or null. */
+  _overrideEndsAt(ov = this._override) {
+    if (!ov) return null;
+    const end = ov.startWithin + ov.ids.length;
+    const order = this.cycleOrder(ov.cycleIndex);
+    return end < order.length ? this.slotStartsAt(ov.cycleIndex, end) : this._startOfCycle(ov.cycleIndex + 1);
+  }
+
+  /**
+   * Plan a reorder requested against the queue *as listeners hear it* (what
+   * /api/queue shows), composed with the override in force and expressed as
+   * the smallest override of the natural order that produces it.
+   *
+   * @returns {{ok: true, override: object|null} | {ok: false, error: string, until?: number}}
+   *   `override` null means the request restores the natural order.
+   */
+  planQueueOrder({ cycleIndex, startWithin, ids } = {}, { now = Date.now(), lockMs = 0 } = {}) {
+    if (!Number.isInteger(cycleIndex) || !Number.isInteger(startWithin) || startWithin < 0) {
+      return { ok: false, error: 'invalid_window' };
+    }
+    if (!Array.isArray(ids) || ids.length < 2) return { ok: false, error: 'nothing_to_reorder' };
+
+    const heard = this.cycleOrder(cycleIndex);
+    if (startWithin + ids.length > heard.length) return { ok: false, error: 'window_out_of_range' };
+    const slice = heard.slice(startWithin, startWithin + ids.length);
+    const byId = new Map(slice.map((t) => [t.id, t]));
+    if (new Set(ids).size !== ids.length || ids.length !== byId.size || !ids.every((id) => byId.has(id))) {
+      return { ok: false, error: 'not_a_permutation' };
+    }
+
+    const wanted = heard.slice();
+    ids.forEach((id, i) => { wanted[startWithin + i] = byId.get(id); });
+    const natural = this._naturalOrder(this._eraForCycle(cycleIndex), cycleIndex);
+    let a = -1;
+    let b = -1;
+    for (let i = 0; i < wanted.length; i++) {
+      if (wanted[i].id !== natural[i]?.id) { if (a < 0) a = i; b = i; }
+    }
+    const candidate = a < 0 ? null : { cycleIndex, startWithin: a, ids: wanted.slice(a, b + 1).map((t) => t.id), setAt: now };
+
+    if (!this._fenceHolds(candidate, now, lockMs)) {
+      // Only an earlier override being dropped (it lives in another cycle)
+      // can reach the fence: the new window itself starts after it.
+      return { ok: false, error: 'earlier_reorder_on_air', until: this._overrideEndsAt() };
+    }
+    return { ok: true, override: candidate };
+  }
+
+  /**
+   * Plan "back to the station clock". Everything that is not on air or inside
+   * the fence returns to the natural order now; the reordered tracks that are
+   * keep their place and play out — by `until` the override is spent.
+   *
+   * @returns {{ok: true, override: object|null, full: boolean, changed: boolean, until: number|null}}
+   *   `full`: nothing of the override is left. `changed`: the queue moved.
+   */
+  planClearQueueOrder({ now = Date.now(), lockMs = 0 } = {}) {
+    const ov = this._override;
+    if (!ov) return { ok: true, override: null, full: true, changed: false, until: null };
+    if (this._fenceHolds(null, now, lockMs)) return { ok: true, override: null, full: true, changed: true, until: null };
+
+    const ci = ov.cycleIndex;
+    const a = ov.startWithin;
+    const end = a + ov.ids.length;
+    const heard = this.cycleOrder(ci);
+    const natural = this._naturalOrder(this._eraForCycle(ci), ci);
+    const naturalIndex = new Map(natural.map((t, i) => [t.id, i]));
+    // The last slot of the window that is on air or fenced: up to there, as heard.
+    const k = Math.max(a, ...this._fence(now, lockMs).filter((f) => f.cycleIndex === ci && f.withinCycle >= a && f.withinCycle < end).map((f) => f.withinCycle));
+    const keep = heard.slice(a, k + 1);
+    const kept = new Set(keep.map((t) => t.id));
+    // After it, the window's other tracks in the order the clock would play them.
+    const rest = natural.slice(a, end).filter((t) => !kept.has(t.id)).sort((x, y) => naturalIndex.get(x.id) - naturalIndex.get(y.id));
+    const wanted = heard.slice(0, a).concat(keep, rest, heard.slice(end));
+
+    let lo = -1;
+    let hi = -1;
+    for (let i = 0; i < wanted.length; i++) {
+      if (wanted[i].id !== natural[i]?.id) { if (lo < 0) lo = i; hi = i; }
+    }
+    const candidate = lo < 0 ? null : { cycleIndex: ci, startWithin: lo, ids: wanted.slice(lo, hi + 1).map((t) => t.id), setAt: ov.setAt };
+    if (!this._fenceHolds(candidate, now, lockMs)) {
+      // Cannot happen by construction; if it ever does, change nothing.
+      return { ok: true, override: { ...ov, ids: [...ov.ids] }, full: false, changed: false, until: this._overrideEndsAt(ov) };
+    }
+    const changed = !candidate || candidate.startWithin !== ov.startWithin || candidate.ids.join() !== ov.ids.join();
+    return { ok: true, override: candidate, full: !candidate, changed, until: candidate ? this._overrideEndsAt(candidate) : null };
+  }
+
+  /** Put a planned override (or null) in force. */
+  applyQueueOverride(override) {
+    if (!override) return { ok: true, cleared: this.clearQueueOrder() };
+    return this.setQueueOrder(override);
+  }
+
   /** Drop any override and return to the natural order. */
   clearQueueOrder() {
     const had = Boolean(this._override);

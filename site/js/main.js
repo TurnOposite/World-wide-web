@@ -112,7 +112,7 @@ async function boot() {
       { name: 'booth', pattern: /^booth$/, load: () => import('./pages/booth.js') },
       { name: 'missing', pattern: /.*/, load: () => import('./pages/missing.js') },
     ],
-    render: async (page, match, { fromPop }) => {
+    render: async (page, match, { fromPop, isCurrent = () => true }) => {
       try { cleanup?.(); } catch (e) { console.error(e); }
       cleanup = null;
       sceneFn = () => null;
@@ -120,7 +120,19 @@ async function boot() {
       void view.offsetWidth;
       view.classList.add('entering');
       document.title = page.title ? `${page.title} — ${site.title || 'Globe Trotter'}` : (site.title || 'Globe Trotter');
-      cleanup = (await page.mount(view, { ...ctx, router, params: match.params })) || null;
+      // Each page gets its own box inside <main>. A page still loading when
+      // the reader moves on keeps working on its own, now detached, box —
+      // never on the page that replaced it — and is cleaned up the moment
+      // it finishes.
+      const root = document.createElement('div');
+      root.className = 'page';
+      view.replaceChildren(root);
+      const done = (await page.mount(root, {
+        ...ctx, router, params: match.params,
+        setScene: (fn) => { if (isCurrent()) sceneFn = fn; },
+      })) || null;
+      if (!isCurrent()) { try { done?.(); } catch (e) { console.error(e); } return; }
+      cleanup = done;
       if (!fromPop) {
         window.scrollTo({ top: 0 });
         view.focus({ preventScroll: true });
