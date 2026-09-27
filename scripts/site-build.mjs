@@ -36,6 +36,21 @@ export function normaliseBase(b = '/') {
   return base;
 }
 
+/**
+ * The shell for a given address: its <base>, and — when the site's public URL
+ * is known (SITE_URL, from the Pages workflow) — an absolute og:image and an
+ * og:url, which is what link previews need. Pure, so it is tested.
+ */
+export function shellFor(html, { base = '/', siteUrl = '' } = {}) {
+  let out = html.replace(/<base href="[^"]*">/, `<base href="${normaliseBase(base)}">`);
+  if (siteUrl) {
+    const root = siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`;
+    out = out.replace(/(<meta property="og:image" content=")(?!https?:)([^"]+)(">)/, (_, a, rel, c) => `${a}${new URL(rel, root).href}${c}`);
+    if (!/property="og:url"/.test(out)) out = out.replace(/(<meta property="og:type"[^>]*>)/, `$1\n<meta property="og:url" content="${root}">`);
+  }
+  return out;
+}
+
 /** Every route that should answer 200 on a cold load. */
 export function routes(texts) {
   return [
@@ -56,7 +71,7 @@ async function copyDir(src, dst, skip = () => false) {
   }
 }
 
-export async function build({ base = process.env.SITE_BASE || '/', repo = process.env.GITHUB_REPOSITORY || '', quiet = false, dist = DIST, shells = true } = {}) {
+export async function build({ base = process.env.SITE_BASE || '/', repo = process.env.GITHUB_REPOSITORY || '', siteUrl = process.env.SITE_URL || '', quiet = false, dist = DIST, shells = true } = {}) {
   const DIST = dist;
   base = normaliseBase(base);
   const log = (...a) => { if (!quiet) console.log(...a); };
@@ -82,7 +97,7 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   }
 
   // 4. <base>, and a shell at every route
-  const shell = (await fsp.readFile(path.join(SITE, 'index.html'), 'utf8')).replace(/<base href="[^"]*">/, `<base href="${base}">`);
+  const shell = shellFor(await fsp.readFile(path.join(SITE, 'index.html'), 'utf8'), { base, siteUrl });
   await fsp.writeFile(path.join(DIST, 'index.html'), shell);
   const texts = JSON.parse(await fsp.readFile(path.join(DIST, 'data/texts.json'), 'utf8')).texts;
   if (shells) await fsp.writeFile(path.join(DIST, '404.html'), shell);
@@ -102,7 +117,7 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   // GitHub Pages: serve files and folders starting with _ as-is.
   await fsp.writeFile(path.join(DIST, '.nojekyll'), '');
 
-  log(`  ✓ dist/ ready — base ${base}${owner ? `, booth writes to ${owner}/${name}` : ', booth read-only (no repository)'}; ${files.length} portfolio files (${(bytes / 1048576).toFixed(1)} MB)`);
+  log(`  ✓ dist/ ready — base ${base}${siteUrl ? ` at ${siteUrl}` : ''}${owner ? `, booth writes to ${owner}/${name}` : ', booth read-only (no repository)'}; ${files.length} portfolio files (${(bytes / 1048576).toFixed(1)} MB)`);
   return { base, files: files.length, routes: routes(texts).length };
 }
 

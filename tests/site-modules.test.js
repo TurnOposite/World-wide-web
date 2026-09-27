@@ -14,7 +14,7 @@ import * as cli from '../dj/dj.mjs';
 import * as web from '../site/js/ui/moods.js';
 import { normalise, lookToSettings, VisualSettings, LOOKS, LAYERS } from '../site/js/viz/settings.js';
 import { toHtml, frontMatter, build as buildTexts } from '../scripts/site-texts.mjs';
-import { routes, normaliseBase } from '../scripts/site-build.mjs';
+import { routes, normaliseBase, shellFor } from '../scripts/site-build.mjs';
 import { CloudEngine } from '../site/js/engine/cloud.js';
 import { webAudioIsSafe } from '../site/js/player.js';
 
@@ -124,4 +124,16 @@ test('the visualiser may take the music through Web Audio except on an iPhone th
   assert.equal(webAudioIsSafe({ userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', platform: 'MacIntel', maxTouchPoints: 5 }), false, 'an iPad asking for the desktop site is still iOS');
   assert.equal(webAudioIsSafe({ userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', platform: 'MacIntel', maxTouchPoints: 0 }), true, 'a Mac');
   assert.equal(webAudioIsSafe({ userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) Chrome/129 Mobile' }), true);
+});
+
+test('the Pages shell gives link previews an absolute picture and address', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'site/index.html'), 'utf8');
+  const out = shellFor(html, { base: '/radio-tower/', siteUrl: 'https://ortis.github.io/radio-tower' });
+  assert.match(out, /<base href="\/radio-tower\/">/);
+  assert.match(out, /<meta property="og:image" content="https:\/\/ortis\.github\.io\/radio-tower\/assets\/share-card\.jpg">/);
+  assert.match(out, /<meta property="og:url" content="https:\/\/ortis\.github\.io\/radio-tower\/">/);
+  assert.ok(fs.existsSync(path.join(ROOT, 'site/assets/share-card.jpg')), 'the card exists (node scripts/site-card.mjs)');
+  const local = shellFor(html, { base: '/' });
+  assert.match(local, /content="assets\/share-card\.jpg"/, 'no address known: left relative');
+  assert.doesNotMatch(local, /property="og:url"/);
 });

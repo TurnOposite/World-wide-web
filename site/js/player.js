@@ -59,6 +59,7 @@ export class Player extends EventTarget {
     this._unavailableUntil = 0;
     this._refreshing = null;
     this._timers = [];
+    this._failStreak = 0;     // tracks in a row that no source would play
 
     try {
       const v = Number(localStorage.getItem('radiotower.volume'));
@@ -66,7 +67,7 @@ export class Player extends EventTarget {
     } catch { audio.volume = 0.8; }
 
     audio.addEventListener('waiting', () => this.playing && this._status('buffering…'));
-    audio.addEventListener('playing', () => this._status('on air'));
+    audio.addEventListener('playing', () => { this._failStreak = 0; this._status('on air'); });
     audio.addEventListener('error', () => this._onError());
     // `ended` is a hint, not the clock: a stalled buffer fires it late.
     audio.addEventListener('ended', () => this._rollover());
@@ -204,7 +205,17 @@ export class Player extends EventTarget {
     }
     // Nothing plays it. Stay on the clock: silence until the next track.
     this._unavailableUntil = this.onAir.endsAt;
-    this._status('this track will not load here — back on air at the next one', 'bad');
+    this._failStreak++;
+    if (this._failStreak >= 2) {
+      // Not one bad file: the place the music lives is not answering (on the
+      // cloud edition, most likely the Wix plan's monthly bandwidth).
+      let host = '';
+      try { host = new URL(this._sources[0]).host; } catch { /* relative */ }
+      console.warn(`[radio-tower] ${this._failStreak} tracks in a row would not load${host ? ` from ${host}` : ''}. If that is Wix, check the media bandwidth (docs/GO-LIVE.md, "Bandwidth").`);
+      this._status('the music is not reachable right now — the station keeps time; try again later', 'bad');
+    } else {
+      this._status('this track will not load here — back on air at the next one', 'bad');
+    }
     this.dispatchEvent(new CustomEvent('unavailable', { detail: this.onAir }));
   }
 

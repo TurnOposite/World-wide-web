@@ -2301,3 +2301,23 @@ Audited `site/js/player.js` against the five hazards in the
 
 Verified: `bash scripts/build-test.sh` — 274 tests, 43/43 browser, 36/36 site;
 preview smoke 18/18. Preview republished (version 3).
+
+### 2026-09-27, shift 6 — how the link looks when it is shared
+
+- **Link preview.** `scripts/site-card.mjs` draws `site/assets/share-card.jpg`
+  (1200×630, 54 KB — under WhatsApp's 300 KB) from the site itself: its
+  stylesheet, the mark, the Atlas map with `places.json` and the tower's
+  origin. `index.html` gains og:type/site_name/image(+size, alt) and
+  `twitter:card`. Crawlers need absolute URLs, so `site-build.mjs` →
+  `shellFor()` writes og:image and og:url from `SITE_URL`, which `pages.yml`
+  now passes from `configure-pages` (`base_url`). Unit-tested; actionlint clean.
+- **When the music host stops answering** (the Wix plan's monthly bandwidth is
+  the likely cause): one failed track still says "back on air at the next
+  one"; two in a row now say "the music is not reachable right now — the
+  station keeps time", and the console names the host and points at
+  GO-LIVE "Bandwidth". Site smoke +1.
+- README screenshots re-shot after the contrast change.
+- GO-LIVE §5: the share card follows the places — re-draw after editing them.
+
+Verified: `bash scripts/build-test.sh` — 275 tests, 43/43 browser, 37/37 site;
+preview smoke 18/18.

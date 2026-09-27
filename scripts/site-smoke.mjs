@@ -234,6 +234,25 @@ try {
   await a.waitForSelector('.room .sleeve', { timeout: 8000 });
   check('Portfolio: crates render as sleeves, with no play button', (await a.$$('.room .sleeve')).length >= 1 && !(await a.$('.room .sleeve button.play')));
 
+  // When the place the music lives stops answering (Wix bandwidth), every
+  // track fails: after the second in a row the listener is told plainly.
+  const outage = await a.evaluate(async () => {
+    const p = window.radioTower.player;
+    const bad = 'data:audio/mpeg;base64,AAAAAAAA';
+    const fail = () => new Promise((resolve) => {
+      p._sources = [bad]; p._sourceIndex = 0; p._unavailableUntil = 0;
+      document.getElementById('audio').addEventListener('error', () => setTimeout(resolve, 50), { once: true });
+      p.join({ force: true });
+    });
+    await fail();
+    const first = p.status;
+    await fail();
+    const second = p.status;
+    p._failStreak = 0; p._unavailableUntil = 0; p._onTrackChange(); p.join({ force: true });
+    return { first, second };
+  });
+  check('one track that will not load waits for the next; two in a row say the music is unreachable', /will not load/.test(outage.first) && /not reachable/.test(outage.second), outage.second);
+
   /* ------------------------------------------------------------- phone -- */
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const m = await phone.newPage();

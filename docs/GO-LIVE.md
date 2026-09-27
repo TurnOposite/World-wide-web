@@ -97,6 +97,11 @@ Open the address on your phone, press **Tune in**.
 Edit on github.com (pencil icon on the file) → Commit. The site redeploys
 itself.
 
+The picture that appears when you paste the link into WhatsApp or Instagram
+(`site/assets/share-card.jpg`) is drawn from the same places and origin. After
+changing them, ask the next Claude session to "re-draw the share card" — one
+command, `node scripts/site-card.mjs`.
+
 ## 6. Give the DJ booth its key
 
 The booth saves your reorders by committing `site/station/control.json` to

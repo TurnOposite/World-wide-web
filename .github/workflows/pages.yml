@@ -48,6 +48,8 @@ jobs:
       - name: Assemble dist/
         env:
           SITE_BASE: ${{ steps.pages.outputs.base_path }}/
+          # Absolute og:image / og:url for link previews.
+          SITE_URL: ${{ steps.pages.outputs.base_url }}/
         run: node scripts/site-build.mjs
 
       - uses: actions/upload-pages-artifact@v3

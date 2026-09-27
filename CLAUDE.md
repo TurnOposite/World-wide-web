@@ -83,6 +83,7 @@ npm run site:smoke     # drive the static site in a real browser (also stage 7 o
 npm run cloud:check    # is site/station/library.json valid?
 npm run preview        # the private claude.ai preview → dist-preview/ (test tones, shared-database booth)
 npm run preview:smoke  # drive that preview through a stand-in claude.ai host
+node scripts/site-card.mjs  # re-draw the link-preview card (site/assets/share-card.jpg) after changing places, origin or palette
 ```
 
 The static site lives in `site/` and has no bundler either: `scripts/site-build.mjs`
