@@ -81,6 +81,7 @@ npm run site           # the static site on :8090 (add -- --fixtures DIR for loc
 npm run site:build     # assemble dist/ (what GitHub Pages serves)
 npm run site:smoke     # drive the static site in a real browser (also stage 7 of the self-test)
 npm run cloud:check    # is site/station/library.json valid?
+npm run cloud:live -- https://NAME.github.io/radio-tower/   # after going live: page, audio, queue — from outside
 npm run preview        # the private claude.ai preview → dist-preview/ (test tones, shared-database booth)
 npm run preview:smoke  # drive that preview through a stand-in claude.ai host
 node scripts/site-card.mjs  # re-draw the link-preview card (site/assets/share-card.jpg) after changing places, origin or palette

@@ -63,6 +63,15 @@ test('validateLibrary catches the mistakes that would desync or overspend', () =
   }
 });
 
+test('a site path may be percent-encoded; a raw space or another scheme may not', () => {
+  const lib = (s) => ({ epoch: '2026-01-01T00:00:00Z', tracks: [{ id: '0123456789ab', title: 't', duration: 10, sources: [s] }] });
+  assert.deepEqual(validateLibrary(lib('/radio-tower/__fixtures/01%20Carrier%20Wave.mp3')), []);
+  assert.deepEqual(validateLibrary(lib('station/preview-audio/0123456789ab.mp3')), []);
+  for (const bad of ['station/01 Carrier Wave.mp3', 'javascript:alert(1)', 'data:audio/mpeg;base64,AAAA', '/x/%zz.mp3']) {
+    assert.match(validateLibrary(lib(bad)).join('\n'), /source must be/, bad);
+  }
+});
+
 /* ------------------------------------------------ same second as Wix draft */
 
 /** The Wix block's own algorithm, transcribed (Web-Creative/_Travail/13_…). */

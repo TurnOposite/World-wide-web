@@ -70,7 +70,21 @@ tower is sound.
 
 ## 4. Check it plays
 
-Open the address on your phone, press **Tune in**.
+First, one command checks everything a browser will need — the page, a deep
+link, the preview picture, every track's audio (the way the player asks for
+it) and the queue file:
+
+RUN THIS IN: Windows PowerShell on the laptop.
+
+```powershell
+cd "$env:USERPROFILE\Documents\Ortis\radio-tower-git"
+node scripts\cloud-live-check.mjs https://YOUR-NAME.github.io/radio-tower/
+```
+
+It ends with "The station is on the air." or with what to fix. (It only reads;
+it changes nothing.)
+
+Then open the address on your phone, press **Tune in**.
 
 - If you hear music: the station is live. Open it on a second device — both
   play the same second.

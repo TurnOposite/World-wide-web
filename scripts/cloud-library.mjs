@@ -54,7 +54,9 @@ export function validateLibrary(lib) {
     if (!(Number.isFinite(t.duration) && t.duration > 1 && t.duration < 6 * 3600)) problems.push(`${where}: duration must be seconds (got ${t.duration})`);
     if (!Array.isArray(t.sources) || !t.sources.length) problems.push(`${where}: needs at least one source URL`);
     for (const s of t.sources || []) {
-      if (!/^https:\/\//.test(s) && !/^(\.\/|\/)?[\w./-]+$/.test(s)) problems.push(`${where}: source must be https:// or a site path (${s})`);
+      // A site path may be percent-encoded ("01%20Carrier%20Wave.mp3"); a
+      // raw space, a scheme like http:, javascript: or data: may not.
+      if (!/^https:\/\//.test(s) && !/^(\.\/|\/)?(?:[\w./-]|%[0-9A-Fa-f]{2})+$/.test(s)) problems.push(`${where}: source must be https:// or a site path (${s})`);
       if (/\.(wav|flac)$/i.test(s)) problems.push(`${where}: ${s} is lossless — link the transcoded -320.mp3 asset instead`);
     }
   });

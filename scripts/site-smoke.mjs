@@ -30,6 +30,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createSiteServer } from './site-serve.mjs';
 import { build } from './site-build.mjs';
+import { liveCheck } from './cloud-live-check.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const towerUrl = process.argv[2]?.startsWith('http') ? process.argv[2] : null;
@@ -304,6 +305,15 @@ try {
   const cfg = await d.evaluate(() => window.radioTower?.client?.config?.github);
   check('the built site answers a cold deep link under /<repo>/', dh === 'Opal Orre', dh || 'no heading');
   check('…and knows which repository its booth writes to', cfg?.owner === 'ortis' && cfg?.repo === 'radio-tower');
+  // The go-live checker (GO-LIVE §4) against the same build on a Pages-shaped
+  // server with a stand-in GitHub API: nothing to fail on a site that works.
+  const liveServer = await createSiteServer({ dist: true, base: '/radio-tower/', fixtures, fakeGithub: true });
+  const livePort = await listen(liveServer);
+  const live = await liveCheck(`http://127.0.0.1:${livePort}/radio-tower/`);
+  liveServer.close();
+  const liveFails = live.filter((r) => r.level === 'FAIL');
+  check('the go-live checker passes a working build, audio and queue included', liveFails.length === 0 && live.some((r) => /audio/.test(r.name) && r.level === 'PASS'),
+    liveFails.map((r) => `${r.name}: ${r.detail}`).join(' | ') || `${live.filter((r) => r.level === 'PASS').length} pass, ${live.filter((r) => r.level === 'WARN').length} warn`);
   distServer.close();
 
   /* -------------------------------------------------- tower mode ----------- */

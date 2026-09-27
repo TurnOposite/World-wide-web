@@ -24,7 +24,8 @@
     "site:build": "node scripts/site-build.mjs",
     "site:smoke": "node scripts/site-smoke.mjs",
     "preview": "node scripts/site-preview.mjs",
-    "preview:smoke": "node scripts/preview-smoke.mjs"
+    "preview:smoke": "node scripts/preview-smoke.mjs",
+    "cloud:live": "node scripts/cloud-live-check.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

@@ -2321,3 +2321,29 @@ preview smoke 18/18. Preview republished (version 3).
 
 Verified: `bash scripts/build-test.sh` — 275 tests, 43/43 browser, 37/37 site;
 preview smoke 18/18.
+
+### 2026-09-27, shift 7 — a go-live check that runs from outside
+
+The two things this container can never prove are the real Pages deploy and
+the real Wix audio. `scripts/cloud-live-check.mjs` (`npm run cloud:live --
+<url>`) proves them from wherever it is run — Ortis's laptop, or a Claude
+session with network: page + `<base>`, a deep link, the absolute og:image,
+config's repository, `validateLibrary`, **every source of every track asked for
+as `<audio crossorigin>` asks** (Range + Origin → 206/200, audio type,
+Access-Control-Allow-Origin), control.json, and the GitHub contents API with
+the rate limit left. PASS/WARN/FAIL with the fix in plain words; GET only.
+
+- 6 unit tests (fake fetch): healthy; Wix 403 → FAIL pointing at bandwidth; a
+  second source rescues a track; no CORS / CORS for another origin / no ranges;
+  wrong base path; private repo; no repository in config.
+- The site smoke now runs it against the dist build on a Pages-shaped server
+  with a stand-in GitHub (36 site checks). That run found a real bug:
+  `validateLibrary` rejected percent-encoded site paths
+  (`01%20Carrier%20Wave.mp3`). Fixed and tested; raw spaces and other schemes
+  are still refused.
+- GO-LIVE §4 starts with the command (PowerShell block).
+- Noted for the handoff: the old "daily build run" scheduled task (works on
+  the laptop folder, pre-cloud) is disabled since 2026-08-19 — no risk of it
+  editing the old copy.
+
+Verified: `bash scripts/build-test.sh` — 282 tests, 43/43 browser, 38/38 site.
