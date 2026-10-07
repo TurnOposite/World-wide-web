@@ -33,6 +33,10 @@ step() { printf '\n==> %s\n' "$*"; }
 [ "$(id -u)" -eq 0 ] || { echo "run as root (sudo bash $0)"; exit 1; }
 
 step "packages"
+# A fresh cloud image runs its own apt jobs (unattended-upgrades, cloud-init)
+# during the first minutes: wait for the dpkg lock instead of failing on it —
+# for every apt-get here and the ones NodeSource's setup script runs.
+echo 'DPkg::Lock::Timeout "900";' > /etc/apt/apt.conf.d/99radio-tower-lock
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
 apt-get update -y
