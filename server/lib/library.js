@@ -14,6 +14,20 @@ import config from '../config.js';
 import { classify } from './genre.js';
 import { dedupeTracks } from './dedupe.js';
 
+/** relPath → playlist folder names, from `<musicDir>/playlists.json` (library/bot.mjs). */
+export async function readMembership(musicDir) {
+  try {
+    const doc = JSON.parse(await fs.readFile(path.join(musicDir, 'playlists.json'), 'utf8'));
+    const out = new Map();
+    for (const [rel, crates] of Object.entries(doc.files || {})) {
+      if (Array.isArray(crates)) out.set(rel.replaceAll('\\', '/'), crates.map(String));
+    }
+    return out;
+  } catch {
+    return new Map();
+  }
+}
+
 /** Stable, filesystem-independent id for a track. */
 export function trackId(relPath) {
   return crypto.createHash('sha1').update(relPath).digest('hex').slice(0, 12);
@@ -30,6 +44,10 @@ export async function walk(dir, exts = config.audioExtensions, acc = []) {
   for (const entry of entries) {
     if (entry.name.startsWith('.')) continue;
     const full = path.join(dir, entry.name);
+    // `_inbox/`, `_web/`, `_to_delete/`… are working folders: files waiting
+    // to be sorted, transcodes made for another host, things on their way
+    // out. None of them is the programme. (library/README.md, 2026-10-07.)
+    if (entry.isDirectory() && entry.name.startsWith('_')) continue;
     if (entry.isDirectory()) {
       await walk(full, exts, acc);
     } else if (entry.isFile() && exts.includes(path.extname(entry.name).toLowerCase())) {
@@ -164,6 +182,18 @@ export async function scanLibrary({
   // re-reading tags off a slow USB drive, and a file that is a duplicate
   // today may be the survivor tomorrow if its twin is deleted.
   if (useCache) await writeCache(cacheFile, tracks);
+
+  // Playlist membership from the library bot (library/bot.mjs): a song in
+  // three playlists is one file in its first playlist's folder, and
+  // playlists.json lists the other two. Read-only; a missing or broken file
+  // just means every track belongs to its folder alone. Applied after the
+  // cache write so a membership change never needs a re-read of the tags.
+  const membership = await readMembership(musicDir);
+  for (const track of tracks) {
+    const crates = membership.get(track.relPath);
+    if (crates?.length) track.crates = crates;
+    else delete track.crates;
+  }
 
   const { unique, duplicates } = dedupe ? dedupeTracks(tracks) : { unique: tracks, duplicates: [] };
 

@@ -107,6 +107,70 @@ export function seededShuffle(items, seed) {
   return out;
 }
 
+/** FNV-1a over a string — a stable 32-bit seed from a group name. */
+function hashString(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+
+/**
+ * Deterministic interleave: every group gets its turn, spread as evenly as
+ * the group sizes allow.
+ *
+ * Each group is shuffled on its own (seeded by the cycle and the group's
+ * name), then item k of a group of n is given the position (k + u) / n,
+ * where u is a seeded offset in [0, 1) per group. Sorting everything by that
+ * position deals the groups out like cards: a group with twice the tracks
+ * comes round twice as often, and two tracks from the same group only sit
+ * side by side when that group outnumbers everything else put together.
+ *
+ * This is what the Mashup channel plays — "fluctuate between the genres"
+ * as a rule rather than as luck. Pure: same tracks, same seed, same order,
+ * in every browser and on every server. Floating-point keys are fine here —
+ * IEEE-754 division is identical on every JS engine.
+ *
+ * @param {Array} tracks
+ * @param {number} seed
+ * @param {(t: object) => string} keyOf   which group a track belongs to
+ */
+export function interleave(tracks, seed, keyOf = (t) => t.crate ?? t.genreSlug ?? '') {
+  const groups = new Map();
+  for (const t of tracks) {
+    const k = String(keyOf(t) ?? '');
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(t);
+  }
+  const names = [...groups.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const rand = mulberry32(seed);
+  const dealt = [];
+  names.forEach((name, gi) => {
+    const list = seededShuffle(groups.get(name), (seed ^ hashString(name)) >>> 0);
+    const offset = rand();
+    list.forEach((t, k) => dealt.push({ t, pos: (k + offset) / list.length, gi }));
+  });
+  dealt.sort((a, b) => a.pos - b.pos || a.gi - b.gi);
+  // The even spread can still put two of a big crate side by side where the
+  // offsets happen to line up. Repair: pull the next track from another
+  // crate forward into that slot. Only gives up when everything left is one
+  // crate — then there is nothing else to play.
+  for (let i = 1; i < dealt.length; i++) {
+    if (dealt[i].gi !== dealt[i - 1].gi) continue;
+    let j = i + 1;
+    while (j < dealt.length && dealt[j].gi === dealt[i - 1].gi) j++;
+    if (j >= dealt.length) break;
+    const [moved] = dealt.splice(j, 1);
+    dealt.splice(i, 0, moved);
+  }
+  return dealt.map((d) => d.t);
+}
+
+/** The running orders a Station knows. */
+export const ORDERS = ['shuffle', 'library', 'interleave'];
+
 /**
  * Order-independent content fingerprint for a track list.
  *
@@ -136,12 +200,17 @@ export class Station {
    *   library's own order (a deliberate running order, like an album side)
    *   instead of a fresh deterministic shuffle per cycle. The Pi keeps the
    *   default; the cloud channel uses false — see docs/DECISIONS.md 2026-09-26.
+   * @param {'shuffle'|'library'|'interleave'} [opts.order]  the running order,
+   *   spelled out. Overrides `shuffle` when given: 'library' is shuffle:false,
+   *   'interleave' deals the library's groups (crates, else genres) out in
+   *   turn every cycle — the Mashup channel (server/lib/channels.js).
    */
-  constructor(tracks = [], { epoch = 0, gapSeconds = 0, name = 'Radio Tower', shuffle = true } = {}) {
+  constructor(tracks = [], { epoch = 0, gapSeconds = 0, name = 'Radio Tower', shuffle = true, order = null } = {}) {
     this.name = name;
     this.epoch = epoch;
     this.gapSeconds = Math.max(0, gapSeconds);
-    this.shuffle = shuffle !== false;
+    this.order = ORDERS.includes(order) ? order : (shuffle === false ? 'library' : 'shuffle');
+    this.shuffle = this.order !== 'library';
     this._cycleCache = new Map(); // absolute cycleIndex -> ordered tracks for whichever era owns it
 
     // The schedule starts life empty, "as of" the epoch itself, so the very
@@ -290,6 +359,9 @@ export class Station {
    * the override is always validated against exactly what it will permute.
    */
   _naturalOrder(era, cycleIndex) {
+    // Interleave from cycle 0 on: a Mashup that opened on one crate's whole
+    // run would be the opposite of what it is for.
+    if (this.order === 'interleave') return interleave(era.tracks, (cycleIndex * 2654435761 + 0x9e3779b9) >>> 0);
     if (cycleIndex === 0 || !this.shuffle) return era.tracks.slice();
     return seededShuffle(era.tracks, cycleIndex * 2654435761);
   }

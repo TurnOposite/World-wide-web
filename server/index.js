@@ -12,6 +12,8 @@ import { createServer } from 'node:http';
 import config, { ROOT } from './config.js';
 import { scanLibrary } from './lib/library.js';
 import { Station } from './lib/schedule.js';
+import { ChannelSet, DEFAULT_CHANNEL_SPEC } from './lib/channels.js';
+import fs from 'node:fs';
 import { Listeners } from './lib/listeners.js';
 import { apiRouter } from './routes/api.js';
 import { attachDevReload } from './lib/devReload.js';
@@ -23,6 +25,27 @@ const station = new Station([], {
   epoch: config.stationEpoch,
   gapSeconds: config.gapSeconds,
   name: config.stationName,
+});
+/**
+ * The channel spec: library/channels.json beside the music if there is one
+ * (CHANNELS_FILE overrides where to look), else the default — Mashup, Long
+ * mixes, one per crate, Everything. Read once per scan, so editing it takes
+ * effect at the next rescan; a broken file falls back to the default rather
+ * than taking the station off air.
+ */
+function readChannelSpec() {
+  const file = config.channelsFile;
+  try {
+    if (file && fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (err) {
+    console.warn(`[channels] ${file}: ${err.message} — using the default channels`);
+  }
+  return DEFAULT_CHANNEL_SPEC;
+}
+const channels = new ChannelSet({
+  spec: readChannelSpec(),
+  station: { epoch: config.stationEpoch, gapSeconds: config.gapSeconds, name: config.stationName },
+  main: station,
 });
 const listeners = new Listeners({ ttlMs: config.listenerTtlMs });
 const collections = new Collections({ dir: config.collectionsDir });
@@ -42,6 +65,8 @@ async function rescan({ useCache = true } = {}) {
   try {
     const result = await scanLibrary({ musicDir: config.musicDir, cacheFile: config.cacheFile, useCache });
     station.setTracks(result.tracks);
+    channels.spec = readChannelSpec();
+    channels.setTracks(result.tracks);
     state.lastScanAt = Date.now();
     state.lastScanSkipped = result.skipped;
     const hours = (result.totalSeconds / 3600).toFixed(1);
@@ -81,7 +106,7 @@ export function createApp({ devReload = false } = {}) {
     next();
   });
 
-  app.use('/api', apiRouter({ station, listeners, config, state, rescan, collections }));
+  app.use('/api', apiRouter({ station, listeners, config, state, rescan, collections, channels }));
 
   // The files behind the University / Photos / Crates pages. Read-only, and
   // narrower than express.static on its own: `_review/` and `_incoming/` are
@@ -112,6 +137,22 @@ export function createApp({ devReload = false } = {}) {
   );
 
   if (devReload) attachDevReload(app, path.join(ROOT, 'public'));
+
+  // The cloud tower serves the whole website, tuned to itself (config.siteDir).
+  // The build writes one index.html per route, so plain static serving covers
+  // every page; anything else gets the site's own 404 page, which boots the
+  // router and shows "not found" in the site's clothes.
+  if (config.siteDir) {
+    const siteCache = (res, filePath) => {
+      const isAsset = filePath.split(path.sep).includes('assets');
+      res.setHeader('Cache-Control', isAsset ? 'public, max-age=604800' : 'no-cache');
+    };
+    app.use(express.static(config.siteDir, { setHeaders: siteCache, dotfiles: 'ignore' }));
+    app.use((req, res, next) => {
+      if ((req.method !== 'GET' && req.method !== 'HEAD') || req.path.startsWith('/api/')) return next();
+      res.status(404).set('Cache-Control', 'no-cache').sendFile(path.join(config.siteDir, '404.html'), (err) => err && next());
+    });
+  }
 
   // Cache policy. The old `maxAge: '1h'` put `Cache-Control: public,
   // max-age=3600` on every .js and .css file, which made two correct deploys
@@ -153,7 +194,7 @@ export function createApp({ devReload = false } = {}) {
   return app;
 }
 
-export { station, listeners, state, rescan, collections };
+export { station, channels, listeners, state, rescan, collections };
 
 // A manually-built `file://${resolved}` string does not percent-encode the
 // path, but import.meta.url always does — so this comparison silently failed

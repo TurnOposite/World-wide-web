@@ -20,7 +20,8 @@ export function mountMinibar({ player, stage }) {
   const paint = () => {
     const t = player.onAir;
     title.textContent = t ? t.title : 'Dead air';
-    artist.textContent = t ? t.artist : 'No tracks yet';
+    const ch = player.data?.station?.channelLabel;
+    artist.textContent = t ? (ch ? `${t.artist} · ${ch}` : t.artist) : 'No tracks yet';
   };
   player.addEventListener('station', paint);
   player.addEventListener('playing', (e) => {

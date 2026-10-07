@@ -19,6 +19,13 @@ site has three new rooms — **Library** (essays on a bookshelf, the thesis,
 the network-map room), **Photos**, **Crates** — fed by
 [`collections/collection.json`](./collections/collection.json).
 
+**New since 2026-10-07 — channels, the library bot, the cloud tower.** The
+station plays several synced channels from one library (Mashup, Long mixes,
+one per playlist folder — `server/lib/channels.js`). `library/bot.mjs` keeps
+`music/` in the shape of Ortis's Spotify playlists and sends new songs to the
+tower (**[`library/README.md`](./library/README.md)**). The tower now lives on
+an Oracle Cloud Always Free server — **[`deploy/cloud/README.md`](./deploy/cloud/README.md)**.
+
 **New since 2026-09-26 — the cloud edition.** The station also runs as a
 static website with no server: every browser computes the programme with the
 same `Station` class, the DJ's reorders live in `site/station/control.json`

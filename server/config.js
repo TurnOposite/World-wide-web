@@ -26,6 +26,9 @@ export const config = {
 
   // Where the scanned library cache is written.
   cacheFile: path.resolve(process.env.CACHE_FILE || path.join(ROOT, '.cache', 'library.json')),
+  // Which channels to offer (server/lib/channels.js). Lives beside the music
+  // by default, so the library carries its own channel list wherever it goes.
+  channelsFile: path.resolve(process.env.CHANNELS_FILE || path.join(process.env.MUSIC_DIR || path.join(ROOT, 'music'), 'channels.json')),
 
   // The station epoch. The whole schedule is derived from this instant,
   // so the position is reproducible across restarts and across machines.
@@ -47,6 +50,17 @@ export const config = {
   // unauthenticated write surface must never be the default. Generate one
   // with: node -e "console.log(crypto.randomUUID())"
   stationKey: process.env.STATION_KEY || null,
+
+  // Receiving music over HTTP (PUT /api/library/file) — how the library bot
+  // on the laptop fills a tower in the cloud (library/bot.mjs publish). Off
+  // unless ALLOW_UPLOADS=1, and even then only with the station key.
+  allowUploads: process.env.ALLOW_UPLOADS === '1',
+
+  // Serve the full website (the site/ edition, built into a folder by
+  // scripts/site-build.mjs with SITE_TOWER='') instead of the Pi's own page
+  // in public/. Set by deploy/cloud/install.sh on the cloud tower.
+  siteDir: process.env.SITE_DIR ? path.resolve(process.env.SITE_DIR) : null,
+  uploadMaxMb: envInt('UPLOAD_MAX_MB', 1024),
 
   // How far ahead the queue editor can see and rearrange.
   queueWindow: envInt('QUEUE_WINDOW', 12),

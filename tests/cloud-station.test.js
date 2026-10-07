@@ -28,7 +28,11 @@ const LIBRARY = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/station/library
 const EPOCH = Date.parse(LIBRARY.epoch);
 const TOTAL = LIBRARY.tracks.reduce((s, t) => s + t.duration, 0);
 
-const engineAt = (t, control = null) => new CloudEngine({ library: LIBRARY, control, base: 'https://example.github.io/radio-tower/', clock: () => t });
+// These tests pin the control mechanics against the programme they were
+// written for — the library's own running order, the Wix draft's — which
+// since channels (2026-10-07) is the 'all' channel. The default channel is
+// now Mashup; tests/channels.test.js covers channels and the switch.
+const engineAt = (t, control = null) => new CloudEngine({ library: LIBRARY, control, base: 'https://example.github.io/radio-tower/', clock: () => t, channel: 'all' });
 
 /* ------------------------------------------------------------- the copies */
 

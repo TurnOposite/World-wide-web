@@ -15,6 +15,7 @@ import { esc } from '../ui/util.js';
 import { QueueEditor } from '../ui/queue.js';
 import { resolveMood, planEmission } from '../ui/moods.js';
 import { LOOKS } from '../viz/settings.js';
+import { ChannelDial } from '../ui/channels.js';
 
 export const title = 'DJ booth';
 
@@ -34,6 +35,7 @@ export async function mount(root, ctx) {
   root.innerHTML = `
     <div class="page-head"><h1>DJ booth</h1>
       <p>Rearrange what's next, fire a mood, set the lights. What's on air and the next few minutes never move: every listener stays on the same second.</p></div>
+    <section class="channels" id="bChannels" aria-label="Which channel you are editing" hidden></section>
     <div class="booth">
       <div>
         <div class="panel" id="bQueue"></div>
@@ -102,6 +104,9 @@ export async function mount(root, ctx) {
   };
 
   const queue = new QueueEditor({ root: $('bQueue'), client, player, title: 'Queue' });
+  // The booth edits the channel you are tuned to; turn the dial to edit another.
+  const dial = new ChannelDial({ root: $('bChannels'), client, label: 'Editing channel' });
+  const offCh = client.on?.('channel', () => queue.refresh({ force: true }));
   paintAuth();
 
   // ---- moods
@@ -169,5 +174,5 @@ export async function mount(root, ctx) {
   const off = client.on?.('control', () => { paintLooks(); repaintPlane(); });
   const offPlane = client.plane?.onChange?.(repaintPlane);
 
-  return () => { queue.destroy(); off?.(); offPlane?.(); };
+  return () => { queue.destroy(); dial.destroy(); offCh?.(); off?.(); offPlane?.(); };
 }

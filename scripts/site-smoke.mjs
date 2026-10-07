@@ -177,6 +177,40 @@ try {
   check('two listeners, no server between them, are on the same track', sa.id === sb.id);
   check('…and the same second', Math.abs(sa.ct - sb.ct - (sa.at - sb.at) / 1000) < 1, `A ${sa.ct.toFixed(2)}s · B ${sb.ct.toFixed(2)}s`);
 
+  /* ---------------------------------------------------- channels (dial) -- */
+  // Every channel is its own clock (server/lib/channels.js). Turning the dial
+  // must land this listener on that channel's track *and* second, touch no
+  // one else, and be remembered — then B goes back to the default for the
+  // booth checks below, which expect both listeners on the same channel.
+  await b.waitForSelector('#rChannels button[data-ch]', { timeout: 8000 }).catch(() => {});
+  const dial = await b.$$eval('#rChannels button[data-ch]', (bs) => bs.map((x) => ({ slug: x.dataset.ch, on: x.getAttribute('aria-pressed') === 'true' })));
+  const homeCh = dial.find((d) => d.on)?.slug;
+  check('the dial offers every channel and marks the one on air here', dial.length >= 2 && dial.filter((d) => d.on).length === 1 && homeCh === 'mashup',
+    dial.map((d) => d.slug + (d.on ? '*' : '')).join(' '));
+  const target = dial.find((d) => !d.on && d.slug !== 'all')?.slug || dial.find((d) => !d.on)?.slug;
+  if (target) {
+    await b.click(`#rChannels button[data-ch="${target}"]`);
+    await b.waitForFunction((ch) => window.radioTower.player.data?.station?.channel === ch, target, { timeout: 8000 }).catch(() => {});
+    await b.waitForFunction(() => { const au = document.getElementById('audio'); return !au.paused && au.readyState >= 2; }, null, { timeout: 8000 }).catch(() => {});
+    await b.waitForTimeout(400);
+    const tuned = await b.evaluate((ch) => {
+      const c = window.radioTower.client;
+      const p = window.radioTower.player;
+      const want = c.engine.get(`/api/station?channel=${ch}`).body.onAir;
+      const au = document.getElementById('audio');
+      return { ch: c.channel, id: p.onAir?.id, want: want?.id, src: decodeURI(au.src), wantSrc: decodeURI(c.sourcesFor(want?.id)[0] || ''), ct: au.currentTime, pos: p.livePosition() };
+    }, target);
+    check('turning the dial plays that channel — its track, its file, its second', tuned.ch === target && tuned.id === tuned.want && tuned.src === tuned.wantSrc && Math.abs(tuned.ct - tuned.pos) < 2,
+      `${target}: ${tuned.ct.toFixed(1)}s vs clock ${tuned.pos?.toFixed(1)}s`);
+    const aCh = await a.evaluate(() => window.radioTower.client.channel);
+    check('…for this listener only', aCh === homeCh, `A still on ${aCh}`);
+    await b.reload({ waitUntil: 'domcontentloaded' });
+    await b.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
+    check('…and remembered by this browser', (await b.evaluate(() => window.radioTower.client.channel)) === target);
+    await b.evaluate((ch) => window.radioTower.client.setChannel(ch), homeCh);
+    await b.waitForFunction((ch) => window.radioTower.player.data?.station?.channel === ch, homeCh, { timeout: 8000 }).catch(() => {});
+  }
+
   /* --------------------------------------- the booth, over "GitHub" ------ */
   const booth = await ctxA.newPage();
   watch(booth, 'booth');
@@ -197,7 +231,10 @@ try {
   }
   const puts = devServer.fakeGithub.puts;
   const committed = JSON.parse(devServer.fakeGithub.text);
-  check('the reorder is committed through the contents API', puts >= 1 && Array.isArray(committed.override?.ids), `${puts} commit(s)`);
+  // One override per channel since 2026-10-07: the booth edits the channel it is tuned to.
+  const boothCh = await booth.evaluate(() => window.radioTower.client.channel);
+  const committedOv = boothCh === 'all' ? committed.override : committed.overrides?.[boothCh];
+  check('the reorder is committed through the contents API', puts >= 1 && Array.isArray(committedOv?.ids), `${puts} commit(s), channel ${boothCh}`);
   await b.evaluate(() => window.radioTower.client.pollControl());
   await b.waitForTimeout(300);
   const afterIds = await b.evaluate(() => window.radioTower.client.engine.get('/api/queue').body.slots.map((s) => s.id));
@@ -362,8 +399,9 @@ try {
     let shown, server;
     for (let i = 0; i < 4; i++) {
       await t.evaluate(() => window.radioTower.player.refresh());
-      shown = await t.evaluate(() => ({ mode: window.radioTower?.client?.mode, id: window.radioTower?.player?.onAir?.id, pill: document.getElementById('rMode')?.textContent }));
-      server = await (await fetch(`${towerUrl}/api/station`)).json();
+      shown = await t.evaluate(() => ({ mode: window.radioTower?.client?.mode, id: window.radioTower?.player?.onAir?.id, pill: document.getElementById('rMode')?.textContent, ch: window.radioTower?.client?.channel }));
+      // The same channel the page is tuned to (the tower's default: Mashup).
+      server = await (await fetch(`${towerUrl}/api/station${shown.ch ? `?channel=${encodeURIComponent(shown.ch)}` : ''}`)).json();
       if (shown.id === server.onAir?.id) break;
       await t.waitForTimeout(700);
     }

@@ -27,3 +27,7 @@ collections/_*/
 # The assembled static site (scripts/site-build.mjs) — built by the Pages workflow, never committed.
 dist/
 dist-preview/
+dist-tower/
+
+# The cloud tower address and station key (library/bot.mjs publish)
+library/tower.json

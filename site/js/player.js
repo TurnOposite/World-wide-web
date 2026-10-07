@@ -77,6 +77,9 @@ export class Player extends EventTarget {
     });
 
     client.on?.('control', () => this.refresh());
+    // A new channel is a new programme: the audio follows it at once, to that
+    // channel's track and second (refresh() → join when the track differs).
+    client.on?.('channel', () => this.refresh());
     this._setupMediaSession();
   }
 

@@ -2906,3 +2906,79 @@ simulated, at Station and at cloud-engine level.
 
 **Rejected.** Several overrides at once (a list): format change for every
 listener and the Pi, for a case composition already covers within a cycle.
+
+## 2026-10-07 — Channels: several synced clocks from one library
+
+**Context.** Ortis: the radio was "stuck on the short song genre" and he could
+not change it back; he wanted to switch easily between genres, and a Mashup.
+The cloud edition only had one programme (28 short Wix tracks, album order).
+
+**Decision.** `server/lib/channels.js`: a channel is a filter over the library
+plus a running order, and each channel is its own `Station` with the same
+epoch — so BRIEF §3 holds per channel (everyone on Mashup hears the same
+second of Mashup) and switching is just asking another clock. Default spec:
+**Mashup** (every crate takes its turn, songs under 20 min — new Station order
+`interleave`, an even deal of the crates with an adjacency repair pass),
+**Long mixes** (≥ 20 min), **one channel per crate** (top-level folder, ≥ 3
+tracks), and **Everything** = the original single programme, kept as-is so
+nothing that predates channels moves (`/api/station` without `?channel=`, the
+Pi page, `dj.mjs`). A crate is the first folder of a file's path; a song in
+several playlists carries `crates` from `playlists.json` and plays on each.
+The spec is data: `<MUSIC_DIR>/channels.json` on a server, `channels` in
+`site/station/library.json` on the static site. Empty channels are not listed.
+
+**Control documents.** One override per channel: `overrides[slug]`. The
+pre-channels `override` keeps meaning the 'all' channel, and the booth writes
+'all' in that old shape, so a listener on an older build still reads it.
+
+**Tests changed, not weakened.** `tests/cloud-station.test.js` pins its
+control-mechanics tests to the 'all' channel (the programme they were written
+against — the Wix-draft alignment still holds there). The smoke's booth check
+reads the booth's channel's override; its tower check compares against the
+same channel the page is tuned to.
+
+## 2026-10-07 — The library bot sorts; it never downloads
+
+**Context.** Ortis asked for agents that read his 50+ public Spotify
+playlists and automate a third-party site that downloads Spotify tracks.
+
+**Decision.** `library/bot.mjs` reads playlists (Spotify's public embed pages:
+no login, first 100 tracks; fuller lists by import), makes one folder per
+playlist, and files whatever arrives in `_inbox/` or Downloads into the right
+folder under an `Artist - Title` name, with a checklist and a full text/CSV
+listing. It does **not** drive the downloader: that site serves copyrighted
+recordings it has no licence to distribute, and automating it across 4,000+
+songs is bulk infringement an agent should not run. Ortis gets the music
+however he chooses; everything after "the file exists" is automated.
+
+**Rules the bot keeps.** Moves only files that match a wanted song (or
+`--to`); never deletes, re-encodes or touches a file already filed; a second
+copy goes to `_duplicates/`; an unknown inbox file to `_unmatched/`; an
+unknown file in Downloads stays put. The scanner now skips `_`-prefixed
+folders (`_inbox`, `_web`, `_unmatched`…): working folders are never on air.
+
+## 2026-10-07 — The tower moves to an Oracle Cloud "Always Free" server
+
+**Context.** Vercel's free plan is fine for the pages but its file storage
+(Blob) is 1 GB; the library will be tens of GB. No home Wi-Fi for the Pi for a
+while. Options weighed: Oracle Always Free (2 OCPU/12 GB ARM since the 2026
+cut, 200 GB disk, 10 TB/month egress), Cloudflare R2 + static site (10 GB
+free, then ~$0.015/GB-month), the Pi (needs a router). Ortis chose Oracle.
+
+**Decision.** `deploy/cloud/`: a first-boot script pasted into Oracle's
+cloud-init box installs Node 22, the station (`SITE_DIR` — the server now
+serves the whole site, built with `SITE_TOWER=''` so it is tuned to itself),
+Caddy with HTTPS on `<ip>.sslip.io` (no account, no domain), opens 80/443 in
+iptables (Oracle's Ubuntu images reject everything but SSH), and a nightly
+self-update. Music arrives over `PUT /api/library/file` — off unless
+`ALLOW_UPLOADS=1`, station key required, paths confined to `MUSIC_DIR`, audio
+or the two library JSON files only, written under a temporary name first —
+driven by `bot.mjs publish`, which sends only the difference.
+
+**Fallback.** A site configured for a tower that does not answer falls back to
+the in-browser station rather than dead air.
+
+**Known risk.** Oracle reclaims Always Free servers idle for 7 days (CPU,
+network and memory all under 20 %). Upgrading to Pay As You Go avoids it at
+no cost inside the free shapes; Ortis prefers to stay on the free account, so
+this is documented in `deploy/cloud/README.md` §5 rather than done.

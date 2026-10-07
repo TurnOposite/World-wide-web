@@ -71,7 +71,7 @@ async function copyDir(src, dst, skip = () => false) {
   }
 }
 
-export async function build({ base = process.env.SITE_BASE || '/', repo = process.env.GITHUB_REPOSITORY || '', siteUrl = process.env.SITE_URL || '', quiet = false, dist = DIST, shells = true } = {}) {
+export async function build({ base = process.env.SITE_BASE || '/', repo = process.env.GITHUB_REPOSITORY || '', siteUrl = process.env.SITE_URL || '', tower = process.env.SITE_TOWER ?? null, quiet = false, dist = DIST, shells = true } = {}) {
   const DIST = dist;
   base = normaliseBase(base);
   const log = (...a) => { if (!quiet) console.log(...a); };
@@ -111,6 +111,12 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   const cfg = JSON.parse(await fsp.readFile(cfgPath, 'utf8'));
   const [owner, name] = repo.split('/');
   if (owner && name) cfg.github = { ...cfg.github, owner, repo: name };
+  // SITE_TOWER: build the site tuned to a Radio Tower server. '' = the server
+  // this copy is served from (the cloud tower serves its own site).
+  if (tower !== null && tower !== undefined) {
+    cfg.mode = 'tower';
+    cfg.tower = { ...(cfg.tower || {}), url: tower };
+  }
   cfg.builtAt = new Date().toISOString();
   await fsp.writeFile(cfgPath, JSON.stringify(cfg, null, 2) + '\n');
 

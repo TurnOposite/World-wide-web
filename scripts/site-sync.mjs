@@ -18,6 +18,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const SYNCED = [
   ['server/lib/schedule.js', 'site/js/lib/schedule.js'],
   ['server/lib/payloads.js', 'site/js/lib/payloads.js'],
+  // Channels (Mashup, Long mixes, one per crate) — several clocks from one
+  // library; pinned by tests/channels.test.js.
+  ['server/lib/channels.js', 'site/js/lib/channels.js'],
   ['dj/moods.json', 'site/station/moods.json'],
   // The visualiser's pure maths (palette, bands, onset detection, squircle,
   // tiers) — pinned by tests/viz.test.js. The site's full-page stage builds

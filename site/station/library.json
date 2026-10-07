@@ -5,13 +5,45 @@
     "Add a track: append an object with a unique 12-hex id, exact duration in",
     "seconds, and one or more https sources (tried in order). Then run",
     "`node scripts/cloud-library.mjs check`. Order matters: shuffle is off,",
-    "the station plays this list top to bottom, forever."
+    "the station plays this list top to bottom, forever.",
+    "Channels: `channels` below says which programmes the dial offers (server/lib/channels.js);",
+    "each track's `crate` is what the Mashup takes turns between (here: its album)."
   ],
   "name": "Radio Tower",
   "tagline": "One signal. Everyone on the same second.",
   "epoch": "2026-01-01T00:00:00Z",
   "shuffle": false,
   "gapSeconds": 0,
+  "channels": {
+    "default": "mashup",
+    "channels": [
+      {
+        "slug": "mashup",
+        "label": "Mashup",
+        "blurb": "Every album takes its turn.",
+        "order": "interleave",
+        "maxMinutes": 20
+      },
+      {
+        "slug": "long",
+        "label": "Long mixes",
+        "blurb": "The hour-long sets — they live on the tower; this channel appears when there is one online.",
+        "order": "shuffle",
+        "minMinutes": 20
+      },
+      {
+        "auto": "crates",
+        "order": "library",
+        "minTracks": 5
+      },
+      {
+        "slug": "all",
+        "label": "Album order",
+        "blurb": "The whole loop in its running order, as it first played.",
+        "order": "station"
+      }
+    ]
+  },
   "tracks": [
     {
       "id": "dd02b4dc608d",
@@ -25,7 +57,8 @@
       "art": "collections/music/covers/hyrule-dreams.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "HYRULE DREAMS"
     },
     {
       "id": "e99c86c8f14a",
@@ -39,7 +72,8 @@
       "art": "collections/music/covers/hyrule-dreams.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "HYRULE DREAMS"
     },
     {
       "id": "1b9ed0fe6d14",
@@ -53,7 +87,8 @@
       "art": "collections/music/covers/hyrule-dreams.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "HYRULE DREAMS"
     },
     {
       "id": "7b22b51633bf",
@@ -67,7 +102,8 @@
       "art": "collections/music/covers/hyrule-dreams.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "HYRULE DREAMS"
     },
     {
       "id": "45280e4fbd4d",
@@ -81,7 +117,8 @@
       "art": "collections/music/covers/hyrule-dreams.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "HYRULE DREAMS"
     },
     {
       "id": "20d60dbce7c4",
@@ -95,7 +132,8 @@
       "art": "collections/music/covers/hyrule-dreams.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "HYRULE DREAMS"
     },
     {
       "id": "4d17b475413c",
@@ -109,7 +147,8 @@
       "art": "collections/music/covers/hyrule-dreams.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "HYRULE DREAMS"
     },
     {
       "id": "d8f7fd1e6f32",
@@ -123,7 +162,8 @@
       "art": "collections/music/covers/hyrule-dreams.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "HYRULE DREAMS"
     },
     {
       "id": "860216b1637e",
@@ -137,7 +177,8 @@
       "art": "collections/music/covers/hyrule-dreams.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "HYRULE DREAMS"
     },
     {
       "id": "12c47bd07451",
@@ -151,7 +192,8 @@
       "art": "collections/music/covers/hyrule-dreams.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "HYRULE DREAMS"
     },
     {
       "id": "bd795c102c21",
@@ -165,7 +207,8 @@
       "art": "collections/music/covers/hyrule-dreams.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "HYRULE DREAMS"
     },
     {
       "id": "93733742bf9a",
@@ -179,7 +222,8 @@
       "art": "collections/music/covers/hyrule-dreams.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "HYRULE DREAMS"
     },
     {
       "id": "136a318c575f",
@@ -193,7 +237,8 @@
       "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "By Thy Doors of Ash"
     },
     {
       "id": "7a14803b6632",
@@ -208,7 +253,8 @@
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
       "genreAccent": 285,
-      "scores": "voyages"
+      "scores": "voyages",
+      "crate": "By Thy Doors of Ash"
     },
     {
       "id": "1086806fae92",
@@ -222,7 +268,8 @@
       "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "By Thy Doors of Ash"
     },
     {
       "id": "0d4112f02536",
@@ -236,7 +283,8 @@
       "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "By Thy Doors of Ash"
     },
     {
       "id": "122cb5f467e3",
@@ -250,7 +298,8 @@
       "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "By Thy Doors of Ash"
     },
     {
       "id": "9e1404e8cfdc",
@@ -264,7 +313,8 @@
       "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "By Thy Doors of Ash"
     },
     {
       "id": "64441f56d507",
@@ -278,7 +328,8 @@
       "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "By Thy Doors of Ash"
     },
     {
       "id": "1c9a72f3b28f",
@@ -292,7 +343,8 @@
       "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "By Thy Doors of Ash"
     },
     {
       "id": "480b1cc5de90",
@@ -307,7 +359,8 @@
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
       "genreAccent": 285,
-      "scores": "coracao-sertao"
+      "scores": "coracao-sertao",
+      "crate": "By Thy Doors of Ash"
     },
     {
       "id": "d22f8b8bf219",
@@ -321,7 +374,8 @@
       "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "By Thy Doors of Ash"
     },
     {
       "id": "6f716a953160",
@@ -335,7 +389,8 @@
       "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "By Thy Doors of Ash"
     },
     {
       "id": "9da4d0de29b5",
@@ -349,7 +404,8 @@
       "art": "collections/music/covers/by-thy-doors-of-ash.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "By Thy Doors of Ash"
     },
     {
       "id": "377e09729020",
@@ -363,7 +419,8 @@
       "art": "collections/music/covers/orre-region.jpg",
       "genreSlug": "vgm",
       "genreLabel": "Video Game",
-      "genreAccent": 195
+      "genreAccent": 195,
+      "crate": "Orre Region"
     },
     {
       "id": "89df644aac18",
@@ -378,7 +435,8 @@
       "genreSlug": "vgm",
       "genreLabel": "Video Game",
       "genreAccent": 195,
-      "scores": "opal-orre"
+      "scores": "opal-orre",
+      "crate": "Orre Region"
     },
     {
       "id": "376072b1ee62",
@@ -392,7 +450,8 @@
       "art": "collections/music/covers/omoide-no-mori.jpg",
       "genreSlug": "barber-beats",
       "genreLabel": "Barber Beats",
-      "genreAccent": 285
+      "genreAccent": 285,
+      "crate": "思い出の森"
     },
     {
       "id": "a7a4f3026d61",
@@ -406,7 +465,8 @@
       "art": null,
       "genreSlug": "unsorted",
       "genreLabel": "Unsorted",
-      "genreAccent": 210
+      "genreAccent": 210,
+      "crate": "Singles"
     }
   ]
 }

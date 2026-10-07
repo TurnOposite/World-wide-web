@@ -2419,3 +2419,23 @@ checked here, all acted on:
   "replace" semantics; updated, with the two new refusals in the table.
 
 Verified: `bash scripts/build-test.sh` — 294 tests, 43/43 browser, 40/40 site.
+
+## 2026-10-07 — Channels, the library bot, the cloud tower (interactive, Ortis present)
+
+- **Channels** (`server/lib/channels.js`, copied to `site/js/lib/`): Mashup
+  (interleaved crates), Long mixes, one per crate, Everything. A dial on
+  /radio and /booth (`site/js/ui/channels.js`), `?ch=` deep links, the choice
+  remembered per browser, the mini-player shows the channel. Server:
+  `GET /api/channels`, `?channel=` on station/schedule/queue, `channel` in
+  the reorder/clear body. `tests/channels.test.js` (11), 4 new smoke checks.
+- **Library bot** (`library/`): read 64 public playlists / 4,215 songs from
+  Ortis's profile, made a folder per playlist in his `music/`, filed 7 songs
+  from his Downloads (17 playlist entries). `_checklist.html`,
+  `_playlists.txt/.csv`, `watch.cmd`. `tests/library-bot.test.js` (7).
+- **Cloud tower** (`deploy/cloud/`): install/update/first-boot scripts
+  (shellcheck clean, Caddyfile validated with caddy 2.10.2), upload API,
+  `SITE_DIR`. `tests/cloud-tower.test.js` (3); the tower-served site was
+  driven in Chromium: dial, tune in, channel switch, audio from
+  `/api/track/…/stream`, drift < 0.01 s, no console errors.
+- Pre-existing flake seen once in the baseline smoke ("…and it is a
+  permutation"), passed on re-run; not touched.

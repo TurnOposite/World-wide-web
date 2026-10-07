@@ -16,6 +16,7 @@ import { CloudEngine } from './cloud.js';
 import { GitHubControl, LocalControl, StaticControl, ArtifactControl, EMPTY_CONTROL, ControlError } from './control.js';
 
 const TOKEN_KEY = 'radiotower.githubToken';
+const CHANNEL_KEY = 'radiotower.channel';
 const CONTROL_POLL_MS = 20_000;
 
 /** Small event emitter — the site has no framework and needs only this much. */
@@ -56,6 +57,12 @@ export async function skewFromDateHeader(url, { samples = 3, fetchImpl = globalT
   return Math.abs(best.skew) < 1500 ? 0 : Math.round(best.skew);
 }
 
+/** The channel this browser last tuned to. A convenience only — never load-bearing. */
+export const channelStore = {
+  get() { try { return localStorage.getItem(CHANNEL_KEY) || null; } catch { return null; } },
+  set(slug) { try { slug ? localStorage.setItem(CHANNEL_KEY, slug) : localStorage.removeItem(CHANNEL_KEY); } catch { /* private mode */ } },
+};
+
 /** Token for the GitHub control plane. Lives in this browser only. */
 export const tokenStore = {
   get() { try { return localStorage.getItem(TOKEN_KEY) || null; } catch { return null; } },
@@ -87,6 +94,25 @@ class CloudClient extends Emitter {
   get canWrite() { return Boolean(this.plane.writable); }
   get look() { return this.engine.look; }
   get controlStatus() { return this.engine.controlStatus; }
+
+  /** The channel this tab is tuned to (server/lib/channels.js). */
+  get channel() { return this.engine.channel; }
+
+  /** Every channel, with what is on air on each right now. */
+  async channels() { return this.engine.get('/api/channels').body; }
+
+  /**
+   * Switch channel. The programme on every channel is already running — this
+   * only changes which clock this tab listens to. Emits 'channel'; the player
+   * follows it to the new channel's track and second.
+   */
+  async setChannel(slug, { remember = true } = {}) {
+    const before = this.engine.channel;
+    const now = this.engine.setChannel(slug);
+    if (remember) channelStore.set(now);
+    if (now !== before) this.emit('channel', { slug: now, from: before });
+    return now;
+  }
 
   async get(path) {
     // The portfolio is data, not programme: a file the build writes from the
@@ -170,6 +196,30 @@ class TowerClient extends Emitter {
     this.key = null; // the station key, held in memory only — public/queue.js's rule
     this.listenerId = Math.random().toString(36).slice(2) + Date.now().toString(36);
     this._look = null;
+    this.channel = null; // null = the server's default; set by setChannel()
+    this._channels = null;
+  }
+
+  /** Every channel the tower offers ({ default, current, channels }). Older towers have none. */
+  async channels() {
+    try {
+      const body = await this.get('/api/channels');
+      this._channels = body;
+      if (!this.channel) this.channel = body.default ?? null;
+      return { ...body, current: this.channel };
+    } catch {
+      return { default: null, current: null, channels: [] };
+    }
+  }
+
+  async setChannel(slug, { remember = true } = {}) {
+    const list = this._channels?.channels || (await this.channels()).channels;
+    const ok = list.some((c) => c.slug === slug);
+    const before = this.channel;
+    this.channel = ok ? slug : (this._channels?.default ?? null);
+    if (remember) channelStore.set(this.channel);
+    if (this.channel !== before) this.emit('channel', { slug: this.channel, from: before });
+    return this.channel;
   }
 
   now() { return Date.now() + this.skew; }
@@ -179,6 +229,10 @@ class TowerClient extends Emitter {
   get controlStatus() { return 'n/a'; }
 
   async get(path) {
+    // The programme endpoints answer for one channel; ask for ours.
+    if (this.channel && /^\/api\/(station|queue|schedule)\b/.test(path) && !/[?&]channel=/.test(path)) {
+      path += `${path.includes('?') ? '&' : '?'}channel=${encodeURIComponent(this.channel)}`;
+    }
     const sep = path.includes('?') ? '&' : '?';
     const url = path.startsWith('/api/station') ? `${this.origin}${path}${sep}listener=${this.listenerId}` : `${this.origin}${path}`;
     const res = await fetch(url, { cache: 'no-store' });
@@ -218,8 +272,8 @@ class TowerClient extends Emitter {
     return out;
   }
 
-  reorder(req) { return this._post('/api/queue/reorder', req); }
-  clear() { return this._post('/api/queue/clear', {}); }
+  reorder(req) { return this._post('/api/queue/reorder', this.channel ? { ...req, channel: this.channel } : req); }
+  clear() { return this._post('/api/queue/clear', this.channel ? { channel: this.channel } : {}); }
   async setLook(look) { this._look = look; this.emit('control', { doc: { look }, status: 'local' }); return { ok: true }; }
   sourcesFor() { return []; }
   setToken(key) { this.key = key || null; }
@@ -265,9 +319,28 @@ export async function connect({ base = document.baseURI, overrides = {} } = {}) 
     if (towerAllowed(asked, config)) towerUrl = asked;
     else console.warn(`[radio-tower] ignoring ?tower=${asked} — not this site's station (config.json → tower.allowed)`);
   }
+  // ?ch=long tunes straight to a channel; otherwise the one this browser
+  // last chose; otherwise the station's default.
+  const wantChannel = params.get('ch') || channelStore.get();
+
+  // A tower the site is *configured* for (not one a link asked for) may be
+  // down — a cloud server being updated, a Pi unplugged. Rather than dead
+  // air, fall back to the in-browser station and its own library.
+  if (towerUrl !== null && towerUrl !== undefined && asked === null && towerUrl !== '') {
+    const up = await fetch(`${towerUrl.replace(/\/$/, '')}/api/health`, { cache: 'no-store', signal: AbortSignal.timeout?.(6000) })
+      .then((r) => r.ok).catch(() => false);
+    if (!up) {
+      console.warn(`[radio-tower] the tower at ${towerUrl} is not answering — playing the in-browser station instead`);
+      towerUrl = null;
+      config = { ...config, towerFallback: true };
+    }
+  }
+
   if (towerUrl !== null && towerUrl !== undefined) {
     const client = new TowerClient({ config, origin: towerUrl || location.origin });
     await client.syncClock(3);
+    await client.channels();
+    if (wantChannel) await client.setChannel(wantChannel, { remember: Boolean(params.get('ch')) });
     return client;
   }
 
@@ -295,6 +368,7 @@ export async function connect({ base = document.baseURI, overrides = {} } = {}) 
   }
 
   const client = new CloudClient({ config, base, library, plane, skew: 0 });
+  if (wantChannel) client.engine.setChannel(wantChannel);
   await client.syncClock();
   await client.pollControl();
   if (client.engine.control === null) client.engine.applyControl({ ...EMPTY_CONTROL });

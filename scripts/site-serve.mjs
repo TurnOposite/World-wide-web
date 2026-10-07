@@ -50,9 +50,10 @@ async function fixtureLibrary(dir, base) {
   const { parseFile } = await import('music-metadata');
   const files = (await fsp.readdir(dir)).filter((f) => f.endsWith('.mp3')).sort();
   const tracks = [];
-  for (const f of files) {
+  for (const [i, f] of files.entries()) {
     const meta = await parseFile(path.join(dir, f), { duration: true });
     tracks.push({
+      crate: i % 2 ? 'Night' : 'Day',
       id: crypto.createHash('sha1').update(f).digest('hex').slice(0, 12),
       title: meta.common.title || f.replace(/\.mp3$/, ''),
       artist: meta.common.artist || 'Fixture',

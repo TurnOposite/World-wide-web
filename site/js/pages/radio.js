@@ -8,6 +8,7 @@
  */
 import { esc, fmt, fmtSpan, clock, coverSvg } from '../ui/util.js';
 import { QueueEditor } from '../ui/queue.js';
+import { ChannelDial } from '../ui/channels.js';
 
 export const title = 'Radio';
 
@@ -22,6 +23,8 @@ export function mount(root, ctx) {
         <span class="pill" id="rSync" title="How closely your playback matches the station">sync –</span>
       </div>
     </div>
+
+    <section class="channels" id="rChannels" aria-label="Channels" hidden></section>
 
     <section class="onair" aria-live="polite">
       <div class="cover" id="rCover">${coverSvg(72)}</div>
@@ -116,6 +119,8 @@ export function mount(root, ctx) {
     $('rTitle').textContent = t.title;
     $('rArtist').textContent = t.artist;
     $('rAlbum').textContent = [t.album, t.genreLabel].filter(Boolean).join(' · ');
+    const chLabel = d.station?.channelLabel;
+    $('rLoop').title = chLabel ? `Where the ${chLabel} channel is in its loop` : 'Where the station is in its loop';
     document.title = `${t.title} — Radio Tower`;
     const score = client.mode === 'cloud' ? client.engine.station.get(t.id)?.scores : null;
     const sc = $('rScore');
@@ -189,6 +194,9 @@ export function mount(root, ctx) {
   const offCtl = client.on?.('control', paintGuide);
 
   const queue = new QueueEditor({ root: $('rQueue'), client, player, title: "What's next — and what can move" });
+  const dial = new ChannelDial({ root: $('rChannels'), client, label: 'Channels' });
+  // A new channel means a new guide and a new queue, right away.
+  const offCh = client.on?.('channel', () => { paintGuide(); queue.refresh?.({ force: true }); });
 
   setPlaying(player.playing);
   paintStation();
@@ -198,6 +206,8 @@ export function mount(root, ctx) {
     document.body.classList.remove('on-radio');
     clearInterval(guideTimer);
     offCtl?.();
+    offCh?.();
+    dial.destroy();
     queue.destroy();
     player.removeEventListener('station', paintStation);
     player.removeEventListener('tick', onTick);

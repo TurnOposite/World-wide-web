@@ -163,6 +163,23 @@ input[type=range]{accent-color:var(--signal)}
 .status-line.bad{color:var(--live)}
 .meters{display:flex;gap:8px;flex-wrap:wrap}
 
+/* The dial (ui/channels.js): every channel on air at once; press one to move to its clock. */
+.channels{margin:0 0 20px;min-width:0}
+.dial-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 8px;text-shadow:0 1px 10px rgba(0,0,0,.95)}
+.dial-title{font:600 11.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim)}
+.dial-hint{font:12px var(--mono);color:var(--text-faint)}
+.dial{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 10px;max-width:100%;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.ch{flex:0 0 auto;width:clamp(150px,21vw,206px);scroll-snap-align:start;display:grid;gap:3px;text-align:left;cursor:pointer;min-width:0;
+  border:1px solid var(--line);background:var(--bg-glass);color:var(--text);border-radius:var(--radius-sm);padding:10px 12px 11px;font:inherit;
+  transition:border-color .15s ease,background-color .15s ease}
+.ch:hover{border-color:#3a4654}
+.ch:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.ch.on{border-color:rgba(52,211,153,.6);background:linear-gradient(180deg,rgba(52,211,153,.13),rgba(13,16,20,.9) 70%)}
+.ch-name{font-weight:650;font-size:14.5px;display:flex;align-items:center;gap:7px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch .dot{width:7px;height:7px;border-radius:50%;background:var(--signal);box-shadow:0 0 8px var(--signal);flex:none}
+.ch-now{font-size:12.5px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-meta{font:11px var(--mono);color:var(--text-faint)}
+
 .echoes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
 .radio-grid{display:grid;grid-template-columns:1fr;gap:18px;margin-top:18px}
 .radio-head{text-shadow:0 1px 10px rgba(0,0,0,.95);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 0 16px}
