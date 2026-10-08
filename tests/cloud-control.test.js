@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import { GitHubControl, LocalControl, StaticControl, ArtifactControl, b64encode, b64decode } from '../site/js/engine/control.js';
 import { routeFromHash } from '../site/js/router.js';
 import { toArtifactPage } from '../scripts/site-preview.mjs';
-import { skewFromDateHeader, towerAllowed } from '../site/js/engine/transport.js';
+import { skewFromDateHeader, towerAllowed, towerUrls } from '../site/js/engine/transport.js';
 import { safeLink } from '../site/js/pages/atlas.js';
 
 const json = (status, body, headers = {}) => ({
@@ -380,4 +380,23 @@ test('the preview page is page content: the host adds the document around it', (
   assert.match(page, /<link rel="stylesheet" href="css\/site.css">/);
   assert.match(page, /<script type="module" src="js\/main.js"><\/script>/);
   assert.doesNotMatch(page, /<!doctype|<html|<head|<body|<base/i);
+});
+
+test('a tower on another origin: its covers and streams are fetched from the tower, not the website', () => {
+  const tower = 'https://129-151-227-129.sslip.io';
+  const body = {
+    onAir: { id: 'a', artUrl: '/api/track/a/art', streamUrl: '/api/track/a/stream' },
+    upNext: [{ id: 'b', artUrl: null }, { id: 'c', artUrl: '/api/track/c/art' }],
+    library: { items: [{ artUrl: 'https://cdn.example/c.jpg' }, { artUrl: '//cdn.example/d.jpg' }] },
+    title: '/not-a-url-field',
+  };
+  const out = towerUrls(body, tower);
+  assert.equal(out.onAir.artUrl, `${tower}/api/track/a/art`);
+  assert.equal(out.onAir.streamUrl, `${tower}/api/track/a/stream`);
+  assert.equal(out.upNext[0].artUrl, null);
+  assert.equal(out.upNext[1].artUrl, `${tower}/api/track/c/art`);
+  assert.equal(out.library.items[0].artUrl, 'https://cdn.example/c.jpg', 'absolute urls untouched');
+  assert.equal(out.library.items[1].artUrl, '//cdn.example/d.jpg');
+  assert.equal(out.title, '/not-a-url-field', 'only …Url fields');
+  assert.equal(towerUrls(body, ''), body, 'same origin: nothing to do');
 });

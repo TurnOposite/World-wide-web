@@ -186,6 +186,26 @@ class CloudClient extends Emitter {
 
 /* ------------------------------------------------------------------ tower */
 
+/**
+ * The tower names its files by path (`/api/track/…/art`). Served by the tower
+ * itself that is fine; on another origin (the site on Vercel, tuned to the
+ * cloud tower) a bare path would ask the *website* for the cover and get its
+ * 404. Make every `…Url` field that is a path absolute on the tower.
+ */
+export function towerUrls(body, origin) {
+  if (!origin) return body;
+  const walk = (v) => {
+    if (Array.isArray(v)) return v.map(walk);
+    if (!v || typeof v !== 'object') return v;
+    const out = {};
+    for (const [k, x] of Object.entries(v)) {
+      out[k] = /Url$/.test(k) && typeof x === 'string' && x.startsWith('/') && !x.startsWith('//') ? origin + x : walk(x);
+    }
+    return out;
+  };
+  return walk(body);
+}
+
 class TowerClient extends Emitter {
   constructor({ config, origin }) {
     super();
@@ -238,7 +258,7 @@ class TowerClient extends Emitter {
     const res = await fetch(url, { cache: 'no-store' });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw Object.assign(new Error(body.error || `status ${res.status}`), { status: res.status, body });
-    return body;
+    return towerUrls(body, this.origin);
   }
 
   /** Lowest-round-trip of several /api/time samples — public/app.js's method. */
