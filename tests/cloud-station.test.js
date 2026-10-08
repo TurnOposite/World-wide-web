@@ -24,7 +24,13 @@ import { validateLibrary } from '../scripts/cloud-library.mjs';
 import { SYNCED, expected } from '../scripts/site-sync.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const LIBRARY = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/station/library.json'), 'utf8'));
+const DEPLOYED = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/station/library.json'), 'utf8'));
+// The control mechanics below are pinned to the library's running order (the
+// 'all' channel). Whether the dial *offers* that channel is a deployment
+// choice in library.json (2026-10-08: no — one shuffled channel), so the
+// engine here gets the dial that includes it; the deployed dial has its own
+// test below.
+const LIBRARY = { ...DEPLOYED, channels: { default: 'all', channels: [{ slug: 'all', label: 'Album order', order: 'station' }] } };
 const EPOCH = Date.parse(LIBRARY.epoch);
 const TOTAL = LIBRARY.tracks.reduce((s, t) => s + t.duration, 0);
 
@@ -33,6 +39,18 @@ const TOTAL = LIBRARY.tracks.reduce((s, t) => s + t.duration, 0);
 // since channels (2026-10-07) is the 'all' channel. The default channel is
 // now Mashup; tests/channels.test.js covers channels and the switch.
 const engineAt = (t, control = null) => new CloudEngine({ library: LIBRARY, control, base: 'https://example.github.io/radio-tower/', clock: () => t, channel: 'all' });
+
+test('the deployed dial: one channel, the whole library shuffled (Ortis, 2026-10-08)', () => {
+  const t = Date.parse('2026-10-08T12:00:00Z');
+  const eng = new CloudEngine({ library: DEPLOYED, base: 'https://example.github.io/radio-tower/', clock: () => t });
+  const { body } = eng.get('/api/channels');
+  assert.equal(body.channels.length, 1);
+  assert.equal(body.default, body.channels[0].slug);
+  assert.equal(body.channels[0].order, 'shuffle');
+  assert.equal(body.channels[0].trackCount, DEPLOYED.tracks.length, 'every track is on it');
+  const order = eng.station.cycleOrder(eng.station.at(t).cycleIndex).map((x) => x.id);
+  assert.notDeepEqual(order, DEPLOYED.tracks.map((x) => x.id), 'shuffled, not the running order');
+});
 
 /* ------------------------------------------------------------- the copies */
 

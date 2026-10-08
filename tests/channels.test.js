@@ -27,7 +27,22 @@ import { ChannelSet, DEFAULT_CHANNEL_SPEC, crateOf, expandSpec, matches, slugify
 import { CloudEngine, overridesOf } from '../site/js/engine/cloud.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const LIBRARY = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/station/library.json'), 'utf8'));
+// The real cloud library, but with the full dial these tests exercise —
+// Mashup, Long mixes, a channel per crate, the old loop — fixed here rather
+// than read from site/station/library.json, whose `channels` is a deployment
+// choice that changes (2026-10-08: one shuffled channel, at Ortis's request).
+const LIBRARY = {
+  ...JSON.parse(fs.readFileSync(path.join(ROOT, 'site/station/library.json'), 'utf8')),
+  channels: {
+    default: 'mashup',
+    channels: [
+      { slug: 'mashup', label: 'Mashup', order: 'interleave', maxMinutes: 20 },
+      { slug: 'long', label: 'Long mixes', order: 'shuffle', minMinutes: 20 },
+      { auto: 'crates', order: 'library', minTracks: 5 },
+      { slug: 'all', label: 'Album order', order: 'station' },
+    ],
+  },
+};
 const EPOCH = Date.parse('2026-01-01T00:00:00Z');
 
 /** A library shaped like Ortis's: three crates of songs, one crate of long mixes. */

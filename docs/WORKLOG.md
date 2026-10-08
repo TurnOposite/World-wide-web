@@ -2439,3 +2439,22 @@ Verified: `bash scripts/build-test.sh` — 294 tests, 43/43 browser, 40/40 site.
   `/api/track/…/stream`, drift < 0.01 s, no console errors.
 - Pre-existing flake seen once in the baseline smoke ("…and it is a
   permutation"), passed on re-run; not touched.
+
+## 2026-10-08 — The tower on air in the cloud (interactive, Ortis present)
+
+- **Oracle instance** `radio-tower` created from Chrome (Marseille, A1.Flex
+  2 OCPU / 12 GB, Ubuntu 24.04 aarch64, 150 GB boot, existing
+  `radio-tower-vcn` public subnet, laptop's `radio-tower` SSH key). First boot
+  ran `install.sh` cleanly in ~2 minutes: **https://129-151-227-129.sslip.io/**.
+- **Library sent** with `bot.mjs publish` from the laptop: 128 tracks
+  (~2.2 GB: Crates/Bandcamp, BarberBeats, Liminal Atmosphere, Upbeat, VGM and
+  three singles), ~17 h before a repeat. Uploads ran at ~25 MB/s.
+- **Driven in Chrome on the tower's own site:** dial, Tune in, audio from
+  `/api/track/…/stream`, sync −0.5 s → −0.1 s, channel switch. Then Ortis
+  asked for one shuffled channel (DECISIONS 2026-10-08).
+- **Built:** roadmap #14 (rate limits, listener cap, key-guess budget,
+  `trust proxy` loopback), the CORS fix for a cross-origin booth, installer
+  key hardening. `tests/ratelimit.test.js` (7), a deployed-dial test.
+- **Site:** `site/config.json` → tower mode at the sslip address (falls back
+  to the in-browser station if it does not answer).
+- Self-test: green — 323 tests (4 skipped), 43/43 browser, 44/44 site.

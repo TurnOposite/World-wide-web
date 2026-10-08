@@ -7,6 +7,7 @@ import { publicTrack } from '../lib/schedule.js';
 import { stationPayload, schedulePayload, queuePayload, checkReorder } from '../lib/payloads.js';
 import { resolveTrackPath } from '../lib/library.js';
 import { sendAudio } from '../lib/stream.js';
+import { RateLimiter } from '../lib/ratelimit.js';
 
 /**
  * @param {object} ctx
@@ -35,6 +36,7 @@ export function apiRouter(ctx) {
     return { st, extra: { channel: resolved, channelLabel: label } };
   };
   const router = express.Router();
+  const keyFailures = new RateLimiter({ capacity: 20, refillPerSec: 1 / 30, maxKeys: 5000 });
 
   // --- collections -----------------------------------------------------------
   // The manifest behind /library.html, /photos.html and /crates.html. Read-only
@@ -204,8 +206,18 @@ export function apiRouter(ctx) {
       res.status(503).json({ error: disabledError, detail: disabledDetail });
       return false;
     }
+    // Guessing the key is the one attack worth budgeting tightly: twenty
+    // wrong keys from an address, then one more every half minute. A right
+    // key costs nothing, so the DJ is never locked out by their own use.
+    const who = req.ip || req.socket?.remoteAddress;
+    if (!keyFailures.allows(who)) {
+      res.set('Retry-After', '30');
+      res.status(429).json({ error: 'too_many_bad_keys', retryAfter: 30 });
+      return false;
+    }
     const provided = req.get('x-station-key') || req.query.key;
     if (!keyMatches(provided)) {
+      keyFailures.take(who);
       res.status(401).json({ error: 'bad_key' });
       return false;
     }

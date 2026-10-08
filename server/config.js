@@ -73,6 +73,14 @@ export const config = {
   // A listener is considered "tuned in" if it pinged within this window (ms).
   listenerTtlMs: envInt('LISTENER_TTL_MS', 45_000),
 
+  // Per-address budget on /api (server/lib/ratelimit.js, roadmap #14): a
+  // burst of RATE_BURST requests, refilled at RATE_PER_SECOND. Generous —
+  // a whole classroom behind one address polls well under it — and aimed
+  // only at floods. RATE_BURST=0 turns it off. Requests from this machine
+  // itself (the healthcheck, the booth on the Pi) never count.
+  rateBurst: envInt('RATE_BURST', 300),
+  ratePerSecond: Number(process.env.RATE_PER_SECOND ?? 5),
+
   // Rescan the library automatically every N minutes. 0 disables.
   autoRescanMinutes: envInt('AUTO_RESCAN_MINUTES', 30),
 

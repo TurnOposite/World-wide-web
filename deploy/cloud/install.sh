@@ -31,6 +31,8 @@ export DEBIAN_FRONTEND=noninteractive
 step() { printf '\n==> %s\n' "$*"; }
 
 [ "$(id -u)" -eq 0 ] || { echo "run as root (sudo bash $0)"; exit 1; }
+# This log ends with the station key: root only.
+chmod 600 /var/log/radio-tower-install.log 2>/dev/null || true
 
 step "packages"
 # A fresh cloud image runs its own apt jobs (unattended-upgrades, cloud-init)
@@ -89,6 +91,8 @@ step "settings"
 if [ -f /etc/radio-tower.env ] && [ -z "$KEY" ]; then
   KEY="$(sed -n 's/^STATION_KEY=//p' /etc/radio-tower.env)"
 fi
+# The template's placeholder is not a key: anyone can read it on GitHub.
+[ "$KEY" = 'PUT-A-LONG-RANDOM-KEY-HERE' ] && KEY=''
 [ -n "$KEY" ] || KEY="$(openssl rand -hex 16)"
 umask 077
 cat > /etc/radio-tower.env <<EOF

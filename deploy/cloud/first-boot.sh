@@ -4,8 +4,11 @@
 # cloud-init script). It runs once, as root, on the server's first boot, and
 # installs everything: deploy/cloud/install.sh.
 #
-# Put your own station key on the next line (any long random text) — it is
-# the password the library bot and the DJ booth use. Keep it out of GitHub.
+# The station key is the password the library bot and the DJ booth use.
+# Leave the placeholder and the server makes a random one on first boot
+# (then: ssh in, `sudo cat /srv/radio/TOWER.txt`) — the safer way, since
+# nothing secret is pasted into Oracle. Or put your own (long, random) here.
+# Either way, keep it out of GitHub.
 export TOWER_KEY='PUT-A-LONG-RANDOM-KEY-HERE'
 export TOWER_REPO='https://github.com/TurnOposite/World-wide-web.git'
 export TOWER_BRANCH='main'

@@ -6,8 +6,8 @@
     "seconds, and one or more https sources (tried in order). Then run",
     "`node scripts/cloud-library.mjs check`. Order matters: shuffle is off,",
     "the station plays this list top to bottom, forever.",
-    "Channels: `channels` below says which programmes the dial offers (server/lib/channels.js);",
-    "each track's `crate` is what the Mashup takes turns between (here: its album)."
+    "Channels: `channels` below says which programmes the dial offers (server/lib/channels.js).",
+    "For now one channel, everything shuffled (Ortis, 2026-10-08); the playlist channels come back later."
   ],
   "name": "Radio Tower",
   "tagline": "One signal. Everyone on the same second.",
@@ -15,32 +15,13 @@
   "shuffle": false,
   "gapSeconds": 0,
   "channels": {
-    "default": "mashup",
+    "default": "everything",
     "channels": [
       {
-        "slug": "mashup",
-        "label": "Mashup",
-        "blurb": "Every album takes its turn.",
-        "order": "interleave",
-        "maxMinutes": 20
-      },
-      {
-        "slug": "long",
-        "label": "Long mixes",
-        "blurb": "The hour-long sets — they live on the tower; this channel appears when there is one online.",
-        "order": "shuffle",
-        "minMinutes": 20
-      },
-      {
-        "auto": "crates",
-        "order": "library",
-        "minTracks": 5
-      },
-      {
-        "slug": "all",
-        "label": "Album order",
-        "blurb": "The whole loop in its running order, as it first played.",
-        "order": "station"
+        "slug": "everything",
+        "label": "Everything",
+        "blurb": "The whole library, shuffled.",
+        "order": "shuffle"
       }
     ]
   },

@@ -15,6 +15,7 @@ import { Station } from './lib/schedule.js';
 import { ChannelSet, DEFAULT_CHANNEL_SPEC } from './lib/channels.js';
 import fs from 'node:fs';
 import { Listeners } from './lib/listeners.js';
+import { RateLimiter, rateLimit, isLoopback } from './lib/ratelimit.js';
 import { apiRouter } from './routes/api.js';
 import { attachDevReload } from './lib/devReload.js';
 import { Collections, isPrivatePath } from './lib/collections.js';
@@ -94,18 +95,30 @@ async function rescan({ useCache = true } = {}) {
 export function createApp({ devReload = false } = {}) {
   const app = express();
   app.disable('x-powered-by');
-  app.set('trust proxy', true); // sits behind cloudflared
+  // Behind cloudflared (the Pi) or Caddy (the cloud tower), both on this
+  // machine: believe X-Forwarded-For only when it comes from loopback, so a
+  // client talking to the port directly cannot pick its own address — which
+  // the per-address budget below depends on.
+  app.set('trust proxy', 'loopback');
 
   app.use((req, res, next) => {
     // The player is same-origin, but allowing cross-origin reads means someone
     // can embed the tower in their own page. That is a feature for a radio.
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type');
+    // x-station-key: the booth on the website (another origin) sends the key
+    // in that header; without it here, the browser's preflight refuses the
+    // reorder before it ever reaches the tower.
+    res.setHeader('Access-Control-Allow-Headers', 'Range, Content-Type, X-Station-Key');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, PUT, OPTIONS');
     res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length');
     if (req.method === 'OPTIONS') return res.status(204).end();
     next();
   });
 
+  if (config.rateBurst > 0) {
+    const limiter = new RateLimiter({ capacity: config.rateBurst, refillPerSec: config.ratePerSecond > 0 ? config.ratePerSecond : 5 });
+    app.use('/api', rateLimit(limiter, { skip: (req) => isLoopback(req.ip) }));
+  }
   app.use('/api', apiRouter({ station, listeners, config, state, rescan, collections, channels }));
 
   // The files behind the University / Photos / Crates pages. Read-only, and

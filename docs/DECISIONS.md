@@ -2982,3 +2982,43 @@ the in-browser station rather than dead air.
 network and memory all under 20 %). Upgrading to Pay As You Go avoids it at
 no cost inside the free shapes; Ortis prefers to stay on the free account, so
 this is documented in `deploy/cloud/README.md` §5 rather than done.
+
+## 2026-10-08 — One channel for now: everything, shuffled
+
+**Context.** Ortis, listening to the newly filled tower: "you're reading a
+single mp3 file in loop… can you put a shuffle of everything and leave the
+playlists for later". The Long mixes channel had held one file while the
+library was still uploading, and a one-track channel is a loop.
+
+**Decision.** The dial offers one channel, the whole library shuffled. On the
+tower: `music/channels.json` (sent by `bot.mjs publish`) — `all`, order
+`station`, which on the server is the shuffled Station. In the in-browser
+fallback: `site/station/library.json` → one `everything` channel, order
+`shuffle`; `shuffle: false` stays on the file so the old album-order `all`
+station (the DJ's legacy override, the Wix-draft parity) is unchanged
+underneath. The channel code is untouched; the playlist channels come back by
+adding `{ "auto": "crates", … }` to either file. Tests that exercise the full
+dial now carry their own spec instead of reading the deployed one.
+
+## 2026-10-08 — The station key is never typed into Oracle; budgets on the public API
+
+**Key.** The instance was created with a cloud-init script that carries no
+key: `install.sh` generates one (`openssl rand -hex 16`) and leaves it in
+`/srv/radio/TOWER.txt` (root only); the laptop read it over SSH into
+`library/tower.json` (gitignored). Nothing secret sits in Oracle's instance
+metadata. `install.sh` now also refuses the template's placeholder as a key
+and makes its own log (which ends with the key) root-only.
+
+**Budgets (roadmap #14).** The tower is on the public internet, so
+`server/lib/ratelimit.js`: a per-address token bucket on `/api` (burst 300,
+5/s — `RATE_BURST`, `RATE_PER_SECOND`), 429 + `Retry-After`; requests from
+the machine itself never count. Wrong station keys: 20 per address, then one
+per 30 s, refused before comparing. `Listeners` caps its client-chosen ids at
+5,000, least recently seen out first. `trust proxy` narrowed from `true` to
+`loopback`, so only Caddy / cloudflared on the same machine can name the
+client's address. No new dependency.
+
+**CORS.** The website on Vercel talks to the tower cross-origin; the booth's
+`X-Station-Key` header was missing from `Access-Control-Allow-Headers`, so a
+browser would have refused every reorder at the preflight. Added, with
+`Access-Control-Allow-Methods`.

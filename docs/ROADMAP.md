@@ -69,7 +69,10 @@ on Cloudflare.
   current tokens so that change stays one edit in `styles.css`.
 
 
-### 28. NEW 2026-08-28 — The full-page visualiser: run the real paint pipeline on the stage canvas
+### 28. DONE IN THE SITE 2026-09-26 — The full-page visualiser: run the real paint pipeline on the stage canvas
+
+**Done** in the website (`site/js/viz/stage.js`: nine layers on one full-page canvas, a failable smoke check), which is now what the cloud tower, Vercel and the Pi's `SITE_DIR` all serve. The old `public/` player still has the gap below; it is only reached on a Pi without `SITE_DIR`.
+
 
 **Top of the list when Ortis is back at a screen.** This is the thing he asked
 for twice and has not received. `#vizStage` is a real, correctly-sized,
@@ -221,7 +224,10 @@ and silently wrong. Full audit trail: `docs/ROADMAP.md`'s prior "Ideas not yet
 ranked" section (findings dated 2026-08-19, kept below with a pointer) and
 `docs/WORKLOG.md` 2026-08-19.
 
-### 6. Authenticate `POST /api/rescan`
+### 6. DONE (found 2026-10-08) — Authenticate `POST /api/rescan`
+
+**Done:** `POST /api/rescan` requires `STATION_KEY` and is disabled without one (`server/routes/api.js`, same `requireKey` as the queue); wrong keys are budgeted since #14. Kept below for the reasoning.
+
 Currently unauthenticated — reconfirmed this run by reading
 `server/routes/api.js` (line 193: `router.post('/rescan', express.json(),
 async (req, res) => {` — no auth check anywhere before it calls `ctx.rescan()`).
@@ -244,7 +250,10 @@ needs). Fix #5 first; auth this second, since an authenticated-but-still-buggy
 rescan endpoint is still a live #5 hazard, just a slower one to trigger by
 accident instead of on demand.
 
-### 14. NEW 2026-08-19 — No flood protection anywhere on the public HTTP surface
+### 14. DONE 2026-10-08 — No flood protection anywhere on the public HTTP surface
+
+**Done:** `server/lib/ratelimit.js` — per-address budget on `/api` (burst 300, 5/s), a tight budget on wrong station keys, `Listeners` capped at 5,000 ids, `trust proxy` narrowed to loopback. No new dependency. `tests/ratelimit.test.js`. See `docs/DECISIONS.md` 2026-10-08.
+
 Checked this run, not previously flagged: `grep -n "helmet\|rate-limit\|cors\b"
 server/index.js server/routes/api.js server/config.js` — nothing. There is a
 CORS header (intentional, `Access-Control-Allow-Origin: *`, see
@@ -427,7 +436,10 @@ feature that the 2026-08-18 review already found had been quietly outranking
 work that actually moves `BRIEF.md` §7 or protects what's live. Unchanged
 reasoning; still correctly low.
 
-### 12. A second channel
+### 12. DONE 2026-10-07 — A second channel
+
+**Done:** channels (`server/lib/channels.js`), DECISIONS 2026-10-07. On 2026-10-08 Ortis asked for one shuffled channel for now; the others return with one line in `channels.json`.
+
 The `Station` class already supports being instantiated more than once. Two
 directories under `MUSIC_DIR` could become two channels sharing one process,
 with a channel switcher in the player. Cheap to build, and it makes the

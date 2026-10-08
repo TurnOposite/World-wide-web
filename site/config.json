@@ -5,10 +5,12 @@
     "author": "Zoneko",
     "lang": "fr"
   },
-  "mode": "cloud",
+  "mode": "tower",
   "tower": {
-    "url": "",
-    "allowed": []
+    "url": "https://129-151-227-129.sslip.io",
+    "allowed": [
+      "https://129-151-227-129.sslip.io"
+    ]
   },
   "station": {
     "lookahead": 5,

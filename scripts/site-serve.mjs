@@ -150,6 +150,10 @@ export async function createSiteServer(opts) {
       if (p === '/config.json' && (o.fakeGithub || lib)) {
         const cfg = JSON.parse(await fsp.readFile(path.join(siteDir, 'config.json'), 'utf8'));
         if (o.fakeGithub) cfg.github = { ...cfg.github, owner: 'test', repo: 'radio-tower', api: `http://${req.headers.host}/__gh` };
+        // Fixture audio is an in-browser station by definition: whatever
+        // tower the real site is pointed at (site/config.json), local tests
+        // play the fixtures — a test that wants a tower asks with ?tower=.
+        if (lib) cfg.mode = 'cloud';
         return json(res, 200, cfg);
       }
       if (o.fakeGithub && p === '/station/control.json') {
