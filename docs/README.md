@@ -19,7 +19,8 @@ would cost more than the tidiness is worth.
 | What should I build next? | [`ROADMAP.md`](./ROADMAP.md) — ranked |
 | What did previous runs do? | [`WORKLOG.md`](./WORKLOG.md) — append-only |
 | How does the site work without a server? | [`CLOUD.md`](./CLOUD.md) — the cloud edition, 2026-09-26 |
-| How do I put it on GitHub Pages? | [`GO-LIVE.md`](./GO-LIVE.md) — one page, ten minutes |
+| Where does it run right now, and how do I add music? | [`LIVE.md`](./LIVE.md) — Vercel + the Oracle server, **current since 2026-10-08** |
+| How did it go on GitHub Pages? (retired 2026-10-02) | [`GO-LIVE.md`](./GO-LIVE.md) — historical |
 | Is this still heading the right way? | [`PLANNING.md`](./PLANNING.md) |
 
 ## Current authorities

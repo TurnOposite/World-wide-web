@@ -1,5 +1,8 @@
 # Going live on the web — the one page
 
+> **Historical (GitHub Pages, retired 2026-10-02).** The site is on Vercel and
+> the music on an Oracle server now — **[`LIVE.md`](./LIVE.md)** is current.
+
 Written 2026-09-26/27 while you were flying. About ten minutes, once. Every
 command block says which shell it runs in on its first line, and contains
 commands only.

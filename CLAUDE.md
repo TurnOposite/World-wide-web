@@ -19,6 +19,11 @@ site has three new rooms — **Library** (essays on a bookshelf, the thesis,
 the network-map room), **Photos**, **Crates** — fed by
 [`collections/collection.json`](./collections/collection.json).
 
+**Live since 2026-10-08:** the site on Vercel in tower mode, the music on the
+Oracle server at `https://129-151-227-129.sslip.io` —
+**[`docs/LIVE.md`](./docs/LIVE.md)** (one shuffled channel for now; rate
+limits on the public API).
+
 **New since 2026-10-07 — channels, the library bot, the cloud tower.** The
 station plays several synced channels from one library (Mashup, Long mixes,
 one per playlist folder — `server/lib/channels.js`). `library/bot.mjs` keeps

@@ -1,5 +1,9 @@
 # Picking Radio Tower back up
 
+> **Since 2026-10-08 the radio runs in the cloud, not on the Pi** — the site on
+> Vercel, the music on an Oracle server. Start with **[`LIVE.md`](./LIVE.md)**;
+> this page is still right about the Pi.
+
 Written 2026-08-28, the day the project went on hold. You are reading this
 weeks or months later, probably in a different flat, on a router this Pi has
 never seen. This page assumes you remember nothing.

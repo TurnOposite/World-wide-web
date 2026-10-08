@@ -6,12 +6,19 @@ A radio station where every listener hears the same track at the same second —
 no account, no app, one button — inside a small personal site by **Zoneko**: an
 atlas of where things were made, a shelf of writing, and a portfolio.
 
-It runs two ways, from the same code:
+**Live:** <https://globe-trotter-ochre.vercel.app/> — the site on Vercel, the
+music on a free Oracle Cloud server (<https://129-151-227-129.sslip.io/>).
+How it is set up and how to add music: [`docs/LIVE.md`](docs/LIVE.md).
 
-- **In the cloud, with no server at all.** A static site on GitHub Pages. Every
-  visitor's browser *is* the station: it computes what is on air from the
-  library, a fixed epoch and the clock. The DJ's decisions live in one small
-  JSON file in this repository.
+It runs three ways, from the same code:
+
+- **On a cloud server** (current): the station below, on an Oracle *Always
+  Free* machine with HTTPS, serving the whole library and the site; the
+  laptop sends new music with `node library/bot.mjs publish`.
+- **In the cloud, with no server at all.** A static site. Every visitor's
+  browser *is* the station: it computes what is on air from the library, a
+  fixed epoch and the clock. The DJ's decisions live in one small JSON file in
+  this repository. (Also the fallback when the server does not answer.)
 - **On a Raspberry Pi** (the original build): an Express server streaming a
   whole MP3 library, reachable anywhere through a Cloudflare Tunnel.
 
@@ -84,10 +91,11 @@ computing locally — full library, live listener count:
 
 ## Put it on the web
 
-**[`docs/GO-LIVE.md`](docs/GO-LIVE.md)** — create the repository, push, turn on
-Pages, give the booth a token. About five minutes. After that every push
-redeploys (`.github/workflows/pages.yml`), and every push is tested
-(`.github/workflows/ci.yml`).
+Today: **[`docs/LIVE.md`](docs/LIVE.md)** (Vercel + an Oracle server;
+[`deploy/cloud/README.md`](deploy/cloud/README.md) builds a new server from
+nothing). Every push is tested (`.github/workflows/ci.yml`) and redeploys the
+site; the server pulls new code nightly. The older GitHub Pages route is in
+[`docs/GO-LIVE.md`](docs/GO-LIVE.md).
 
 On a Raspberry Pi instead: [`pi/README.md`](pi/README.md) from a blank SD card,
 [`pi/anywhere/README.md`](pi/anywhere/README.md) to keep it online on any
