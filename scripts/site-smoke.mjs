@@ -14,7 +14,8 @@
  *     and the Visuals panel can switch it off and back;
  *   - the booth, holding a token, commits a reorder to (a stand-in for) the
  *     GitHub contents API, and a second listener adopts it;
- *   - Atlas, Écrits and the three Portfolio rooms render their content;
+ *   - Atlas, Écrits and the three Portfolio rooms render their content (the
+ *     Atlas postcards and the Novo Hamburgo clippings, the pond, the 3D shelf);
  *   - nothing overflows a 390 px phone;
  *   - the built dist/ works under a repository sub-path on a cold deep link;
  *   - pointed at a real Radio Tower server (`?tower=`), the same front end
@@ -163,6 +164,20 @@ try {
   const dossier = await a.textContent('#aDossier');
   check('Atlas: every place is a pin, and focusing one opens its dossier', pins.length >= 5 && /Paris/.test(dossier), `${pins.length} pins`);
   check('Atlas: the tower\'s origin pulses on the map', Boolean(await a.$('.mapbox .tower-pin')));
+  const places = await a.$$eval('.mapbox .pin', (ps) => ps.map((p) => p.getAttribute('aria-label')));
+  check('Atlas: the cities lived in are on the map (Kuala Lumpur, Stockholm, Genève, Novo Hamburgo)',
+    ['Kuala Lumpur', 'Stockholm', 'Genève', 'Novo Hamburgo'].every((c) => places.some((l) => l.startsWith(c))), `${places.length} places`);
+  await a.focus('.mapbox .pin[data-slug="novo-hamburgo"]');
+  await a.waitForSelector('#aDossier.open .clip', { timeout: 3000 }).catch(() => {});
+  const nh = await a.evaluate(async () => {
+    const card = document.getElementById('aDossier');
+    const clips = [...card.querySelectorAll('.clip')];
+    const first = clips[0]?.getAttribute('href');
+    const res = first ? await fetch(new URL(first, document.baseURI), { method: 'HEAD' }) : null;
+    return { clips: clips.length, stations: card.querySelectorAll('.rer li').length, picture: Boolean(card.querySelector('.pc-pic svg, .pc-pic img')), pdf: res?.ok && /pdf/.test(res.headers.get('content-type') || ''), first };
+  });
+  check('Atlas: Novo Hamburgo\'s postcard unfolds to the newspaper columns, and they open', nh.picture && nh.clips >= 20 && nh.stations === 4 && nh.pdf,
+    `${nh.clips} columns, ${nh.stations} metro stops, ${nh.first}`);
 
   /* --------------------------------------------------------- listener B -- */
   const ctxB = await browser.newContext({ viewport: { width: 1280, height: 860 } });
@@ -252,6 +267,8 @@ try {
   await a.click('.tabs a[href="ecrits"]');
   await a.waitForSelector('.text-card', { timeout: 5000 });
   check('Écrits lists the six texts', (await a.$$('.text-card')).length === 6);
+  const pond = await a.evaluate(() => { const c = document.querySelector('#pond canvas.pond-water'); return c ? { w: c.width, h: c.height, still: document.querySelector('#pond').classList.contains('still') } : null; });
+  check('Écrits: the texts lie at the bottom of a pond', Boolean(pond && pond.w > 0 && pond.h > 0), pond ? `${pond.w}×${pond.h}, ${pond.still ? 'still floor (no WebGL)' : 'WebGL water'}` : 'no pond');
   await a.click('.text-card[href="ecrits/voyages"]');
   await a.waitForSelector('.reading .body.verse p', { timeout: 5000 });
   check('a poem opens verbatim, set as verse, with its score', /toits d.ardoise/.test(await a.textContent('.reading .body')) && Boolean(await a.$('#scoreBox:not([hidden])')));
@@ -260,6 +277,8 @@ try {
   await a.waitForSelector('.room .book', { timeout: 8000 });
   const books = (await a.$$('.room .book')).length;
   check('Portfolio: the library puts every book on a shelf', books >= 20, `${books} spines`);
+  const covers = await a.$$eval('.room .book', (bs) => bs.filter((b) => b.querySelector('.bcover .cv-art svg') && b.querySelector('.spine')).length);
+  check('Portfolio: every book is a volume with a cover drawn for it, the thesis face-out', covers === books && Boolean(await a.$('.room .book.thesis.face-out')), `${covers}/${books} covers`);
   // "#maps" under <base href="/"> resolves to the site root: the router must keep the reader here.
   const roomPath = await a.evaluate(() => location.pathname);
   await a.click('a[data-maps]').catch(() => {});

@@ -6,13 +6,17 @@
  * The Library: a close-up bookshelf of essays, the thesis, and the map room.
  *
  * Everything on this page comes from GET /api/collections (the manifest in
- * collections/collection.json). Books are drawn as spines — height from what
- * kind of work it is, thickness from its page count, colour from its
- * department — and lift half off the shelf under the pointer (collections.css
- * does the lift; this file only positions the peek card that shows the full
- * title a spine has to truncate).
+ * collections/collection.json). The case is seen a little from the side
+ * (2026-10-09), so each book is a real volume: a spine, a page block on top,
+ * and a front cover turned slightly toward the reader — height from the kind
+ * of work, thickness from the page count, leather from the department, and a
+ * cover drawn from what the essay is about (site/js/ui/covers.js). Under the
+ * pointer a book slides out of the row and turns its cover to face you.
+ * rooms.css does the 3D; this file builds the volumes and positions the peek
+ * card that carries the full title.
  */
 import { esc } from '../../ui/util.js';
+import { coverArt } from '../../ui/covers.js';
 
 const TEMPLATE = `<div class="room-head">
     <h2 id="libTitle">The Library</h2>
@@ -103,21 +107,41 @@ export async function mount(root, ctx) {
     return shelfId === 'ucph' ? 'UCPH' : 'IFP';
   }
 
-  function spineStyle(book, shelfId) {
+  /** A book's size, leather and resting angle — stable for a given id. */
+  function volume(book, shelfId) {
     const r = hash(book.id);
     const kind = book.kind.toLowerCase();
     let h =
-      book.featured ? 318
-      : /slides/.test(kind) ? 236
-      : /final|research|thesis|exam/.test(kind) ? 292
-      : /short|response|memo|midterm/.test(kind) ? 258
-      : 274;
-    h += (r % 17) - 8;
-    const pages = book.pages ?? 8;
-    const w = book.featured ? 66 : Math.max(26, Math.min(46, Math.round(24 + pages * 1.3)));
+      book.featured ? 286
+      : /slides/.test(kind) ? 214
+      : /final|research|thesis|exam/.test(kind) ? 252
+      : /short|response|memo|midterm/.test(kind) ? 222
+      : 238;
+    h += (r % 15) - 7;
+    const pages = Number(book.pages) || 8;
+    const t = book.featured ? 50 : Math.max(20, Math.min(40, Math.round(17 + pages * 1.5)));
+    const d = Math.round(h * 0.7);
     const [hue, sat, lig] = DEPARTMENTS[department(book, shelfId)];
-    const color = `hsl(${hue + ((r >> 5) % 13) - 6} ${sat}% ${lig + ((r >> 9) % 11) - 5}%)`;
-    return `--h:${h}px;--w:${w}px;--c:${color}`;
+    const hh = hue + ((r >> 5) % 13) - 6;
+    const ll = lig + ((r >> 9) % 9) - 4;
+    const turn = -(20 + ((r >> 3) % 9));
+    return { h, t, d, turn, color: `hsl(${hh} ${sat}% ${ll}%)`, deep: `hsl(${hh} ${sat}% ${Math.max(8, ll - 12)}%)`, ink: `hsl(${hh} 30% 90%)` };
+  }
+
+  function bookHtml(b, shelfId, { lean = false, faceOut = false } = {}) {
+    const v = volume(b, shelfId);
+    const featured = b.featured;
+    const acc = '#d9b45a';
+    const ink = featured ? '#efe3c2' : v.ink;
+    const style = `--h:${v.h}px;--t:${v.t}px;--d:${v.d}px;--turn:${v.turn}deg;--c:${featured ? '#171513' : v.color};--c2:${featured ? '#0b0a09' : v.deep}` + (lean ? ';--lean:3.5deg' : '');
+    return (
+      `<button type="button" class="book${featured ? ' thesis' : ''}${faceOut ? ' face-out' : ''}" data-id="${esc(b.id)}" data-dept="${chipKey(b, shelfId)}" style="${style}" aria-label="${esc(b.title)} — ${esc(b.course)}, ${esc(b.kind)}">` +
+      `<span class="b3d" aria-hidden="true">` +
+      `<span class="bf spine"><span class="book-title">${esc(b.title)}</span><span class="book-course">${esc(b.course)}</span></span>` +
+      `<span class="bf bcover"><span class="cv-title">${esc(b.title)}</span><span class="cv-art">${coverArt(b.id, b.kind, { ink, acc })}</span><span class="cv-meta">${esc(b.course)}</span></span>` +
+      `<span class="bf top"></span>` +
+      `</span></button>`
+    );
   }
 
   function chipKey(book, shelfId) {
@@ -140,30 +164,37 @@ export async function mount(root, ctx) {
     el.bookcase.innerHTML = rows
       .map((group) => {
         const label = group.map((s) => esc(s.label)).join('<span aria-hidden="true"> · </span>');
+        let depth = 0;
+        let tallest = 0;
+        // The thesis stands face-out at the end of its shelf, the way a shop
+        // shows the book it is proudest of; everything else is spine-out.
+        const faceOut = [];
         const spines = group
           .map((shelf, gi) => {
-            const books = [...shelf.books].sort((a, b) =>
-              a.featured !== b.featured ? (a.featured ? -1 : 1) : a.course.localeCompare(b.course) || a.title.localeCompare(b.title),
-            );
+            const books = [...shelf.books].sort((a, b) => a.course.localeCompare(b.course) || a.title.localeCompare(b.title));
+            const rowBooks = books.filter((b) => !b.featured);
             const html = books
-              .map((b, i) => {
+              .map((b) => {
                 BOOKS.set(b.id, { ...b, shelfId: shelf.id });
+                const v = volume(b, shelf.id);
+                depth = Math.max(depth, v.d);
+                tallest = Math.max(tallest, v.h);
+                if (b.featured) { faceOut.push(bookHtml(b, shelf.id, { faceOut: true })); return ''; }
                 // The last book of a run leans on the bookend, like real shelves.
-                const tilt = i === books.length - 1 && books.length > 2 ? '--tilt:4deg;' : '';
-                return (
-                  `<button type="button" class="book${b.featured ? ' thesis' : ''}" data-id="${esc(b.id)}" data-dept="${chipKey(b, shelf.id)}"` +
-                  ` style="${spineStyle(b, shelf.id)};${tilt}" aria-label="${esc(b.title)} — ${esc(b.course)}, ${esc(b.kind)}">` +
-                  `<span class="book-title">${esc(b.title)}</span><span class="book-course">${esc(b.course)}</span></button>`
-                );
+                const i = rowBooks.indexOf(b);
+                return bookHtml(b, shelf.id, { lean: i === rowBooks.length - 1 && rowBooks.length > 2 });
               })
               .join('');
             return (gi > 0 ? '<span class="bookend" aria-hidden="true"></span>' : '') + html;
           })
           .join('');
         return (
-          `<div class="shelf"><p class="shelf-label">${label}</p>` +
-          `<div class="shelf-row"><span class="bookend" aria-hidden="true"></span>${spines}<span class="bookend" aria-hidden="true"></span></div>` +
-          `<div class="shelf-board" aria-hidden="true"></div></div>`
+          `<div class="shelf" style="--dmax:${depth}px;--hmax:${tallest}px"><p class="shelf-label">${label}</p>` +
+          `<div class="shelf-3d">` +
+          `<div class="case-back" aria-hidden="true"></div><div class="case-side" aria-hidden="true"></div>` +
+          `<div class="shelf-row"><span class="bookend" aria-hidden="true"></span>${spines}<span class="bookend" aria-hidden="true"></span>${faceOut.join('')}</div>` +
+          `<div class="board-top" aria-hidden="true"></div><div class="board-front" aria-hidden="true"></div>` +
+          `</div></div>`
         );
       })
       .join('');
@@ -214,10 +245,10 @@ export async function mount(root, ctx) {
     el.peek.querySelector('b').textContent = b.title;
     el.peek.querySelector('span').textContent = [b.course, b.kind, b.pages ? `${b.pages} pages` : ''].filter(Boolean).join(' · ');
     el.peek.classList.add('show');
-    // Measure after the text is in, then sit the card just above the lifted
-    // spine (the lift is 46% of the book's height, set in collections.css).
-    const r = btn.getBoundingClientRect();
-    const lift = r.height * 0.46;
+    // Measure after the text is in, then sit the card just above the book as
+    // drawn (the pulled-out volume, projected), not its flat footprint.
+    const r = (btn.querySelector('.b3d') || btn).getBoundingClientRect();
+    const lift = 18;
     const pw = el.peek.offsetWidth;
     const ph = el.peek.offsetHeight;
     let left = r.left + r.width / 2 - pw / 2 + window.scrollX;

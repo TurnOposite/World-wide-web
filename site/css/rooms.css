@@ -53,91 +53,153 @@
 .room .btn small{font-weight:500;opacity:.7}
 @media (max-width:560px){.room .thesis-card{grid-template-columns:1fr}.room .thesis-card img{width:150px}}
 
-/* The wall the shelves hang on: close-up, so the back is soft and dark and
-   the books are big enough to read their spines. */
+/* The bookcase, seen a little from its right-hand side (2026-10-09): the
+   case turns ~13° away, so the shelves recede to the left, the page blocks
+   show on top and every book shows a slice of its front cover. Each book is a
+   real volume (spine + cover + top) in one preserve-3d stage per shelf. */
 .room .bookcase{
   position:relative;border-radius:calc(var(--radius) + 4px);overflow:hidden;
   background:
+    radial-gradient(90% 70% at 70% 10%,rgba(255,196,120,.10) 0%,transparent 60%),
     radial-gradient(120% 90% at 50% 0%,#2a1d14 0%,#150f0b 60%,#0d0907 100%);
   border:1px solid #2c2118;
-  box-shadow:inset 0 0 80px rgba(0,0,0,.65);
-  padding:10px 0 4px;
+  box-shadow:inset 0 0 90px rgba(0,0,0,.7);
+  padding:6px 0 18px;
 }
-.room .shelf{position:relative;padding:0 clamp(12px,3vw,26px)}
-.room .shelf + .shelf{margin-top:8px}
+.room .shelf{
+  position:relative;padding:44px clamp(14px,3vw,30px) 26px;
+  perspective:1500px;perspective-origin:68% -30%;
+}
+.room .shelf + .shelf{margin-top:2px}
 .room .shelf-label{
-  /* Sits in the wall space above the books, which is also the headroom a
-     lifted book rises into — so a lift never pokes through the shelf above. */
-  position:absolute;top:16px;left:clamp(12px,3vw,26px);right:clamp(12px,3vw,26px);z-index:0;
+  position:absolute;top:14px;left:clamp(14px,3vw,30px);right:clamp(14px,3vw,30px);z-index:2;pointer-events:none;
   display:flex;align-items:center;gap:10px;
-  margin:0;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#b89a78;font-weight:650;
+  margin:0;font-size:11px;letter-spacing:.06em;color:#c7a983;font-weight:600;
 }
 .room .shelf-label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,#4a3727,transparent)}
+.room .shelf-3d{
+  position:relative;transform-style:preserve-3d;
+  transform:rotateY(-13deg);transform-origin:72% 100%;
+}
 .room .shelf-row{
-  /* Not a scroll container on wide screens, on purpose: overflow-x:auto would
-     force overflow-y to clip too, and a lifted book has to rise above its
-     own row into the wall space. */
-  display:flex;align-items:flex-end;gap:3px;padding:150px 6px 0;min-height:120px;
+  position:relative;transform-style:preserve-3d;
+  display:flex;align-items:flex-end;min-height:calc(var(--hmax,240px) + 6px);padding:0 10px 0 18px;
 }
-@media (max-width:760px){
-  /* Phones: the shelf scrolls sideways instead, with headroom inside the
-     scroller so the lift still has somewhere to go. */
-  .room .shelf-row{overflow-x:auto;padding-top:140px;
-    scrollbar-width:thin;scrollbar-color:#4a3727 transparent;scroll-snap-type:x proximity}
-}
-.room .shelf-board{
-  height:18px;margin:0 -2px;border-radius:2px;
-  background:linear-gradient(180deg,#6b4a2e 0%,#57391f 35%,#3c2715 100%);
-  box-shadow:0 10px 18px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,220,170,.18);
-  position:relative;z-index:3;
-}
+/* the inside of the case: back panel, the left wall, the board the books stand on */
+.room .case-back{position:absolute;left:-30px;right:-30px;top:-40px;bottom:0;
+  transform:translateZ(calc(-1 * var(--dmax,170px) - 22px));
+  background:linear-gradient(180deg,#1d140e,#120c08 70%,#0c0806);box-shadow:inset 0 30px 40px rgba(0,0,0,.5)}
+.room .case-side{position:absolute;left:0;top:-40px;bottom:-22px;width:calc(var(--dmax,170px) + 40px);
+  transform-origin:left center;transform:translateZ(18px) rotateY(90deg);
+  background:linear-gradient(90deg,#3d2a1b,#22170f);box-shadow:inset -20px 0 30px rgba(0,0,0,.45)}
+.room .board-top{position:absolute;left:-30px;right:-30px;top:100%;height:calc(var(--dmax,170px) + 40px);
+  transform-origin:top center;transform:translateZ(18px) rotateX(-90deg);
+  background:linear-gradient(0deg,#6b4a2e 0%,#5a3d24 40%,#3b2716 100%)}
+.room .board-front{position:absolute;left:-30px;right:-30px;top:100%;height:20px;transform:translateZ(18px);
+  background:linear-gradient(180deg,#8a6040 0%,#6b4a2e 30%,#4a3019 100%);
+  box-shadow:0 14px 22px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,220,170,.25)}
 .room .bookend{
-  flex:none;width:14px;height:120px;align-self:flex-end;border-radius:3px 3px 0 0;
+  flex:none;width:12px;height:112px;align-self:flex-end;border-radius:3px 3px 0 0;margin-right:6px;
   background:linear-gradient(90deg,#2c2c30,#4a4a52 45%,#26262a);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.15);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.15);transform:translateZ(4px);
 }
 
+/* A book. The button is the flat footprint (stable to hover); the volume
+   inside turns. --t thickness, --h height, --d depth (the cover's width). */
 .room .book{
-  --h:230px;--w:40px;--c:#7d2330;--ink:#f1e6d0;--foil:#d9b45a;--tilt:0deg;
-  flex:none;position:relative;z-index:1;scroll-snap-align:start;
-  width:var(--w);height:var(--h);padding:0;border:none;cursor:pointer;
-  border-radius:3px 3px 1px 1px;
+  --h:230px;--t:30px;--d:160px;--turn:-24deg;--lean:0deg;--c:#7d2330;--c2:#4a121a;--foil:#d9b45a;--ink:#f1e6d0;
+  flex:none;position:relative;padding:0;border:0;background:none;cursor:pointer;
+  width:calc(var(--t) + 16px);height:var(--h);
+  transform-style:preserve-3d;color:var(--ink);font-family:inherit;
+  /* a hair in front of the row, so the footprint, not the row, takes the pointer */
+  transform:translateZ(1px);
+}
+.room .b3d{
+  position:absolute;left:0;bottom:0;width:var(--t);height:var(--h);
+  transform-style:preserve-3d;transform-origin:50% 100%;pointer-events:none;
+  transform:rotateY(var(--turn)) rotateZ(var(--lean));
+  transition:transform .55s cubic-bezier(.2,.8,.2,1.05);
+}
+/* no filter on .b3d itself: a filter flattens a 3D stage — the faces carry it */
+.room .bf{position:absolute;left:0;top:0;display:block;transition:filter .25s ease}
+.room .spine{
+  width:var(--t);height:var(--h);border-radius:2px 2px 1px 1px;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:20px 0 12px;
   background:
-    /* two gilt bands near the head and tail of the spine */
-    linear-gradient(180deg,transparent 14px,var(--foil) 14px,var(--foil) 16px,transparent 16px,
-                    transparent calc(100% - 18px),var(--foil) calc(100% - 18px),var(--foil) calc(100% - 16px),transparent calc(100% - 16px)),
-    /* the curve of a real spine: light down the middle, dark at the hinges */
-    linear-gradient(90deg,rgba(0,0,0,.42) 0%,rgba(255,255,255,.10) 38%,rgba(255,255,255,.04) 55%,rgba(0,0,0,.45) 100%),
+    /* raised bands near head and tail */
+    linear-gradient(180deg,transparent 12px,rgba(0,0,0,.35) 12px,rgba(255,255,255,.18) 14px,transparent 16px,
+                    transparent 19px,var(--foil) 19px,var(--foil) 20px,transparent 20px,
+                    transparent calc(100% - 22px),var(--foil) calc(100% - 22px),var(--foil) calc(100% - 21px),transparent calc(100% - 21px),
+                    transparent calc(100% - 16px),rgba(0,0,0,.35) calc(100% - 16px),rgba(255,255,255,.18) calc(100% - 14px),transparent calc(100% - 12px)),
+    /* the round of a real spine */
+    linear-gradient(90deg,rgba(0,0,0,.5) 0%,rgba(255,255,255,.14) 34%,rgba(255,255,255,.05) 55%,rgba(0,0,0,.5) 100%),
+    /* grain */
+    repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px),
     var(--c);
-  color:var(--ink);font-family:inherit;
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),2px 0 3px rgba(0,0,0,.35);
-  transform:rotate(var(--tilt));transform-origin:bottom center;
-  transition:transform .38s cubic-bezier(.2,.8,.2,1.15),box-shadow .38s ease,filter .2s ease;
-  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
-  padding:22px 0 22px;overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.4);
 }
 .room .book-title{
   writing-mode:vertical-rl;text-orientation:mixed;
-  font-size:11.5px;font-weight:620;letter-spacing:.02em;line-height:1.15;
-  max-height:calc(var(--h) - 92px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  text-shadow:0 1px 1px rgba(0,0,0,.5);
+  font:600 11.5px/1.15 var(--font);letter-spacing:.02em;
+  max-height:calc(var(--h) - 98px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-shadow:0 1px 1px rgba(0,0,0,.6);margin-top:10px;
 }
 .room .book-course{
   writing-mode:vertical-rl;text-orientation:mixed;
-  font-size:10px;font-weight:760;letter-spacing:.12em;color:var(--foil);text-transform:uppercase;
-  padding:6px 2px;border-top:1px solid color-mix(in srgb,var(--foil) 55%,transparent);
+  font:700 9.5px/1 var(--font);letter-spacing:.08em;color:#2a2117;
+  background:#efe4cc;border-radius:2px;padding:5px 2px;margin-bottom:12px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.25);
 }
-/* The requested behaviour: the book half lifts itself off the shelf as the
-   pointer (or keyboard focus) arrives, and settles back when it leaves. */
-.room .book:hover, .room .book:focus-visible, .room .book.lifted{
-  transform:translateY(calc(var(--h) * -0.46)) rotate(-2.5deg);
-  z-index:5;filter:brightness(1.12);
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),8px 18px 26px rgba(0,0,0,.6);
+.room .bcover{
+  left:var(--t);width:var(--d);height:var(--h);
+  transform-origin:left center;transform:rotateY(90deg);
+  display:grid;grid-template-rows:auto 1fr auto;padding:16px 14px 14px 18px;gap:6px;overflow:hidden;
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.45) 0,rgba(0,0,0,.12) 9px,rgba(255,255,255,.07) 12px,transparent 18px),
+    repeating-linear-gradient(45deg,rgba(255,255,255,.02) 0 2px,transparent 2px 4px),
+    linear-gradient(160deg,var(--c),var(--c2));
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),inset 0 0 0 6px rgba(0,0,0,.08);
+  border-radius:1px 3px 3px 1px;
 }
-.room .book:focus-visible{outline:2px solid var(--signal);outline-offset:3px}
-.room .book.thesis{--c:#171513;--foil:#d9b45a;--ink:#e9d9b0}
+.room .bcover::after{content:"";position:absolute;inset:8px 8px 8px 12px;border:1px solid color-mix(in srgb,var(--foil) 55%,transparent);border-radius:2px;pointer-events:none}
+.room .cv-title{font:600 13px/1.22 var(--serif);color:var(--ink);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 1px 1px rgba(0,0,0,.4)}
+.room .cv-art{display:grid;place-items:center;min-height:0}
+.room .cv-art svg{width:100%;max-width:130px;height:auto;max-height:100%;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}
+.room .cv-meta{font:700 9.5px/1 var(--font);letter-spacing:.1em;color:var(--foil)}
+.room .top{
+  width:var(--t);height:var(--d);transform-origin:top center;transform:rotateX(-90deg);
+  background:
+    linear-gradient(90deg,var(--c2) 0 2px,transparent 2px calc(100% - 2px),var(--c2) calc(100% - 2px)),
+    repeating-linear-gradient(90deg,#efe6d2 0 1px,#d9cdb3 1px 2px);
+}
+/* Pulled out: forward off the shelf, up a little, the cover turned to you. */
+.room .book:hover .b3d,.room .book:focus-visible .b3d,.room .book.lifted .b3d{
+  transform:translateZ(118px) translateY(-14px) rotateY(-58deg);
+}
+.room .book:hover .bf,.room .book:focus-visible .bf,.room .book.lifted .bf{filter:brightness(1.12)}
+.room .book:focus-visible{outline:none}
+.room .book:focus-visible .spine{outline:2px solid var(--signal);outline-offset:2px}
+.room .book.thesis{--foil:#d9b45a;--ink:#e9d9b0}
 .room .book.thesis .book-title{font-size:13px}
-.room .book.dim{opacity:.22;filter:saturate(.3)}
+.room .book.thesis .bcover{background:
+    linear-gradient(90deg,rgba(0,0,0,.6) 0,rgba(0,0,0,.2) 9px,rgba(255,255,255,.06) 12px,transparent 18px),
+    radial-gradient(80% 60% at 50% 55%,rgba(217,180,90,.16),transparent 70%),
+    linear-gradient(160deg,#1c1916,#0b0a09)}
+.room .book.thesis .cv-title{font-size:14px;color:#ecd9a6}
+/* Face-out: the thesis stands at the end of its shelf, cover to the room,
+   leaning back a little against the wall. */
+.room .book.face-out{width:calc(var(--d) + 12px);margin-left:auto;margin-right:clamp(16px,7%,110px);transform:translateZ(-46px)}
+.room .book.face-out .b3d{transform:rotateX(7deg) rotateY(-77deg)}
+.room .book.face-out:hover .b3d,.room .book.face-out:focus-visible .b3d,.room .book.face-out.lifted .b3d{transform:translateZ(54px) translateY(-10px) rotateX(2deg) rotateY(-74deg)}
+.room .book.face-out .cv-title{font-size:16px;-webkit-line-clamp:5}
+.room .book.face-out .cv-art svg{max-width:150px}
+.room .book.dim .bf{filter:saturate(.25) brightness(.45)}
+@media (max-width:760px){
+  /* Phones: the shelf scrolls sideways; the case turns a little less. */
+  .room .shelf{overflow-x:auto;overflow-y:hidden;perspective:1100px;scrollbar-width:thin;scrollbar-color:#4a3727 transparent;padding-top:40px}
+  .room .shelf-3d{transform:rotateY(-9deg);width:max-content;min-width:100%}
+}
+@media (prefers-reduced-motion:reduce){.room .b3d{transition:none}}
 
 /* The peek card: spines truncate, so the lifted book's full title and class
    float above the shelf. Positioned by library.js. */

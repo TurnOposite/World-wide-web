@@ -2458,3 +2458,36 @@ Verified: `bash scripts/build-test.sh` — 294 tests, 43/43 browser, 40/40 site.
 - **Site:** `site/config.json` → tower mode at the sslip address (falls back
   to the in-browser station if it does not answer).
 - Self-test: green — 323 tests (4 skipped), 43/43 browser, 44/44 site.
+
+## 2026-10-09/10 — Atlas postcards, the 3D bookshelf, the pond (interactive, Ortis present)
+
+- **Atlas** (`site/js/pages/atlas.js`, `site/js/ui/postcards.js`): the map is
+  cropped to where life happened (lon −130…150, lat 76…−50) and Europe is
+  drawn again ×2 in the North Atlantic, its five pins inside the inset. New
+  places: **Novo Hamburgo** (stage at Grupo Sinos, June–July 2024),
+  **Kuala Lumpur, Stockholm, Genève** ("J'y ai vécu" — story still to be
+  written by Ortis, marked `à compléter`). Hovering a pin floats a postcard
+  (an illustrated scene per city, postmark with the years); resting on it,
+  clicking or focusing unfolds the story, the work and — for Novo Hamburgo —
+  the clippings. A chip index under the map is the way in on a phone.
+- **Press** (`site/press/nh/`, 7.9 MB): the 26 columns "Parisiense em
+  estágio no Grupo Sinos" (Jornal NH sports pages, 6 June – 26 July 2024)
+  and the four-stop "Um passeio de metrô por Paris", copied from Ortis's
+  `Documents/Pro/Professional` and renamed by date and page; a thumbnail of
+  each column (his byline box) for the strip in the card.
+- **Library** (`site/js/pages/rooms/library.js`, `site/js/ui/covers.js`,
+  `rooms.css`): one CSS-3D stage per shelf, the case turned 13°; each book a
+  volume (spine, page block, front cover) turned 20–28° so a slice of its
+  cover shows; hover pulls it 118 px out and turns the cover to the reader;
+  the thesis stands face-out at the end of the top shelf. 25 cover motifs,
+  one per essay subject. Gotcha found: site.css has a global `.cover`
+  (the radio's, aspect-ratio 1, max-width 100%) — the book face is `.bcover`.
+- **Écrits** (`site/js/pages/ecrits.js`, `site/js/ui/pond.js`): the six
+  texts are engraved stones at the bottom of a pond; WebGL water (ripple
+  equation + clarity field in JS, refraction and murk in a shader) clears
+  where the pointer passes and settles back in a few seconds. Links stay real
+  `<a>` over the stones; touch reveals on the first tap and opens on the
+  second; still floor without WebGL or with reduced motion.
+- `scripts/site-smoke.mjs`: +4 checks (lived-in cities on the map, Novo
+  Hamburgo clippings open as PDFs, the pond, a cover on every book and the
+  thesis face-out). `npm test` 328 (4 skipped, 0 fail); site smoke 46/46.

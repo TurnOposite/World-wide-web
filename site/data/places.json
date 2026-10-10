@@ -1,21 +1,30 @@
 {
   "_readme": [
-    "The Atlas. One entry per place; lat/lon in decimal degrees. `status`",
-    "is shown on the page when it is not 'verified' — these came from the",
-    "2026-09-09 mock, most still marked 'à confirmer' by Ortis. Edit freely;",
-    "`link` (optional) is a path on this site, e.g. 'ecrits/voyages'.",
+    "The Atlas. One entry per place; lat/lon in decimal degrees.",
+    "slug — names the postcard drawn in site/js/ui/postcards.js; add \"photo\": \"assets/places/<slug>.jpg\" to show a real photo instead.",
+    "badge — one or two words on the card (J'y ai vécu, Stage…). kind: lived | work | trip.",
+    "story — the paragraphs the card unfolds on hover. projects[].status is shown when it is not 'verified'.",
+    "press — clippings shown in the card (Novo Hamburgo: site/press/nh/).",
+    "nudge/anchor — where the label sits next to the pin. Places inside the Europe box are drawn in the inset.",
     "The tower's own point comes from config.json → station.origin."
   ],
   "places": [
     {
+      "slug": "maputo",
       "city": "Maputo",
       "country": "Mozambique",
       "lat": -25.97,
       "lon": 32.58,
       "years": "2026",
+      "kind": "lived",
+      "badge": "En ce moment",
       "nudge": [
-        5,
-        3
+        3.2,
+        1.0
+      ],
+      "story": [
+        "Stage au service de presse et de communication de l'ambassade de France au Mozambique.",
+        "C'est d'ici que la tour émet en ce moment."
       ],
       "projects": [
         {
@@ -31,14 +40,22 @@
       ]
     },
     {
+      "slug": "paris",
       "city": "Paris",
       "country": "France",
       "lat": 48.86,
       "lon": 2.35,
       "years": "2024 – 2026",
+      "kind": "lived",
+      "badge": "Ma ville",
       "nudge": [
-        -13,
-        4
+        -2.4,
+        -1.6
+      ],
+      "anchor": "end",
+      "story": [
+        "La ville de cœur — celle que la série « Um passeio de metrô por Paris » a fait visiter, station après station, aux lecteurs du Jornal NH à l'été 2024.",
+        "Master Global Journalism and Communication à l'Institut Français de Presse (Paris II Panthéon-Assas), et un mémoire sur les Barber Beats."
       ],
       "projects": [
         {
@@ -46,18 +63,31 @@
           "what": "master, mémoire sur les Barber Beats",
           "status": "à confirmer",
           "link": "portfolio/library"
+        },
+        {
+          "name": "Um passeio de metrô por Paris",
+          "what": "quatre stations du RER B racontées pour le Jornal NH",
+          "status": "verified",
+          "link": "atlas#novo-hamburgo"
         }
       ]
     },
     {
+      "slug": "amsterdam",
       "city": "Amsterdam",
       "country": "Pays-Bas",
       "lat": 52.37,
       "lon": 4.9,
       "years": "à partir d'octobre 2026",
+      "kind": "lived",
+      "badge": "Prochaine étape",
       "nudge": [
-        5.5,
-        4.6
+        -2.4,
+        -1.4
+      ],
+      "anchor": "end",
+      "story": [
+        "La prochaine adresse : un stage chez GUT, trois jours par semaine, à partir d'octobre 2026."
       ],
       "projects": [
         {
@@ -68,14 +98,21 @@
       ]
     },
     {
+      "slug": "copenhague",
       "city": "Copenhague",
       "country": "Danemark",
       "lat": 55.68,
       "lon": 12.57,
       "years": "2024",
+      "kind": "lived",
+      "badge": "Échange",
       "nudge": [
-        5.5,
-        -2.6
+        2.4,
+        1.2
+      ],
+      "story": [
+        "Un semestre d'échange à l'Université de Copenhague : une carte de 5 500 vidéos vaporwave, une régression sur internet et religion.",
+        "Globe Trotter, le site, est né ici."
       ],
       "projects": [
         {
@@ -93,14 +130,21 @@
       ]
     },
     {
+      "slug": "montreal",
       "city": "Montréal",
       "country": "Canada",
       "lat": 45.5,
       "lon": -73.57,
       "years": "licence",
+      "kind": "lived",
+      "badge": "Licence",
       "nudge": [
-        5,
-        3
+        -2.6,
+        1.0
+      ],
+      "anchor": "end",
+      "story": [
+        "La licence à McGill : sciences politiques, développement international, études latino-américaines. La plupart des essais de la bibliothèque viennent de là."
       ],
       "projects": [
         {
@@ -112,15 +156,19 @@
       ]
     },
     {
+      "slug": "vilanculos",
       "city": "Vilanculos",
       "country": "Mozambique",
       "lat": -22.01,
       "lon": 35.31,
       "years": "2026",
+      "kind": "trip",
+      "badge": "Escale",
       "nudge": [
-        5,
-        -1.6
+        2.6,
+        0.6
       ],
+      "story": [],
       "projects": [
         {
           "name": "—",
@@ -128,6 +176,355 @@
           "status": "à remplir"
         }
       ]
+    },
+    {
+      "slug": "novo-hamburgo",
+      "city": "Novo Hamburgo",
+      "country": "Brésil",
+      "region": "Rio Grande do Sul",
+      "lat": -29.68,
+      "lon": -51.13,
+      "years": "juin – juillet 2024",
+      "kind": "work",
+      "badge": "Stage · Jornal NH",
+      "nudge": [
+        2.6,
+        1.0
+      ],
+      "story": [
+        "Deux mois de stage au Grupo Sinos, l'éditeur du Jornal NH, en plein hiver gaúcho.",
+        "Jusqu'à l'ouverture des Jeux de Paris, une chronique quotidienne dans les pages sport — « Parisiense em estágio no Grupo Sinos » : une discipline, un site ou une histoire olympique par édition, en portugais.",
+        "Puis une série en quatre stations le long du RER B pour faire visiter Paris aux lecteurs du Rio Grande do Sul."
+      ],
+      "projects": [
+        {
+          "name": "Jornal NH — Grupo Sinos",
+          "what": "26 chroniques olympiques, pages sport",
+          "status": "verified"
+        },
+        {
+          "name": "Um passeio de metrô por Paris",
+          "what": "série en quatre stations",
+          "status": "verified"
+        }
+      ],
+      "press": {
+        "outlet": "Jornal NH · Grupo Sinos",
+        "lang": "pt",
+        "column": {
+          "title": "Parisiense em estágio no Grupo Sinos",
+          "items": [
+            {
+              "date": "2024-06-06",
+              "title": "Grupo Sinos e os Jogos Olímpicos",
+              "pages": [
+                "press/nh/2024-06-06-p19.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-06-p19.jpg"
+            },
+            {
+              "date": "2024-06-07",
+              "title": "A partida dos Jogos: o atletismo de pista",
+              "pages": [
+                "press/nh/2024-06-07-p24.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-07-p24.jpg"
+            },
+            {
+              "date": "2024-06-10",
+              "title": "História pelas ruas de Paris na maratona",
+              "pages": [
+                "press/nh/2024-06-10-p19.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-10-p19.jpg"
+            },
+            {
+              "date": "2024-06-11",
+              "title": "Paris enfeitada: anéis na Eiffel",
+              "pages": [
+                "press/nh/2024-06-11-p19.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-11-p19.jpg"
+            },
+            {
+              "date": "2024-06-12",
+              "title": "Conhece a mascote de Paris 2024?",
+              "pages": [
+                "press/nh/2024-06-12-p19.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-12-p19.jpg"
+            },
+            {
+              "date": "2024-06-13",
+              "title": "Boxe: o braço de ferro brasileiro",
+              "pages": [
+                "press/nh/2024-06-13-p19.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-13-p19.jpg"
+            },
+            {
+              "date": "2024-06-14",
+              "title": "Breaking: a novidade controversa",
+              "pages": [
+                "press/nh/2024-06-14-p24.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-14-p24.jpg"
+            },
+            {
+              "date": "2024-06-17",
+              "title": "Canoagem olímpica em novo estádio em Paris",
+              "pages": [
+                "press/nh/2024-06-17-p18.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-17-p18.jpg"
+            },
+            {
+              "date": "2024-06-18",
+              "title": "Testes para a abertura no Sena",
+              "pages": [
+                "press/nh/2024-06-18-p19.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-18-p19.jpg"
+            },
+            {
+              "date": "2024-06-19",
+              "title": "Mudança na escalada · Injustiça na esgrima",
+              "pages": [
+                "press/nh/2024-06-19-p20.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-19-p20.jpg"
+            },
+            {
+              "date": "2024-06-21",
+              "title": "Rebeca Andrade: o brilho nacional",
+              "pages": [
+                "press/nh/2024-06-21-p24.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-21-p24.jpg"
+            },
+            {
+              "date": "2024-06-24",
+              "title": "A ginástica se diversifica",
+              "pages": [
+                "press/nh/2024-06-24-p18.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-24-p18.jpg"
+            },
+            {
+              "date": "2024-06-25",
+              "title": "Volta de um grande clássico: o golfe",
+              "pages": [
+                "press/nh/2024-06-25-p27.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-25-p27.jpg"
+            },
+            {
+              "date": "2024-06-27",
+              "title": "Parisienses fogem dos Jogos",
+              "pages": [
+                "press/nh/2024-06-27-p19.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-27-p19.jpg"
+            },
+            {
+              "date": "2024-06-28",
+              "title": "Handebol olímpico: alto nível na competição",
+              "pages": [
+                "press/nh/2024-06-28-p23.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-06-28-p23.jpg"
+            },
+            {
+              "date": "2024-07-02",
+              "title": "Disciplina real: hipismo olímpico em Versalhes",
+              "pages": [
+                "press/nh/2024-07-02-p19.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-02-p19.jpg"
+            },
+            {
+              "date": "2024-07-03",
+              "title": "Orgulho gaúcho: o judô brasileiro tem ambições olímpicas",
+              "pages": [
+                "press/nh/2024-07-03-p20.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-03-p20.jpg"
+            },
+            {
+              "date": "2024-07-05",
+              "title": "O legado milenar da luta olímpica",
+              "pages": [
+                "press/nh/2024-07-05-p23.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-05-p23.jpg"
+            },
+            {
+              "date": "2024-07-09",
+              "title": "Prova de limpeza do espaço público: Sena não passou",
+              "pages": [
+                "press/nh/2024-07-09-p18.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-09-p18.jpg"
+            },
+            {
+              "date": "2024-07-12",
+              "title": "O hockey sobre grama sem o Brasil",
+              "pages": [
+                "press/nh/2024-07-12-p23.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-12-p23.jpg"
+            },
+            {
+              "date": "2024-07-16",
+              "title": "Natação: a grande produtora de atletas olímpicos",
+              "pages": [
+                "press/nh/2024-07-16-p18.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-16-p18.jpg"
+            },
+            {
+              "date": "2024-07-17",
+              "title": "Disciplinas aquáticas além da tradicional natação",
+              "pages": [
+                "press/nh/2024-07-17-p18.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-17-p18.jpg"
+            },
+            {
+              "date": "2024-07-18",
+              "title": "Prioridade: show ou saúde?",
+              "pages": [
+                "press/nh/2024-07-18-p12.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-18-p12.jpg"
+            },
+            {
+              "date": "2024-07-19",
+              "title": "Pentatlo moderno nos Jogos",
+              "pages": [
+                "press/nh/2024-07-19-p18.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-19-p18.jpg"
+            },
+            {
+              "date": "2024-07-25",
+              "title": "Skate irrompe as Olimpíadas",
+              "pages": [
+                "press/nh/2024-07-25-p13.pdf",
+                "press/nh/2024-07-25-p12.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-25-p13.jpg"
+            },
+            {
+              "date": "2024-07-26",
+              "title": "O que esperar do vôlei brasileiro",
+              "pages": [
+                "press/nh/2024-07-26-p23.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-26-p23.jpg"
+            }
+          ]
+        },
+        "series": {
+          "title": "Um passeio de metrô por Paris",
+          "items": [
+            {
+              "date": "2024-07-19",
+              "title": "Um passeio de metrô por Paris",
+              "pages": [
+                "press/nh/2024-07-19-p1.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-19-p1.jpg",
+              "series": "metro",
+              "stop": "La Plaine–Stade de France, Montmartre"
+            },
+            {
+              "date": "2024-07-22",
+              "title": "Por dentro do coração de Paris",
+              "pages": [
+                "press/nh/2024-07-22-p12.pdf",
+                "press/nh/2024-07-22-p13.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-22-p12.jpg",
+              "series": "metro",
+              "stop": "Châtelet-Les Halles, le Marais, l’Île de la Cité"
+            },
+            {
+              "date": "2024-07-23",
+              "title": "Meu lugar favorito em Paris",
+              "pages": [
+                "press/nh/2024-07-23-p12.pdf",
+                "press/nh/2024-07-23-p13.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-23-p12.jpg",
+              "series": "metro",
+              "stop": "Port-Royal, le Luxembourg, le Quartier latin"
+            },
+            {
+              "date": "2024-07-24",
+              "title": "Periferias: o outro lado de Paris",
+              "pages": [
+                "press/nh/2024-07-24-p12.pdf",
+                "press/nh/2024-07-24-p13.pdf"
+              ],
+              "thumb": "press/nh/thumbs/2024-07-24-p12.jpg",
+              "series": "metro",
+              "stop": "Antony, le parc de Sceaux, les banlieues"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "slug": "kuala-lumpur",
+      "city": "Kuala Lumpur",
+      "country": "Malaisie",
+      "lat": 3.14,
+      "lon": 101.69,
+      "years": "",
+      "kind": "lived",
+      "badge": "J'y ai vécu",
+      "nudge": [
+        2.6,
+        1.0
+      ],
+      "story": [],
+      "projects": [],
+      "status": "à compléter"
+    },
+    {
+      "slug": "stockholm",
+      "city": "Stockholm",
+      "country": "Suède",
+      "lat": 59.33,
+      "lon": 18.07,
+      "years": "",
+      "kind": "lived",
+      "badge": "J'y ai vécu",
+      "nudge": [
+        2.4,
+        -0.6
+      ],
+      "story": [],
+      "projects": [],
+      "status": "à compléter"
+    },
+    {
+      "slug": "geneve",
+      "city": "Genève",
+      "country": "Suisse",
+      "lat": 46.2,
+      "lon": 6.14,
+      "years": "",
+      "kind": "lived",
+      "badge": "J'y ai vécu",
+      "nudge": [
+        2.4,
+        2.6
+      ],
+      "story": [],
+      "projects": [],
+      "status": "à compléter"
     }
   ]
 }

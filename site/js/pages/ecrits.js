@@ -32,21 +32,32 @@ async function nextAiring(client, trackId) {
   } catch { return null; }
 }
 
-function card(t) {
-  return `<a class="text-card" href="ecrits/${esc(t.slug)}" data-link>
-    <h2>${esc(t.title)}</h2>
-    <p>${esc(t.excerpt)}</p>
-    <span class="meta">${esc(t.category)} · ${esc(t.readingTime || '')}${t.scoredBy ? ' · <span class="scored">♦ scoré</span>' : ''}</span></a>`;
+/** One stone in the pond: what is engraved on it, and what a screen reader hears. */
+function stone(t) {
+  const meta = [t.category, t.readingTime].filter(Boolean).join(' · ');
+  return {
+    href: `ecrits/${esc(t.slug)}`,
+    title: t.title,
+    meta,
+    scored: Boolean(t.scoredBy),
+    label: esc(`${t.title} — ${meta}${t.scoredBy ? ', scoré' : ''}. ${t.excerpt || ''}`),
+  };
 }
 
 export async function mount(root, ctx) {
   const data = await load();
   const slug = ctx.params.slug;
   if (!slug) {
+    const touch = window.matchMedia('(hover: none)').matches;
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     root.innerHTML = `<div class="page-head"><h1>Écrits</h1><p style="font-family:var(--serif);font-size:17px">${esc(data.intro)}</p></div>
-      <div class="shelf-texts">${data.texts.map(card).join('')}</div>
+      <div class="pond-wrap"><div id="pond" role="group" aria-label="Les textes, au fond de l'étang"></div>
+        <p class="pond-hint" id="pondHint">${touch ? 'Touche l’eau : les textes sont au fond. Touche une pierre une fois pour la voir, une deuxième fois pour l’ouvrir.' : 'Passe la main au-dessus de l’eau : les textes sont au fond.'}</p></div>
       <p class="hint">♦ scoré — un morceau de la radio a été choisi pour ce texte. Il passe à l'antenne pour tout le monde, à son heure.</p>`;
-    return;
+    const { createPond } = await import('../ui/pond.js');
+    const pond = createPond(root.querySelector('#pond'), data.texts.map(stone), { reducedMotion: still });
+    if (!pond.webgl) root.querySelector('#pondHint').textContent = 'Les textes sont au fond de l’eau ; choisis une pierre.';
+    return () => pond.destroy();
   }
   const t = data.texts.find((x) => x.slug === slug);
   if (!t) {

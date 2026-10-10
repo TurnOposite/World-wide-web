@@ -3022,3 +3022,22 @@ client's address. No new dependency.
 `X-Station-Key` header was missing from `Access-Control-Allow-Headers`, so a
 browser would have refused every reorder at the preflight. Added, with
 `Access-Control-Allow-Methods`.
+
+## 2026-10-09 — City pictures are drawn, not fetched
+
+Ortis asked for "an image of the city" on each Atlas pin. The build sandbox
+cannot reach Wikimedia (egress policy), and hotlinking would break the
+Atlas's "no third-party call" rule. So each city is an original SVG scene
+(`site/js/ui/postcards.js`), a few KB each, all in one hand. A place can
+still carry a real photo — `"photo": "assets/places/<slug>.jpg"` in
+`places.json` — and the Atlas shows it instead, keeping the drawing as the
+fallback. If Ortis supplies his own photos, that is the field to fill.
+
+## 2026-10-09 — The Écrits are a pond, but the links never depend on it
+
+The water is decoration over real anchors: keyboard, screen readers, a
+phone without WebGL and reduced-motion readers all get working links (and
+the floor painted still). The only behaviour the water adds to a link is on
+touch, where a stone still hidden in murk is revealed by the first tap and
+opened by the second — a finger, unlike a mouse, cannot have seen it before
+tapping.

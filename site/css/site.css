@@ -273,42 +273,142 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
 .tcard .scored{color:var(--ink)}
 
 /* ---------------------------------------------------------------- atlas */
-.atlas{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+/* The map and its postcards. The map is the room's floor; the postcard is the
+   one thing that rises off it — light, picture, a postmark — so the city you
+   point at is the brightest object on the page. */
 .mapbox{background:rgba(14,18,23,.92);border:1px solid var(--line);border-radius:18px;padding:16px;position:relative}
-.mapbox svg{display:block;width:100%;height:auto}
+.mapbox svg.world-map{display:block;width:100%;height:auto}
 .map-land{fill:#1a212a;stroke:#26303b;stroke-width:.25}
-.atlas-grat line{stroke:#1d252e;stroke-width:.2}
-.pin{cursor:pointer}
-.pin .dot{fill:var(--signal)}
-.pin .halo{fill:none;stroke:var(--signal);stroke-width:.35;opacity:.5}
-.pin text{font:3.4px var(--font);fill:var(--text-dim);paint-order:stroke;stroke:#0b0d10;stroke-width:.8px}
+.atlas-grat line{stroke:#1a2129;stroke-width:.18}
+.atlas-grat line.eq{stroke:#22303a;stroke-dasharray:1 1.2}
+.pin{cursor:pointer;outline:none}
+.pin .dot{fill:var(--signal);transition:r .2s ease}
+.pin .halo{fill:none;stroke:var(--signal);stroke-width:.3;opacity:.45;transform-box:fill-box;transform-origin:center;transition:transform .3s cubic-bezier(.2,.8,.2,1.2),opacity .2s}
+.pin .hit{fill:transparent}
+.pin.k-work .dot,.pin.k-trip .dot{fill:#0f1a16;stroke:var(--signal);stroke-width:.45}
+.pin text{font:2.5px var(--font);fill:var(--text-dim);paint-order:stroke;stroke:#0e1217;stroke-width:.7px;pointer-events:none;letter-spacing:.01em}
+.pin:hover .halo,.pin.on .halo,.pin:focus-visible .halo{transform:scale(1.7);opacity:1}
 .pin.on .dot{fill:#fff}
-.pin.on text{fill:var(--text)}
-.pin:focus-visible{outline:none}.pin:focus-visible .halo{stroke-width:.8;opacity:1}
-.tower-pin .wave{fill:none;stroke:var(--signal);stroke-width:.4;transform-box:fill-box;transform-origin:center;animation:wave 3.6s ease-out infinite}
+.pin.on text,.pin:hover text{fill:var(--text)}
+.pin:focus-visible .halo{stroke-width:.55}
+.has-card .pin:not(.on){opacity:.55}
+.has-card .pin:not(.on):hover{opacity:1}
+.tower-pin{pointer-events:none}
+.tower-pin .wave{fill:none;stroke:var(--signal);stroke-width:.35;transform-box:fill-box;transform-origin:center;animation:wave 3.6s ease-out infinite}
 .tower-pin .wave:nth-child(2){animation-delay:1.2s}.tower-pin .wave:nth-child(3){animation-delay:2.4s}
 @keyframes wave{from{opacity:.9;transform:scale(.3)}to{opacity:0;transform:scale(2.6)}}
 .tower-pin .core{fill:var(--signal)}
-.dossier{position:sticky;top:16px}
-.dossier .place{font:600 22px var(--serif)}
-.dossier .place small{font:13px var(--font);color:var(--text-faint)}
-.dossier .years{font:12px var(--mono);color:var(--text-faint);margin:4px 0 14px}
-.dossier ul{list-style:none;margin:0;padding:0;display:grid;gap:12px}
-.dossier li b{display:block;font-size:14.5px}
-.dossier li span{font-size:13px;color:var(--text-dim)}
-.dossier li i{font:10.5px var(--mono);font-style:normal;color:var(--warn);border:1px solid rgba(251,191,36,.3);border-radius:999px;padding:1px 7px;margin-left:6px;white-space:nowrap}
+.inset-bg{fill:#0f151b}
+.inset-edge{fill:none;stroke:#3a4a57;stroke-width:.3}
+.inset-label{font:2.1px var(--font);fill:var(--text-faint);letter-spacing:.04em}
+.eu-lead rect{fill:none;stroke:#3a4a57;stroke-width:.22;stroke-dasharray:.8 .6}
+.eu-lead path{fill:none;stroke:#2c3843;stroke-width:.2}
 .map-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text-faint);margin-top:10px}
 .map-legend span{display:inline-flex;align-items:center;gap:6px}
 .map-legend .sw{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--signal)}
+.map-legend .sw.ring{background:none;border:1.5px solid var(--signal)}
+
+.atlas .mapbox{padding:14px 14px 12px}
+
+/* The postcard. Floats beside its pin; unfolds on a rest of the pointer. */
+.postcard{
+  --pc-w:344px;
+  position:absolute;z-index:20;left:0;top:0;width:var(--pc-w);
+  background:#f3eee4;color:#1d1b18;border-radius:6px;overflow:hidden;
+  box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 22px 50px rgba(0,0,0,.55),0 4px 12px rgba(0,0,0,.35);
+  opacity:0;transform:translateY(6px) rotate(-.6deg);
+  transition:opacity .18s ease,transform .32s cubic-bezier(.2,.8,.2,1.1);
+}
+.postcard.moving{transition:opacity .18s ease,transform .32s cubic-bezier(.2,.8,.2,1.1),left .28s cubic-bezier(.2,.8,.2,1),top .28s cubic-bezier(.2,.8,.2,1)}
+.postcard.flip{transform:translateY(6px) rotate(.6deg)}
+.postcard.in{opacity:1;transform:none}
+.pc-img{position:relative;height:194px;overflow:hidden;background:#20304a;transition:height .45s cubic-bezier(.2,.8,.2,1)}
+.pc-pic{position:absolute;inset:0;transform:scale(1.02);transition:transform 6s ease-out}
+.pc-pic > svg,.pc-pic > img{width:100%;height:100%;object-fit:cover;display:block}
+.postcard.in .pc-pic{transform:scale(1.08)}
+.postcard.open .pc-img{height:126px}
+.pc-name{position:absolute;left:16px;bottom:12px;right:84px;color:#fff;text-shadow:0 1px 10px rgba(0,0,0,.55)}
+.pc-name .place{font:600 27px/1.05 var(--serif);letter-spacing:-.005em}
+.pc-name span{display:block;font-size:12.5px;opacity:.9;margin-top:3px}
+.pc-stamp{position:absolute;right:10px;top:10px;width:62px;height:62px;color:rgba(255,255,255,.82);transform:rotate(-12deg);
+  font-family:var(--font);fill:currentColor;filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
+.pc-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:11px 16px 10px;border-bottom:1px dashed #cfc5b2}
+.pc-badge{font-size:12.5px;font-weight:650;color:#1d5c45}
+.pc-badge.k-work{color:#6a3f12}
+.pc-badge.k-trip{color:#2f5874}
+.pc-head .years{font-size:12px;color:#6d665b;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pc-more{display:grid;grid-template-rows:0fr;transition:grid-template-rows .45s cubic-bezier(.2,.8,.2,1)}
+.postcard.open .pc-more{grid-template-rows:1fr}
+.pc-more-in{min-height:0;overflow:hidden}
+.postcard.open .pc-more-in{overflow:auto;max-height:min(330px,52vh);overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#c9bea8 transparent}
+.pc-more-in > *:first-child{margin-top:14px}
+.pc-more-in > *:last-child{margin-bottom:16px}
+.pc-story{padding:0 16px}
+.pc-story p{font:15px/1.6 var(--serif);color:#2c2925;margin:0 0 .6em}
+.pc-story p:last-child{margin-bottom:0}
+.pc-work{list-style:none;margin:12px 16px 0;padding:0;display:grid;gap:9px}
+.pc-work li{display:grid;gap:1px}
+.pc-work b{font-size:13.5px;font-weight:650;color:#1d1b18}
+.pc-work span{font-size:12.5px;color:#6d665b}
+.pc-work a,.pc-jump{color:#1d5c45;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
+.pc-jump{background:none;border:0;padding:0;font:inherit;font-weight:650;cursor:pointer}
+.pc-work i{font-size:10.5px;font-style:normal;font-weight:600;color:#8a5a00;border:1px solid #e0c58a;border-radius:999px;padding:0 7px;margin-left:6px;white-space:nowrap}
+.pc-pending{margin:0 16px;font:italic 14px/1.5 var(--serif);color:#7b7366}
+.pc-close{position:absolute;z-index:3;top:8px;left:8px;width:26px;height:26px;border-radius:50%;border:0;cursor:pointer;
+  background:rgba(10,12,16,.45);color:#fff;font-size:12px;line-height:26px;padding:0;opacity:0;transition:opacity .15s}
+.postcard:hover .pc-close,.postcard:focus-within .pc-close{opacity:1}
+.postcard :focus-visible{outline:2px solid #1d5c45;outline-offset:2px}
+
+/* Novo Hamburgo: the columns, as clippings; the metro series, as a line. */
+.pc-press{margin:16px 0 0;padding:14px 0 0;border-top:1px dashed #cfc5b2}
+.pc-press h3{margin:0 16px;font:600 16px/1.25 var(--serif);color:#1d1b18}
+.pc-press h3 + .pc-sub{margin:2px 16px 10px;font-size:12px;color:#6d665b}
+.pc-press .pc-sub + h3,.pc-press .clips + h3{margin-top:16px}
+.clips{display:flex;gap:10px;overflow-x:auto;padding:2px 16px 10px;scroll-snap-type:x proximity;scrollbar-width:thin;scrollbar-color:#c9bea8 transparent}
+.clip{flex:none;width:104px;scroll-snap-align:start;text-decoration:none;color:inherit;display:grid;gap:3px}
+.clip img{width:104px;height:143px;object-fit:cover;object-position:top;display:block;background:#fff;border-radius:2px;
+  box-shadow:0 1px 2px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.06);transform:rotate(-.8deg);transition:transform .2s ease}
+.clip:nth-child(even) img{transform:rotate(.7deg)}
+.clip:hover img,.clip:focus-visible img{transform:translateY(-3px) rotate(0)}
+.clip .d{font-size:11px;font-weight:650;color:#1d5c45;margin-top:4px}
+.clip .t{font-size:11.5px;line-height:1.3;color:#3a362f;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.rer{list-style:none;margin:4px 16px 0;padding:0 0 0 2px;position:relative}
+.rer::before{content:"";position:absolute;left:8px;top:10px;bottom:10px;width:4px;border-radius:2px;background:#4f9fd8}
+.rer li{position:relative;display:flex;align-items:baseline;gap:8px;padding:5px 0}
+.rer a{text-decoration:none;color:inherit}
+.rer li > a:first-child{display:grid;grid-template-columns:20px 1fr;column-gap:8px;flex:1}
+.rer .stn{grid-row:span 2;width:14px;height:14px;margin-top:2px;border-radius:50%;background:#f3eee4;border:3px solid #4f9fd8;position:relative;z-index:1}
+.rer b{font-size:13.5px;font-weight:650}
+.rer li > a:first-child span:last-child{font-size:12px;color:#6d665b}
+.rer a:hover b{text-decoration:underline}
+.rer .p2{font-size:11.5px;color:#1d5c45;text-decoration:underline}
+
+/* The index: every place as a chip, the way in for a phone and for a list reader. */
+.atlas-index{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.ai-chip{display:inline-flex;align-items:baseline;gap:8px;background:transparent;border:1px solid var(--line);border-radius:999px;
+  padding:6px 13px;color:var(--text-dim);cursor:pointer;font-size:13px}
+.ai-chip b{font-weight:600;color:var(--text)}
+.ai-chip span{font-size:11.5px;color:var(--text-faint)}
+.ai-chip:hover{border-color:var(--text-faint)}
+.ai-chip[aria-pressed=true]{border-color:var(--signal);background:var(--signal-soft)}
+.ai-chip.k-work b::after,.ai-chip.k-trip b::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;border:1.3px solid var(--signal);margin-left:7px;vertical-align:middle}
 
 /* --------------------------------------------------------------- écrits */
-.shelf-texts{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-top:18px}
-.text-card{display:flex;flex-direction:column;gap:8px;text-decoration:none;background:var(--bg-raise);border:1px solid var(--line);border-radius:16px;padding:20px;min-height:170px;transition:border-color .15s,transform .15s}
-.text-card:hover{border-color:var(--signal);transform:translateY(-2px)}
-.text-card h2{font:600 23px/1.2 var(--serif)}
-.text-card p{font:14.5px/1.55 var(--serif);color:var(--text-dim)}
-.text-card .meta{margin-top:auto;font:11px var(--mono);color:var(--text-faint)}
-.text-card .meta .scored{color:var(--ink)}
+/* The pond: the texts lie on its floor (site/js/ui/pond.js draws the water).
+   The links are real and sit over their stones, invisible until focused. */
+.pond-wrap{margin-top:24px}
+.pond{position:relative;height:clamp(440px,48vw,580px);border-radius:38% 62% 52% 48% / 24% 30% 34% 26%;overflow:hidden;isolation:isolate;
+  background:#0f1714;touch-action:pan-y;cursor:crosshair;
+  box-shadow:0 0 0 1px rgba(255,255,255,.04),0 0 0 10px #151a14,0 0 0 11px #222a20,0 30px 60px rgba(0,0,0,.5)}
+.pond-water{position:absolute;inset:0;width:100%;height:100%;display:block}
+.pond::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;box-shadow:inset 0 0 50px 14px rgba(4,8,6,.75),inset 0 10px 30px rgba(0,0,0,.5)}
+.pond.still .pond-water{filter:saturate(.85) brightness(.82)}
+.pond-links{position:absolute;inset:0}
+.pond .stone{position:absolute;display:block;border-radius:50%;text-decoration:none;cursor:pointer}
+.pond .stone:focus-visible{outline:2px solid var(--signal);outline-offset:4px;border-radius:50%}
+.pond .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.pond-hint{margin:18px 2px 0;font:italic 15px/1.5 var(--serif);color:var(--text-dim)}
+@media (max-width:620px){.pond{height:clamp(520px,150vw,640px);border-radius:30% 34% 28% 32% / 12% 10% 14% 12%}}
 .reading{max-width:680px;margin:0 auto;background:rgba(12,15,19,.94);border:1px solid var(--line-soft);border-radius:20px;padding:clamp(22px,5vw,56px)}
 .reading .back{font-size:13px;color:var(--text-faint);text-decoration:none}
 .reading h1{font:600 clamp(30px,5vw,44px)/1.1 var(--serif);margin:14px 0 8px}
@@ -346,8 +446,7 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
 
 /* ----------------------------------------------------------- responsive */
 @media (max-width:900px){
-  .atlas,.booth,.seuil{grid-template-columns:1fr}
-  .dossier{position:static}
+  .booth,.seuil{grid-template-columns:1fr}
 }
 @media (max-width:720px){
   .onair{grid-template-columns:1fr;gap:20px;padding:20px;border-radius:18px;
@@ -358,6 +457,14 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
   .mb-spec,.mb-progress{display:none}
   .seuil .onair{grid-template-columns:84px 1fr}
   .seuil .onair .cover{max-width:84px}
+}
+@media (max-width:759px){
+  .atlas .pin text,.atlas .inset-label{display:none}
+  .atlas .postcard{position:relative;left:auto!important;top:auto!important;width:auto;margin-top:12px;transform:none}
+  .atlas .postcard.open .pc-img{height:150px}
+  .atlas .postcard.open .pc-more-in{max-height:none;overflow:visible}
+  .atlas .pc-close{opacity:1}
+  .atlas .mapbox{padding:10px}
 }
 @media (max-width:420px){
   .mb-time{display:none}
