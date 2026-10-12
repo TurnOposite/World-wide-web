@@ -478,3 +478,19 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
 .reading .body.verse p{margin:0 0 .3em}
 .reading .body.verse h2{margin-top:1.4em}
 .room .btn{color:var(--signal-ink)}
+
+/* /canopy — the call map's own page. The words keep to a column so the map gets the room. */
+.canopy{min-height:calc(100vh - 200px)}
+.canopy-head{max-width:360px;margin-top:10px}
+.canopy-head h1{font-size:clamp(26px,3.2vw,36px)}
+.canopy-head details{margin-top:10px;color:var(--text-dim);font-size:14.5px}
+.canopy-head details p{margin-top:8px}
+.canopy-head summary{cursor:pointer;color:var(--text-faint);font-size:13px}
+.canopy-now{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:14px;color:var(--text);overflow-wrap:anywhere}
+.canopy-now .dot{width:7px;height:7px;border-radius:50%;background:var(--signal);box-shadow:0 0 8px var(--signal);flex:none}
+.canopy-now .by{color:var(--text-faint)}
+.canopy .controls{margin-top:14px}
+.canopy:not(.playing) .tune .i-pause{display:none}
+.canopy.playing .tune .i-play{display:none}.canopy.playing .tune .i-pause{display:inline}
+@media (max-width:979px){.canopy-head{max-width:none}}
+body.on-canopy .minibar .mb-meta,body.on-canopy .minibar .mb-progress{visibility:hidden}

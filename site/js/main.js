@@ -110,6 +110,7 @@ async function boot() {
       { name: 'ecrits', pattern: /^ecrits(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
       { name: 'portfolio', pattern: /^portfolio(?:\/(?<room>[\w-]+))?$/, load: () => import('./pages/portfolio.js') },
       { name: 'booth', pattern: /^booth$/, load: () => import('./pages/booth.js') },
+      { name: 'canopy', pattern: /^canopy$/, load: () => import('./pages/canopy.js') },
       { name: 'missing', pattern: /.*/, load: () => import('./pages/missing.js') },
     ],
     render: async (page, match, { fromPop, isCurrent = () => true }) => {

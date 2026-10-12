@@ -143,6 +143,30 @@ try {
   await a.click('#visualsPanel [data-look="stage"]');
   await a.keyboard.press('Escape');
 
+  /* ------------------------------------------ the call map (/canopy) -- */
+  // Ortis 2026-10-12: a birdsong-style 3D map of the sounds on air, live.
+  // The fixture beat is a low kick and a noise hat, so a working map must
+  // find calls on the onsets and at least two kinds of sound.
+  await a.evaluate(() => window.radioTower.router.go('/canopy'));
+  await a.waitForSelector('#cTune', { timeout: 5000 });
+  await a.waitForTimeout(6000);
+  const cm = await a.evaluate(() => {
+    const map = window.radioTower.stage.callmap;
+    const pts = map ? map.layout() : [];
+    return {
+      exists: Boolean(map), demo: map?.demo, calls: map?.calls.length ?? 0, kinds: map?.clusterCount() ?? 0,
+      inCube: pts.every((p) => p.every((v) => Number.isFinite(v) && Math.abs(v) <= 1)),
+      playing: !document.getElementById('audio').paused, label: document.getElementById('cTuneLabel').textContent,
+      look: window.radioTower.settings.effective.look,
+    };
+  });
+  check('/canopy maps the music live: calls on the onsets, sorted into kinds, inside the cube',
+    cm.exists && !cm.demo && cm.calls >= 6 && cm.kinds >= 2 && cm.inCube && cm.playing && cm.label === 'Mute',
+    `${cm.calls} calls, ${cm.kinds} kinds, playing ${cm.playing}`);
+  check('…without changing the look the listener chose', cm.look === 'stage', cm.look);
+  await a.evaluate(() => window.radioTower.router.go('/radio'));
+  await a.waitForSelector('#rTune', { timeout: 5000 });
+
   /* ------------------------------------------- music survives navigation -- */
   const audioBefore = await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); return document.getElementById('audio').currentTime; });
   await a.click('.tabs a[href="atlas"]');
@@ -351,7 +375,7 @@ try {
   watch(m, 'phone');
   const overflow = [];
   const a11y = [];
-  for (const r of ['', 'radio', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
+  for (const r of ['', 'radio', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth', 'canopy']) {
     await m.goto(dev + r, { waitUntil: 'domcontentloaded' });
     await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
     await m.waitForTimeout(700);

@@ -67,6 +67,7 @@ export class VisualsPanel {
         <button class="btn small" type="button" data-act="theatre">Full screen <span class="kbd">F</span></button>
         <button class="btn small" type="button" data-act="genre" ${s.hue === null ? 'disabled' : ''}>Colour from genre</button>
         <button class="btn small" type="button" data-act="reset">Reset</button>
+        <a class="btn small" href="canopy" data-act="canopy" title="The call map on a page of its own">Canopy page →</a>
       </div>
       <p class="hint">Remembered in this browser only. <span class="kbd">V</span> opens this panel.</p>`;
 
@@ -93,5 +94,6 @@ export class VisualsPanel {
     this.root.querySelector('[data-act="theatre"]').onclick = () => this.theatre?.();
     this.root.querySelector('[data-act="genre"]').onclick = () => this.settings.update({ hue: null });
     this.root.querySelector('[data-act="reset"]').onclick = () => this.settings.reset();
+    this.root.querySelector('[data-act="canopy"]').addEventListener('click', () => this.close());
   }
 }

@@ -18,6 +18,7 @@
  * `createMediaElementSource()` works once per <audio>, ever.
  */
 import { palette, bands, OnsetDetector, squirclePoint, magAt, clamp, lerp, TIERS, nextTier } from '../lib/viz-core.js';
+import { CallMap, paintCallMap, fitRadius } from './callmap.js';
 
 const TAU = Math.PI * 2;
 
@@ -64,6 +65,7 @@ export class Stage {
     this.sparks = [];
     this.shocks = [];
     this.weave = [];
+    this.callmap = null;   // built the first time the Call map layer is on
 
     this.tier = 2;
     this._frameAvg = 8;
@@ -206,7 +208,9 @@ export class Stage {
     tctx.globalCompositeOperation = 'source-over';
     tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const master = s.intensity * (scene.mode === 'radio' ? 1 : s.ambient);
+    // A page may ask for its own scene (the /canopy page shows the call map
+    // whatever look the listener picked); otherwise the settings decide.
+    const master = (scene.intensity ?? s.intensity) * (scene.mode === 'radio' ? 1 : s.ambient);
     const t0 = performance.now();
     this.stats.frames++;
     if (master <= 0.001) return;
@@ -220,13 +224,14 @@ export class Stage {
     this.hue = (this.hue + diff * (1 - Math.exp(-1.6 * dt)) + 360) % 360;
     const pal = palette(this.hue, this.drift);
     const tier = TIERS[this.tier];
-    const L = s.layers;
+    const L = scene.layers || s.layers;
 
     ctx.save();
     ctx.globalAlpha = clamp(master, 0, 1);
     const anchor = this._anchor(scene, w, h);
 
     if (L.bloom) this._bloom(ctx, w, h, pal);
+    if (L.callmap) this._callmap(ctx, w, h, ts, dt, scene);
     if (L.horizon) this._horizon(ctx, w, h, pal, dt * motion);
     if (L.harmonic) this._harmonic(ctx, w, h, pal);
     if (L.lattice) this._lattice(ctx, w, h, pal, scene);
@@ -520,6 +525,30 @@ export class Stage {
       k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.stroke();
+  }
+
+  /**
+   * The birdsong-style call map (./callmap.js). It reads the raw analyser —
+   * unsmoothed, so onsets stay sharp — every frame the music plays, and
+   * shows an imaginary canopy while it does not. It paints straight onto the
+   * stage, not the trail canvas: a turning cube that left trails would smear.
+   */
+  _callmap(ctx, w, h, ts, dt, scene) {
+    if (!this.callmap) this.callmap = new CallMap();
+    const map = this.callmap;
+    if (this.available && this.playing) map.pushFrame(this.fluxBins, ts, this.ac.sampleRate, this.raw.fftSize);
+    else map.idle(ts, dt);
+    // The map fits the room it is given (scene.mapRect, from /canopy), else
+    // the whole page above the mini-player.
+    const bottom = Math.min(96, h * 0.12);
+    const r = scene.mapRect || { left: 0, top: 0, right: w, bottom: h - bottom };
+    const rw = Math.max(1, r.right - r.left), rh = Math.max(1, r.bottom - r.top);
+    const R = fitRadius(rw, rh);
+    // ctx already carries globalAlpha = master; the map's own alpha is for its fades.
+    paintCallMap(ctx, map, {
+      w, h, t: this.t, now: ts, cx: r.left + rw / 2, cy: r.top + rh / 2, R, alpha: 1,
+      labels: rw >= 520, bottomInset: h - r.bottom + 12,
+    });
   }
 
   /* ------------------------------------------------------------ extras -- */

@@ -3041,3 +3041,21 @@ the floor painted still). The only behaviour the water adds to a link is on
 touch, where a stone still hidden in murk is revealed by the first tap and
 opened by the second — a finger, unlike a mouse, cannot have seen it before
 tapping.
+
+## 2026-10-12 — The call map is PCA + k-means in the browser, not UMAP
+
+The figures Ortis pointed at (Sainburg, Thielk & Gentner 2020; Sethi et al.
+2020) use UMAP and HDBSCAN offline. Neither runs incrementally at 60 fps in
+plain JS without a dependency, and the map has to follow a live stream whose
+content changes every few minutes. So: an online PCA (one step of subspace
+iteration per call on a covariance that forgets over ~100 calls, sign-locked
+and blended so the axes drift instead of jumping) and k-means re-fitted to
+the calls still alive, warm-started so a kind keeps its colour. Pulling each
+dot a third of the way toward its kind's centre gives most of UMAP's
+"islands" look while staying honest — the axes are labelled PC1–3 because
+that is what they are. No new dependency, no build step, nothing on the
+server: every browser draws its own map from what it hears.
+
+The map is a scene of its own (the Canopy look, `/canopy`), not a tenth layer
+added to Stage: a turning cube under the on-air card would fight the text,
+and Stage's coverage goal (#28) is about the page, not about this figure.

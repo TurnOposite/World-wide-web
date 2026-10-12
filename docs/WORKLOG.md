@@ -2491,3 +2491,34 @@ Verified: `bash scripts/build-test.sh` — 294 tests, 43/43 browser, 40/40 site.
 - `scripts/site-smoke.mjs`: +4 checks (lived-in cities on the map, Novo
   Hamburgo clippings open as PDFs, the pond, a cover on every book and the
   thesis face-out). `npm test` 328 (4 skipped, 0 fail); site smoke 46/46.
+
+## 2026-10-12 — Canopy: the call map (interactive, Ortis present)
+
+- **Asked:** "the visualisation of bird songs" — the bioacoustics plots where
+  every call is a dot in a slowly turning 3D space, coloured by kind of call,
+  fading over time — live, synced with the radio.
+- **Built:** `site/js/viz/callmap.js` — per frame, the raw analyser folded
+  into 24 log bands (60 Hz–14 kHz); spectral-flux onsets cut the stream into
+  ~110 ms calls; features = spectrum shape (loudness removed) + loudness +
+  decay; an online PCA (subspace iteration on a forgetting covariance) gives
+  the three axes; k-means, refit every ten calls and warm-started so colours
+  hold, gives up to seven kinds; dots pulled a third of the way to their
+  kind's centre; consecutive calls joined; the live sound drawn as a white
+  line with a cursor; ~42 s life; camera orbits at 0.13 rad/s scene time.
+  Before anyone tunes in, five imaginary species call instead ("waiting for
+  the music — imaginary birds meanwhile"); the first real frame clears them.
+- **Where it shows:** a **Canopy** look in the Visuals panel (layer *Call
+  map* + bloom; also offered in the booth's broadcast looks) and its own page,
+  **`/canopy`** — words in a left column, the map in the room to the right,
+  Tune in and Full screen. The page asks the stage for its scene
+  (`scene.layers`, `scene.intensity`, `scene.mapRect`) so it shows the map
+  without touching the look a listener saved. `Stage` look unchanged.
+- **Tests:** `tests/site-callmap.test.js` (9: bands, feature invariance to
+  loudness, onsets not frames, a kick and a hat told apart and placed apart,
+  phrases joined, cube and screen fit, forgetting, the imaginary canopy,
+  orthonormal axes). Site smoke +2 (the fixture beat on `/canopy` gives calls
+  and ≥2 kinds while playing; the listener's look is untouched) and `/canopy`
+  added to the phone overflow + axe sweep. `canopy` added to the build's
+  route list so a cold load answers 200 on Vercel and on the Oracle tower.
+- Self-test: green before (324 tests, 43/43 browser, 48/48 site) and after
+  (333 tests, 4 skipped; 43/43 browser; 50/50 site).
