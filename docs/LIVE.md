@@ -42,12 +42,13 @@ of `Radio Tower\music\channels.json`, then `publish`:
 
 Mashup and Long mixes: `server/lib/channels.js`, `DEFAULT_CHANNEL_SPEC`.
 
-## Canopy — the call map
+## Canopy
 
-<https://globe-trotter-ochre.vercel.app/canopy> — every sound on air as a dot
-in a slowly turning 3D map, coloured by kind, like the birdsong plots
-(2026-10-12). Also a look in the Visuals panel (<kbd>V</kbd> → Canopy, then
-<kbd>F</kbd> for full screen), and the booth can broadcast it to everyone.
+A look of the radio page: every sound on air as a dot in a slowly turning
+cube, coloured by kind (2026-10-12). <kbd>V</kbd> → **Canopy**, then pick
+**Big, behind** (centred behind the whole page; the panels turn to glass) or
+**Small, in front** (bottom right, above the page). <kbd>F</kbd> for full
+screen. The booth can broadcast it as everyone's look.
 
 ## The DJ booth
 

@@ -52,6 +52,11 @@ export class VisualsPanel {
         <div class="v-looks" role="group" aria-label="Looks">
           ${Object.entries(LOOKS).map(([k, l]) => `<button type="button" data-look="${k}" aria-pressed="${s.look === k}">${l.label}</button>`).join('')}
         </div></div>
+      <div class="v-section"><span class="eyebrow">Canopy</span>
+        <div class="v-looks v-two" role="group" aria-label="Where the Canopy sits">
+          <button type="button" data-canopy="back" aria-pressed="${s.layers.callmap && s.canopy !== 'front'}">Big, behind</button>
+          <button type="button" data-canopy="front" aria-pressed="${s.layers.callmap && s.canopy === 'front'}">Small, in front</button>
+        </div></div>
       <div class="v-section"><span class="eyebrow">Layers</span>
         <div class="v-layers">
           ${LAYERS.map((l) => `<label title="${esc(l.hint)}"><input type="checkbox" data-layer="${l.id}" ${s.layers[l.id] ? 'checked' : ''}><span class="sw" style="background:${l.color}"></span>${l.label}</label>`).join('')}
@@ -67,12 +72,17 @@ export class VisualsPanel {
         <button class="btn small" type="button" data-act="theatre">Full screen <span class="kbd">F</span></button>
         <button class="btn small" type="button" data-act="genre" ${s.hue === null ? 'disabled' : ''}>Colour from genre</button>
         <button class="btn small" type="button" data-act="reset">Reset</button>
-        <a class="btn small" href="canopy" data-act="canopy" title="The call map on a page of its own">Canopy page →</a>
       </div>
       <p class="hint">Remembered in this browser only. <span class="kbd">V</span> opens this panel.</p>`;
 
     this.root.querySelector('[data-close]').onclick = () => this.close();
     this.root.querySelectorAll('[data-look]').forEach((b) => { b.onclick = () => this.settings.pickLook(b.dataset.look); });
+    this.root.querySelectorAll('[data-canopy]').forEach((b) => {
+      // Picking a place for the Canopy also switches it on.
+      b.onclick = () => this.settings.update(this.settings.effective.layers.callmap
+        ? { canopy: b.dataset.canopy }
+        : { canopy: b.dataset.canopy, layers: { callmap: true } });
+    });
     this.root.querySelectorAll('[data-layer]').forEach((c) => {
       c.onchange = () => this.settings.update({ layers: { [c.dataset.layer]: c.checked } });
     });
@@ -94,6 +104,5 @@ export class VisualsPanel {
     this.root.querySelector('[data-act="theatre"]').onclick = () => this.theatre?.();
     this.root.querySelector('[data-act="genre"]').onclick = () => this.settings.update({ hue: null });
     this.root.querySelector('[data-act="reset"]').onclick = () => this.settings.reset();
-    this.root.querySelector('[data-act="canopy"]').addEventListener('click', () => this.close());
   }
 }

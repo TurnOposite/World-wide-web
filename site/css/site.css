@@ -56,6 +56,13 @@ p{margin:0}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
 #stage{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+/* Canopy big behind the page: the panels turn to glass so the cube shows through them. */
+body.canopy-back .onair{background:rgba(10,13,17,.42);transition:background .4s}
+body.canopy-back .panel{background:rgba(14,18,23,.55);transition:background .4s}
+body.canopy-back .ch:not(.on){background:rgba(13,16,20,.5)}
+/* The small Canopy: above the page, below the mini-player and the panels, never in the way of a click. */
+#stageFront{position:fixed;right:max(14px,env(safe-area-inset-right,0px));z-index:30;pointer-events:none}
+#stageFront[hidden]{display:none}
 .scanlines{position:fixed;inset:0;pointer-events:none;z-index:60;
   background:repeating-linear-gradient(180deg,rgba(255,255,255,.014) 0 1px,transparent 1px 3px);mix-blend-mode:overlay}
 
@@ -223,7 +230,6 @@ input[type=range]{accent-color:var(--signal)}
 .mb-time{font:12px var(--mono);color:var(--text-faint);white-space:nowrap;font-variant-numeric:tabular-nums}
 .mb-visuals{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:var(--bg-raise);color:var(--text-dim);display:grid;place-items:center;cursor:pointer}
 .mb-visuals:hover,.mb-visuals[aria-expanded="true"]{color:var(--signal);border-color:var(--signal)}
-body.on-radio .minibar .mb-meta,body.on-radio .minibar .mb-progress{visibility:hidden}
 
 /* ------------------------------------------------------ visuals panel */
 .visuals{position:fixed;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(var(--mb-h) + 16px + env(safe-area-inset-bottom,0px));z-index:45;
@@ -236,6 +242,7 @@ body.on-radio .minibar .mb-meta,body.on-radio .minibar .mb-progress{visibility:h
 .v-looks{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .v-looks button{border:1px solid var(--line);background:var(--bg-raise);border-radius:10px;padding:8px 6px;font-size:12.5px;cursor:pointer;color:var(--text-dim)}
 .v-looks button[aria-pressed="true"]{border-color:var(--signal);color:var(--text);background:var(--signal-soft)}
+.v-looks.v-two{grid-template-columns:1fr 1fr}
 .v-layers{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
 .v-layers label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);padding:3px 0;cursor:pointer}
 .v-layers input{accent-color:var(--signal)}
@@ -455,6 +462,8 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
   .echoes{grid-template-columns:1fr}
   .minibar{grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px}
   .mb-spec,.mb-progress{display:none}
+  /* On a phone the on-air card already names the song right above; on a desktop the bar does too (Ortis, 2026-10-12). */
+  body.on-radio .minibar .mb-meta{visibility:hidden}
   .seuil .onair{grid-template-columns:84px 1fr}
   .seuil .onair .cover{max-width:84px}
 }
@@ -479,18 +488,3 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
 .reading .body.verse h2{margin-top:1.4em}
 .room .btn{color:var(--signal-ink)}
 
-/* /canopy — the call map's own page. The words keep to a column so the map gets the room. */
-.canopy{min-height:calc(100vh - 200px)}
-.canopy-head{max-width:360px;margin-top:10px}
-.canopy-head h1{font-size:clamp(26px,3.2vw,36px)}
-.canopy-head details{margin-top:10px;color:var(--text-dim);font-size:14.5px}
-.canopy-head details p{margin-top:8px}
-.canopy-head summary{cursor:pointer;color:var(--text-faint);font-size:13px}
-.canopy-now{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:14px;color:var(--text);overflow-wrap:anywhere}
-.canopy-now .dot{width:7px;height:7px;border-radius:50%;background:var(--signal);box-shadow:0 0 8px var(--signal);flex:none}
-.canopy-now .by{color:var(--text-faint)}
-.canopy .controls{margin-top:14px}
-.canopy:not(.playing) .tune .i-pause{display:none}
-.canopy.playing .tune .i-play{display:none}.canopy.playing .tune .i-pause{display:inline}
-@media (max-width:979px){.canopy-head{max-width:none}}
-body.on-canopy .minibar .mb-meta,body.on-canopy .minibar .mb-progress{visibility:hidden}

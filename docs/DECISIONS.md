@@ -3059,3 +3059,15 @@ server: every browser draws its own map from what it hears.
 The map is a scene of its own (the Canopy look, `/canopy`), not a tenth layer
 added to Stage: a turning cube under the on-air card would fight the text,
 and Stage's coverage goal (#28) is about the page, not about this figure.
+
+## 2026-10-12 — Canopy is a look, not a page; orthographic, on an ISS orbit
+
+Superseding the same day's "own page" half of the entry above: Ortis wants
+Canopy as an effect of the radio page, not a destination, and without an
+explanation. It keeps the name. Behind the page it needs the panels to be
+see-through to be seen at all, so while it is on they turn to glass
+(`body.canopy-back`) — the one case where a look restyles the page; text
+stays on ≥42 % dark backing. The projection went orthographic because
+perspective made the cube read as a trapezoid; the camera follows an
+inclined orbit with a golden-angle nodal drift so it never repeats a loop
+and never leaves an 18°–66° elevation band.

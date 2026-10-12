@@ -2522,3 +2522,34 @@ Verified: `bash scripts/build-test.sh` — 294 tests, 43/43 browser, 40/40 site.
   route list so a cold load answers 200 on Vercel and on the Oracle tower.
 - Self-test: green before (324 tests, 43/43 browser, 48/48 site) and after
   (333 tests, 4 skipped; 43/43 browser; 50/50 site).
+
+## 2026-10-12 (later) — Canopy folded into the radio page; a true cube; an ISS camera (interactive, Ortis present)
+
+- **Asked:** no page of its own and no birdsong explanation — Canopy as an
+  effect of the radio page, more centred, really large in the background, or
+  a smaller one in front, as two options in Visuals; the cube looked like a
+  trapezoid; a more top-down view whose angle keeps varying ("like the ISS,
+  always over a different spot") within a sane range; on desktop, the song
+  name in the bottom bar.
+- **Removed:** `/canopy` (page, route, build route, CSS, the panel link) and
+  the figure caption. The only text left on the figure is the axis labels.
+- **Cube:** the projection is now orthographic (`projector()`), so parallel
+  edges stay parallel and the lid is as big as the floor; nearness is shown
+  by dot size and brightness instead.
+- **Camera:** `cameraAt(t)` — an inclined (51.6°) orbit whose node drifts by
+  the golden angle every lap; latitude mapped onto 18°–66° of elevation.
+  Each lap's most top-down pass lands on a different side; tested: elevation
+  band, smoothness per frame, the top views of 12 laps cover all six 60°
+  sectors and no two consecutive laps peak within 60°.
+- **Placements:** `settings.canopy` = `back` (centred, `fitRadius(…, 0.5)`,
+  `body.canopy-back` makes `.onair`, `.panel` and the channel cards
+  translucent) or `front` (its own `#stageFront` canvas, bottom right above
+  the mini-player, `pointer-events:none`, a dark disc behind it). Picking a
+  placement switches Canopy on.
+- **Mini-player:** `.mb-meta` is no longer hidden on the radio page except on
+  phones (≤720 px), where the card above already names the song.
+- Tests: `site-callmap.test.js` 11 (+ cube, + camera); site smoke replaces the
+  `/canopy` check with Canopy on `/radio` (calls, kinds), the small one in
+  front (shown, above the bar, painted, click-through), gone with another
+  look, and the song in the bar. Self-test: 335 tests (4 skipped), 43/43
+  browser, 52/52 site.

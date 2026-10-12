@@ -1,15 +1,16 @@
 /**
- * The call map (site/js/viz/callmap.js) — the maths behind the Canopy look.
+ * Canopy, the call map (site/js/viz/callmap.js) — the maths behind it.
  *
  * What has to hold for it to be the birdsong-style map Ortis asked for:
  * sounds that are alike land together, sounds that differ get different
  * colours, a call is born on an onset (not on every frame), the cloud stays
  * inside its cube, and the map forgets — old calls fade out, an idle page
- * shows the imaginary canopy, and the first real frame clears it.
+ * shows imaginary sounds, and the first real frame clears them; the cube is a
+ * cube from every angle, and the camera never flies the same loop twice.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CallMap, BANDS, DIM, bandEdges, foldBands, callFeatures, fitRadius, CALL_COLORS, TYPES } from '../site/js/viz/callmap.js';
+import { CallMap, BANDS, DIM, bandEdges, foldBands, callFeatures, fitRadius, CALL_COLORS, TYPES, cameraAt, projector, ORBIT } from '../site/js/viz/callmap.js';
 
 const SR = 48000;
 const FFT = 2048;
@@ -113,9 +114,61 @@ test('the cloud stays inside its cube and the cube inside the screen', () => {
   const map = new CallMap({ random: rng(8) });
   playBeat(map, 8, rng(9));
   for (const p of map.layout()) for (const v of p) assert.ok(v >= -1 && v <= 1 && Number.isFinite(v));
-  for (const [w, h] of [[1440, 800], [390, 700], [800, 1200]]) {
-    const R = fitRadius(w, h);
-    assert.ok(R > 40 && R * Math.SQRT2 < w / 2, `${w}×${h}: R ${R.toFixed(0)}`);
+  // Every corner of the cube, from every camera position the orbit visits, stays on screen.
+  for (const [w, h] of [[1440, 800], [390, 700], [800, 1200], [300, 300]]) {
+    const R = fitRadius(w, h, 0.5);
+    for (let t = 0; t < 600; t += 0.37) {
+      const proj = projector(cameraAt(t), w / 2, h / 2, R);
+      for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+        const [sx, sy] = proj(x, y, z);
+        assert.ok(sx >= -0.5 && sx <= w + 0.5 && sy >= -0.5 && sy <= h + 0.5, `${w}×${h} at t=${t.toFixed(1)}: corner off screen`);
+      }
+    }
+  }
+});
+
+test('the cube is drawn as a cube: parallel edges stay parallel and equal, top as big as the base', () => {
+  for (let t = 0; t < 300; t += 7.3) {
+    const proj = projector(cameraAt(t), 0, 0, 100);
+    const edge = (a, b) => { const p = proj(...a), q = proj(...b); return [q[0] - p[0], q[1] - p[1]]; };
+    // The same edge on the floor and on the lid, and a vertical edge at two corners.
+    const pairs = [
+      [edge([-1, -1, -1], [1, -1, -1]), edge([-1, 1, -1], [1, 1, -1])],
+      [edge([-1, -1, 1], [1, -1, 1]), edge([-1, 1, 1], [1, 1, 1])],
+      [edge([-1, -1, -1], [-1, 1, -1]), edge([1, -1, 1], [1, 1, 1])],
+    ];
+    for (const [u, v] of pairs) {
+      assert.ok(Math.abs(u[0] - v[0]) < 1e-9 && Math.abs(u[1] - v[1]) < 1e-9, `t=${t}: a trapezoid, not a cube`);
+    }
+  }
+});
+
+test('the camera wanders like the ISS: a comfortable band of angles, smooth, never the same loop twice', () => {
+  const [lo, hi] = ORBIT.elevation;
+  const fps = 60;
+  let prev = cameraAt(0);
+  let minEl = Infinity, maxEl = -Infinity, maxStep = 0;
+  for (let i = 1; i < 60 * fps * 12; i++) {
+    const c = cameraAt(i / fps);
+    minEl = Math.min(minEl, c.el); maxEl = Math.max(maxEl, c.el);
+    const dAz = Math.atan2(Math.sin(c.az - prev.az), Math.cos(c.az - prev.az));
+    maxStep = Math.max(maxStep, Math.abs(dAz), Math.abs(c.el - prev.el));
+    prev = c;
+  }
+  assert.ok(minEl >= lo - 1e-9 && maxEl <= hi + 1e-9, `elevation ${(minEl * 57.3).toFixed(1)}°–${(maxEl * 57.3).toFixed(1)}°`);
+  assert.ok(maxEl - minEl > 40 * Math.PI / 180, 'it does go from low to high');
+  assert.ok(maxStep < 0.006, `largest step per frame ${maxStep.toFixed(4)} rad — smooth`);
+  // Where the most top-down moment of each lap happens: a different side every lap, all sides covered.
+  const peaks = [];
+  for (let lap = 0; lap < 12; lap++) {
+    const az = cameraAt(lap * ORBIT.period + ORBIT.period / 4).az;
+    peaks.push(((az % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI));
+  }
+  const sectors = new Set(peaks.map((a) => Math.floor(a / (Math.PI / 3))));
+  assert.equal(sectors.size, 6, `top views land in ${sectors.size} of 6 sides`);
+  for (let i = 1; i < peaks.length; i++) {
+    const d = Math.abs(Math.atan2(Math.sin(peaks[i] - peaks[i - 1]), Math.cos(peaks[i] - peaks[i - 1])));
+    assert.ok(d > Math.PI / 3, `laps ${i - 1} and ${i} peak only ${(d * 57.3).toFixed(0)}° apart`);
   }
 });
 
@@ -128,7 +181,7 @@ test('no more types than colours, and the map forgets', () => {
   assert.equal(map.calls.length, 0, 'after a lifetime of silence nothing is left');
 });
 
-test('an idle page shows the imaginary canopy, and the first real frame clears it', () => {
+test('before anyone tunes in, imaginary sounds call; the first real frame clears them', () => {
   const map = new CallMap({ random: rng(12) });
   for (let t = 0; t < 15000; t += 16) map.idle(t, 0.016);
   assert.ok(map.demo && map.calls.length > 8, `${map.calls.length} imaginary calls`);

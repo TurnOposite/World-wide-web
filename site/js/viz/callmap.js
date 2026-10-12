@@ -1,6 +1,6 @@
 /**
- * The call map — the station's sound laid out the way bioacousticians lay out
- * birdsong.
+ * Canopy — the call map: the station's sound laid out the way bioacousticians
+ * lay out birdsong.
  *
  * Ortis asked (2026-10-12) for "the visualisation of bird songs": the plots
  * where every call a bird makes becomes a dot in a 3D space, similar calls
@@ -32,6 +32,11 @@
  *      a track changes, old types drift or fold away and new ones appear.
  *   5. Calls live ~42 s and fade; the line through the last second and a
  *      half is the live sound itself moving through the space.
+ *   6. The cube is drawn orthographically from a camera on an ISS-like orbit
+ *      (see ORBIT below), so the view keeps wandering without repeating.
+ *
+ * It is a layer of the radio page's stage (the Canopy look), big behind the
+ * page or small in front of it — no text, no explanation, just the figure.
  *
  * Everything above is plain maths on arrays — no DOM — so it is unit-tested
  * in Node (tests/site-callmap.test.js). `paintCallMap()` at the bottom is the
@@ -498,41 +503,83 @@ const rgba = (t, a) => `rgba(${RGB[t % RGB.length][0]},${RGB[t % RGB.length][1]}
  * @param {CallMap} map
  * @param {object} v  { w, h, t (scene seconds), now (ms), cx, cy, R, alpha, labels }
  */
-export const CAMERA = 7;          // camera distance, in cube half-widths: enough perspective to read depth
-const PITCH = [0.26, 0.46];       // the camera bobs between these elevations (radians)
+const DEG = Math.PI / 180;
 
 /**
- * The cube half-width R that keeps the whole turning cube inside a w × h box,
- * whatever the angle: the worst case is a corner pointing at the camera.
+ * Where the camera is: an orbit modelled on the International Space Station's.
+ *
+ * Ortis, 2026-10-12: a fixed loop shows the cube from the same few angles for
+ * ever; he wanted the view to wander "like the ISS, always over a different
+ * spot", without ever going to silly angles. So the camera flies an inclined
+ * orbit (51.6°, the ISS's own) around the cube, and the orbit's node drifts
+ * by the golden angle every lap — the ISS's ground track shifts with the
+ * Earth's turn the same way. The golden angle is the drift that never lines
+ * up with itself (it is how a sunflower packs its seeds), so each lap's
+ * highest, most top-down pass comes over a new side of the cube and the
+ * sides get covered evenly. The orbit's latitude, ±51.6°, is mapped onto a
+ * comfortable band of elevations, 18°–66°: always looking down on the floor,
+ * never flat-on, never straight down. Everything is sines of time, so the
+ * motion stays smooth; the azimuth speeds up a little over the top, as a
+ * satellite's ground track does near the poles.
  */
-export function fitRadius(w, h) {
-  const near = CAMERA / (CAMERA - Math.sqrt(3));
-  const horiz = Math.SQRT2 * near;
-  const vert = (Math.cos(PITCH[0]) + Math.SQRT2 * Math.sin(PITCH[1])) * near;
-  return Math.max(40, Math.min((w * 0.47) / horiz, (h * 0.47) / vert));
+export const ORBIT = {
+  inclination: 51.6 * DEG,
+  period: 64,                       // seconds of scene time per lap (the Motion slider scales scene time)
+  drift: 137.508 * DEG,             // node drift per lap: the golden angle
+  elevation: [18 * DEG, 66 * DEG],
+};
+
+export function cameraAt(t, o = ORBIT) {
+  const u = (2 * Math.PI * t) / o.period;              // argument of latitude
+  const lat = Math.asin(Math.sin(o.inclination) * Math.sin(u));
+  const lon = Math.atan2(Math.cos(o.inclination) * Math.sin(u), Math.cos(u)) + (o.drift * t) / o.period;
+  const [lo, hi] = o.elevation;
+  const el = (lo + hi) / 2 + ((hi - lo) / 2) * (lat / o.inclination);
+  return { az: lon, el };
 }
 
+/**
+ * The cube's half-width R that keeps the whole cube inside a w × h box from
+ * any camera position. The projection is orthographic — parallel edges stay
+ * parallel, so the cube reads as a cube, not a trapezoid — which makes the
+ * worst case exact: √2·R across, and at most (cos e + √2·sin e)·R up or down,
+ * which peaks at √3·R.
+ */
+export function fitRadius(w, h, fill = 0.47) {
+  return Math.max(30, Math.min((w * fill) / Math.SQRT2, (h * fill) / Math.sqrt(3)));
+}
+
+/** The projector for one frame: world (cube units) → screen, plus depth (−√3…√3, larger is nearer). */
+export function projector({ az, el }, cx, cy, R) {
+  const ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el), se = Math.sin(el);
+  return (x, y, z) => [
+    cx + (x * ca - z * sa) * R,
+    cy - (-x * sa * se + y * ce - z * ca * se) * R,
+    x * sa * ce + y * se + z * ca * ce,
+  ];
+}
+
+/**
+ * Draw the map: the turning cube with its floor grid, every sound as a
+ * glowing dot with its shadow on the floor, consecutive sounds joined, the
+ * newest ringing, and the live sound as a line with a cursor at its head.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {CallMap} map
+ * @param {object} v  { t (scene seconds), now (ms), cx, cy, R, alpha, labels }
+ */
 export function paintCallMap(ctx, map, v) {
   const { now, cx, cy, R, alpha = 1 } = v;
-  const yaw = v.t * 0.13;
-  const pitch = (PITCH[0] + PITCH[1]) / 2 + ((PITCH[1] - PITCH[0]) / 2) * Math.sin(v.t * 0.07);
-  const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
-  const D = CAMERA;
-  const proj = (x, y, z) => {
-    const x1 = x * cyw + z * syw;
-    const z1 = -x * syw + z * cyw;
-    const y2 = y * cp - z1 * sp;
-    const z2 = y * sp + z1 * cp;
-    const s = D / (D + z2);
-    return [cx + x1 * R * s, cy - y2 * R * s, z2, s];
-  };
+  const proj = projector(cameraAt(v.t), cx, cy, R);
+  const small = R < 120;
+  const dotScale = Math.max(0.6, R / 240);
 
   ctx.save();
   ctx.lineCap = 'round';
 
-  // The frame of reference: floor grid, the cube's edges, three labelled axes.
+  // The frame of reference: floor grid, the cube's edges, three axes.
   ctx.lineWidth = 1;
-  ctx.strokeStyle = `rgba(148,163,184,${(0.09 * alpha).toFixed(3)})`;
+  ctx.strokeStyle = `rgba(148,163,184,${(0.1 * alpha).toFixed(3)})`;
   ctx.beginPath();
   for (let i = -4; i <= 4; i++) {
     const u = i / 4;
@@ -542,25 +589,25 @@ export function paintCallMap(ctx, map, v) {
     ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
   }
   ctx.stroke();
-  ctx.strokeStyle = `rgba(148,163,184,${(0.06 * alpha).toFixed(3)})`;
+  ctx.strokeStyle = `rgba(148,163,184,${(0.14 * alpha).toFixed(3)})`;
   ctx.beginPath();
-  for (const [x, z] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+  const C = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+  for (const [x, z] of C) {
     const a = proj(x, -1, z), b = proj(x, 1, z);
     ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
   }
   for (let k = 0; k < 4; k++) {
-    const c = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
-    const a = proj(c[k][0], 1, c[k][1]), b = proj(c[(k + 1) % 4][0], 1, c[(k + 1) % 4][1]);
+    const a = proj(C[k][0], 1, C[k][1]), b = proj(C[(k + 1) % 4][0], 1, C[(k + 1) % 4][1]);
     ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
   }
   ctx.stroke();
   const o = proj(-1, -1, -1);
   const axes = [['PC1', proj(1, -1, -1)], ['PC2', proj(-1, 1, -1)], ['PC3', proj(-1, -1, 1)]];
-  ctx.strokeStyle = `rgba(203,213,225,${(0.28 * alpha).toFixed(3)})`;
+  ctx.strokeStyle = `rgba(203,213,225,${(0.3 * alpha).toFixed(3)})`;
   ctx.beginPath();
   for (const [, e] of axes) { ctx.moveTo(o[0], o[1]); ctx.lineTo(e[0], e[1]); }
   ctx.stroke();
-  if (v.labels) {
+  if (v.labels && !small) {
     ctx.font = '10px ui-monospace, SFMono-Regular, Menlo, monospace';
     ctx.fillStyle = `rgba(203,213,225,${(0.5 * alpha).toFixed(3)})`;
     for (const [label, e] of axes) ctx.fillText(label, e[0] + 5, e[1] - 4);
@@ -583,34 +630,34 @@ export function paintCallMap(ctx, map, v) {
     const s = proj(pts[i][0], -1, pts[i][2]);
     ctx.fillStyle = rgba(calls[i].type, 0.16 * fade[i] * alpha);
     ctx.beginPath();
-    ctx.ellipse(s[0], s[1], 2.4 * s[3], 1.1 * s[3], 0, 0, Math.PI * 2);
+    ctx.arc(s[0], s[1], 1.8 * dotScale, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // Each call joined to the one before it — the phrase, as the papers draw transitions.
+  // Each sound joined to the one before it.
   ctx.lineWidth = 0.8;
   const index = new Map(calls.map((c, i) => [c, i]));
   for (let i = 0; i < n; i++) {
     const j = index.get(calls[i].prev);
     if (j === undefined) continue;
-    ctx.strokeStyle = rgba(calls[i].type, 0.22 * Math.min(fade[i], fade[j]) * alpha);
+    ctx.strokeStyle = rgba(calls[i].type, 0.18 * Math.min(fade[i], fade[j]) * alpha);
     ctx.beginPath();
     ctx.moveTo(P[j][0], P[j][1]);
     ctx.lineTo(P[i][0], P[i][1]);
     ctx.stroke();
   }
 
-  // The calls, far ones first, glowing additively.
-  const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => P[b][2] - P[a][2]);
+  // The sounds, far ones first, glowing additively. With no perspective,
+  // nearness is told by size and brightness only.
+  const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => P[a][2] - P[b][2]);
   ctx.globalCompositeOperation = 'lighter';
   for (const i of order) {
     const c = calls[i];
-    const [x, y, z, s] = P[i];
-    const age = now - c.born;
-    const fresh = clamp(1 - age / 600, 0, 1);
-    const fog = 0.55 + 0.45 * clamp((1 - z) / 2, 0, 1);
-    const a = fade[i] * fog * alpha;
-    const r = (1.6 + c.loud * 3.6) * s * (1 + fresh * 1.6) * (R / 260 + 0.4);
+    const [x, y, z] = P[i];
+    const near = clamp((z + 1.6) / 3.2, 0, 1);
+    const fresh = clamp(1 - (now - c.born) / 600, 0, 1);
+    const a = fade[i] * (0.55 + 0.45 * near) * alpha;
+    const r = (1.6 + c.loud * 3.6) * (0.85 + 0.3 * near) * (1 + fresh * 1.6) * dotScale;
     ctx.fillStyle = rgba(c.type, 0.13 * a);
     ctx.beginPath(); ctx.arc(x, y, r * 3, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = rgba(c.type, 0.9 * a);
@@ -618,7 +665,7 @@ export function paintCallMap(ctx, map, v) {
     if (fresh > 0) {
       ctx.strokeStyle = rgba(c.type, 0.55 * fresh * alpha);
       ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.arc(x, y, r + (1 - fresh) * 26, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y, r + (1 - fresh) * 26 * dotScale, 0, Math.PI * 2); ctx.stroke();
     }
   }
   ctx.globalCompositeOperation = 'source-over';
@@ -640,38 +687,16 @@ export function paintCallMap(ctx, map, v) {
     }
     const head = tr[tr.length - 1];
     const t = map.centroids.length ? map.nearestType(head.x) : 0;
+    const k = small ? 0.7 : 1;
     ctx.strokeStyle = rgba(t, 0.9 * alpha);
     ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.arc(prev[0], prev[1], 5, 0, Math.PI * 2);
-    ctx.moveTo(prev[0] - 10, prev[1]); ctx.lineTo(prev[0] - 6, prev[1]);
-    ctx.moveTo(prev[0] + 6, prev[1]); ctx.lineTo(prev[0] + 10, prev[1]);
-    ctx.moveTo(prev[0], prev[1] - 10); ctx.lineTo(prev[0], prev[1] - 6);
-    ctx.moveTo(prev[0], prev[1] + 6); ctx.lineTo(prev[0], prev[1] + 10);
+    ctx.arc(prev[0], prev[1], 5 * k, 0, Math.PI * 2);
+    ctx.moveTo(prev[0] - 10 * k, prev[1]); ctx.lineTo(prev[0] - 6 * k, prev[1]);
+    ctx.moveTo(prev[0] + 6 * k, prev[1]); ctx.lineTo(prev[0] + 10 * k, prev[1]);
+    ctx.moveTo(prev[0], prev[1] - 10 * k); ctx.lineTo(prev[0], prev[1] - 6 * k);
+    ctx.moveTo(prev[0], prev[1] + 6 * k); ctx.lineTo(prev[0], prev[1] + 10 * k);
     ctx.stroke();
-  }
-
-  // A figure caption, like the papers have: what you are looking at, and the key.
-  if (v.labels) {
-    const counts = map.typeCounts();
-    const live = counts.map((k, t) => [t, k]).filter(([, k]) => k > 0);
-    const base = Math.min(cy + R * 1.75, v.h - (v.bottomInset ?? 80));
-    ctx.font = '10.5px ui-monospace, SFMono-Regular, Menlo, monospace';
-    ctx.textBaseline = 'middle';
-    const head = map.demo ? 'CALL MAP · waiting for the music — imaginary birds meanwhile' : `CALL MAP · ${n} sounds in the last ${Math.round(map.life / 1000)} s · ${live.length} kinds`;
-    const keyW = live.length * 46;
-    const headW = ctx.measureText(head).width;
-    let x = cx - (headW + 18 + keyW) / 2;
-    ctx.fillStyle = `rgba(203,213,225,${(0.55 * alpha).toFixed(3)})`;
-    ctx.fillText(head, x, base);
-    x += headW + 18;
-    for (const [t, k] of live) {
-      ctx.fillStyle = rgba(t, 0.95 * alpha);
-      ctx.beginPath(); ctx.arc(x + 4, base, 3.5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = `rgba(203,213,225,${(0.55 * alpha).toFixed(3)})`;
-      ctx.fillText(String(k), x + 12, base);
-      x += 46;
-    }
   }
   ctx.restore();
 }

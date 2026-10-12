@@ -143,12 +143,14 @@ try {
   await a.click('#visualsPanel [data-look="stage"]');
   await a.keyboard.press('Escape');
 
-  /* ------------------------------------------ the call map (/canopy) -- */
-  // Ortis 2026-10-12: a birdsong-style 3D map of the sounds on air, live.
-  // The fixture beat is a low kick and a noise hat, so a working map must
-  // find calls on the onsets and at least two kinds of sound.
-  await a.evaluate(() => window.radioTower.router.go('/canopy'));
-  await a.waitForSelector('#cTune', { timeout: 5000 });
+  /* ------------------------------------------------ Canopy (call map) -- */
+  // Ortis 2026-10-12: a birdsong-style 3D map of the sounds on air, live, as
+  // a look of the radio page — big behind it or small in front. The fixture
+  // beat is a low kick and a noise hat, so a working map must find calls on
+  // the onsets and at least two kinds of sound.
+  await a.keyboard.press('v');
+  await a.waitForSelector('#visualsPanel:not([hidden])', { timeout: 3000 });
+  await a.click('#visualsPanel [data-look="canopy"]');
   await a.waitForTimeout(6000);
   const cm = await a.evaluate(() => {
     const map = window.radioTower.stage.callmap;
@@ -156,16 +158,34 @@ try {
     return {
       exists: Boolean(map), demo: map?.demo, calls: map?.calls.length ?? 0, kinds: map?.clusterCount() ?? 0,
       inCube: pts.every((p) => p.every((v) => Number.isFinite(v) && Math.abs(v) <= 1)),
-      playing: !document.getElementById('audio').paused, label: document.getElementById('cTuneLabel').textContent,
-      look: window.radioTower.settings.effective.look,
+      playing: !document.getElementById('audio').paused, path: location.pathname,
     };
   });
-  check('/canopy maps the music live: calls on the onsets, sorted into kinds, inside the cube',
-    cm.exists && !cm.demo && cm.calls >= 6 && cm.kinds >= 2 && cm.inCube && cm.playing && cm.label === 'Mute',
-    `${cm.calls} calls, ${cm.kinds} kinds, playing ${cm.playing}`);
-  check('…without changing the look the listener chose', cm.look === 'stage', cm.look);
-  await a.evaluate(() => window.radioTower.router.go('/radio'));
-  await a.waitForSelector('#rTune', { timeout: 5000 });
+  check('Canopy maps the music live on the radio page: calls on the onsets, sorted into kinds, inside the cube',
+    cm.exists && !cm.demo && cm.calls >= 6 && cm.kinds >= 2 && cm.inCube && cm.playing && cm.path === '/radio',
+    `${cm.calls} calls, ${cm.kinds} kinds`);
+  await a.click('#visualsPanel [data-canopy="front"]');
+  await a.waitForTimeout(700);
+  const front = await a.evaluate(() => {
+    const el = document.getElementById('stageFront');
+    const r = el.getBoundingClientRect();
+    const mb = document.getElementById('minibar').getBoundingClientRect();
+    const px = el.getContext('2d').getImageData(0, 0, el.width, el.height).data;
+    let lit = 0;
+    for (let i = 3; i < px.length; i += 4 * 97) if (px[i] > 8) lit++;
+    return { shown: !el.hidden && r.width > 100, aboveBar: r.bottom <= mb.top, lit, clicks: getComputedStyle(el).pointerEvents };
+  });
+  check('…and small in front, above the page, clear of the mini-player, never in the way of a click',
+    front.shown && front.aboveBar && front.lit > 20 && front.clicks === 'none', JSON.stringify(front));
+  await a.click('#visualsPanel [data-look="stage"]');
+  await a.waitForTimeout(300);
+  check('…and gone with any other look', await a.evaluate(() => document.getElementById('stageFront').hidden));
+  await a.keyboard.press('Escape');
+  const bar = await a.evaluate(() => ({
+    mb: document.getElementById('mbTitle').textContent, card: document.getElementById('rTitle').textContent,
+    shown: getComputedStyle(document.querySelector('.minibar .mb-meta')).visibility !== 'hidden',
+  }));
+  check('on a desktop the mini-player names the song, on the radio page too', bar.shown && bar.mb === bar.card, bar.mb);
 
   /* ------------------------------------------- music survives navigation -- */
   const audioBefore = await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); return document.getElementById('audio').currentTime; });
@@ -375,7 +395,7 @@ try {
   watch(m, 'phone');
   const overflow = [];
   const a11y = [];
-  for (const r of ['', 'radio', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth', 'canopy']) {
+  for (const r of ['', 'radio', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
     await m.goto(dev + r, { waitUntil: 'domcontentloaded' });
     await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
     await m.waitForTimeout(700);

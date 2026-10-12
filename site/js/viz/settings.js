@@ -18,14 +18,14 @@ export const LAYERS = [
   { id: 'dispersal', label: 'Dispersal', hint: 'sparks on the highs', color: '#fbbf24' },
   { id: 'shock', label: 'Shock', hint: 'waves on every hit', color: '#fb7185' },
   { id: 'ribbon', label: 'Ribbon', hint: 'the raw waveform', color: '#a78bfa' },
-  { id: 'callmap', label: 'Call map', hint: 'every sound mapped in 3D, like birdsong', color: '#a3e635' },
+  { id: 'callmap', label: 'Canopy', hint: 'every sound as a dot in a turning cube', color: '#a3e635' },
 ];
 
 const ALL = LAYERS.map((l) => l.id);
 
 /** Named looks. Picking one sets the layers and intensity; everything stays editable. */
 export const LOOKS = {
-  // Stage is "everything that hangs on the page"; the call map is a scene of its own (the Canopy look).
+  // Stage is "everything that hangs on the page"; Canopy is a figure of its own, so it has its own look.
   stage: { label: 'Stage', layers: ALL.filter((l) => l !== 'horizon' && l !== 'callmap'), intensity: 0.85 },
   canopy: { label: 'Canopy', layers: ['callmap', 'bloom'], intensity: 0.9 },
   frame: { label: 'Frame', layers: ['bloom', 'ring', 'dispersal', 'shock', 'ribbon'], intensity: 0.75 },
@@ -57,6 +57,7 @@ export function defaults() {
     sensitivity: 1,   // gain on the audio before it reaches the layers
     hue: null,        // null = follow the genre on air; else degrees
     ambient: 0.4,     // how much of it shows on pages that are not the radio
+    canopy: 'back',   // where the Canopy sits: 'back' (big, behind the page) or 'front' (small, above it)
   };
 }
 
@@ -73,6 +74,7 @@ export function normalise(s) {
     sensitivity: num(s.sensitivity, 0.2, 3, d.sensitivity),
     hue: s.hue === null || s.hue === undefined || s.hue === '' ? null : num(s.hue, 0, 360, null),
     ambient: num(s.ambient, 0, 1, d.ambient),
+    canopy: s.canopy === 'front' ? 'front' : 'back',
   };
   if (s.layers && typeof s.layers === 'object') {
     for (const id of ALL) if (id in s.layers) out.layers[id] = Boolean(s.layers[id]);
@@ -135,7 +137,7 @@ export class VisualSettings {
   }
 
   pickLook(name) {
-    this.own = lookToSettings(name, { motion: this.effective.motion, sensitivity: this.effective.sensitivity, hue: this.effective.hue, ambient: this.effective.ambient });
+    this.own = lookToSettings(name, { motion: this.effective.motion, sensitivity: this.effective.sensitivity, hue: this.effective.hue, ambient: this.effective.ambient, canopy: this.effective.canopy });
     this.follow = false;
     this._save();
     this._emit();

@@ -54,7 +54,7 @@ export function shellFor(html, { base = '/', siteUrl = '' } = {}) {
 /** Every route that should answer 200 on a cold load. */
 export function routes(texts) {
   return [
-    'radio', 'atlas', 'ecrits', 'portfolio', 'booth', 'canopy',
+    'radio', 'atlas', 'ecrits', 'portfolio', 'booth',
     'portfolio/library', 'portfolio/photos', 'portfolio/crates',
     ...texts.map((t) => `ecrits/${t.slug}`),
   ];

@@ -208,12 +208,10 @@ export class Stage {
     tctx.globalCompositeOperation = 'source-over';
     tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // A page may ask for its own scene (the /canopy page shows the call map
-    // whatever look the listener picked); otherwise the settings decide.
-    const master = (scene.intensity ?? s.intensity) * (scene.mode === 'radio' ? 1 : s.ambient);
+    const master = s.intensity * (scene.mode === 'radio' ? 1 : s.ambient);
     const t0 = performance.now();
     this.stats.frames++;
-    if (master <= 0.001) return;
+    if (master <= 0.001) { this._clearFront(); return; }
 
     this._readAudio(dt, ts, s.sensitivity);
     const motion = this.reducedMotion ? Math.min(s.motion, 0.25) : s.motion;
@@ -224,14 +222,15 @@ export class Stage {
     this.hue = (this.hue + diff * (1 - Math.exp(-1.6 * dt)) + 360) % 360;
     const pal = palette(this.hue, this.drift);
     const tier = TIERS[this.tier];
-    const L = scene.layers || s.layers;
+    const L = s.layers;
 
     ctx.save();
     ctx.globalAlpha = clamp(master, 0, 1);
     const anchor = this._anchor(scene, w, h);
 
     if (L.bloom) this._bloom(ctx, w, h, pal);
-    if (L.callmap) this._callmap(ctx, w, h, ts, dt, scene);
+    if (L.callmap) this._callmap(ctx, w, h, ts, dt, s, master);
+    else this._clearFront();
     if (L.horizon) this._horizon(ctx, w, h, pal, dt * motion);
     if (L.harmonic) this._harmonic(ctx, w, h, pal);
     if (L.lattice) this._lattice(ctx, w, h, pal, scene);
@@ -528,27 +527,70 @@ export class Stage {
   }
 
   /**
-   * The birdsong-style call map (./callmap.js). It reads the raw analyser —
-   * unsmoothed, so onsets stay sharp — every frame the music plays, and
-   * shows an imaginary canopy while it does not. It paints straight onto the
-   * stage, not the trail canvas: a turning cube that left trails would smear.
+   * Canopy, the call map (./callmap.js). It reads the raw analyser —
+   * unsmoothed, so onsets stay sharp — every frame the music plays, and lets
+   * a few imaginary sounds call while it does not. Two placements (Ortis,
+   * 2026-10-12): `back`, big and centred behind the whole page, painted
+   * straight onto the stage (a turning cube that left trails would smear);
+   * and `front`, a small one on its own canvas above the page, bottom right,
+   * clear of the mini-player.
    */
-  _callmap(ctx, w, h, ts, dt, scene) {
+  _callmap(ctx, w, h, ts, dt, s, master) {
     if (!this.callmap) this.callmap = new CallMap();
     const map = this.callmap;
     if (this.available && this.playing) map.pushFrame(this.fluxBins, ts, this.ac.sampleRate, this.raw.fftSize);
     else map.idle(ts, dt);
-    // The map fits the room it is given (scene.mapRect, from /canopy), else
-    // the whole page above the mini-player.
-    const bottom = Math.min(96, h * 0.12);
-    const r = scene.mapRect || { left: 0, top: 0, right: w, bottom: h - bottom };
-    const rw = Math.max(1, r.right - r.left), rh = Math.max(1, r.bottom - r.top);
-    const R = fitRadius(rw, rh);
-    // ctx already carries globalAlpha = master; the map's own alpha is for its fades.
-    paintCallMap(ctx, map, {
-      w, h, t: this.t, now: ts, cx: r.left + rw / 2, cy: r.top + rh / 2, R, alpha: 1,
-      labels: rw >= 520, bottomInset: h - r.bottom + 12,
-    });
+    const bottom = this._minibarHeight(h);
+    if (s.canopy === 'front') {
+      const side = Math.round(Math.min(300, Math.max(150, Math.min(w, h) * (w < 720 ? 0.42 : 0.3))));
+      const fc = this._frontCanvas(side, bottom);
+      if (!fc) return;
+      const f = fc.getContext('2d');
+      f.clearRect(0, 0, side, side);
+      f.globalAlpha = clamp(master, 0, 1);
+      // A soft dark disc, so the figure reads over whatever text is behind it.
+      const g = f.createRadialGradient(side / 2, side / 2, side * 0.1, side / 2, side / 2, side / 2);
+      g.addColorStop(0, 'rgba(8,11,15,0.82)');
+      g.addColorStop(0.72, 'rgba(8,11,15,0.62)');
+      g.addColorStop(1, 'rgba(8,11,15,0)');
+      f.fillStyle = g;
+      f.fillRect(0, 0, side, side);
+      paintCallMap(f, map, { t: this.t, now: ts, cx: side / 2, cy: side / 2, R: fitRadius(side, side, 0.47), alpha: 1, labels: false });
+      return;
+    }
+    this._clearFront();
+    // Big, behind everything, in the middle of what the mini-player leaves.
+    const R = fitRadius(w, h - bottom, 0.5);
+    paintCallMap(ctx, map, { t: this.t, now: ts, cx: w / 2, cy: (h - bottom) / 2, R, alpha: 1, labels: w >= 520 });
+  }
+
+  _minibarHeight(h) {
+    const mb = globalThis.document?.getElementById('minibar');
+    return Math.min(h * 0.2, mb?.offsetHeight || 70);
+  }
+
+  /** The small Canopy's own canvas, sized and placed for this frame. */
+  _frontCanvas(side, bottom) {
+    const el = globalThis.document?.getElementById('stageFront');
+    if (!el) return null;
+    const dpr = Math.min(globalThis.devicePixelRatio || 1, TIERS[this.tier].dpr);
+    const px = Math.round(side * dpr);
+    if (el.width !== px || el.height !== px) { el.width = px; el.height = px; }
+    const css = `${side}px`;
+    if (el.style.width !== css) { el.style.width = css; el.style.height = css; }
+    const b = `${Math.round(bottom + 14)}px`;
+    if (el.style.bottom !== b) el.style.bottom = b;
+    el.hidden = false;
+    el.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+    this._frontOn = true;
+    return el;
+  }
+
+  _clearFront() {
+    if (!this._frontOn) return;
+    const el = globalThis.document?.getElementById('stageFront');
+    if (el) { el.getContext('2d').clearRect(0, 0, el.width, el.height); el.hidden = true; }
+    this._frontOn = false;
   }
 
   /* ------------------------------------------------------------ extras -- */

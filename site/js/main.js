@@ -48,6 +48,11 @@ function theatre(on = !document.body.classList.contains('theatre')) {
 }
 document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) theatre(false); });
 
+// Canopy big behind the page: the panels turn to glass so the cube shows through (site.css).
+const markCanopy = (s) => document.body.classList.toggle('canopy-back', Boolean(s.layers.callmap) && s.canopy !== 'front' && s.intensity > 0);
+settings.subscribe(markCanopy);
+markCanopy(settings.effective);
+
 const visuals = new VisualsPanel({ root: $('visualsPanel'), settings, openers: [$('mbVisuals')], theatre: () => theatre() });
 
 async function boot() {
@@ -110,7 +115,6 @@ async function boot() {
       { name: 'ecrits', pattern: /^ecrits(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
       { name: 'portfolio', pattern: /^portfolio(?:\/(?<room>[\w-]+))?$/, load: () => import('./pages/portfolio.js') },
       { name: 'booth', pattern: /^booth$/, load: () => import('./pages/booth.js') },
-      { name: 'canopy', pattern: /^canopy$/, load: () => import('./pages/canopy.js') },
       { name: 'missing', pattern: /.*/, load: () => import('./pages/missing.js') },
     ],
     render: async (page, match, { fromPop, isCurrent = () => true }) => {
