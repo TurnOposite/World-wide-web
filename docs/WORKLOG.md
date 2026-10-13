@@ -2723,3 +2723,31 @@ changes, and "push everything".
   entry.
 - The tentative programme (7 days, 28-day checks, cover colours) is a private
   page for Ortis: https://claude.ai/artifact/GoiAoZQvLyAoCeRmSWbgUK
+
+## 2026-10-13 (evening) — The daily programme on air (Claude Code, laptop)
+
+What actually happened after "push everything", in order, each step checked:
+
+- `node library/bot.mjs albums --since 2026-10-12`: 151 albums opened into
+  `Crates/Bandcamp` (the bot counts 1,620 tracks; all 1,624 entries of the
+  zips are on disk — four zip entries share a name). Zips left in Downloads.
+- `music/channels.json` replaced by `library/channels.programme.json`; the
+  old one kept beside it as `channels.before-programme-2026-10-13.json`.
+  `More often` and `Less often` created, empty.
+- `6831c57` pushed on top of `a6043fa` (the other session's, no overlap).
+  GitHub self-test: success (run 38414763240).
+- Published: first the rules alone (`--only` a folder that does not exist
+  sends just `playlists.json` and `channels.json`), then everything: 1,622
+  files, 18.3 GB, 0 failures, ~10 minutes (~30 MB/s up).
+- Tower: `sudo /usr/local/bin/radio-tower-update` → "updating f02f7f4 →
+  6831c57 … on air: 6831c57". Log: `programme: daily, from 05:00
+  Europe/Paris`; `[library] 1725 tracks (146.6h)` — 35 duplicates merged by
+  the scanner (albums some of whose tracks were already in the loop).
+- Today's schedule read back from the tower (`/api/schedule`, 05:00 →
+  05:00): 270 tracks, ends exactly at 05:00; all 24 favourites; 4 long mixes
+  at 07:44, 13:24, 20:03, 01:29, 66–67 songs apart; other artists back to
+  back 0.
+- **Not touched, for Ortis:** `systemctl` reports `NeedDaemonReload=yes` for
+  `radio-tower.service`. The unit file is dated 8 October and nothing under
+  `deploy/` changed in these commits. Harmless while the loaded unit runs;
+  `sudo systemctl daemon-reload` clears it.
