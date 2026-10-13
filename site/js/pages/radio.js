@@ -193,7 +193,7 @@ export function mount(root, ctx) {
   const guideTimer = setInterval(paintGuide, 60_000);
   const offCtl = client.on?.('control', paintGuide);
 
-  const queue = new QueueEditor({ root: $('rQueue'), client, player, title: "What's next — and what can move" });
+  const queue = new QueueEditor({ root: $('rQueue'), client, player, title: "What's next" });
   const dial = new ChannelDial({ root: $('rChannels'), client, label: 'Channels' });
   // A new channel means a new guide and a new queue, right away.
   const offCh = client.on?.('channel', () => { paintGuide(); queue.refresh?.({ force: true }); });

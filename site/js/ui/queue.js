@@ -127,7 +127,8 @@ export class QueueEditor {
     } else if (can) {
       this.els.note.textContent = `Drag or use ↑ ↓ to rearrange. What's on air and anything starting in the next ${Math.round(lock / 60) >= 2 ? `${Math.round(lock / 60)} minutes` : `${lock} s`} stays put, so no listener ever loses a track they were promised.`;
     } else {
-      this.els.note.innerHTML = `${d.override ? '<b>The DJ has rearranged what\'s next.</b> ' : ''}This is the programme every listener hears. <a href="booth" data-link>The DJ booth</a> can rearrange it.`;
+      // Ortis, 2026-10-13: no explainer on the radio page; the footer links the booth.
+      this.els.note.innerHTML = d.override ? '<b>The DJ has rearranged what\'s next.</b>' : '';
     }
 
     this.els.actions.innerHTML = can && d.override

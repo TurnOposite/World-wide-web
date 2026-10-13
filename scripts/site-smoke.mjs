@@ -209,8 +209,9 @@ try {
   check('Atlas: every place is a pin, and focusing one opens its dossier', pins.length >= 5 && /Paris/.test(dossier), `${pins.length} pins`);
   check('Atlas: the tower\'s origin pulses on the map', Boolean(await a.$('.mapbox .tower-pin')));
   const places = await a.$$eval('.mapbox .pin', (ps) => ps.map((p) => p.getAttribute('aria-label')));
-  check('Atlas: the cities lived in are on the map (Kuala Lumpur, Stockholm, Genève, Novo Hamburgo)',
-    ['Kuala Lumpur', 'Stockholm', 'Genève', 'Novo Hamburgo'].every((c) => places.some((l) => l.startsWith(c))), `${places.length} places`);
+  // Geneva came off the map at Ortis's request (2026-10-13).
+  check('Atlas: the cities lived in are on the map (Kuala Lumpur, Stockholm, Novo Hamburgo), Geneva is not',
+    ['Kuala Lumpur', 'Stockholm', 'Novo Hamburgo'].every((c) => places.some((l) => l.startsWith(c))) && !places.some((l) => /Gen[eè]v/.test(l)), `${places.length} places`);
   await a.focus('.mapbox .pin[data-slug="novo-hamburgo"]');
   await a.waitForSelector('#aDossier.open .clip', { timeout: 3000 }).catch(() => {});
   const nh = await a.evaluate(async () => {

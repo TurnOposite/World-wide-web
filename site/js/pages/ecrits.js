@@ -48,15 +48,12 @@ export async function mount(root, ctx) {
   const data = await load();
   const slug = ctx.params.slug;
   if (!slug) {
-    const touch = window.matchMedia('(hover: none)').matches;
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // No instructions over the pond (Ortis, 2026-10-13): readers find the stones.
     root.innerHTML = `<div class="page-head"><h1>Écrits</h1><p style="font-family:var(--serif);font-size:17px">${esc(data.intro)}</p></div>
-      <div class="pond-wrap"><div id="pond" role="group" aria-label="Les textes, au fond de l'étang"></div>
-        <p class="pond-hint" id="pondHint">${touch ? 'Touche l’eau : les textes sont au fond. Touche une pierre une fois pour la voir, une deuxième fois pour l’ouvrir.' : 'Passe la main au-dessus de l’eau : les textes sont au fond.'}</p></div>
-      <p class="hint">♦ scoré — un morceau de la radio a été choisi pour ce texte. Il passe à l'antenne pour tout le monde, à son heure.</p>`;
+      <div class="pond-wrap"><div id="pond" role="group" aria-label="Les textes, au fond de l'étang"></div></div>`;
     const { createPond } = await import('../ui/pond.js');
     const pond = createPond(root.querySelector('#pond'), data.texts.map(stone), { reducedMotion: still });
-    if (!pond.webgl) root.querySelector('#pondHint').textContent = 'Les textes sont au fond de l’eau ; choisis une pierre.';
     return () => pond.destroy();
   }
   const t = data.texts.find((x) => x.slug === slug);

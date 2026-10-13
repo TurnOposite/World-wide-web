@@ -4,9 +4,9 @@
  *
  * No map library, no tiles, no third-party call: an inlined Natural Earth
  * outline on the linear projection x = lon + 180, y = 90 − lat. Europe holds
- * five of the places within a few degrees of each other, so it is drawn a
- * second time, magnified, in the North Atlantic (a cartographer's inset) and
- * its pins live there. The tower's own point pulses with the logo's sideways
+ * the places within a few degrees of each other, so it is drawn a second
+ * time, magnified, over Siberia, where the map is emptiest (a cartographer's
+ * inset), and its pins live there. The tower's own point pulses with the logo's sideways
  * waves; its position is configuration (config.json → station.origin).
  *
  * Hovering a pin opens a postcard of the city (site/js/ui/postcards.js, or a
@@ -39,7 +39,7 @@ export const project = (lat, lon) => ({ x: lon + 180, y: 90 - lat });
 export const VIEW = [50, 14, 280, 126];
 /** Europe, in projected units, and where its magnified copy sits. */
 export const EUROPE = { x: 173, y: 28, w: 29, h: 21 };
-export const INSET = { x: 112, y: 22, s: 2 };
+export const INSET = { x: 236, y: 18, s: 2 };
 
 export const inEurope = (p) => {
   const { x, y } = project(p.lat, p.lon);
@@ -64,9 +64,14 @@ export function mapSvg(world, places, origin, { compact = false, view = null } =
 
   const iw = EUROPE.w * INSET.s;
   const ih = EUROPE.h * INSET.s;
+  // The leader lines join the facing edges, whichever side of Europe the inset sits on.
+  const right = INSET.x > EUROPE.x;
+  const ix = right ? INSET.x : INSET.x + iw;
+  const ex = right ? EUROPE.x + EUROPE.w : EUROPE.x;
+  const lead = `M${ix} ${INSET.y} L${ex} ${EUROPE.y} M${ix} ${INSET.y + ih} L${ex} ${EUROPE.y + EUROPE.h}`;
   const inset = `<g class="eu-lead" aria-hidden="true">
       <rect x="${EUROPE.x}" y="${EUROPE.y}" width="${EUROPE.w}" height="${EUROPE.h}" rx=".6"/>
-      <path d="M${INSET.x + iw} ${INSET.y} L${EUROPE.x} ${EUROPE.y} M${INSET.x + iw} ${INSET.y + ih} L${EUROPE.x} ${EUROPE.y + EUROPE.h}"/></g>
+      <path d="${lead}"/></g>
     <g class="inset" aria-hidden="true">
       <rect class="inset-bg" x="${INSET.x}" y="${INSET.y}" width="${iw}" height="${ih}" rx="1.2"/>
       <svg x="${INSET.x}" y="${INSET.y}" width="${iw}" height="${ih}" viewBox="${EUROPE.x} ${EUROPE.y} ${EUROPE.w} ${EUROPE.h}">
@@ -101,7 +106,7 @@ export function mapSvg(world, places, origin, { compact = false, view = null } =
 /** A dossier link is a path on this site or an https URL — never javascript: or data:. */
 export const safeLink = (href) => (typeof href === 'string' && (/^https:\/\//.test(href) || /^[\w\-./#]+$/.test(href)) ? href : null);
 
-const MONTHS = ['janv.', 'févr.', 'mars', 'avril', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const day = (iso) => { const [, m, d] = iso.split('-').map(Number); return `${d} ${MONTHS[m - 1]}`; };
 
 function projectsHtml(p) {
@@ -122,13 +127,13 @@ function pressHtml(press) {
   const ser = press.series;
   const first = col?.items?.[0]?.date;
   const last = col?.items?.[col.items.length - 1]?.date;
-  return `<section class="pc-press" aria-label="Articles — ${esc(press.outlet)}">
+  return `<section class="pc-press" aria-label="Articles, ${esc(press.outlet)}">
     ${col ? `<h3>${esc(col.title)}</h3>
-      <p class="pc-sub">${col.items.length} chroniques · ${esc(press.outlet)} · du ${day(first)} au ${day(last)} 2024 · en portugais</p>
-      <div class="clips" tabindex="0" aria-label="Les chroniques, faire défiler">${col.items.map((c) => `<a class="clip" href="${esc(c.pages[0])}" target="_blank" rel="noopener" title="${esc(c.title)}">
+      <p class="pc-sub">${col.items.length} columns · ${esc(press.outlet)} · ${day(first)} to ${day(last)} 2024 · in Portuguese</p>
+      <div class="clips" tabindex="0" aria-label="The columns, scroll sideways">${col.items.map((c) => `<a class="clip" href="${esc(c.pages[0])}" target="_blank" rel="noopener" title="${esc(c.title)}">
         <img src="${esc(c.thumb)}" alt="" loading="lazy" decoding="async" width="120" height="165"><span class="d">${day(c.date)}</span><span class="t">${esc(c.title)}</span></a>`).join('')}</div>` : ''}
-    ${ser ? `<h3>${esc(ser.title)}</h3><p class="pc-sub">série en ${ser.items.length} stations du RER B</p>
-      <ol class="rer">${ser.items.map((s) => `<li><a href="${esc(s.pages[0])}" target="_blank" rel="noopener"><span class="stn" aria-hidden="true"></span><b>${esc(s.stop.split(',')[0])}</b><span>${esc(s.title)} · ${day(s.date)}</span></a>${s.pages[1] ? `<a class="p2" href="${esc(s.pages[1])}" target="_blank" rel="noopener" aria-label="${esc(s.title)}, suite">suite</a>` : ''}</li>`).join('')}</ol>` : ''}
+    ${ser ? `<h3>${esc(ser.title)}</h3><p class="pc-sub">a series in ${ser.items.length} RER B stops</p>
+      <ol class="rer">${ser.items.map((s) => `<li><a href="${esc(s.pages[0])}" target="_blank" rel="noopener"><span class="stn" aria-hidden="true"></span><b>${esc(s.stop.split(',')[0])}</b><span>${esc(s.title)} · ${day(s.date)}</span></a>${s.pages[1] ? `<a class="p2" href="${esc(s.pages[1])}" target="_blank" rel="noopener" aria-label="${esc(s.title)}, continued">continued</a>` : ''}</li>`).join('')}</ol>` : ''}
   </section>`;
 }
 
@@ -149,14 +154,12 @@ export function dossierHtml(p) {
   if (!p) return '';
   const pic = p.photo && safeLink(p.photo) ? `<img src="${esc(p.photo)}" alt="${esc(p.city)}">` : postcardSvg(p.slug);
   const story = (p.story || []).map((s) => `<p>${esc(s)}</p>`).join('');
-  const pending = !story && !(p.projects || []).some((pr) => pr.name && pr.name !== '—') && !p.press;
   return `<div class="pc-img"><div class="pc-pic">${pic}</div><div class="pc-name"><h2 class="place">${esc(p.city)}</h2><span>${esc(p.region ? `${p.region}, ${p.country}` : p.country)}</span></div>${stampSvg(p)}</div>
     <div class="pc-head"><span class="pc-badge k-${esc(p.kind || 'lived')}">${esc(p.badge || '')}</span>${p.years ? `<span class="years">${esc(p.years)}</span>` : ''}</div>
     <div class="pc-more"><div class="pc-more-in">
       ${story ? `<div class="pc-story">${story}</div>` : ''}
       ${projectsHtml(p)}
       ${pressHtml(p.press)}
-      ${pending ? `<p class="pc-pending">${p.status === 'à compléter' ? 'Le récit de ces années viendra ici.' : 'Rien d’écrit pour l’instant.'}</p>` : ''}
     </div></div>`;
 }
 
@@ -182,11 +185,11 @@ export function wirePins(svgRoot, places, on) {
 
 export async function mount(root, ctx) {
   root.innerHTML = `<div class="page-head"><h1>Atlas</h1>
-      <p>Où ça s'est passé — les villes où j'ai vécu, ce qui y a été fait, et d'où la tour émet en ce moment.</p></div>
+      <p>Where it happened: the cities I have lived in, what was made there, and where the tower is broadcasting from right now.</p></div>
     <div class="atlas">
       <div class="mapbox" id="aMap"><p class="empty">…</p>
         <article class="postcard" id="aDossier" aria-live="polite" hidden></article></div>
-      <nav class="atlas-index" id="aIndex" aria-label="Les lieux"></nav>
+      <nav class="atlas-index" id="aIndex" aria-label="Places"></nav>
     </div>`;
   const { world, places } = await load();
   const origin = ctx.config.station?.origin;
@@ -196,7 +199,7 @@ export async function mount(root, ctx) {
 
   box.querySelector('.empty').remove();
   box.insertAdjacentHTML('afterbegin', mapSvg(world, places, origin) +
-    `<div class="map-legend"><span><i class="sw"></i> un lieu — survole-le pour sa carte postale</span>${origin ? `<span><i class="sw ring"></i> la tour émet depuis ${esc(origin.place || '')}</span>` : ''}<span>Europe agrandie ×${INSET.s} · Natural Earth 1:110m</span></div>`);
+    `<div class="map-legend"><span><i class="sw"></i> a place: hover it for its postcard</span>${origin ? `<span><i class="sw ring"></i> the tower broadcasts from ${esc(origin.place || '')}</span>` : ''}<span>Europe enlarged ×${INSET.s} · Natural Earth 1:110m</span></div>`);
   const svg = box.querySelector('svg');
 
   index.innerHTML = places.map((p, i) => `<button type="button" class="ai-chip k-${esc(p.kind || 'lived')}" data-i="${i}"><b>${esc(p.city)}</b>${p.years ? `<span>${esc(p.years)}</span>` : ''}</button>`).join('');
@@ -245,7 +248,7 @@ export async function mount(root, ctx) {
       // glide from pin to pin while a card is up; appear in place otherwise
       card.classList.toggle('moving', current >= 0 && !narrow.matches);
       current = i;
-      card.innerHTML = `<button type="button" class="pc-close" aria-label="Fermer la carte">✕</button>${dossierHtml(places[i])}`;
+      card.innerHTML = `<button type="button" class="pc-close" aria-label="Close the card">✕</button>${dossierHtml(places[i])}`;
       card.classList.remove('open');
       card.hidden = false;
       card.classList.remove('in');

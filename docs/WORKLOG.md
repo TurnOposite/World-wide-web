@@ -2751,3 +2751,30 @@ What actually happened after "push everything", in order, each step checked:
   `radio-tower.service`. The unit file is dated 8 October and nothing under
   `deploy/` changed in these commits. Harmless while the loaded unit runs;
   `sudo systemctl daemon-reload` clears it.
+
+## 2026-10-13 (night) — The site, room by room, from Ortis's review (Claude Code, Ortis present)
+
+- **Radio.** The queue is titled "What's next"; the explainer ("This is the
+  programme every listener hears… the DJ booth can rearrange it") is gone —
+  the footer links the booth. A DJ's override still says so in one line.
+- **Atlas.** In English throughout; statuses and em dashes out of the cards;
+  every item linked (URLs checked to answer: both embassies, Grupo Sinos —
+  `jornalnh.com.br` now redirects to abc+ —, McGill, UCPH, IFP, GUT's
+  Amsterdam office, both lycées). The metro series lives only in Novo
+  Hamburgo; Amsterdam is just GUT; Kuala Lumpur and Stockholm from the CV;
+  Geneva removed (the smoke check now asserts it is gone). Europe inset over
+  Siberia, its leader lines from whichever edges face each other.
+- **Écrits.** The two instructions over the pond are gone; the score box on
+  each text stays.
+- **Portfolio, Library.** One bookcase instead of two strips (DECISIONS, same
+  date); the thesis card's cover and title open the thesis, with a hover
+  like the books'. Checked in the browser at 1366 px and on a phone width:
+  hover lifts a book on either shelf, the face-out thesis too.
+- The one item with no public page (internal embassy work, Maputo card) is
+  off the site: Ortis wants it private.
+- Self-test after: **390 tests, 43/43 browser, 57/57 site** (the Atlas check
+  now asserts Geneva is gone; the bookcase, pond and Atlas checks all pass).
+- Final tree (internal item removed, Copenhagen's exchange item back to the
+  Library with the university's site on its own line): unit tests green; site
+  smoke 49/50 then 50/50 twice — the cloud booth's "…it is a permutation"
+  check failed once more, the same intermittent as earlier today.

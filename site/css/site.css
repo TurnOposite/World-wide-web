@@ -414,7 +414,6 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
 .pond .stone{position:absolute;display:block;border-radius:50%;text-decoration:none;cursor:pointer}
 .pond .stone:focus-visible{outline:2px solid var(--signal);outline-offset:4px;border-radius:50%}
 .pond .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
-.pond-hint{margin:18px 2px 0;font:italic 15px/1.5 var(--serif);color:var(--text-dim)}
 @media (max-width:620px){.pond{height:clamp(520px,150vw,640px);border-radius:30% 34% 28% 32% / 12% 10% 14% 12%}}
 .reading{max-width:680px;margin:0 auto;background:rgba(12,15,19,.94);border:1px solid var(--line-soft);border-radius:20px;padding:clamp(22px,5vw,56px)}
 .reading .back{font-size:13px;color:var(--text-faint);text-decoration:none}

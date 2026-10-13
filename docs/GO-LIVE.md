@@ -134,9 +134,9 @@ Then open the address on your phone, press **Tune in**.
 
 ## 5. Before you send the link to anyone
 
-1. **The Atlas** — `site/data/places.json`. Most entries still say
-   *à confirmer* (Maputo lists the embassy's press service and the CIP study;
-   Amsterdam lists GUT). Edit, delete, or add; `status: "verified"` hides the
+1. **The Atlas** — `site/data/places.json`, in English since 2026-10-13,
+   every item linked. Only public work goes on a card: internal embassy
+   projects stay off it. Edit, delete, or add; `status: "verified"` hides the
    tag.
 2. **Where the tower broadcasts from** — `site/config.json` →
    `station.origin` (Maputo today; Amsterdam from 5 October?).

@@ -3288,3 +3288,28 @@ answers `Access-Control-Allow-Origin: *`, so the site on Vercel can read
 covers from the tower's origin (checked against the live tower, 2026-10-13,
 and rendered on the real stage with four covers). The Pi's own page
 (`public/app.js`) still uses the genre hue.
+
+## 2026-10-13 — The Atlas speaks English; Écrits stays French; one eye for the bookcase
+
+Ortis, reviewing the live site: the Atlas was in French while the rest of
+the site's furniture (Radio, Portfolio rooms) is English. **The Atlas is now
+English**, data (`site/data/places.json`) and interface (`atlas.js`, the
+home page's Atlas strip) alike; **Écrits stays French** — the texts are
+French and so is their room. No "à confirmer" on the public cards and no em
+dashes in their text; every card item links somewhere (an official site, a
+clipping, or a room of this one). Internal embassy work stays off the cards
+(Ortis: it stays private).
+Geneva is off the map; Kuala Lumpur and Stockholm carry his schooling from
+his CV (Lycée Français Henri Fauconnier, French IB 2019–2022; Lycée Français
+Saint Louis de Stockholm, brevet 2016–2019). The Europe inset moved from the
+Atlantic to Siberia, where the map has nothing to cover.
+
+**The bookcase.** Each shelf had its own `perspective`, so each was seen
+from its own height and from the depth of its own books: two strips, not one
+piece of furniture. Now the case has one perspective (eye a little above it),
+every shelf takes the depth and height of the whole case, shelf labels sit on
+the boards' front edges, and the shelf above paints over the one below so a
+back panel can reach behind the board above it. Because each `.shelf` now
+joins the 3D space, its flat box would sit in front of the books that recede
+behind it and swallow their pointer: `.shelf` ignores the pointer and only
+books take it (phones, where the shelf scrolls sideways, keep it).

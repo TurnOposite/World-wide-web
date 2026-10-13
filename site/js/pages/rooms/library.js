@@ -161,11 +161,14 @@ export async function mount(root, ctx) {
     if (small.length) rows.push(small);
     for (const s of big) rows.push([s]);
 
+    // One piece of furniture (Ortis, 2026-10-13): every shelf takes the depth
+    // and height of the deepest and tallest book in the whole case, so the
+    // boards and the back line up instead of reading as separate strips.
+    let depth = 0;
+    let tallest = 0;
     el.bookcase.innerHTML = rows
-      .map((group) => {
+      .map((group, ri) => {
         const label = group.map((s) => esc(s.label)).join('<span aria-hidden="true"> · </span>');
-        let depth = 0;
-        let tallest = 0;
         // The thesis stands face-out at the end of its shelf, the way a shop
         // shows the book it is proudest of; everything else is spine-out.
         const faceOut = [];
@@ -188,16 +191,21 @@ export async function mount(root, ctx) {
             return (gi > 0 ? '<span class="bookend" aria-hidden="true"></span>' : '') + html;
           })
           .join('');
+        // Each shelf is drawn as its own 3D layer; the one above paints over
+        // the one below, so a shelf's back panel can reach up behind the
+        // board above it without hiding it. The label is on the board's edge.
         return (
-          `<div class="shelf" style="--dmax:${depth}px;--hmax:${tallest}px"><p class="shelf-label">${label}</p>` +
+          `<div class="shelf" style="z-index:${rows.length - ri}">` +
           `<div class="shelf-3d">` +
           `<div class="case-back" aria-hidden="true"></div><div class="case-side" aria-hidden="true"></div>` +
           `<div class="shelf-row"><span class="bookend" aria-hidden="true"></span>${spines}<span class="bookend" aria-hidden="true"></span>${faceOut.join('')}</div>` +
-          `<div class="board-top" aria-hidden="true"></div><div class="board-front" aria-hidden="true"></div>` +
+          `<div class="board-top" aria-hidden="true"></div><div class="board-front"><p class="shelf-label">${label}</p></div>` +
           `</div></div>`
         );
       })
       .join('');
+    el.bookcase.style.setProperty('--dmax', `${depth}px`);
+    el.bookcase.style.setProperty('--hmax', `${tallest}px`);
   }
 
   function renderChips() {
@@ -223,10 +231,16 @@ export async function mount(root, ctx) {
   function renderThesis(book) {
     if (!book) return;
     const size = book.file?.bytes ? ` <small>${(book.file.bytes / 1048576).toFixed(1)} MB</small>` : '';
+    // The cover and the title open the thesis to read, like every book on the
+    // shelf opens (Ortis, 2026-10-13: "nothing happens" when clicked).
+    const read = (inner, cls, label = '') => (book.file
+      ? `<a class="${cls}" href="${book.file.url}" target="_blank" rel="noopener"${label ? ` aria-label="${label}"` : ''}>${inner}</a>`
+      : inner);
+    const cover = book.cover ? `<img src="${book.cover}" alt="First page of the thesis" loading="lazy">` : '';
     el.thesis.innerHTML =
-      (book.cover ? `<img src="${book.cover}" alt="First page of the thesis" loading="lazy">` : '<div></div>') +
+      (cover ? read(cover, 'thesis-cover', 'Read the thesis online') : '<div></div>') +
       `<div><p class="eyebrow">The thesis · ${esc(book.kind)}</p>` +
-      `<h3 id="thesisTitle">${esc(book.title)}</h3>` +
+      `<h3 id="thesisTitle">${read(esc(book.title), 'thesis-read')}</h3>` +
       (book.subtitle ? `<p class="sub">${esc(book.subtitle)}</p>` : '') +
       (book.blurb ? `<p class="blurb">${esc(book.blurb)}</p>` : '') +
       `<div class="actions">` +

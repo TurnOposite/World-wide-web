@@ -1,11 +1,11 @@
 {
   "_readme": [
-    "The Atlas. One entry per place; lat/lon in decimal degrees.",
-    "slug — names the postcard drawn in site/js/ui/postcards.js; add \"photo\": \"assets/places/<slug>.jpg\" to show a real photo instead.",
-    "badge — one or two words on the card (J'y ai vécu, Stage…). kind: lived | work | trip.",
-    "story — the paragraphs the card unfolds on hover. projects[].status is shown when it is not 'verified'.",
-    "press — clippings shown in the card (Novo Hamburgo: site/press/nh/).",
-    "nudge/anchor — where the label sits next to the pin. Places inside the Europe box are drawn in the inset.",
+    "The Atlas. One entry per place; lat/lon in decimal degrees. Written in English (Arthur, 2026-10-13).",
+    "slug names the postcard drawn in site/js/ui/postcards.js; add \"photo\": \"assets/places/<slug>.jpg\" to show a real photo instead.",
+    "badge: one or two words on the card (Now, Exchange, Internship…). kind: lived | work | trip.",
+    "story: the paragraphs the card unfolds on hover. projects[]: name, what, link (a page of this site or an https URL). Every project should have a working link.",
+    "press: clippings shown in the card (Novo Hamburgo: site/press/nh/).",
+    "nudge/anchor: where the label sits next to the pin. Places inside the Europe box are drawn in the inset (over Siberia).",
     "The tower's own point comes from config.json → station.origin."
   ],
   "places": [
@@ -17,25 +17,20 @@
       "lon": 32.58,
       "years": "2026",
       "kind": "lived",
-      "badge": "En ce moment",
+      "badge": "Now",
       "nudge": [
         3.2,
-        1.0
+        1
       ],
       "story": [
-        "Stage au service de presse et de communication de l'ambassade de France au Mozambique.",
-        "C'est d'ici que la tour émet en ce moment."
+        "Press and communication intern at the Embassy of France in Mozambique.",
+        "This is where the tower is broadcasting from right now."
       ],
       "projects": [
         {
-          "name": "Ambassade de France — service de presse",
-          "what": "communication, revues de presse, notes régionales",
-          "status": "à confirmer"
-        },
-        {
-          "name": "CIP — cartographie des influenceurs",
-          "what": "subvention FSIC, suivi et livrables",
-          "status": "à confirmer"
+          "name": "Embassy of France in Mozambique",
+          "what": "press office: communication, press reviews, regional notes",
+          "link": "https://mz.ambafrance.org/"
         }
       ]
     },
@@ -47,111 +42,116 @@
       "lon": 2.35,
       "years": "2024 – 2026",
       "kind": "lived",
-      "badge": "Ma ville",
+      "badge": "My city",
       "nudge": [
         -2.4,
         -1.6
       ],
       "anchor": "end",
       "story": [
-        "La ville de cœur — celle que la série « Um passeio de metrô por Paris » a fait visiter, station après station, aux lecteurs du Jornal NH à l'été 2024.",
-        "Master Global Journalism and Communication à l'Institut Français de Presse (Paris II Panthéon-Assas), et un mémoire sur les Barber Beats."
+        "The city closest to my heart.",
+        "Master's in Global Journalism and Communication at the French Press Institute (Université Paris-Panthéon-Assas), with a thesis on Barber Beats."
       ],
       "projects": [
         {
-          "name": "Assas — Global Journalism & Communication",
-          "what": "master, mémoire sur les Barber Beats",
-          "status": "à confirmer",
+          "name": "Assas, Global Journalism & Communication",
+          "what": "master's, thesis on Barber Beats",
           "link": "portfolio/library"
         },
         {
-          "name": "Um passeio de metrô por Paris",
-          "what": "quatre stations du RER B racontées pour le Jornal NH",
-          "status": "verified",
-          "link": "atlas#novo-hamburgo"
+          "name": "French Press Institute",
+          "what": "Université Paris-Panthéon-Assas",
+          "link": "https://ifp.assas-universite.fr/fr"
         }
       ]
     },
     {
       "slug": "amsterdam",
       "city": "Amsterdam",
-      "country": "Pays-Bas",
+      "country": "Netherlands",
       "lat": 52.37,
       "lon": 4.9,
-      "years": "à partir d'octobre 2026",
+      "years": "from October 2026",
       "kind": "lived",
-      "badge": "Prochaine étape",
+      "badge": "Next stop",
       "nudge": [
         -2.4,
         -1.4
       ],
       "anchor": "end",
       "story": [
-        "La prochaine adresse : un stage chez GUT, trois jours par semaine, à partir d'octobre 2026."
+        "The next address: GUT, in Amsterdam."
       ],
       "projects": [
         {
-          "name": "GUT",
-          "what": "stage, trois jours par semaine",
-          "status": "à confirmer"
+          "name": "GUT Amsterdam",
+          "what": "from October 2026",
+          "link": "https://www.gut.agency/offices/amsterdam"
         }
       ]
     },
     {
       "slug": "copenhague",
-      "city": "Copenhague",
-      "country": "Danemark",
+      "city": "Copenhagen",
+      "country": "Denmark",
       "lat": 55.68,
       "lon": 12.57,
       "years": "2024",
       "kind": "lived",
-      "badge": "Échange",
+      "badge": "Exchange",
       "nudge": [
         2.4,
         1.2
       ],
       "story": [
-        "Un semestre d'échange à l'Université de Copenhague : une carte de 5 500 vidéos vaporwave, une régression sur internet et religion.",
-        "Globe Trotter, le site, est né ici."
+        "An exchange semester at the University of Copenhagen: a map of 5,500 vaporwave videos, and a regression on the internet and religion.",
+        "Globe Trotter, this site, was born here."
       ],
       "projects": [
         {
           "name": "Globe Trotter",
-          "what": "le site est né ici — le compte porte encore le fuseau",
-          "status": "verified",
+          "what": "the site was born here; the account still carries the time zone",
           "link": "ecrits"
         },
         {
-          "name": "University of Copenhagen — échange",
-          "what": "réseaux vaporwave, régression internet et religion",
-          "status": "à confirmer",
+          "name": "University of Copenhagen, exchange",
+          "what": "vaporwave networks, the internet and religion",
           "link": "portfolio/library"
+        },
+        {
+          "name": "University of Copenhagen",
+          "what": "exchange semester, 2024 – 2025",
+          "link": "https://www.ku.dk/en"
         }
       ]
     },
     {
       "slug": "montreal",
-      "city": "Montréal",
+      "city": "Montreal",
       "country": "Canada",
       "lat": 45.5,
       "lon": -73.57,
-      "years": "licence",
+      "years": "2022 – 2025",
       "kind": "lived",
-      "badge": "Licence",
+      "badge": "Bachelor's",
       "nudge": [
         -2.6,
-        1.0
+        1
       ],
       "anchor": "end",
       "story": [
-        "La licence à McGill : sciences politiques, développement international, études latino-américaines. La plupart des essais de la bibliothèque viennent de là."
+        "The bachelor's at McGill: political science, international development, Latin American studies. Most of the essays in the library come from there."
       ],
       "projects": [
         {
-          "name": "McGill — essais",
-          "what": "sciences politiques, développement international, études latino-américaines",
-          "status": "à confirmer",
+          "name": "McGill, essays",
+          "what": "political science, international development, Latin American studies",
           "link": "portfolio/library"
+        },
+        {
+          "name": "McGill University",
+          "what": "BA, 2022 – 2025",
+          "link": "https://www.mcgill.ca/"
         }
       ]
     },
@@ -163,49 +163,43 @@
       "lon": 35.31,
       "years": "2026",
       "kind": "trip",
-      "badge": "Escale",
+      "badge": "Stopover",
       "nudge": [
         2.6,
         0.6
       ],
       "story": [],
-      "projects": [
-        {
-          "name": "—",
-          "what": "emplacement libre",
-          "status": "à remplir"
-        }
-      ]
+      "projects": []
     },
     {
       "slug": "novo-hamburgo",
       "city": "Novo Hamburgo",
-      "country": "Brésil",
+      "country": "Brazil",
       "region": "Rio Grande do Sul",
       "lat": -29.68,
       "lon": -51.13,
-      "years": "juin – juillet 2024",
+      "years": "June – July 2024",
       "kind": "work",
-      "badge": "Stage · Jornal NH",
+      "badge": "Internship · Jornal NH",
       "nudge": [
         2.6,
-        1.0
+        1
       ],
       "story": [
-        "Deux mois de stage au Grupo Sinos, l'éditeur du Jornal NH, en plein hiver gaúcho.",
-        "Jusqu'à l'ouverture des Jeux de Paris, une chronique quotidienne dans les pages sport — « Parisiense em estágio no Grupo Sinos » : une discipline, un site ou une histoire olympique par édition, en portugais.",
-        "Puis une série en quatre stations le long du RER B pour faire visiter Paris aux lecteurs du Rio Grande do Sul."
+        "Two months as an intern at Grupo Sinos, the publisher of Jornal NH, in the middle of the gaúcho winter.",
+        "Until the Paris Games opened, a daily column in the sports pages, “Parisiense em estágio no Grupo Sinos”: one discipline, venue or Olympic story per issue, in Portuguese.",
+        "Then a four-stop series along the RER B, taking the readers of Rio Grande do Sul around Paris."
       ],
       "projects": [
         {
-          "name": "Jornal NH — Grupo Sinos",
-          "what": "26 chroniques olympiques, pages sport",
-          "status": "verified"
+          "name": "Jornal NH, Grupo Sinos",
+          "what": "26 Olympic columns, sports pages",
+          "link": "https://gruposinos.com.br/"
         },
         {
           "name": "Um passeio de metrô por Paris",
-          "what": "série en quatre stations",
-          "status": "verified"
+          "what": "a series in four RER B stops",
+          "link": "press/nh/2024-07-19-p1.pdf"
         }
       ],
       "press": {
@@ -447,7 +441,7 @@
               ],
               "thumb": "press/nh/thumbs/2024-07-22-p12.jpg",
               "series": "metro",
-              "stop": "Châtelet-Les Halles, le Marais, l’Île de la Cité"
+              "stop": "Châtelet-Les Halles, the Marais, Île de la Cité"
             },
             {
               "date": "2024-07-23",
@@ -458,7 +452,7 @@
               ],
               "thumb": "press/nh/thumbs/2024-07-23-p12.jpg",
               "series": "metro",
-              "stop": "Port-Royal, le Luxembourg, le Quartier latin"
+              "stop": "Port-Royal, the Luxembourg, the Latin Quarter"
             },
             {
               "date": "2024-07-24",
@@ -469,7 +463,7 @@
               ],
               "thumb": "press/nh/thumbs/2024-07-24-p12.jpg",
               "series": "metro",
-              "stop": "Antony, le parc de Sceaux, les banlieues"
+              "stop": "Antony, Parc de Sceaux, the suburbs"
             }
           ]
         }
@@ -478,53 +472,55 @@
     {
       "slug": "kuala-lumpur",
       "city": "Kuala Lumpur",
-      "country": "Malaisie",
+      "country": "Malaysia",
       "lat": 3.14,
       "lon": 101.69,
-      "years": "",
+      "years": "2019 – 2022",
       "kind": "lived",
-      "badge": "J'y ai vécu",
+      "badge": "High school",
       "nudge": [
         2.6,
-        1.0
+        1
       ],
-      "story": [],
-      "projects": [],
-      "status": "à compléter"
+      "story": [
+        "The French International Baccalaureate at the Lycée Français Henri Fauconnier, graduated with honours: history, geography, geopolitics and political science; economics and sociology; humanities, literature and philosophy."
+      ],
+      "projects": [
+        {
+          "name": "Lycée Français Henri Fauconnier",
+          "what": "French International Baccalaureate, with honours",
+          "link": "https://www.lfkl.edu.my/"
+        },
+        {
+          "name": "Embassy of France in Malaysia",
+          "what": "intern, February 2020",
+          "link": "https://my.ambafrance.org/"
+        }
+      ]
     },
     {
       "slug": "stockholm",
       "city": "Stockholm",
-      "country": "Suède",
+      "country": "Sweden",
       "lat": 59.33,
       "lon": 18.07,
-      "years": "",
+      "years": "2016 – 2019",
       "kind": "lived",
-      "badge": "J'y ai vécu",
+      "badge": "Middle school",
       "nudge": [
         2.4,
         -0.6
       ],
-      "story": [],
-      "projects": [],
-      "status": "à compléter"
-    },
-    {
-      "slug": "geneve",
-      "city": "Genève",
-      "country": "Suisse",
-      "lat": 46.2,
-      "lon": 6.14,
-      "years": "",
-      "kind": "lived",
-      "badge": "J'y ai vécu",
-      "nudge": [
-        2.4,
-        2.6
+      "story": [
+        "Middle school at the Lycée Français Saint Louis de Stockholm: the brevet, with honours."
       ],
-      "story": [],
-      "projects": [],
-      "status": "à compléter"
+      "projects": [
+        {
+          "name": "Lycée Français Saint Louis de Stockholm",
+          "what": "brevet, with honours",
+          "link": "https://www.lfsl.net/"
+        }
+      ]
     }
   ]
 }

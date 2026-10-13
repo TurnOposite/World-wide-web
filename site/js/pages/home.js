@@ -32,9 +32,9 @@ export async function mount(root, ctx) {
       </section>
 
       <section class="mapbox" aria-label="Atlas">
-        <div class="panel-head" style="margin-bottom:6px"><span class="eyebrow">Atlas — survole une ville</span><a class="btn small" href="atlas" data-link>Ouvrir</a></div>
+        <div class="panel-head" style="margin-bottom:6px"><span class="eyebrow">Atlas · hover a city</span><a class="btn small" href="atlas" data-link>Open</a></div>
         <div id="hMap"></div>
-        <p class="hint" id="hPlace" style="min-height:1.4em">Chaque point est un endroit où quelque chose a été fait.</p>
+        <p class="hint" id="hPlace" style="min-height:1.4em">Every point is a place where something was made.</p>
       </section>
 
       <section class="textstrip">
@@ -87,7 +87,10 @@ export async function mount(root, ctx) {
   if (world && places) {
     const m = $('hMap');
     m.innerHTML = mapSvg(world, places.places, ctx.config.station?.origin, { compact: true });
-    wirePins(m, places.places, (p) => { $('hPlace').innerHTML = `<b>${esc(p.city)}</b> — ${esc(p.projects.map((x) => x.name).join(' · '))}`; });
+    wirePins(m, places.places, (p) => {
+      const work = (p.projects || []).map((x) => x.name).join(' · ');
+      $('hPlace').innerHTML = `<b>${esc(p.city)}</b>${work ? `: ${esc(work)}` : ''}`;
+    });
   }
   if (texts) {
     $('hIntro').textContent = texts.intro;
