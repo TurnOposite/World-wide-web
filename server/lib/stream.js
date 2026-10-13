@@ -8,6 +8,17 @@
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
+import { pipeline } from 'node:stream';
+
+/**
+ * File → response. `pipeline`, not `.pipe()`: when the listener hangs up
+ * (the player abandons a request on every seek, every rollover), `.pipe()`
+ * only pauses the file stream and its descriptor stays open for the life of
+ * the process; `pipeline` destroys it. A read error ends the response.
+ */
+function send(file, res, range) {
+  pipeline(fs.createReadStream(file, range), res, () => {});
+}
 
 const MIME = {
   '.mp3': 'audio/mpeg',
@@ -85,7 +96,7 @@ export async function sendAudio(req, res, absPath, { cacheSeconds = 3600 } = {})
   if (!range) {
     res.setHeader('Content-Length', size);
     if (req.method === 'HEAD') return res.status(200).end();
-    fs.createReadStream(absPath).on('error', () => res.destroy()).pipe(res);
+    send(absPath, res);
     return;
   }
 
@@ -94,7 +105,7 @@ export async function sendAudio(req, res, absPath, { cacheSeconds = 3600 } = {})
   res.setHeader('Content-Range', `bytes ${start}-${end}/${size}`);
   res.setHeader('Content-Length', end - start + 1);
   if (req.method === 'HEAD') return res.end();
-  fs.createReadStream(absPath, { start, end }).on('error', () => res.destroy()).pipe(res);
+  send(absPath, res, { start, end });
 }
 
 export default { sendAudio, parseRange, mimeFor };
