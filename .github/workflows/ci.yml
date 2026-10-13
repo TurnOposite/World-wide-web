@@ -17,12 +17,17 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: that label moves to Ubuntu 26 from
+    # 2026-10-19, and `playwright install --with-deps` (Playwright 1.56)
+    # knows the system packages of the releases it shipped with. Move this
+    # with Playwright, deliberately (docs/DECISIONS.md 2026-10-13).
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      # v5 of both: the first versions on Node 24 (GitHub retired Node 20 for actions).
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
