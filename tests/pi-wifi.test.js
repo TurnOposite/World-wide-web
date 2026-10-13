@@ -83,7 +83,10 @@ test('order in the file becomes NetworkManager priority — the first line wins'
 
 test('Windows line endings do not end up inside the password', async () => {
   const r = await plan('MyRouter | secretpass\r\nOther | twopass\r\n');
-  assert.doesNotMatch(r.out, /\\r|\$'/, 'a \\r reaching the nmcli plan means the password is silently wrong');
+  // The script echoes the config path; on a Windows host that path is
+  // C:\…\Temp\rt-wifi-…, whose "\r" is a backslash before "rt", not a CR.
+  const out = r.out.split(scratch).join('<scratch>');
+  assert.doesNotMatch(out, /\\r|\$'/, 'a \\r reaching the nmcli plan means the password is silently wrong');
   assert.match(r.out, /wifi-sec\.psk secretpass\b/);
   assert.match(r.out, /ssid MyRouter\b/);
 });

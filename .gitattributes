@@ -1,0 +1,28 @@
+# LF in the repository and in every checkout, Windows included.
+#
+# Without this, a Windows clone with core.autocrlf=true (Git for Windows'
+# default) writes CRLF into every file: the shell scripts stop running under
+# bash ($'\r': command not found — build-test.sh itself among them), and the
+# tests that compare generated copies byte for byte fail. The server, the Pi
+# and the Oracle tower all read these files as LF. See docs/DECISIONS.md
+# 2026-10-13.
+* text=auto eol=lf
+
+# cmd.exe misreads labels in LF batch files; these are only ever run on Windows.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Never touch these, whatever their first bytes look like.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.tgz binary
+*.tar binary
+*.gephi binary
+*.mp3 binary
+*.wav binary

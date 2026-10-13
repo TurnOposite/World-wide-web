@@ -87,7 +87,11 @@ test('online: deleting the token line keeps the token; an empty token line clear
   await online(`DOMAIN = radio.example.com\nTUNNEL_TOKEN = ${TOKEN}\n`, { env, args: [] });
   const written = await fs.readFile(envFile, 'utf8');
   assert.match(written, /RT_MODE=domain/);
-  assert.equal((fssync.statSync(envFile).mode & 0o777).toString(8), '600', 'the token file must be root-only');
+  // NTFS has no POSIX modes (Node reports 0o666 for any writable file on
+  // Windows), so this can only be proved where the tower runs: Linux.
+  if (process.platform !== 'win32') {
+    assert.equal((fssync.statSync(envFile).mode & 0o777).toString(8), '600', 'the token file must be root-only');
+  }
 
   await online('DOMAIN = radio.example.com\n', { env, args: [] });
   assert.match(await fs.readFile(envFile, 'utf8'), /RT_MODE=domain/, 'removing the line from the FAT32 card must not take the tower offline');
@@ -224,7 +228,10 @@ test('portal: end to end over HTTP — list, captive probe, bad input, good inpu
   await fs.writeFile(scan, 'Hotel Guest:71:WPA2\nHome:30:WPA2\n');
   const marker = tmp('joined');
   const joinCmd = await stub('join', `echo "$@" > "${marker}"`);
-  Object.assign(process.env, { RT_WIFI_CONFIG: wifi, RT_SCAN_FILE: scan, RT_JOIN_CMD: `${joinCmd} --after-portal` });
+  // Windows cannot exec a #! script, so a Windows host hands the stub to bash.
+  // On the Pi the command is a real executable and is spawned as-is.
+  const launcher = process.platform === 'win32' ? 'bash ' : '';
+  Object.assign(process.env, { RT_WIFI_CONFIG: wifi, RT_SCAN_FILE: scan, RT_JOIN_CMD: `${launcher}${joinCmd} --after-portal` });
   const fresh = await import(`${pathToFileURL(path.join(K, 'portal.mjs')).href}?e2e`);
   const server = fresh.createPortal();
   await new Promise((r) => server.listen(0, '127.0.0.1', r));

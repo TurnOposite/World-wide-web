@@ -132,24 +132,24 @@ fi
 json() { curl -fsS "http://127.0.0.1:$PORT$1" 2>/dev/null; }
 
 # field <key> [key...]  — walk a JSON object from stdin. Prints '' for a
-# missing or null value so callers can test with [[ -n ... ]].
+# missing or null value so callers can test with [[ -n ... ]]. Node, not
+# python3: node is the one thing this project can count on everywhere —
+# Windows ships python as `python`, if at all.
 field() {
-  python3 -c '
-import sys, json
-try:
-    d = json.load(sys.stdin)
-except Exception:
-    sys.exit(0)
-for k in sys.argv[1:]:
-    if d is None: break
-    try:
-        d = d[int(k)] if isinstance(d, list) else d[k]
-    except (KeyError, IndexError, TypeError, ValueError):
-        d = None
-        break
-print("" if d is None else d)
+  node -e '
+let d;
+try { d = JSON.parse(require("fs").readFileSync(0, "utf8")); } catch { process.exit(0); }
+for (const k of process.argv.slice(1)) {
+  if (d === null || d === undefined || typeof d !== "object") { d = null; break; }
+  d = Array.isArray(d) ? d[Number(k)] : d[k];
+}
+process.stdout.write(d === null || d === undefined ? "" : String(d));
 ' "$@" 2>/dev/null
 }
+
+# calc <awk expression> — arithmetic and comparisons without python. The
+# parentheses matter: after a bare `print`, awk reads `>` as a redirection.
+calc() { awk "BEGIN { print ($1) }"; }
 
 # STATION_KEY is set here so the browser stage can exercise the queue editor.
 # In production leaving it unset is the safe default (the write endpoints
@@ -209,7 +209,7 @@ ok "server up on :$PORT (pid $SERVER_PID)"
 stage "HTTP surface"
 
 HEALTH="$(json /api/health)"
-[[ "$(field ok <<<"$HEALTH")" == "True" ]] && ok "/api/health reports ok" || bad "/api/health not ok: $HEALTH"
+[[ "$(field ok <<<"$HEALTH")" == "true" ]] && ok "/api/health reports ok" || bad "/api/health not ok: $HEALTH"
 TRACKS="$(field tracks <<<"$HEALTH")"
 info "library: ${TRACKS} tracks, cycle $(field cycleSeconds <<<"$HEALTH")s, rss $(field memoryMb <<<"$HEALTH")MB"
 
@@ -229,17 +229,21 @@ sleep 1.2
 S2="$(json /api/station)"
 O2="$(field onAir offset <<<"$S2")"
 if [[ -n "$O1" && -n "$O2" ]]; then
-  ADVANCED="$(python3 -c "print('yes' if 0.8 < ($O2 - $O1) < 2.5 or $O2 < $O1 else 'no')" 2>/dev/null)"
+  ADVANCED="$(calc "(($O2 - $O1) > 0.8 && ($O2 - $O1) < 2.5) || $O2 < $O1 ? \"yes\" : \"no\"")"
   [[ "$ADVANCED" == "yes" ]] && ok "station clock advances in real time (${O1}s → ${O2}s)" \
                              || bad "station clock is wrong (${O1}s → ${O2}s)"
 fi
 
-# Determinism: the same instant must always resolve the same way.
-DET="$(node -e "
-process.env.MUSIC_DIR='$FIXTURE_DIR';
+# Determinism: the same instant must always resolve the same way. The folder
+# travels in the environment, not pasted into the code: on Windows, bash
+# translates a /tmp/… path for node only in the environment — pasted in, it
+# stayed /tmp/…, node could not open it, and this check skipped itself.
+DET="$(FIXTURE_DIR="$FIXTURE_DIR" node -e "
+const dir=process.env.FIXTURE_DIR;
+process.env.MUSIC_DIR=dir;
 const {Station}=await import('./server/lib/schedule.js');
 const {scanLibrary}=await import('./server/lib/library.js');
-const {tracks}=await scanLibrary({musicDir:'$FIXTURE_DIR',useCache:false});
+const {tracks}=await scanLibrary({musicDir:dir,useCache:false});
 if(!tracks.length){console.log('skip');process.exit(0)}
 const e=Date.parse('2026-01-01T00:00:00Z');
 const a=new Station(tracks,{epoch:e}), b=new Station(tracks.slice(),{epoch:e});
@@ -276,13 +280,10 @@ CODE="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/")"
 # ---------------------------------------------------------- 5. performance --
 stage "Performance"
 if command -v curl >/dev/null 2>&1; then
-  TOTAL=0
-  for _ in $(seq 1 20); do
-    T="$(curl -s -o /dev/null -w '%{time_total}' "http://127.0.0.1:$PORT/api/station")"
-    TOTAL="$(python3 -c "print($TOTAL + $T)")"
-  done
-  AVG_MS="$(python3 -c "print(round($TOTAL/20*1000, 1))")"
-  UNDER="$(python3 -c "print('yes' if $AVG_MS < 100 else 'no')")"
+  AVG_MS="$(for _ in $(seq 1 20); do
+    curl -s -o /dev/null -w '%{time_total}\n' "http://127.0.0.1:$PORT/api/station"
+  done | awk '{ s += $1 } END { printf "%.1f", s / NR * 1000 }')"
+  UNDER="$(calc "$AVG_MS < 100 ? \"yes\" : \"no\"")"
   [[ "$UNDER" == "yes" ]] && ok "/api/station averages ${AVG_MS}ms over 20 calls" \
                           || bad "/api/station is slow: ${AVG_MS}ms average"
 fi
@@ -313,6 +314,8 @@ if [[ $DO_BROWSER -eq 1 ]]; then
         "$HOME"/.cache/ms-playwright/chromium-*/chrome-linux/chrome \
         "$HOME"/.cache/ms-playwright/chromium_headless_shell-*/chrome-linux/headless_shell \
         /usr/bin/chromium-browser /usr/bin/chromium /usr/bin/google-chrome \
+        "/c/Program Files/Google/Chrome/Application/chrome.exe" \
+        "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" \
       ; do
         [[ -x "$candidate" ]] && { export TOWER_BROWSER_EXECUTABLE="$candidate"; break; }
       done
