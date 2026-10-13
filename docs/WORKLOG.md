@@ -2633,3 +2633,38 @@ Verified: `bash scripts/build-test.sh` — 294 tests, 43/43 browser, 40/40 site.
   `server/routes/api.js` closes the file before removing it, on every
   failure, and answers an oversized body itself. The new updater refused
   `362bc64`, as it should; the tower stayed on `f9af1fe`.
+
+## 2026-10-13 (evening) — The DJ booth without hunting for the key (Claude Code, Ortis present)
+
+- **Asked** (`_Vault/Sessions/2026-10-13_Radio-Tower-suite.md`, point 1): the
+  booth stays private, but no more digging the key out of `tower.json`.
+  Ortis's answers: keep the random key (no passphrase); a Desktop shortcut
+  *with* the key, told that it stays in Chrome's history.
+- **CLI.** `dj/dj.mjs` reads `tower.json` like the library bot, and finds
+  `Radio Tower\music` when `../music` holds no library (`watch.cmd`'s order):
+  `node dj\dj.mjs status` from `radio-tower-live` answered from the cloud
+  tower with no flag. The saved key goes only to the station `tower.json`
+  names. `doctor` says where the key came from, never the key, and no longer
+  warns that the cloud tower's `/srv/radio/music` differs from the laptop's.
+  Booth tests 11 → 15.
+- **Website booth.** "Remember on this computer" (off by default, per tower
+  origin, **Lock and forget**); `#key=…` unlocks a visit and leaves the
+  address bar before the first request; a key the tower refuses (401) is
+  dropped, not replayed. The self-test drives all four against the real
+  server (site checks 52 → 57). It caught one bug on the way: after a
+  refusal the page did not ask for the key again (it only repainted when
+  `canWrite` changed since mount) — fixed in `booth.js`.
+- **Bot.** `node library\bot.mjs shortcut` writes `Radio Tower booth.url` on
+  the Desktop (`--site`, `--out`); never prints the key. Without `--lib` it
+  now finds the music as `watch.cmd` does.
+- Decision: DECISIONS, same date. Docs: `docs/LIVE.md` (the booth),
+  `dj/README.md`, `dj/CLAUDE.md`.
+- Self-test (ffmpeg 9.0.2 still in the morning session's scratch folder,
+  checksum re-verified): before — 361 tests, 43/43 browser, **51/52 site**:
+  "…and it is a permutation" in the *cloud* booth failed once and passed
+  50/50 on two reruns of the site stage — intermittent, probably the queue
+  reading straddling a track change (fixture tracks are 22–34 s); not
+  touched here. After — **365 tests, 43/43 browser, 57/57 site**.
+- **Not done here, for Ortis:** pushing; running `node library\bot.mjs
+  shortcut` once after the push (the shortcut opens the Vercel booth, which
+  only reads `#key` once deployed).

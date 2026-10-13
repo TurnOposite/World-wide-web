@@ -65,6 +65,11 @@ export STATION_KEY=<the key the server was started with>
 PowerShell: `$env:STATION_URL="..."`. Writes are refused without the key —
 that is deliberate; this station sits on a public tunnel.
 
+With none of these set, the booth reads `tower.json` (the library bot's
+`{ "url", "key" }`, beside the music in `Radio Tower\library\` on Ortis's
+laptop) and talks to the cloud tower. Never print that file or the key;
+`node dj.mjs doctor` says where the key came from without showing it.
+
 ---
 
 ## A Spontaneous Emission™, precisely

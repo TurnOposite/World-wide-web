@@ -445,6 +445,8 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
 .field{display:grid;gap:6px;margin-top:12px}
 .field label{font-size:12.5px;color:var(--text-dim)}
 .field input{background:#0d1116;border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--text);font:13px var(--mono);min-width:0}
+.field .v-follow{margin-top:2px}
+.field .v-follow input{padding:0;border:0;background:none}
 .plane{font-size:13px;color:var(--text-dim);display:grid;gap:4px}
 .plane b{color:var(--text)}
 .kbd{font:11px var(--mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;color:var(--text-dim)}

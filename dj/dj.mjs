@@ -36,9 +36,12 @@
  *   node dj.mjs doctor
  *
  * Environment:
- *   STATION_URL   default http://localhost:8080     (--url overrides)
- *   STATION_KEY   required for emit / clear / rescan (--key overrides)
- *   MUSIC_DIR     default ../music                  (--music overrides)
+ *   STATION_URL   default: tower.json, else http://localhost:8080   (--url overrides)
+ *   STATION_KEY   required for emit / clear / rescan; default tower.json (--key overrides)
+ *   MUSIC_DIR     default ../music, else ../../Radio Tower/music    (--music overrides)
+ *
+ * tower.json is the library bot's file (`{ "url", "key" }`, gitignored): with
+ * it, `node dj.mjs status` needs no flags on Ortis's laptop. See stationSettings.
  */
 
 import fs from 'node:fs';
@@ -214,13 +217,65 @@ export function planEmission(slots, mood, { top = 0 } = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// where the station and the music are
+//
+// Duplicated from library/bot.mjs and library/watch.cmd rather than
+// imported, for the same reason as fold(): the booth runs with no repo
+// around it.
+// ---------------------------------------------------------------------------
+
+/**
+ * ../music when it holds the library, else ../../Radio Tower/music: on
+ * Ortis's laptop the code runs from the git copy (radio-tower-live) while the
+ * music stays in Radio Tower\ (docs/LIVE.md). Same order as watch.cmd.
+ */
+export function defaultMusicDir(here = HERE, exists = fs.existsSync) {
+  const near = path.join(here, '..', 'music');
+  const laptop = path.join(here, '..', '..', 'Radio Tower', 'music');
+  return [near, laptop].find((d) => exists(path.join(d, 'playlists.json'))) || near;
+}
+
+const musicDirOf = (args) => path.resolve(args.music || process.env.MUSIC_DIR || defaultMusicDir());
+
+/** `tower.json` from the first folder that has one. Never print `key`. */
+export function towerSettings(dirs) {
+  for (const dir of dirs) {
+    try {
+      const t = JSON.parse(fs.readFileSync(path.join(dir, 'tower.json'), 'utf8'));
+      if (t.url || t.key) return { url: t.url || null, key: t.key || null, file: path.join(dir, 'tower.json') };
+    } catch { /* not here */ }
+  }
+  return { url: null, key: null, file: null };
+}
+
+/** Beside this script, the repo's library/ folder, then library/ beside the music. */
+export const settingsDirs = (musicDir, here = HERE) => [here, path.join(here, '..', 'library'), path.join(musicDir, '..', 'library')];
+
+const originOf = (u) => { try { return new URL(u).origin; } catch { return null; } };
+
+/**
+ * Flags, then the environment, then tower.json, then the Pi-era default.
+ * The saved key goes only to the station it was saved for: `--url` pointed
+ * at a server on this laptop must not be handed the cloud tower's key.
+ */
+export function stationSettings({ args = {}, env = process.env, saved = { url: null, key: null } } = {}) {
+  const url = String(args.url || env.STATION_URL || saved.url || 'http://localhost:8080').replace(/\/+$/, '');
+  const savedFits = Boolean(saved.key) && originOf(saved.url) === originOf(url);
+  const key = (typeof args.key === 'string' && args.key) || env.STATION_KEY || (savedFits ? saved.key : null) || null;
+  const keyFrom = key === null ? null : key === args.key ? '--key' : key === env.STATION_KEY ? 'STATION_KEY' : 'tower.json';
+  return { url, key, keyFrom };
+}
+
+// ---------------------------------------------------------------------------
 // the Pi bridge
 // ---------------------------------------------------------------------------
 
 class Bridge {
-  constructor({ url, key }) {
-    this.url = (url || process.env.STATION_URL || 'http://localhost:8080').replace(/\/+$/, '');
-    this.key = key || process.env.STATION_KEY || null;
+  constructor({ url, key, keyFrom = null, settingsFile = null }) {
+    this.url = url;
+    this.key = key || null;
+    this.keyFrom = keyFrom;
+    this.settingsFile = settingsFile;
   }
 
   async get(p) {
@@ -232,8 +287,9 @@ class Bridge {
   async post(p, body) {
     if (!this.key) {
       throw new Error(
-        'No STATION_KEY. Write endpoints are disabled without one — that is deliberate, ' +
-        'this station sits on a public tunnel. Export the key the server was started with:\n' +
+        `No station key for ${this.url}. Write endpoints are disabled without one — that is deliberate, ` +
+        'this station sits on the public internet. Put it in library\\tower.json beside the music ' +
+        '({ "url": ..., "key": ... }, as the library bot does), or export it:\n' +
         '  export STATION_KEY=...    (PowerShell: $env:STATION_KEY="...")',
       );
     }
@@ -349,7 +405,7 @@ const commands = {
   },
 
   async files(args) {
-    const dir = path.resolve(args.music || process.env.MUSIC_DIR || path.join(HERE, '..', 'music'));
+    const dir = musicDirOf(args);
     const all = await walkAudio(dir);
     let items = all;
     if (args.genre) items = items.filter((f) => fold(f.folder).includes(fold(args.genre)));
@@ -458,8 +514,9 @@ const commands = {
   },
 
   async doctor(args, bridge) {
-    const dir = path.resolve(args.music || process.env.MUSIC_DIR || path.join(HERE, '..', 'music'));
+    const dir = musicDirOf(args);
     console.log('');
+    console.log(bridge.settingsFile ? `  OK    station settings: ${bridge.settingsFile}` : '  INFO  no tower.json found — the station is --url / STATION_URL, else localhost');
     let files = [];
     try {
       files = await walkAudio(dir);
@@ -482,7 +539,12 @@ const commands = {
     try {
       const health = await bridge.get('/api/health');
       console.log(`  OK    station reachable at ${bridge.url} — ${health.status}, ${health.tracks} tracks`);
-      if (path.resolve(health.musicDir) !== dir) {
+      const local = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(originOf(bridge.url) || '');
+      if (!local) {
+        // The cloud tower plays its own copy (/srv/radio/music), sent by the
+        // library bot — the two paths never match, and that is not a fault.
+        console.log(`  INFO  the station plays its own copy: ${health.musicDir} (sent by library/bot.mjs publish)`);
+      } else if (path.resolve(health.musicDir) !== dir) {
         console.log(`  WARN  the station is playing ${health.musicDir}`);
         console.log(`        which is NOT the directory this booth is reading (${dir}).`);
         console.log('        That mismatch is the usual cause of "these are not the right files".');
@@ -495,7 +557,7 @@ const commands = {
       console.log(`  FAIL  station unreachable at ${bridge.url} — ${err.message}`);
       console.log('        Start it: cd .. && STATION_KEY=$(node -e "console.log(crypto.randomUUID())") npm start');
     }
-    console.log(bridge.key ? '  OK    STATION_KEY present in this shell' : '  WARN  no STATION_KEY in this shell — status and files work, emit and clear will not');
+    console.log(bridge.key ? `  OK    station key from ${bridge.keyFrom}` : '  WARN  no station key (tower.json, STATION_KEY or --key) — status and files work, emit and clear will not');
     console.log('');
   },
 };
@@ -534,12 +596,15 @@ async function main() {
 
   --url http://pi.local:8080   --key <station key>   --music <path>
   or the environment: STATION_URL, STATION_KEY, MUSIC_DIR
+  With none of them, the station and its key come from tower.json (the
+  library bot's), beside the music — nothing to type on Ortis's laptop.
 `);
     process.exit(cmd && !commands[cmd] ? 1 : 0);
   }
 
   const args = parseArgs(process.argv);
-  const bridge = new Bridge({ url: args.url, key: args.key });
+  const saved = towerSettings(settingsDirs(musicDirOf(args)));
+  const bridge = new Bridge({ ...stationSettings({ args, saved }), settingsFile: saved.file });
   await commands[cmd](args, bridge);
 }
 

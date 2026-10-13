@@ -17,6 +17,7 @@ import { GitHubControl, LocalControl, StaticControl, ArtifactControl, EMPTY_CONT
 
 const TOKEN_KEY = 'radiotower.githubToken';
 const CHANNEL_KEY = 'radiotower.channel';
+const STATION_KEYS = 'radiotower.stationKeys';
 const CONTROL_POLL_MS = 20_000;
 
 /** Small event emitter — the site has no framework and needs only this much. */
@@ -68,6 +69,39 @@ export const tokenStore = {
   get() { try { return localStorage.getItem(TOKEN_KEY) || null; } catch { return null; } },
   set(t) { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch { /* private mode */ } },
 };
+
+/**
+ * Station keys this browser was asked to remember ("Remember on this
+ * computer" in the booth), one per tower origin: a link that tunes the site
+ * to another station (?tower=, a server on localhost) is never handed this
+ * one. Nothing is kept unless the DJ ticks the box — public/queue.js keeps
+ * the key in memory only, and so does this site by default (DECISIONS,
+ * 2026-10-13).
+ */
+export const stationKeyStore = {
+  _all() { try { const all = JSON.parse(localStorage.getItem(STATION_KEYS) || '{}'); return all && typeof all === 'object' ? all : {}; } catch { return {}; } },
+  get(origin) { return this._all()[origin] || null; },
+  set(origin, key) {
+    const all = this._all();
+    if (key) all[origin] = key; else delete all[origin];
+    try { Object.keys(all).length ? localStorage.setItem(STATION_KEYS, JSON.stringify(all)) : localStorage.removeItem(STATION_KEYS); } catch { /* private mode: this visit only */ }
+  },
+};
+
+/**
+ * `#key=…` on the address — the Desktop shortcut's one-click unlock
+ * (library/bot.mjs shortcut). A fragment never leaves the browser, not to
+ * Vercel and not to the tower; this wipes it from the address bar before
+ * anything else runs, so it is not left on screen or in a copied link.
+ */
+export function takeKeyFromFragment(loc = globalThis.location, hist = globalThis.history) {
+  const m = /^#key=([^&]*)/.exec(loc?.hash || '');
+  if (!m) return null;
+  try { hist?.replaceState(hist.state, '', `${loc.pathname}${loc.search}`); } catch { /* the key still works for this visit */ }
+  let key = m[1];
+  try { key = decodeURIComponent(key); } catch { /* use it as written */ }
+  return key.trim() || null;
+}
 
 /* ------------------------------------------------------------------ cloud */
 
@@ -213,7 +247,10 @@ class TowerClient extends Emitter {
     this.config = config;
     this.origin = origin.replace(/\/$/, '');
     this.skew = 0;
-    this.key = null; // the station key, held in memory only — public/queue.js's rule
+    // The station key: this visit's memory, and this browser's storage only
+    // when the DJ asked for it (stationKeyStore).
+    this.key = null;
+    this.refused = false; // the tower turned the last key down
     this.listenerId = Math.random().toString(36).slice(2) + Date.now().toString(36);
     this._look = null;
     this.channel = null; // null = the server's default; set by setChannel()
@@ -287,6 +324,16 @@ class TowerClient extends Emitter {
       body: JSON.stringify(body || {}),
     });
     const out = await res.json().catch(() => ({}));
+    if (res.status === 401 && out.error === 'bad_key') {
+      // A rotated or mistyped key must not be replayed from storage: twenty
+      // wrong tries lock this address out (server/routes/api.js). Lock, and
+      // forget it if it is the one this browser kept.
+      if (this.remembered) stationKeyStore.set(this.origin, null);
+      this.key = null;
+      this.refused = true;
+      this.emit('control', { doc: null, status: 'locked' });
+      throw new ControlError('The station refused that key. Unlock with the current one.', { status: 401, code: out.error });
+    }
     if (!res.ok) throw new ControlError(out.detail || out.error || `status ${res.status}`, { status: res.status, code: out.error });
     this.emit('control', { doc: null, status: 'applied' });
     return out;
@@ -296,7 +343,20 @@ class TowerClient extends Emitter {
   clear() { return this._post('/api/queue/clear', this.channel ? { channel: this.channel } : {}); }
   async setLook(look) { this._look = look; this.emit('control', { doc: { look }, status: 'local' }); return { ok: true }; }
   sourcesFor() { return []; }
-  setToken(key) { this.key = key || null; }
+
+  /**
+   * remember: true keeps the key in this browser for this tower, false
+   * forgets it, absent leaves the browser as it is. No key = lock and forget.
+   */
+  setToken(key, { remember } = {}) {
+    this.key = key || null;
+    this.refused = false;
+    if (!this.key || remember === false) stationKeyStore.set(this.origin, null);
+    else if (remember === true) stationKeyStore.set(this.origin, this.key);
+  }
+
+  /** Is the key in use the one this browser keeps for this tower? */
+  get remembered() { return Boolean(this.key) && stationKeyStore.get(this.origin) === this.key; }
 }
 
 /* ---------------------------------------------------------------- connect */
@@ -322,6 +382,9 @@ export function towerAllowed(url, config = {}, here = globalThis.location?.origi
  * @param {string} o.base  the site root (document.baseURI)
  */
 export async function connect({ base = document.baseURI, overrides = {} } = {}) {
+  // First, before any request: a shortcut's key comes off the address bar
+  // whatever kind of station this turns out to be.
+  const fragmentKey = takeKeyFromFragment();
   const params = new URLSearchParams(location.search);
   let config = {};
   try {
@@ -358,6 +421,9 @@ export async function connect({ base = document.baseURI, overrides = {} } = {}) 
 
   if (towerUrl !== null && towerUrl !== undefined) {
     const client = new TowerClient({ config, origin: towerUrl || location.origin });
+    // The shortcut's key opens this visit; storage is the DJ's choice, in the booth.
+    const key = fragmentKey || stationKeyStore.get(client.origin);
+    if (key) client.key = key;
     await client.syncClock(3);
     await client.channels();
     if (wantChannel) await client.setChannel(wantChannel, { remember: Boolean(params.get('ch')) });

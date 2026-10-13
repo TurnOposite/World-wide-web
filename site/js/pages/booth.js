@@ -88,15 +88,23 @@ export async function mount(root, ctx) {
         toast('Token saved in this browser.');
       });
     } else if (client.planeKind === 'tower') {
-      a.innerHTML = client.canWrite
-        ? '<p class="qstate ok">Unlocked for this visit.</p><button class="btn small" type="button" id="bLock">Lock</button>'
-        : `<form class="field" id="bKeyForm"><label for="bKey">Station key</label><input id="bKey" type="password" autocomplete="off" spellcheck="false"><button class="btn small primary" type="submit">Unlock</button></form>`;
+      // Remembering is opt-in, per station, and Lock always forgets (DECISIONS, 2026-10-13).
+      a.innerHTML = !client.canWrite
+        ? `${client.refused ? '<p class="qstate bad">The station refused that key.</p>' : ''}
+           <form class="field" id="bKeyForm"><label for="bKey">Station key</label><input id="bKey" type="password" autocomplete="off" spellcheck="false">
+             <label class="v-follow"><input type="checkbox" id="bKeyKeep"> Remember on this computer</label>
+             <button class="btn small primary" type="submit">Unlock</button></form>
+           <p class="hint">Remembered, the key stays in this browser for this station until you lock the booth. Only on a computer that is yours.</p>`
+        : client.remembered
+          ? '<p class="qstate ok">Unlocked — remembered on this computer.</p><button class="btn small" type="button" id="bLock">Lock and forget</button>'
+          : '<p class="qstate ok">Unlocked for this visit.</p><div class="v-row"><button class="btn small" type="button" id="bKeep">Remember on this computer</button><button class="btn small" type="button" id="bLock">Lock</button></div>';
       a.querySelector('#bLock')?.addEventListener('click', () => { client.setToken(null); paintAuth(); queue.refresh({ force: true }); });
+      a.querySelector('#bKeep')?.addEventListener('click', () => { client.setToken(client.key, { remember: true }); paintAuth(); toast('Remembered on this computer.'); });
       a.querySelector('#bKeyForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
         const v = a.querySelector('#bKey').value.trim();
         a.querySelector('#bKey').value = '';
-        if (v) { client.setToken(v); paintAuth(); queue.refresh({ force: true }); }
+        if (v) { client.setToken(v, { remember: a.querySelector('#bKeyKeep').checked || undefined }); paintAuth(); queue.refresh({ force: true }); }
       });
     } else if (client.planeKind === 'static') {
       a.innerHTML = '<p class="hint"><a class="btn small" href="?control=local" data-external>Open the booth in preview mode</a></p>';
@@ -171,7 +179,13 @@ export async function mount(root, ctx) {
     $('bPlane').innerHTML = `<span>${planeText()}</span>`;
     paintAuth();
   };
-  const off = client.on?.('control', () => { paintLooks(); repaintPlane(); });
+  const off = client.on?.('control', (e) => {
+    paintLooks();
+    // The tower refused the key: canWrite may read as it did at mount, so
+    // repaintPlane would see nothing to do. Ask for the key again.
+    if (e?.status === 'locked') { shownPlane = `${client.planeKind}:${client.canWrite}`; paintAuth(); queue.refresh({ force: true }); return; }
+    repaintPlane();
+  });
   const offPlane = client.plane?.onChange?.(repaintPlane);
 
   return () => { queue.destroy(); dial.destroy(); offCh?.(); off?.(); offPlane?.(); };

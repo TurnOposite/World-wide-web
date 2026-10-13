@@ -939,6 +939,37 @@ export function towerSettings(...dirs) {
 /** The folders `towerSettings` searches for a library at `lib`. */
 const settingsDirs = (lib) => [HERE, path.join(lib, '..', 'library')];
 
+/**
+ * The music folder when neither --lib nor MUSIC_DIR names one: ../music when
+ * it holds the library, else ../../Radio Tower/music — watch.cmd's order, so
+ * `node library\bot.mjs publish` needs no --lib on Ortis's laptop either.
+ */
+export function defaultLib(here = HERE, exists = fs.existsSync) {
+  const near = path.join(here, '..', 'music');
+  const laptop = path.join(here, '..', '..', 'Radio Tower', 'music');
+  return [near, laptop].find((d) => exists(path.join(d, 'playlists.json'))) || near;
+}
+
+/** The website (docs/LIVE.md). The tower serves the same booth: --site <its url>. */
+export const WEBSITE = 'https://globe-trotter-ochre.vercel.app';
+
+/**
+ * A Windows shortcut that opens the DJ booth already unlocked. The key rides
+ * in the #fragment, which a browser never sends — not to Vercel, not to the
+ * tower — and the booth wipes it from the address bar on arrival
+ * (site/js/engine/transport.js, takeKeyFromFragment). It does stay in the
+ * browser's history: Ortis chose that over pasting the key (DECISIONS,
+ * 2026-10-13).
+ */
+export function boothShortcut(site, key) {
+  return `[InternetShortcut]\r\nURL=${String(site).replace(/\/+$/, '')}/booth#key=${encodeURIComponent(key)}\r\n`;
+}
+
+/** The Desktop, wherever Windows keeps it (OneDrive moves it on some machines). */
+function desktopDir() {
+  return [path.join(os.homedir(), 'Desktop'), path.join(os.homedir(), 'OneDrive', 'Desktop')].find((d) => fs.existsSync(d)) || os.homedir();
+}
+
 /* ---------------------------------------------------------------- CLI -- */
 
 /** "2026-10-12" → that day's local midnight, in ms. */
@@ -949,10 +980,12 @@ export function parseDay(s) {
 }
 
 function args(argv) {
-  const a = { _: [], from: [], downloads: true, dryRun: false, lib: null, to: null, key: null, publish: false, only: null, albums: false, into: null, since: null };
+  const a = { _: [], from: [], downloads: true, dryRun: false, lib: null, to: null, key: null, publish: false, only: null, albums: false, into: null, since: null, site: null, out: null };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--lib') a.lib = argv[++i];
+    else if (k === '--site') a.site = argv[++i];
+    else if (k === '--out') a.out = argv[++i];
     else if (k === '--from') a.from.push(argv[++i]);
     else if (k === '--to') a.to = argv[++i];
     else if (k === '--key') a.key = argv[++i];
@@ -980,8 +1013,11 @@ const HELP = `
     node library/bot.mjs watch               keep filing as songs arrive (Ctrl+C to stop)
     node library/bot.mjs import <file>       a full playlist list (browser JSON / Exportify CSV)
     node library/bot.mjs publish             send new music to the cloud tower (library/tower.json, or <url> --key <key>)
+    node library/bot.mjs shortcut            a Desktop shortcut that opens the DJ booth unlocked (key from tower.json)
 
-    --lib <dir>  the music folder (default: MUSIC_DIR, else the one next to this folder)
+    --lib <dir>  the music folder (default: MUSIC_DIR, else ..\\music, else ..\\..\\Radio Tower\\music)
+    --site <url>  shortcut: the site whose booth it opens (default ${WEBSITE})
+    --out <dir>  shortcut: where to write it (default: the Desktop)
     --to "<playlist>"  file everything waiting into that playlist, matched or not
     --from <dir>  also sort from this folder      --no-downloads  leave Downloads alone
     --into "<folder>"  where albums go (default Crates/Bandcamp)
@@ -995,7 +1031,19 @@ const HELP = `
 async function main() {
   const a = args(process.argv.slice(2));
   const cmd = a._[0] || 'help';
-  const lib = path.resolve(a.lib || process.env.MUSIC_DIR || path.join(HERE, '..', 'music'));
+  const lib = path.resolve(a.lib || process.env.MUSIC_DIR || defaultLib());
+
+  if (cmd === 'shortcut') {
+    const { key } = towerSettings(...settingsDirs(lib));
+    if (!key) throw new Error(`no tower.json with a key in ${settingsDirs(lib).join(' or ')} — nothing to put in the shortcut`);
+    const site = (a.site || WEBSITE).replace(/\/+$/, '');
+    const file = path.join(a.out || desktopDir(), 'Radio Tower booth.url');
+    await fsp.writeFile(file, boothShortcut(site, key));
+    console.log(`\n  ${file}\n  opens ${site}/booth unlocked — the key is inside the shortcut (not printed here).`);
+    console.log('  Treat the file like tower.json: whoever has it can change what plays.\n');
+    return;
+  }
+
   const state = await loadState(lib);
 
   if (cmd === 'help' || cmd === '--help') { console.log(HELP); return; }

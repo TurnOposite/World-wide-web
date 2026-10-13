@@ -344,6 +344,43 @@ test('the tower settings are found beside the music when the bot runs from elsew
   assert.deepEqual(towerSettings(path.join(root, 'nowhere')), { url: null, key: null });
 });
 
+test('without --lib the bot finds the music where the laptop keeps it, as watch.cmd does', async () => {
+  const { defaultLib } = await import('../library/bot.mjs');
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-lib-'));
+  const here = path.join(root, 'radio-tower-live', 'library');
+  const laptop = path.join(root, 'Radio Tower', 'music');
+  await fsp.mkdir(here, { recursive: true });
+  await fsp.mkdir(laptop, { recursive: true });
+  assert.equal(defaultLib(here), path.join(root, 'radio-tower-live', 'music'), 'no library anywhere: ../music, as before');
+  await fsp.writeFile(path.join(laptop, 'playlists.json'), '{}');
+  assert.equal(defaultLib(here), laptop);
+  await fsp.mkdir(path.join(root, 'radio-tower-live', 'music'));
+  await fsp.writeFile(path.join(root, 'radio-tower-live', 'music', 'playlists.json'), '{}');
+  assert.equal(defaultLib(here), path.join(root, 'radio-tower-live', 'music'), 'a library beside the code wins');
+});
+
+test('the booth shortcut carries the key in the fragment only, and the command never prints it', async () => {
+  const { boothShortcut, WEBSITE } = await import('../library/bot.mjs');
+  const BOT = path.join(import.meta.dirname, '..', 'library', 'bot.mjs');
+  const s = boothShortcut('https://site.example/', 'a b&c');
+  assert.equal(s, '[InternetShortcut]\r\nURL=https://site.example/booth#key=a%20b%26c\r\n');
+  const u = new URL(/^URL=(.*)$/m.exec(s)[1].trim());
+  assert.equal(u.pathname, '/booth');
+  assert.equal(u.search, '', 'a query string would reach the server');
+
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-shortcut-'));
+  const music = path.join(root, 'Radio Tower', 'music');
+  const out = path.join(root, 'Desktop');
+  await fsp.mkdir(music, { recursive: true });
+  await fsp.mkdir(path.join(root, 'Radio Tower', 'library'));
+  await fsp.mkdir(out);
+  await fsp.writeFile(path.join(root, 'Radio Tower', 'library', 'tower.json'), JSON.stringify({ url: 'https://tower.example', key: 'sekrit-0123' }));
+  const r = await run(process.execPath, [BOT, 'shortcut', '--lib', music, '--out', out]);
+  assert.equal(await fsp.readFile(path.join(out, 'Radio Tower booth.url'), 'utf8'), boothShortcut(WEBSITE, 'sekrit-0123'));
+  assert.ok(!`${r.stdout}${r.stderr}`.includes('sekrit'), 'the key is not printed');
+  await assert.rejects(run(process.execPath, [BOT, 'shortcut', '--lib', path.join(root, 'nowhere', 'music'), '--out', out]), /no tower\.json/);
+});
+
 test('a zip dropped in _inbox is opened by Node — even named in Japanese — then sorted like any arrival', async () => {
   const { makeZip } = await import('./helpers/make-zip.js');
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-inboxzip-'));

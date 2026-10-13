@@ -75,7 +75,31 @@ screen. The booth can broadcast it as everyone's look.
 
 <https://globe-trotter-ochre.vercel.app/booth> (or `/booth` on the server's
 address). In tower mode it asks for the **station key** — the `key` in
-`library\tower.json`. The key stays in that browser tab's memory only.
+`library\tower.json`. Since 2026-10-13, no need to dig it out:
+
+- **The Desktop shortcut.** Once, in **Windows PowerShell**, in the
+  `radio-tower-live` folder:
+
+  ```powershell
+  node library\bot.mjs shortcut
+  ```
+
+  It writes **`Radio Tower booth.url`** on the Desktop: a double-click opens
+  the booth already unlocked. The key rides after a `#` in the address, which
+  the browser never sends to Vercel or to the tower, and the booth wipes it
+  from the address bar on arrival. It does stay in Chrome's history (and in
+  Google's copy of it if history sync is on) — the price of one click,
+  chosen 2026-10-13. Whoever has the shortcut file can change what plays:
+  keep it off shared folders. Run the line again if the key ever changes.
+- **"Remember on this computer"**, a box under the key field: the key stays
+  in that browser, for that station only, until **Lock and forget**. Off by
+  default; only on your own computer.
+- **From the terminal:** `node dj\dj.mjs status` (or `emit "night drive"`,
+  `clear`) finds the address and the key in `tower.json` by itself.
+
+If the tower ever refuses a remembered key (it changed), the booth forgets
+it and asks again rather than retrying — twenty wrong tries lock an address
+out for a while.
 
 ## Getting into the server
 

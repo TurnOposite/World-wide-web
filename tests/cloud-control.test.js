@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import { GitHubControl, LocalControl, StaticControl, ArtifactControl, b64encode, b64decode } from '../site/js/engine/control.js';
 import { routeFromHash } from '../site/js/router.js';
 import { toArtifactPage } from '../scripts/site-preview.mjs';
-import { skewFromDateHeader, towerAllowed, towerUrls } from '../site/js/engine/transport.js';
+import { skewFromDateHeader, towerAllowed, towerUrls, takeKeyFromFragment, stationKeyStore } from '../site/js/engine/transport.js';
 import { safeLink } from '../site/js/pages/atlas.js';
 
 const json = (status, body, headers = {}) => ({
@@ -399,4 +399,41 @@ test('a tower on another origin: its covers and streams are fetched from the tow
   assert.equal(out.library.items[1].artUrl, '//cdn.example/d.jpg');
   assert.equal(out.title, '/not-a-url-field', 'only …Url fields');
   assert.equal(towerUrls(body, ''), body, 'same origin: nothing to do');
+});
+
+test('the shortcut\'s key comes off the address bar; routes and anchors are left alone', () => {
+  const calls = [];
+  const hist = { state: { n: 1 }, replaceState: (state, _t, url) => calls.push([state, url]) };
+  assert.equal(takeKeyFromFragment({ hash: '#key=ab%2Fc', pathname: '/booth', search: '?ch=all' }, hist), 'ab/c');
+  assert.deepEqual(calls, [[{ n: 1 }, '/booth?ch=all']], 'the page and its query stay, the fragment goes');
+  assert.equal(takeKeyFromFragment({ hash: '#/booth', pathname: '/', search: '' }, hist), null, 'a hash route is not a key');
+  assert.equal(takeKeyFromFragment({ hash: '#maps', pathname: '/portfolio', search: '' }, hist), null);
+  assert.equal(takeKeyFromFragment({ hash: '', pathname: '/booth', search: '' }, hist), null);
+  assert.equal(calls.length, 1, 'nothing else rewrites the address');
+  assert.equal(takeKeyFromFragment({ hash: '#key=', pathname: '/booth', search: '' }, hist), null, 'an empty key is no key');
+});
+
+test('remembered station keys: one per tower, nothing left behind once all are forgotten', () => {
+  const had = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  const m = new Map();
+  const fake = { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) };
+  Object.defineProperty(globalThis, 'localStorage', { value: fake, configurable: true, writable: true });
+  try {
+    stationKeyStore.set('https://tower.example', 'k1');
+    stationKeyStore.set('http://localhost:8080', 'k2');
+    assert.equal(stationKeyStore.get('https://tower.example'), 'k1');
+    assert.equal(stationKeyStore.get('https://elsewhere.example'), null, 'another station is not handed this key');
+    stationKeyStore.set('https://tower.example', null);
+    assert.equal(stationKeyStore.get('https://tower.example'), null);
+    assert.equal(stationKeyStore.get('http://localhost:8080'), 'k2', 'forgetting one keeps the others');
+    stationKeyStore.set('http://localhost:8080', null);
+    assert.equal(m.size, 0, 'nothing left in storage');
+    m.set('radiotower.stationKeys', '{not json');
+    assert.equal(stationKeyStore.get('https://tower.example'), null, 'a damaged entry reads as nothing');
+    stationKeyStore.set('https://tower.example', 'k3');
+    assert.equal(stationKeyStore.get('https://tower.example'), 'k3', '…and is replaced');
+  } finally {
+    if (had) Object.defineProperty(globalThis, 'localStorage', had);
+    else delete globalThis.localStorage;
+  }
 });

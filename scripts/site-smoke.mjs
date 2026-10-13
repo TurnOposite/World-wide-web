@@ -470,6 +470,53 @@ try {
     }
     check('pointed at a Radio Tower server, the same front end plays its programme', shown.mode === 'tower' && shown.id === server.onAir?.id, `${server.onAir?.title}`);
     check('…and shows the server\'s real listener count', /listening/.test(shown.pill || ''), (shown.pill || '').trim());
+
+    // The booth on a tower (2026-10-13): the Desktop shortcut's #key unlocks
+    // it without staying on the address bar; remembering is opt-in and per
+    // station; a key the tower refuses is forgotten, not replayed.
+    const keyCtx = await browser.newContext();
+    const bk = await keyCtx.newPage();
+    watch(bk, 'booth-key');
+    const boothAt = `${dev}booth?tower=${encodeURIComponent(towerUrl)}`;
+    const authOf = () => bk.evaluate(() => ({
+      url: location.href,
+      unlocked: window.radioTower?.client?.canWrite,
+      text: document.querySelector('#bAuth')?.textContent || '',
+      stored: localStorage.getItem('radiotower.stationKeys'),
+    }));
+    await bk.goto(`${boothAt}#key=selftest-key`, { waitUntil: 'domcontentloaded' });
+    await bk.waitForSelector('#bAuth .qstate.ok', { timeout: 10000 }).catch(() => {});
+    const arrived = await authOf();
+    check('the shortcut\'s #key unlocks the booth on a tower, and is gone from the address bar', arrived.unlocked === true && !arrived.url.includes('#'), arrived.url.replace(dev, '/'));
+    check('…without being remembered unless asked', arrived.stored === null && /for this visit/.test(arrived.text));
+    await bk.click('#bKeep');
+    await bk.goto(boothAt, { waitUntil: 'domcontentloaded' });
+    await bk.waitForSelector('#bAuth .qstate.ok', { timeout: 10000 }).catch(() => {});
+    const back = await authOf();
+    const keptFor = Object.keys(JSON.parse(back.stored || '{}'));
+    check('"Remember on this computer": a plain /booth opens unlocked, for this station only', back.unlocked === true && /remembered/.test(back.text) && keptFor.join() === new URL(towerUrl).origin, keptFor.join());
+    await bk.click('#bLock');
+    const locked = await authOf();
+    check('…and "Lock and forget" leaves nothing in the browser', locked.unlocked === false && locked.stored === null && /Station key/.test(locked.text));
+
+    // Not watched for console errors: the browser logs the tower's 401 itself.
+    const bad = await keyCtx.newPage();
+    bad.on('pageerror', (e) => errors.push(`booth-bad-key: ${e.message}`));
+    await bad.goto(boothAt, { waitUntil: 'domcontentloaded' });
+    await bad.waitForSelector('#bKey', { timeout: 10000 });
+    await bad.fill('#bKey', 'not-the-station-key');
+    await bad.check('#bKeyKeep');
+    await bad.click('#bKeyForm button[type=submit]');
+    const refused = await bad.evaluate(async () => {
+      const c = window.radioTower.client;
+      const keptBefore = Boolean(localStorage.getItem('radiotower.stationKeys'));
+      let err = '';
+      try { await c.clear(); } catch (e) { err = e.message; }
+      await new Promise((r) => setTimeout(r, 150));
+      return { keptBefore, err, unlocked: c.canWrite, stored: localStorage.getItem('radiotower.stationKeys'), text: document.querySelector('#bAuth')?.textContent || '' };
+    });
+    check('a key the tower refuses is forgotten, not replayed: the booth asks again', refused.keptBefore && /refused/.test(refused.err) && refused.unlocked === false && refused.stored === null && /refused/.test(refused.text), refused.err);
+    await keyCtx.close();
   }
 
   check('no console errors anywhere', errors.length === 0, errors.slice(0, 3).join(' | '));

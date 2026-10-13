@@ -8,6 +8,20 @@ Standalone on purpose: no dependencies, no build, no import from `../server`.
 
 ## Run it
 
+On Ortis's laptop, nothing to set: the booth reads the cloud tower's address
+and key from `Radio Tower\library\tower.json` — the library bot's file — and
+the music from `Radio Tower\music` (since 2026-10-13). From `radio-tower-live`:
+
+```powershell
+node dj\dj.mjs status
+node dj\dj.mjs emit "night drive"
+```
+
+The key in `tower.json` is only ever sent to the station `tower.json` names:
+`--url` pointed anywhere else needs its own `--key`.
+
+Anywhere else, say where the station is:
+
 ```bash
 cd dj
 export STATION_URL=http://localhost:8080     # or http://raspberrypi.local:8080

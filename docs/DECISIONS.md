@@ -3179,3 +3179,35 @@ the Node version. `receiveBody()` destroys the stream, waits for its
 `close`, then removes; a body over the limit gets its 413 with `Connection:
 close`. The lesson kept: a test green on one platform proves that platform —
 CI is the second one, and it is Linux, like the tower.
+
+## 2026-10-13 — The station key may be remembered, when the DJ asks; the shortcut carries it
+
+Ortis: the booth stays private, but digging the key out of `tower.json` at
+every visit is not a way to run a radio. `public/queue.js` rule 2 ("the key
+lives in memory and nowhere else") was written for a Pi on a public tunnel,
+used from any browser; the cost it did not count is the key copied into a
+notes file because nobody can remember 32 hex characters.
+
+- **Website booth.** "Remember on this computer" under the key field,
+  **off by default**: the key goes to that browser's `localStorage`
+  (`radiotower.stationKeys`), keyed by the tower's origin so a link that
+  tunes the site elsewhere (`?tower=`, localhost) is never handed it.
+  **Lock and forget** removes it. A key the tower answers `401 bad_key` to
+  is dropped from storage and not replayed (20 wrong tries per address lock
+  it out). Anything running in the page could read a remembered key — the
+  same exposure as the GitHub token the booth already keeps there; the site
+  loads no third-party script.
+- **Desktop shortcut** (`node library\bot.mjs shortcut`): `…/booth#key=…`.
+  A fragment is never sent in a request — not to Vercel, not to the tower —
+  and `takeKeyFromFragment()` wipes it from the address bar before the first
+  request. It **does** stay in the browser's history, and in Google's copy if
+  history sync is on: told so, Ortis chose the one-click shortcut over
+  pasting the key once (2026-10-13). The `.url` file holds the key in clear,
+  like `tower.json`.
+- **CLI.** `dj/dj.mjs` reads `tower.json` as the library bot does (beside
+  the script, the repo's `library/`, then beside the music, which defaults to
+  `../../Radio Tower/music` when `../music` holds no library — `watch.cmd`'s
+  order). Flags and `STATION_*` still win. The saved key is sent only to the
+  station `tower.json` names.
+- **Not done:** a chosen passphrase instead of the random key — offered,
+  declined (2026-10-13). `public/queue.js` (the Pi's own page) keeps rule 2.

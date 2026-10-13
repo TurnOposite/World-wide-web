@@ -9,7 +9,10 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fold, resolveMood, scoreTrack, movableWindow, planEmission } from './dj.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fold, resolveMood, scoreTrack, movableWindow, planEmission, defaultMusicDir, towerSettings, settingsDirs, stationSettings } from './dj.mjs';
 
 const slot = (id, over = {}) => ({
   id,
@@ -108,4 +111,51 @@ test('a fully locked queue is refused, not guessed at', () => {
   const p = planEmission([slot('a', { locked: true })], resolveMood('game'));
   assert.equal(p.ok, false);
   assert.equal(p.error, 'no_movable_window');
+});
+
+// The laptop's layout since 2026-10-13: code in radio-tower-live, music and
+// tower.json in Radio Tower\ (docs/LIVE.md).
+function laptop() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dj-settings-'));
+  const here = path.join(root, 'radio-tower-live', 'dj');
+  const music = path.join(root, 'Radio Tower', 'music');
+  fs.mkdirSync(here, { recursive: true });
+  fs.mkdirSync(music, { recursive: true });
+  fs.mkdirSync(path.join(root, 'Radio Tower', 'library'));
+  fs.writeFileSync(path.join(music, 'playlists.json'), '{}');
+  fs.writeFileSync(path.join(root, 'Radio Tower', 'library', 'tower.json'), JSON.stringify({ url: 'https://tower.example', key: 'k' }));
+  return { root, here, music };
+}
+
+test('with no flags, the booth finds the music and tower.json where the laptop keeps them', () => {
+  const { here, music } = laptop();
+  assert.equal(defaultMusicDir(here), music);
+  const saved = towerSettings(settingsDirs(defaultMusicDir(here), here));
+  assert.equal(saved.url, 'https://tower.example');
+  assert.deepEqual(stationSettings({ env: {}, saved }), { url: 'https://tower.example', key: 'k', keyFrom: 'tower.json' });
+});
+
+test('a library beside the booth wins over the laptop fallback, as in watch.cmd', () => {
+  const { root, here } = laptop();
+  const near = path.join(root, 'radio-tower-live', 'music');
+  fs.mkdirSync(near);
+  assert.notEqual(defaultMusicDir(here), near, 'an empty ../music is not a library');
+  fs.writeFileSync(path.join(near, 'playlists.json'), '{}');
+  assert.equal(defaultMusicDir(here), near);
+});
+
+test('flags beat the environment, which beats tower.json', () => {
+  const saved = { url: 'https://tower.example', key: 'k' };
+  assert.equal(stationSettings({ env: { STATION_KEY: 'e' }, saved }).key, 'e');
+  assert.equal(stationSettings({ args: { key: 'f' }, env: { STATION_KEY: 'e' }, saved }).keyFrom, '--key');
+  assert.equal(stationSettings({ args: { key: true }, env: {}, saved }).key, 'k', 'a bare --key is not a key');
+});
+
+test('the saved key is never handed to another station', () => {
+  const saved = { url: 'https://tower.example', key: 'k' };
+  const local = stationSettings({ args: { url: 'http://localhost:8080' }, env: {}, saved });
+  assert.equal(local.url, 'http://localhost:8080');
+  assert.equal(local.key, null);
+  assert.equal(stationSettings({ env: { STATION_URL: 'https://tower.example/' }, saved }).key, 'k', 'same station, trailing slash or not');
+  assert.equal(stationSettings({ env: {}, saved: { url: null, key: null } }).url, 'http://localhost:8080');
 });
