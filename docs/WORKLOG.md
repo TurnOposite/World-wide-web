@@ -2613,3 +2613,23 @@ Verified: `bash scripts/build-test.sh` — 294 tests, 43/43 browser, 40/40 site.
   updater on the tower once (docs/LIVE.md, "Updates"); Vercel's Deployment
   Checks (a dashboard setting); opening the 152 albums already in Downloads
   (`albums --dry-run`, then `albums --publish`).
+
+## 2026-10-13 (later) — Pushed; CI's Linux caught the upload bug the laptop hid (Claude Code, Ortis present)
+
+- Ortis said push it: seven commits, `f9af1fe..362bc64`. Vercel deployed the
+  site; the new updater was installed on the tower over SSH *before* any
+  deploy (`/usr/local/bin/radio-tower-update`, from `origin/main`), the
+  station left on `f9af1fe`. Vercel: Deployment Checks → GitHub `test`,
+  required for Production (added from Ortis's Chrome; he skipped Vercel's
+  2FA prompt himself).
+- **CI failed** on `362bc64`: three of the four new upload tests (oversized,
+  cut off, short), on Linux and Node 22 — the platform the tower runs. The
+  earlier entry's "checked, not changed — the existing code already answers
+  and cleans up" was true only on Windows / Node 24. (The log names the
+  tests, not the assertion.) The old handler removed the temporary file from
+  an `aborted` listener while the write stream could still be opening it — a
+  race that can bring the file back — and its oversize path only answered
+  through a write-after-destroy error. `receiveBody()` in
+  `server/routes/api.js` closes the file before removing it, on every
+  failure, and answers an oversized body itself. The new updater refused
+  `362bc64`, as it should; the tower stayed on `f9af1fe`.

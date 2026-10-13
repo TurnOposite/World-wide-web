@@ -3167,3 +3167,15 @@ hidden tab; the DJ, who watches the fence close in, keeps 5 s.
 day — the tower's own policy since 2026-08-28 — instead of a revalidation of
 every image and clipping on every visit. Code and `config.json` /
 `control.json` still revalidate; `tests/static-cache.test.js` pins it.
+
+## 2026-10-13 — An upload's temporary file is removed only once it is closed
+
+Correcting the same day's worklog ("uploads: checked, not changed"): the
+upload tests were green on Windows and red on CI's Linux. The old handler
+removed the temporary file while the write stream could still be opening it
+— a race that can bring the file back into the library — and answered an
+oversized body only through a write-after-destroy error, which depends on
+the Node version. `receiveBody()` destroys the stream, waits for its
+`close`, then removes; a body over the limit gets its 413 with `Connection:
+close`. The lesson kept: a test green on one platform proves that platform —
+CI is the second one, and it is Linux, like the tower.

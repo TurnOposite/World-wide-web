@@ -10,6 +10,45 @@ import { sendAudio } from '../lib/stream.js';
 import { RateLimiter } from '../lib/ratelimit.js';
 
 /**
+ * Stream a request body into `file`, at most `max` bytes. Resolves with the
+ * byte count once the file is complete *and closed*. Any failure — too large
+ * (code 'too_large'), the client gone ('aborted'), a write error — closes the
+ * file first and removes it second, then rejects.
+ *
+ * That order is the point. The handler this replaced removed the file from
+ * an 'aborted' listener while the write stream could still be opening it —
+ * a race that can bring the file back into the library — and answered an
+ * oversized body only through a write-after-destroy error, which depends on
+ * the Node version (tests/upload.test.js: green on Windows, red on CI's
+ * Linux). Waiting for 'close' holds on every platform.
+ */
+function receiveBody(req, file, max) {
+  return new Promise((resolve, reject) => {
+    const out = fs.createWriteStream(file);
+    let received = 0;
+    let failure = null;
+    const fail = (err, code) => {
+      if (failure) return;
+      failure = Object.assign(err, { code });
+      req.unpipe(out);
+      out.destroy(); // 'close' follows, wherever the open had got to
+    };
+    out.on('close', () => {
+      if (!failure && out.writableFinished) return resolve(received);
+      fsp.rm(file, { force: true }).catch(() => {}).then(() => reject(failure || Object.assign(new Error('the file closed early'), { code: 'write_failed' })));
+    });
+    out.on('error', (err) => fail(err, 'write_failed'));
+    req.on('error', (err) => fail(err, 'aborted'));
+    req.on('close', () => { if (!req.complete) fail(new Error('the client went away'), 'aborted'); });
+    req.on('data', (chunk) => {
+      received += chunk.length;
+      if (received > max) fail(new Error(`more than ${max} bytes`), 'too_large');
+    });
+    req.pipe(out);
+  });
+}
+
+/**
  * @param {object} ctx
  * @param {import('../lib/schedule.js').Station} ctx.station
  * @param {import('../lib/listeners.js').Listeners} ctx.listeners
@@ -350,30 +389,29 @@ export function apiRouter(ctx) {
     if (declared > max) return res.status(413).json({ error: 'too_large', detail: `Limit is ${config.uploadMaxMb} MB (UPLOAD_MAX_MB).` });
     await fsp.mkdir(path.dirname(target.abs), { recursive: true });
     const tmp = `${target.abs}.upload-${process.pid}-${Date.now()}`;
-    let received = 0;
-    let tooBig = false;
-    const out = fs.createWriteStream(tmp);
-    req.on('data', (chunk) => {
-      received += chunk.length;
-      if (received > max && !tooBig) { tooBig = true; req.unpipe(out); out.destroy(); }
-    });
-    req.pipe(out);
-    out.on('error', async () => { await fsp.rm(tmp, { force: true }); if (!res.headersSent) res.status(tooBig ? 413 : 500).json({ error: tooBig ? 'too_large' : 'write_failed' }); });
-    out.on('finish', async () => {
-      if (tooBig) return;
-      if (Number(req.query.size) && received !== Number(req.query.size)) {
-        await fsp.rm(tmp, { force: true });
-        return res.status(400).json({ error: 'incomplete', detail: `got ${received} of ${req.query.size} bytes` });
+    let received;
+    try {
+      received = await receiveBody(req, tmp, max);
+    } catch (err) {
+      if (err.code === 'aborted' || res.headersSent) return; // nobody left to answer
+      if (err.code === 'too_large') {
+        // Answer, and stop reading what was never going to be kept.
+        res.set('Connection', 'close');
+        return res.status(413).json({ error: 'too_large', detail: `Limit is ${config.uploadMaxMb} MB (UPLOAD_MAX_MB).` });
       }
-      try {
-        await fsp.rename(tmp, target.abs);
-        res.json({ ok: true, path: target.clean, size: received });
-      } catch (err) {
-        await fsp.rm(tmp, { force: true });
-        res.status(500).json({ error: 'write_failed', detail: err.message });
-      }
-    });
-    req.on('aborted', async () => { out.destroy(); await fsp.rm(tmp, { force: true }); });
+      return res.status(500).json({ error: 'write_failed', detail: err.message });
+    }
+    if (Number(req.query.size) && received !== Number(req.query.size)) {
+      await fsp.rm(tmp, { force: true });
+      return res.status(400).json({ error: 'incomplete', detail: `got ${received} of ${req.query.size} bytes` });
+    }
+    try {
+      await fsp.rename(tmp, target.abs);
+      res.json({ ok: true, path: target.clean, size: received });
+    } catch (err) {
+      await fsp.rm(tmp, { force: true });
+      res.status(500).json({ error: 'write_failed', detail: err.message });
+    }
   });
 
   return router;
