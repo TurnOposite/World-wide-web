@@ -260,3 +260,103 @@ test('publishing sends only what the tower lacks; the tower takes only audio in 
     server.close();
   }
 });
+
+/* -------------------------------------------------------------- albums -- */
+
+test('album zips open into Crates/Bandcamp — once, a copy, never a sound pack or a second download', async () => {
+  const { makeZip } = await import('./helpers/make-zip.js');
+  const { openAlbums, ALBUMS_FILE, albumFolderName } = await import('../library/bot.mjs');
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-albums-'));
+  const lib = path.join(root, 'music');
+  const downloads = path.join(root, 'Downloads');
+  await fsp.mkdir(downloads, { recursive: true });
+  // Big enough to be songs (a sound pack's files are tiny), not real audio:
+  // the tags will not parse, so names do the matching, as for any untagged file.
+  const mp3 = (k) => Buffer.alloc(300 * 1024, k);
+  const z = (name, entries) => fsp.writeFile(path.join(downloads, name), makeZip(entries, {}));
+  await z('Brickmason - Gaiawave.zip', [
+    { name: 'Brickmason - Gaiawave - 01 My Gaia.mp3', data: mp3(1), method: 0 },
+    { name: 'Brickmason - Gaiawave - 02 Browser Games.mp3', data: mp3(2), method: 0 },
+    { name: 'cover.jpg', data: Buffer.alloc(2000, 3), method: 0 },
+    { name: 'liner notes.txt', data: Buffer.from('thanks'), method: 0 },
+  ]);
+  await z('Brickmason - Gaiawave (1).zip', [{ name: 'Brickmason - Gaiawave - 01 My Gaia.mp3', data: mp3(1), method: 0 }]);
+  await z('Saken 天 - 森.zip', [{ name: '森/01 Air - Le soleil est près de moi.mp3', data: mp3(4), method: 0 }, { name: '森/02 木.mp3', data: mp3(5), method: 0 }]);
+  await z('sfx.zip', Array.from({ length: 12 }, (_, i) => ({ name: `hit${i}.ogg`, data: Buffer.alloc(9000, i), method: 0 })));
+  await z('tax papers.zip', [{ name: 'form.pdf', data: Buffer.alloc(5000, 9), method: 0 }]);
+
+  const state = emptyState();
+  state.playlists = [{ id: 'p1', name: 'Gone fishing', folder: 'Gone fishing', tracks: [{ id: 'a', title: 'Le soleil est près de moi', artists: ['Air'], duration: null }] }];
+  await saveState(lib, state);
+
+  const dry = await openAlbums(lib, state, { downloads: false, from: [downloads], dryRun: true, log: () => {} });
+  assert.deepEqual(dry.opened.map((o) => o.folder).sort(), ['Crates/Bandcamp/Brickmason - Gaiawave', 'Crates/Bandcamp/Saken 天 - 森']);
+  assert.ok(!fs.existsSync(path.join(lib, 'Crates')), 'a dry run writes nothing');
+
+  const r = await openAlbums(lib, state, { downloads: false, from: [downloads], log: () => {} });
+  const album = path.join(lib, 'Crates', 'Bandcamp', 'Brickmason - Gaiawave');
+  assert.deepEqual(fs.readdirSync(album).sort(), ['Brickmason - Gaiawave - 01 My Gaia.mp3', 'Brickmason - Gaiawave - 02 Browser Games.mp3', 'cover.jpg'], 'the tracks and the sleeve, not the notes');
+  assert.ok(fs.existsSync(path.join(lib, 'Crates', 'Bandcamp', 'Saken 天 - 森', '森', '02 木.mp3')), 'a name in Japanese comes out whole');
+  const why = Object.fromEntries(r.skipped.map((s) => [s.zip, s.reason]));
+  assert.match(why['Brickmason - Gaiawave (1).zip'], /already in the library/, 'the second download of an album is not a second album');
+  assert.match(why['sfx.zip'], /sound pack/);
+  assert.equal(why['tax papers.zip'], undefined, 'a zip with no audio is not its business');
+  assert.equal(fs.readdirSync(downloads).length, 5, 'every zip is still in Downloads: albums are copied, never moved');
+
+  // The track a playlist wants is credited to it, where it lies.
+  assert.equal(r.matched, 1);
+  const saved = await loadState(lib);
+  const rel = 'Crates/Bandcamp/Saken 天 - 森/森/01 Air - Le soleil est près de moi.mp3';
+  assert.deepEqual(saved.files[rel], ['Crates', 'Gone fishing'], 'plays on its crate and on the playlist\'s channel');
+
+  const again = await openAlbums(lib, await loadState(lib), { downloads: false, from: [downloads], log: () => {} });
+  assert.equal(again.opened.length, 0, `${ALBUMS_FILE} remembers what was opened`);
+  assert.equal(albumFolderName('Saken 天 - 森 (3).zip'), 'Saken 天 - 森');
+  await assert.rejects(openAlbums(lib, state, { downloads: false, from: [downloads], into: '_hidden', log: () => {} }), /starts with _/);
+});
+
+test('--since leaves older zips alone', async () => {
+  const { makeZip } = await import('./helpers/make-zip.js');
+  const { openAlbums, parseDay } = await import('../library/bot.mjs');
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-since-'));
+  const downloads = path.join(root, 'dl');
+  await fsp.mkdir(downloads, { recursive: true });
+  const old = path.join(downloads, 'Old - Album.zip');
+  await fsp.writeFile(old, makeZip([{ name: '01.mp3', data: Buffer.alloc(300 * 1024, 1), method: 0 }]));
+  fs.utimesSync(old, new Date('2025-03-01'), new Date('2025-03-01'));
+  await fsp.writeFile(path.join(downloads, 'New - Album.zip'), makeZip([{ name: '01.mp3', data: Buffer.alloc(300 * 1024, 2), method: 0 }]));
+  const r = await openAlbums(path.join(root, 'music'), emptyState(), { downloads: false, from: [downloads], since: parseDay('2026-10-12'), dryRun: true, log: () => {} });
+  assert.deepEqual(r.opened.map((o) => o.zip), ['New - Album.zip']);
+  assert.throws(() => parseDay('12/10/2026'), /2026-10-12/);
+});
+
+test('the tower settings are found beside the music when the bot runs from elsewhere', async () => {
+  const { towerSettings } = await import('../library/bot.mjs');
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-settings-'));
+  const here = path.join(root, 'radio-tower-live', 'library');
+  const beside = path.join(root, 'Radio Tower', 'library');
+  await fsp.mkdir(here, { recursive: true });
+  await fsp.mkdir(beside, { recursive: true });
+  await fsp.writeFile(path.join(beside, 'tower.json'), JSON.stringify({ url: 'https://tower.example', key: 'k' }));
+  assert.deepEqual(towerSettings(here, beside), { url: 'https://tower.example', key: 'k' });
+  await fsp.writeFile(path.join(here, 'tower.json'), JSON.stringify({ url: 'https://first.example', key: 'k1' }));
+  assert.equal(towerSettings(here, beside).url, 'https://first.example', 'the first folder given wins');
+  assert.deepEqual(towerSettings(path.join(root, 'nowhere')), { url: null, key: null });
+});
+
+test('a zip dropped in _inbox is opened by Node — even named in Japanese — then sorted like any arrival', async () => {
+  const { makeZip } = await import('./helpers/make-zip.js');
+  const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-inboxzip-'));
+  const lib = path.join(root, 'music');
+  const state = emptyState();
+  state.playlists = [{ id: 'p1', name: 'Gone fishing', folder: 'Gone fishing', tracks: [{ id: 'a', title: 'Le soleil est près de moi', artists: ['Air'], duration: null }] }];
+  await fsp.mkdir(path.join(lib, '_inbox'), { recursive: true });
+  await fsp.writeFile(path.join(lib, '_inbox', '空気 - 太陽.zip'), makeZip([
+    { name: 'Air - Le soleil est près de moi.mp3', data: Buffer.alloc(40_000, 1), method: 0 },
+    { name: 'Air - Not On Any Playlist.mp3', data: Buffer.alloc(40_000, 2), method: 0 },
+  ]));
+  const r = await sortWaiting(lib, state, { downloads: false, log: () => {} });
+  assert.deepEqual(r.filed.map((f) => f.to), ['Gone fishing/Air - Le soleil est près de moi.mp3']);
+  assert.deepEqual(r.unmatched, ['Air - Not On Any Playlist.mp3']);
+  assert.ok(fs.existsSync(path.join(lib, '_unmatched', 'opened-zips', '空気 - 太陽.zip')), 'the opened zip is kept, out of the way');
+});

@@ -6,6 +6,7 @@
  *   node library/bot.mjs read              refresh every playlist's track list from Spotify
  *   node library/bot.mjs add <url>...      follow another playlist (or several)
  *   node library/bot.mjs sort              file what is waiting into the right playlist folders
+ *   node library/bot.mjs albums            open album zips (a Bandcamp download) into Crates/Bandcamp
  *   node library/bot.mjs watch             keep doing that, every few seconds, until Ctrl+C
  *   node library/bot.mjs status            what each playlist has, and what is still missing
  *   node library/bot.mjs import <file>     full track lists (browser export JSON, or Exportify CSV)
@@ -22,7 +23,8 @@
  *   imported (`import`). Nothing is ever written to Spotify.
  * - Never downloads music. Files arrive however Ortis gets them — bought on
  *   Bandcamp, ripped from his own CDs, whatever — into `_inbox/` or his
- *   Downloads folder. The bot only *sorts*.
+ *   Downloads folder. The bot only *sorts*. An album zip is opened by
+ *   library/zip.mjs (Node alone) into a folder of its own; the zip stays.
  * - Moves a file only when it matches a song a playlist wants (or `--to`
  *   says where). In `_inbox/`, a file it cannot place goes to `_unmatched/`.
  *   In Downloads, a file it cannot place is not its business and stays put.
@@ -42,9 +44,9 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
-import { spawnSync } from 'node:child_process';
 import { Readable } from 'node:stream';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { listZip, extractZip, safeSegments } from './zip.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const AUDIO = ['.mp3', '.m4a', '.aac', '.ogg', '.oga', '.opus', '.flac', '.wav', '.webm'];
@@ -84,18 +86,23 @@ function bigrams(s) {
   return out;
 }
 
+const count = (grams) => { let n = 0; for (const k of grams.values()) n += k; return n; };
+
+/** Dice over two bigram tables already built, and their sizes. */
+function dice(A, nA, B, nB) {
+  if (!nA || !nB) return 0;
+  let shared = 0;
+  for (const [g, n] of A) shared += Math.min(n, B.get(g) || 0);
+  return (2 * shared) / (nA + nB);
+}
+
 /** Dice coefficient over character bigrams: 1 = same, 0 = nothing shared. Works for any script. */
 export function similarity(a, b) {
   if (!a || !b) return 0;
   if (a === b) return 1;
   const A = bigrams(a);
   const B = bigrams(b);
-  let shared = 0;
-  let total = 0;
-  for (const n of A.values()) total += n;
-  for (const n of B.values()) total += n;
-  for (const [g, n] of A) shared += Math.min(n, B.get(g) || 0);
-  return total ? (2 * shared) / total : 0;
+  return dice(A, count(A), B, count(B));
 }
 
 /** A name Windows, macOS and Linux all accept, and a phone's lock screen can show. */
@@ -155,13 +162,18 @@ async function musicMetadata() {
   return mmPromise;
 }
 
-/** Title, artist(s) and duration of an audio file: its tags if readable, else its name. */
-export async function describe(file) {
+/**
+ * Title, artist(s) and duration of an audio file: its tags if readable, else
+ * its name. `exactDuration: false` reads only the headers — the duration an
+ * encoder wrote, when it wrote one — instead of walking the whole file: the
+ * difference between seconds and minutes over a thousand album tracks.
+ */
+export async function describe(file, { exactDuration = true } = {}) {
   const out = { file, tags: null, duration: null, readings: readingsOf(file) };
   const mm = await musicMetadata();
   if (mm?.parseFile) {
     try {
-      const meta = await mm.parseFile(file, { duration: true, skipCovers: true });
+      const meta = await mm.parseFile(file, { duration: exactDuration, skipCovers: true });
       const c = meta.common || {};
       if (c.title) out.tags = { title: c.title, artist: c.artists?.length ? c.artists.join(', ') : (c.artist || c.albumartist || '') };
       if (Number.isFinite(meta.format?.duration)) out.duration = meta.format.duration;
@@ -182,6 +194,9 @@ export function buildIndex(state) {
       let s = songs.get(key);
       if (!s) {
         s = { key, title: t.title, artists: t.artists || [], duration: t.duration ?? null, ids: new Set(), playlists: [], core: core(t.title), artistCores: (t.artists || []).map(core).filter(Boolean) };
+        // Built once here rather than once per file compared (matchFile).
+        s.grams = bigrams(s.core);
+        s.gramCount = s.core ? count(s.grams) : 0;
         songs.set(key, s);
       }
       if (t.id) s.ids.add(t.id);
@@ -226,8 +241,19 @@ export function matchFile(desc, songs) {
   for (const r of readings) {
     const ft = core(r.title);
     if (!ft) continue;
+    const fg = bigrams(ft);
+    const fn = count(fg);
     for (const s of songs.values()) {
-      const ts = s.core === ft ? 1 : similarity(s.core, ft);
+      let ts = 1;
+      if (s.core !== ft) {
+        // Dice can never exceed 2·min/(a+b), so it can only reach 0.8 when
+        // the two bigram counts are within 2:3 of each other — most of the
+        // 4,000 songs are ruled out without being compared. Exact, not a guess.
+        const lo = Math.min(fn, s.gramCount);
+        const hi = Math.max(fn, s.gramCount);
+        if (lo * 3 < hi * 2) continue;
+        ts = dice(fg, fn, s.grams, s.gramCount);
+      }
       if (ts < 0.8) continue;
       const as = artistScore(s, r.artist, r.title);
       if (!r.artist && ts < 1) continue;
@@ -548,14 +574,18 @@ export async function sortWaiting(lib, state, { from = [], downloads = true, to 
   if (downloads && !target) sources.push({ dir: path.join(os.homedir(), 'Downloads'), ours: false, maxDepth: 0 });
   for (const d of from) sources.push({ dir: path.resolve(d), ours: true, maxDepth: 4 });
 
-  // A zip dropped into the inbox is opened where it lies (Windows 10+ ships bsdtar).
+  // A zip dropped into the inbox is opened where it lies, by library/zip.mjs
+  // (not `tar`, which on Windows cannot read a zip named in Japanese).
   for (const z of (await fsp.readdir(inbox).catch(() => [])).filter((n) => n.toLowerCase().endsWith('.zip'))) {
-    const dest = path.join(inbox, path.basename(z, '.zip'));
+    const dest = path.join(inbox, path.basename(z, path.extname(z)));
     if (fs.existsSync(dest) || dryRun) continue;
-    await fsp.mkdir(dest, { recursive: true });
-    const r = spawnSync('tar', ['-xf', path.join(inbox, z), '-C', dest], { stdio: 'ignore' });
-    if (r.status === 0) await moveFile(path.join(inbox, z), uniquePath(path.join(lib, '_unmatched', 'opened-zips', z))).catch(() => {});
-    else log(`  ! could not open ${z} — unzip it into _inbox yourself`);
+    try {
+      const r = await extractZip(path.join(inbox, z), dest, { want: (e) => AUDIO.includes(path.extname(e.name).toLowerCase()), clean: (s) => safeName(s, 160) });
+      for (const x of r.refused) log(`  ! ${z}: ${x.name} — ${x.reason}`);
+      await moveFile(path.join(inbox, z), uniquePath(path.join(lib, '_unmatched', 'opened-zips', z))).catch(() => {});
+    } catch (err) {
+      log(`  ! could not open ${z} (${err.message}) — unzip it into _inbox yourself`);
+    }
   }
 
   // Loose downloads at the top of the library (a SpotiMate file saved
@@ -622,6 +652,131 @@ export async function sortWaiting(lib, state, { from = [], downloads = true, to 
 export async function makeFolders(lib, state) {
   for (const p of state.playlists) if (!p.skip && p.folder) await fsp.mkdir(path.join(lib, p.folder), { recursive: true });
   for (const d of ['_inbox']) await fsp.mkdir(path.join(lib, d), { recursive: true });
+}
+
+/* ------------------------------------------------------------- albums -- */
+
+export const ALBUMS_FILE = '_albums.json';
+const IMAGES = ['.jpg', '.jpeg', '.png', '.webp'];
+// A zip whose typical file is this small holds sounds (stingers, a sample
+// pack), not songs: 256 KB is about ten seconds of MP3.
+const SOUND_PACK_BYTES = 256 * 1024;
+
+/** The folder an album zip opens into: its own name, without a browser's " (1)". */
+export function albumFolderName(zipName) {
+  return safeName(path.basename(zipName).replace(/\.zip$/i, '').replace(/\s*\(\d+\)$/, ''), 120);
+}
+
+async function loadAlbums(lib) {
+  try {
+    const doc = JSON.parse(await fsp.readFile(path.join(lib, ALBUMS_FILE), 'utf8'));
+    return { ...doc, opened: doc.opened || {} };
+  } catch {
+    return { opened: {} };
+  }
+}
+
+async function saveAlbums(lib, doc) {
+  doc._readme = 'Written by library/bot.mjs albums: which zip was opened into which folder, so none is opened twice. Remove a line to open that zip again.';
+  const tmp = path.join(lib, `${ALBUMS_FILE}.tmp`);
+  await fsp.writeFile(tmp, JSON.stringify(doc, null, 1));
+  await fsp.rename(tmp, path.join(lib, ALBUMS_FILE));
+}
+
+/**
+ * Album zips — what a Bandcamp download is — opened into the library, one
+ * folder per album under `into` (default `Crates/Bandcamp`, where the
+ * Bandcamp albums have gone since 2026-09-23). The station plays a folder as
+ * soon as it is published; a track that a playlist also wants is credited to
+ * that playlist too, so it plays on its channel and leaves the checklist.
+ *
+ * It copies, never moves: the zip stays where it was. What it will not open:
+ * a zip with no audio (not its business — not even a line), a pack of short
+ * sounds, an album already in the library (a second download "(1)" included),
+ * a zip already opened (`_albums.json`). `since` (ms) skips older zips;
+ * `dryRun` only says what it would do.
+ */
+export async function openAlbums(lib, state, { from = [], downloads = true, into = 'Crates/Bandcamp', since = null, stableMs = 0, dryRun = false, memo = null, log = console.log } = {}) {
+  const intoSegs = safeSegments(into, (s) => safeName(s, 80));
+  if (!intoSegs.length || intoSegs[0].startsWith('_')) throw new Error(`--into "${into}": the station does not play a folder whose name starts with _`);
+  const dirs = [...(downloads ? [path.join(os.homedir(), 'Downloads')] : []), ...from.map((d) => path.resolve(d))];
+  const ledger = await loadAlbums(lib);
+  const songs = buildIndex(state);
+  const report = { opened: [], skipped: [], refused: [], matched: 0 };
+  const planned = new Set(); // album folders this run has opened, or would
+  // The original before its "(1)" copy, so the second download is the one turned down.
+  const order = (n) => [albumFolderName(n), /\(\d+\)\.zip$/i.test(n) ? 1 : 0, n];
+  const byOrder = (x, y) => { const a = order(x); const b = order(y); for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1; return 0; };
+
+  for (const dir of dirs) {
+    const names = (await fsp.readdir(dir).catch(() => [])).filter((n) => n.toLowerCase().endsWith('.zip')).sort(byOrder);
+    for (const name of names) {
+      const zip = path.join(dir, name);
+      const st = await fsp.stat(zip).catch(() => null);
+      if (!st || (since && st.mtimeMs < since) || (stableMs && Date.now() - st.mtimeMs < stableMs)) continue;
+      const key = `${name}|${st.size}`;
+      // `memo`: in watch mode, a zip already turned down is not read again every few seconds.
+      if (ledger.opened[key] || memo?.has(key)) continue;
+
+      let entries;
+      try { entries = await listZip(zip); } catch (err) { memo?.set(key, true); report.skipped.push({ zip: name, reason: err.message }); continue; }
+      const audio = entries.filter((e) => !e.dir && AUDIO.includes(path.extname(e.name).toLowerCase()));
+      if (!audio.length) { memo?.set(key, true); continue; }
+      const sizes = audio.map((e) => e.size).sort((x, y) => x - y);
+      const median = sizes[Math.floor(sizes.length / 2)];
+      if (median < SOUND_PACK_BYTES) {
+        memo?.set(key, true);
+        report.skipped.push({ zip: name, reason: `${audio.length} short sounds (typically ${Math.round(median / 1024)} KB) — a sound pack, not an album` });
+        continue;
+      }
+      const folder = [...intoSegs, albumFolderName(name)];
+      const destRel = folder.join('/');
+      const dest = path.join(lib, ...folder);
+      if (planned.has(destRel) && dryRun) {
+        report.skipped.push({ zip: name, reason: `a second copy of ${destRel}` });
+        continue;
+      }
+      if ((await fsp.readdir(dest).catch(() => [])).length) {
+        report.skipped.push({ zip: name, reason: `already in the library: ${destRel}` });
+        if (!dryRun) { ledger.opened[key] = { at: new Date().toISOString(), folder: destRel, tracks: 0, note: 'the folder was already there' }; await saveAlbums(lib, ledger); }
+        continue;
+      }
+      planned.add(destRel);
+      if (dryRun) {
+        report.opened.push({ zip: name, folder: destRel, tracks: audio.length });
+        log(`  · ${name} → ${destRel} (${audio.length} tracks)`);
+        continue;
+      }
+
+      let cover = false;
+      const r = await extractZip(zip, dest, {
+        clean: (s) => safeName(s, 160),
+        want: (e) => {
+          const ext = path.extname(e.name).toLowerCase();
+          if (AUDIO.includes(ext)) return true;
+          if (IMAGES.includes(ext) && !cover) return (cover = true); // the sleeve, once
+          return false;
+        },
+      });
+      for (const x of r.refused) report.refused.push({ zip: name, entry: x.name, reason: x.reason });
+      const tracks = r.written.filter((w) => AUDIO.includes(path.extname(w.path).toLowerCase()));
+      if (!tracks.length) {
+        report.skipped.push({ zip: name, reason: 'no track could be read out of it' });
+        continue;
+      }
+      for (const t of tracks) {
+        const m = matchFile(await describe(t.path, { exactDuration: false }), songs);
+        if (m && !fileOf(state, m.song) && assign(state, m.song, rel(lib, t.path))) report.matched++;
+      }
+      // Recorded album by album, so an interrupted run never opens one twice.
+      ledger.opened[key] = { at: new Date().toISOString(), folder: destRel, tracks: tracks.length };
+      await saveAlbums(lib, ledger);
+      report.opened.push({ zip: name, folder: destRel, tracks: tracks.length });
+      log(`  ↓ ${name} → ${destRel} (${tracks.length} tracks)`);
+    }
+  }
+  if (!dryRun && report.matched) await saveState(lib, state);
+  return report;
 }
 
 /* ------------------------------------------------------------- status -- */
@@ -764,20 +919,37 @@ export async function publish(lib, towerUrl, key, { fetchImpl = globalThis.fetch
   return { sent, total: todo.length, bytes };
 }
 
-/** Where the tower is and its key, so `publish` needs no arguments: library/tower.json (never committed). */
-export function towerSettings(dir = HERE) {
-  try {
-    const t = JSON.parse(fs.readFileSync(path.join(dir, 'tower.json'), 'utf8'));
-    return { url: t.url || null, key: t.key || null };
-  } catch {
-    return { url: null, key: null };
+/**
+ * Where the tower is and its key, so `publish` needs no arguments:
+ * `tower.json` (never committed), looked for in each folder given, first
+ * found wins. The bot passes its own folder, then the `library` folder
+ * beside the music it is filing — on Ortis's laptop the code runs from the
+ * git copy while the music and the key stay in `Radio Tower\` (docs/LIVE.md).
+ */
+export function towerSettings(...dirs) {
+  for (const dir of dirs.length ? dirs : [HERE]) {
+    try {
+      const t = JSON.parse(fs.readFileSync(path.join(dir, 'tower.json'), 'utf8'));
+      return { url: t.url || null, key: t.key || null };
+    } catch { /* not here */ }
   }
+  return { url: null, key: null };
 }
+
+/** The folders `towerSettings` searches for a library at `lib`. */
+const settingsDirs = (lib) => [HERE, path.join(lib, '..', 'library')];
 
 /* ---------------------------------------------------------------- CLI -- */
 
+/** "2026-10-12" → that day's local midnight, in ms. */
+export function parseDay(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || ''));
+  if (!m) throw new Error(`--since wants a date like 2026-10-12, not "${s}"`);
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getTime();
+}
+
 function args(argv) {
-  const a = { _: [], from: [], downloads: true, dryRun: false, lib: null, to: null, key: null, publish: false, only: null };
+  const a = { _: [], from: [], downloads: true, dryRun: false, lib: null, to: null, key: null, publish: false, only: null, albums: false, into: null, since: null };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === '--lib') a.lib = argv[++i];
@@ -787,6 +959,9 @@ function args(argv) {
     else if (k === '--dry-run') a.dryRun = true;
     else if (k === '--no-downloads') a.downloads = false;
     else if (k === '--publish') a.publish = true;
+    else if (k === '--albums') a.albums = true;
+    else if (k === '--into') a.into = argv[++i];
+    else if (k === '--since') a.since = parseDay(argv[++i]);
     else if (k === '--only') a.only = argv[++i].split(',').map((x) => x.trim()).filter(Boolean);
     else a._.push(k);
   }
@@ -801,13 +976,18 @@ const HELP = `
     node library/bot.mjs read                refresh the playlists from Spotify
     node library/bot.mjs add <playlist url>  follow another playlist
     node library/bot.mjs sort                file what is waiting (_inbox + Downloads)
+    node library/bot.mjs albums              open album zips (Bandcamp downloads) into Crates/Bandcamp
     node library/bot.mjs watch               keep filing as songs arrive (Ctrl+C to stop)
     node library/bot.mjs import <file>       a full playlist list (browser JSON / Exportify CSV)
     node library/bot.mjs publish             send new music to the cloud tower (library/tower.json, or <url> --key <key>)
 
-    --lib <dir>  the music folder (default: the one next to this folder)
+    --lib <dir>  the music folder (default: MUSIC_DIR, else the one next to this folder)
     --to "<playlist>"  file everything waiting into that playlist, matched or not
     --from <dir>  also sort from this folder      --no-downloads  leave Downloads alone
+    --into "<folder>"  where albums go (default Crates/Bandcamp)
+    --since 2026-10-12  albums: only zips from that day on
+    --albums  watch: also open album zips that arrive while watching
+    --publish  albums / watch: send what was filed to the tower
     --only "Folder A,Folder B"  publish only these folders
     --dry-run  say what would happen, change nothing
 `;
@@ -884,22 +1064,55 @@ async function main() {
     return;
   }
 
+  if (cmd === 'albums') {
+    const r = await openAlbums(lib, state, { from: a.from, downloads: a.downloads, into: a.into || undefined, since: a.since, dryRun: a.dryRun });
+    for (const s of r.skipped) console.log(`  – ${s.zip}: ${s.reason}`);
+    for (const x of r.refused) console.log(`  ! ${x.zip} › ${x.entry}: ${x.reason}`);
+    const tracks = r.opened.reduce((s, o) => s + o.tracks, 0);
+    if (a.dryRun) {
+      console.log(`\n  would open ${r.opened.length} album(s), ${tracks} tracks. Nothing was changed.`);
+      return;
+    }
+    if (r.opened.length) await writeChecklist(lib, state);
+    console.log(`\n  opened ${r.opened.length} album(s), ${tracks} tracks${r.matched ? ` · ${r.matched} also on a playlist` : ''}${r.skipped.length ? ` · ${r.skipped.length} not opened (see above)` : ''}`);
+    const tower = towerSettings(...settingsDirs(lib));
+    if (a.publish && r.opened.length && tower.url && tower.key) {
+      const p = await publish(lib, tower.url, tower.key);
+      console.log(`  on the tower: ${p.sent} new`);
+    } else if (r.opened.length) {
+      console.log('  Next: node library/bot.mjs publish   (or run this again with --publish)');
+    }
+    return;
+  }
+
   if (cmd === 'watch') {
-    console.log(`  watching ${path.join(lib, '_inbox')}${a.downloads ? ` and ${path.join(os.homedir(), 'Downloads')}` : ''} — Ctrl+C to stop`);
+    console.log(`  watching ${path.join(lib, '_inbox')}${a.downloads ? ` and ${path.join(os.homedir(), 'Downloads')}` : ''}${a.albums ? ', album zips included' : ''} — Ctrl+C to stop`);
     await makeFolders(lib, state);
     await writeChecklist(lib, state);
     const memo = new Map();
+    const albumMemo = new Map();
+    // --albums opens only what arrives from now on (and the last few minutes,
+    // for a download started just before): the zips already lying in
+    // Downloads are a decision for `albums`, with its --dry-run, not a side
+    // effect of opening this window.
+    const albumsSince = Date.now() - 10 * 60_000;
     // --publish: whatever got filed goes up to the tower a minute later, so a
     // download is on air without anyone thinking about it.
-    const tower = towerSettings();
+    const tower = towerSettings(...settingsDirs(lib));
     const autoPublish = a.publish && tower.url && tower.key;
     if (a.publish && !autoPublish) console.log('  (no library/tower.json yet — filing only, nothing is sent to the tower)');
     if (autoPublish) console.log(`  new songs go up to ${tower.url} a minute after they are filed`);
     let pendingSince = 0;
     for (;;) {
       try {
+        const stamp = (l) => console.log(`${new Date().toLocaleTimeString()} ${l.trim()}`);
         // A browser is still writing a file for a few seconds after it appears.
-        const r = await sortWaiting(lib, state, { from: a.from, downloads: a.downloads, to: a.to, stableMs: 4000, memo, log: (l) => console.log(`${new Date().toLocaleTimeString()} ${l.trim()}`) });
+        const r = await sortWaiting(lib, state, { from: a.from, downloads: a.downloads, to: a.to, stableMs: 4000, memo, log: stamp });
+        if (a.albums) {
+          const al = await openAlbums(lib, state, { from: a.from, downloads: a.downloads, into: a.into || undefined, since: albumsSince, stableMs: 4000, memo: albumMemo, log: stamp });
+          for (const s of al.skipped) stamp(`– ${s.zip}: ${s.reason}`);
+          r.filed.push(...al.opened);
+        }
         if (r.filed.length || r.duplicates.length || r.unmatched.length) await writeChecklist(lib, state);
         if (autoPublish && r.filed.length && !pendingSince) pendingSince = Date.now();
         if (autoPublish && pendingSince && Date.now() - pendingSince > 60_000) {
@@ -915,7 +1128,7 @@ async function main() {
   }
 
   if (cmd === 'publish') {
-    const saved = towerSettings();
+    const saved = towerSettings(...settingsDirs(lib));
     const url = a._[1] || process.env.TOWER_URL || saved.url;
     const key = a.key || process.env.TOWER_KEY || saved.key;
     if (!url || !key) throw new Error('usage: publish <https://your-tower> --key <station key>   (or set TOWER_URL and TOWER_KEY)');
