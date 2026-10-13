@@ -46,6 +46,12 @@ the fixture-generation stages — those are the machine, not the code. If you
 see failures beyond those, something rotted; start with `docs/WORKLOG.md`'s
 last entry.
 
+> **2026-10-13:** `python3` is no longer needed, and on Windows the whole
+> self-test is green provided `ffmpeg` is on PATH (361 tests, 43/43 browser,
+> 52/52 site on Ortis's laptop). Without ffmpeg the audio tests skip and the
+> browser stages have no music to play. The station itself now lives in the
+> cloud: `docs/LIVE.md`.
+
 ### 2. Get the Pi onto your new Wi-Fi
 
 **This is the thing that was built specifically for the situation you are in.**

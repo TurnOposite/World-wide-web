@@ -2553,3 +2553,63 @@ Verified: `bash scripts/build-test.sh` — 294 tests, 43/43 browser, 40/40 site.
   front (shown, above the bar, painted, click-through), gone with another
   look, and the song in the bar. Self-test: 335 tests (4 skipped), 43/43
   browser, 52/52 site.
+
+## 2026-10-13 — Review of the whole setup; the laptop's copy, the tower's nightly update, the album zips (Claude Code on the laptop, Ortis present)
+
+- **Asked:** look at everything since the migration, find what is missing,
+  make it easier and more modular, bridge GitHub/Vercel and the older copies,
+  performance; then the download question.
+- **Where each copy stood.** `radio-tower-live/` (the master since 9/10) was
+  **11 commits behind GitHub** — every session since 2/10 had pushed from
+  elsewhere. Fast-forwarded (clean tree, nothing lost). `Radio Tower/` holds
+  only *earlier* versions of the code — each differing file matched a blob in
+  git history — plus what is local by design (`music/`, `library/tower.json`,
+  `spotify-export/`, `collections/_review|_incoming`). Vercel = `main`: 42 of 43
+  built files byte-identical, `config.json` differing only by the repository
+  name Vercel injects and the build time. The tower: on air, 140 tracks,
+  114 MB, last restarted by the 11/10 nightly pull.
+- **Windows.** The clone had been checked out with CRLF (Git for Windows'
+  `autocrlf`), which breaks every shell script under bash — `build-test.sh`
+  included — and six tests. `.gitattributes`: LF everywhere, CRLF only for
+  `.cmd`/`.bat`, binaries marked. `build-test.sh` no longer needs `python3`
+  (node and awk), its determinism check stopped skipping itself on Windows
+  (the fixture path now travels in the environment), and it finds Chrome or
+  Edge. Three Pi-kit tests made portable without loosening them on Linux
+  (a `\r` false positive from Windows temp paths, NTFS modes, `#!` spawning);
+  one cache test that passed without checking anything on Windows fixed.
+- **Fixed — the tower leaked a file per abandoned listener request.**
+  `stream.js` piped the file with `.pipe()`, which on a hang-up pauses the
+  file stream and keeps its descriptor; players abandon requests on every
+  seek. Now `stream.pipeline`. Test written first: red on the old code, green.
+- **Checked, not changed — uploads.** Four new tests on `PUT
+  /api/library/file` (whole, oversized without a declared size, cut off,
+  shorter than declared): the existing code already answers and cleans up.
+  They stay as the net under the bot's `publish`.
+- **The library bot.** It never looked at zips in Downloads, and its `tar`
+  could not have opened the 152 Bandcamp albums there: from Git Bash none
+  (GNU tar has no zip support), from a `.cmd` not the 81 named outside the
+  ANSI code page (Windows' tar — "Saken 天 - 森.zip"). `library/zip.mjs`
+  reads zips with Node alone; all 152 list in 0.26 s, 1,624 tracks. New `albums` command (and `watch
+  --albums`): album zips → `Crates/Bandcamp/<album>/`, copied not moved,
+  `_albums.json` so none opens twice, sound packs and second downloads turned
+  down, a track a playlist wants credited to it. The key is found beside the
+  music folder, so the bot runs from this copy; `watch.cmd` finds
+  `Radio Tower\music`. Matching 11× faster (117 → 10.6 ms a file against the
+  4,249-song index), identical results on 1,025 names.
+- **The tower's nightly update** (`deploy/cloud/update.sh`): only code whose
+  self-test passed on GitHub; remembers the commit it put on air (a night that
+  failed half-way used to be taken for done — git had already moved); rolls
+  back a commit that does not answer and sets it aside; refreshes itself.
+  `install.sh` records what it installed. `tests/cloud-update.test.js` (6)
+  drives it against real git repositories with stub npm/systemctl/curl.
+- **Site and CI.** Listeners poll the queue every 15 s and not from a hidden
+  tab (the DJ keeps 5 s); Vercel holds `/assets/` a week and portfolio files
+  and clippings a day, like the tower — pinned by a test. CI pinned to
+  `ubuntu-24.04` (`ubuntu-latest` becomes Ubuntu 26 on 19/10), actions v5.
+- Self-test, on this laptop for the first time (ffmpeg 9.0.2 from a scratch
+  folder, Chrome 155): green before — 337 tests, 43/43 browser, 52/52 site —
+  and after — **361 tests, 43/43 browser, 52/52 site**.
+- **Not done here, for Ortis:** pushing (`git push`); installing the new
+  updater on the tower once (docs/LIVE.md, "Updates"); Vercel's Deployment
+  Checks (a dashboard setting); opening the 152 albums already in Downloads
+  (`albums --dry-run`, then `albums --publish`).

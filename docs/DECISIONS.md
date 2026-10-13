@@ -3071,3 +3071,99 @@ stays on ≥42 % dark backing. The projection went orthographic because
 perspective made the cube read as a trapezoid; the camera follows an
 inclined orbit with a golden-angle nodal drift so it never repeats a loop
 and never leaves an 18°–66° elevation band.
+
+## 2026-10-13 — Line endings are LF in every checkout, Windows included
+
+**Context.** The master copy on Ortis's laptop was cloned with Git for
+Windows' default `core.autocrlf=true`: every file came out CRLF. Bash then
+reads `set -uo pipefail\r` — `build-test.sh` could not run at all — and six
+tests failed on byte comparisons. The repository itself was LF throughout;
+only Windows checkouts were wrong, so neither CI nor the Linux tower ever saw
+it.
+
+**Decision.** `.gitattributes`: `* text=auto eol=lf`, CRLF only for `.cmd`
+and `.bat` (cmd.exe misreads labels in LF batch files), binaries named. The
+self-test also stops depending on `python3`, which Windows ships as `python`
+if at all: node and awk do its JSON and arithmetic.
+
+## 2026-10-13 — Album zips are opened by Node, copied into Crates/Bandcamp, never moved
+
+**Context.** 152 Bandcamp albums (18.4 GB) sat in Downloads. The bot only
+opened zips dropped in `_inbox/`, with `tar` — which, measured on these 152:
+from Git Bash opens none (GNU tar has no zip support); from a double-clicked
+`.cmd` it is Windows' bsdtar, which gets its arguments in the ANSI code page
+and cannot open the 81 named like "Saken 天 - 森.zip".
+
+**Decision.** `library/zip.mjs`, no dependency: the central directory read
+from the end of the file, entries stored or inflated by zlib, size and CRC
+checked before a temporary file is renamed, names in UTF-8 or code page 437,
+zip64, and nothing written outside the destination whatever the names say.
+`bot.mjs albums` opens album zips into `Crates/Bandcamp/<album>/` — where the
+Bandcamp albums have gone since 2026-09-23 — and:
+
+- copies, never moves: the zip stays in Downloads (the bot's rule since
+  2026-10-07 — Downloads is not its folder);
+- turns down a pack of sounds (typical file under 256 KB, about ten seconds:
+  one zip in Downloads holds 44 tiny `.ogg`) and a second download of an
+  album already there (`Album (1).zip`);
+- remembers what it opened (`_albums.json`), album by album;
+- credits a track that a playlist also wants to that playlist, so it plays on
+  that channel too and leaves the checklist.
+
+`watch --albums` opens only zips that arrive while it watches: the zips
+already lying in Downloads are a decision for `albums`, with its `--dry-run`,
+not a side effect of double-clicking `watch.cmd`. The bot still never
+downloads anything (2026-10-07 stands).
+
+## 2026-10-13 — The tower goes on air only with code its self-test passed, and remembers what it put on air
+
+**Context.** On 2026-10-10 CI failed on `6ab5235`; Vercel deployed it to
+production anyway, and the tower would have pulled it that night — neither
+looks at CI. Separately, `update.sh` compared git's HEAD before and after:
+if `npm ci` or the build failed after `git reset`, HEAD had already moved,
+and every later night said "already up to date" over a half-updated tower.
+
+**Decision.** `update.sh` (tests: `tests/cloud-update.test.js`):
+
+- asks GitHub for the `self-test` workflow's verdict on the commit; failure,
+  cancelled or still running → stay, try again tomorrow. No run at all (a
+  push of only `control.json`, which CI ignores) or GitHub unreachable →
+  update: the gate is a second line, and a tower that can never update when
+  GitHub's API is down is the worse failure;
+- compares against `/srv/radio/deployed-commit`, written only once the
+  station answers — so a failed night is retried;
+- a build failure restarts nothing and blames nothing; a commit that builds,
+  restarts and does not answer is rolled back and set aside
+  (`/srv/radio/rejected-commit`) until a newer one arrives — no nightly
+  outage retrying the same mistake;
+- re-installs itself after a good update, so this is the last time the
+  updater needs installing by hand (the copy in `/usr/local/bin` predates
+  self-updating: docs/LIVE.md, "Updates").
+
+The Vercel half cannot be set from the repository: Vercel's Deployment Checks
+(project settings) hold a production deployment until a GitHub check passes.
+Recommended to Ortis, not done.
+
+## 2026-10-13 — CI on ubuntu-24.04, and actions on Node 24
+
+`ubuntu-latest` becomes Ubuntu 26 from 2026-10-19, and `playwright install
+--with-deps` (1.56) knows the system packages of the releases it shipped
+with; the label is pinned and moves with Playwright, deliberately.
+`actions/checkout` and `actions/setup-node` go to v5, the first versions on
+Node 24 (GitHub retired Node 20 for actions — the warning on every run since
+September). v5's one breaking change, automatic caching, does not apply: the
+workflow already says `cache: npm`.
+
+## 2026-10-13 — Listeners poll the queue every 15 s; Vercel holds what the tower holds
+
+On `/radio`, every open tab asked for `/api/queue` every 5 s — on a tower, a
+request per tab against a per-address budget (5 a second) that a room on one
+Wi-Fi shares: about fifteen listeners would exhaust it. The queue changes
+when a track ends or a DJ acts, and both already refresh it; polling only
+catches a DJ in another tab. Listeners now poll every 15 s and not from a
+hidden tab; the DJ, who watches the fence close in, keeps 5 s.
+
+`vercel.json` gives `/assets/` a week and `/collections/` and `/press/` a
+day — the tower's own policy since 2026-08-28 — instead of a revalidation of
+every image and clipping on every visit. Code and `config.json` /
+`control.json` still revalidate; `tests/static-cache.test.js` pins it.

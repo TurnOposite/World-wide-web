@@ -24,6 +24,15 @@ Oracle server at `https://129-151-227-129.sslip.io` —
 **[`docs/LIVE.md`](./docs/LIVE.md)** (one shuffled channel for now; rate
 limits on the public API).
 
+**New since 2026-10-13 — the laptop, the nightly update, album zips.** The
+self-test runs on Ortis's Windows laptop (LF line endings forced by
+`.gitattributes`; no `python3` needed; Chrome/Edge found; **ffmpeg must be on
+PATH** for the audio stages). The tower's nightly update goes on air only with
+code whose self-test passed on GitHub, and rolls back a commit that does not
+answer (`deploy/cloud/update.sh`). The library bot opens Bandcamp album zips
+with Node (`library/zip.mjs`, `bot.mjs albums`) and runs from this copy against
+`Radio Tower\music` — **[`docs/LIVE.md`](./docs/LIVE.md)**.
+
 **New since 2026-10-07 — channels, the library bot, the cloud tower.** The
 station plays several synced channels from one library (Mashup, Long mixes,
 one per playlist folder — `server/lib/channels.js`). `library/bot.mjs` keeps
