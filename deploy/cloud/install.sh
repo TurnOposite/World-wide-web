@@ -15,7 +15,8 @@
 #   iptables              ports 80 and 443 open (Oracle's Ubuntu images
 #                         reject everything but SSH — the classic trap)
 #   a daily update        pulls new code from GitHub at ~04:20 and restarts
-#                         only if something changed
+#                         only if something changed — and only code whose
+#                         self-test passed on GitHub (deploy/cloud/update.sh)
 #
 # Log: /var/log/radio-tower-install.log. The address and the station key end
 # up in /srv/radio/TOWER.txt (root-only) and in the log's last lines.
@@ -193,7 +194,13 @@ for _ in $(seq 1 30); do
   if curl -fsS --max-time 3 http://127.0.0.1:8080/api/health >/dev/null; then ok=1; break; fi
   sleep 2
 done
-[ "$ok" = 1 ] && echo "the station answers on 127.0.0.1:8080" || echo "WARNING: the station is not answering yet — journalctl -u radio-tower -n 50"
+if [ "$ok" = 1 ]; then
+  echo "the station answers on 127.0.0.1:8080"
+  # What is on air, for the nightly update to compare against (update.sh).
+  git -C "$APP" rev-parse HEAD > "$DATA/deployed-commit"
+else
+  echo "WARNING: the station is not answering yet — journalctl -u radio-tower -n 50"
+fi
 
 umask 077
 cat > "$DATA/TOWER.txt" <<EOF
