@@ -2668,3 +2668,58 @@ Verified: `bash scripts/build-test.sh` — 294 tests, 43/43 browser, 40/40 site.
 - **Not done here, for Ortis:** pushing; running `node library\bot.mjs
   shortcut` once after the push (the shortcut opens the Vercel booth, which
   only reads `#key` once deployed).
+
+## 2026-10-14 — The daily programme, and visuals from the cover (Claude Code, laptop)
+
+Ortis asked for rules for the 24/7 loop now that 151 Bandcamp albums are
+waiting in Downloads, a tentative programme, then — after reading it — for
+changes, and "push everything".
+
+- **Measured first.** The live tower: 140 tracks, an 18.3-hour shuffle. The
+  laptop: those 140 plus `For Radio` (15) and `For The Waves` (9). The
+  albums, read straight out of the zips without opening them into the
+  library: 1,624 tracks, 131.5 h, 17.9 GB. About 1,225 are undersaken or
+  undersaken collaborations.
+- **`server/lib/programme.js`** (new): `DailyStation`, a day from 05:00 Paris
+  time; lanes Long mixes (≤ 4 a day, ≥ 3 songs apart) / Favourites (daily) /
+  More often (3 days, empty) / Less often (30 days, empty) / Albums
+  (`Crates/Bandcamp`, fill the day, track by track) / Loop (every 2 days).
+  `schedule.js`: three overridable hooks, behaviour unchanged.
+  `server/index.js`: a `programme` block in `channels.json` makes the tower's
+  own station daily. `library/channels.programme.json` is the file to publish.
+  `docs/PROGRAMME.md` has the rules in plain words.
+- **Ortis's answers to the first draft:** no night block for the long mixes
+  (spaced through the day instead); Saken 天 / saken kept as separate artists;
+  the loop every two days; albums mixed, never album by album; room for
+  more-often / less-often songs. The albums now fill each day exactly
+  (measured day by day since `since`) instead of a night block absorbing the
+  slack.
+- **Simulated on the real library, 28 days:** every day ends exactly at
+  05:00; favourites every day; every loop track in each two-day pass; every
+  album track heard by day 9; 4 long mixes a day, about 6 h apart, 62+ songs
+  between; other artists back to back 0 times; same-album pairs 0 of 7,540;
+  undersaken runs ≤ 3, 13 runs of 4 (days over ¾ undersaken). Three fixes
+  came out of reading actual days: the clash repair's reach (a 131-track run),
+  the long mixes' placement (runs of 4–5), and album separation.
+- **Cover colours:** `public/cover-palette.js` (new, copied to
+  `site/js/lib/`), `palette(hue, drift, look)` + `lookParams()` in
+  `public/viz.js`, and the site stage loads the cover on each track. Read on
+  the 151 sleeves in a real browser, against the live tower's covers from a
+  local copy of the site, and rendered on the real stage with four covers
+  (red → red-orange, pale blue → cyan, green → green, black-and-white → near
+  white).
+- Tests: `tests/programme.test.js` (18, including a real server booted with
+  a `programme` in `channels.json`, on synthetic MP3 frames so it runs
+  without ffmpeg) and `tests/cover-palette.test.js` (7). `npm test` before:
+  367 / 337 pass / 30 skipped; after: 392 / 362 pass / 30 skipped, 0 fail.
+  Full self-test (ffmpeg 9.0.2 from the morning session's scratch folder):
+  **390 tests, 43/43 browser, 57/57 site — "the tower is sound"**.
+- **Going on air on Ortis's "push everything"** (2026-10-13), in this order: the
+  151 albums opened into `Crates/Bandcamp` (zips kept); `channels.json` replaced
+  by `library/channels.programme.json` (the shuffle kept as
+  `channels.before-programme-2026-10-13.json`); `More often` and `Less often`
+  created empty; this commit pushed; rules, then albums, published to the
+  tower; the tower updated once CI passed. What actually happened: the next
+  entry.
+- The tentative programme (7 days, 28-day checks, cover colours) is a private
+  page for Ortis: https://claude.ai/artifact/GoiAoZQvLyAoCeRmSWbgUK

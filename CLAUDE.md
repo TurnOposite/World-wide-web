@@ -21,8 +21,16 @@ the network-map room), **Photos**, **Crates** — fed by
 
 **Live since 2026-10-08:** the site on Vercel in tower mode, the music on the
 Oracle server at `https://129-151-227-129.sslip.io` —
-**[`docs/LIVE.md`](./docs/LIVE.md)** (one shuffled channel for now; rate
-limits on the public API).
+**[`docs/LIVE.md`](./docs/LIVE.md)** (one channel, the daily programme since
+2026-10-14; rate limits on the public API).
+
+**New since 2026-10-14 — the daily programme, and colours from the cover.**
+The tower no longer shuffles one loop: a day runs from 05:00 Paris time,
+favourites daily, the loop every two days, the albums mixed in turn, long
+mixes spaced out — `server/lib/programme.js` (`DailyStation`), switched on
+by the `programme` block in `channels.json`. The rules, in Ortis's terms:
+**[`docs/PROGRAMME.md`](./docs/PROGRAMME.md)**. The site's visuals take
+their colours from the cover on air (`public/cover-palette.js`).
 
 **New since 2026-10-13 — the laptop, the nightly update, album zips.** The
 self-test runs on Ortis's Windows laptop (LF line endings forced by

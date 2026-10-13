@@ -280,7 +280,7 @@ export class Station {
     // staging the real change — forever, since every later no-op rescan would
     // hit the same false match. See docs/ROADMAP.md #5, finding 1 (BLOCKING).
     const queuedFingerprint = this._nextEra ? this._nextEra.fingerprint : this._era.fingerprint;
-    if (fingerprintTracks(filtered) === queuedFingerprint) return this;
+    if (this._fingerprintOf(filtered) === queuedFingerprint) return this;
 
     const baseline = this._effectiveEra(now);
     if (baseline.tracks.length === 0 || baseline.cycleSeconds <= 0) {
@@ -294,10 +294,7 @@ export class Station {
       // Protect the cycle already in progress: queue the new library to take
       // over at the end of it, not before.
       this._era = baseline;
-      const elapsed = (now - baseline.startTimeMs) / 1000;
-      const localCycle = Math.floor(elapsed / baseline.cycleSeconds);
-      const startAbsCycle = baseline.startAbsCycle + localCycle + 1;
-      const startTimeMs = baseline.startTimeMs + (localCycle + 1) * baseline.cycleSeconds * 1000;
+      const { startTimeMs, startAbsCycle } = this._nextBoundary(baseline, now);
       this._nextEra = this._buildEra(filtered, startTimeMs, startAbsCycle);
     }
     // A library change reshuffles the cycles the override was pinned to.
@@ -307,6 +304,41 @@ export class Station {
     this._override = null;
     this._cycleCache.clear();
     return this;
+  }
+
+  /*
+   * The three hooks below are the only places that know a cycle is "every
+   * track once, back to back". DailyStation (server/lib/programme.js)
+   * overrides them so a cycle can be one broadcast day instead.
+   */
+
+  /** What decides whether a rescan changed anything the schedule must adopt. */
+  _fingerprintOf(tracks) {
+    return fingerprintTracks(tracks);
+  }
+
+  /** Where a library change noticed at `now` takes over: the end of the cycle in progress. */
+  _nextBoundary(baseline, now) {
+    const elapsed = (now - baseline.startTimeMs) / 1000;
+    const localCycle = Math.floor(elapsed / baseline.cycleSeconds);
+    return {
+      startAbsCycle: baseline.startAbsCycle + localCycle + 1,
+      startTimeMs: baseline.startTimeMs + (localCycle + 1) * baseline.cycleSeconds * 1000,
+    };
+  }
+
+  /** Which cycle `now` falls in, and how many seconds into it — or null when nothing is on. */
+  _locate(now) {
+    const era = this._effectiveEra(now);
+    if (era.tracks.length === 0 || era.cycleSeconds <= 0) return null;
+
+    const elapsed = (now - era.startTimeMs) / 1000;
+    // Negative elapsed (querying before this era's own start) still works:
+    // JS % keeps the sign, so we normalise it back into [0, cycleSeconds).
+    const localCycle = Math.floor(elapsed / era.cycleSeconds);
+    let pos = elapsed - localCycle * era.cycleSeconds;
+    if (pos < 0) pos += era.cycleSeconds;
+    return { cycleIndex: era.startAbsCycle + localCycle, pos };
   }
 
   /** Which era governs playback at wall-clock instant `now`? Pure — no mutation. */
@@ -649,16 +681,9 @@ export class Station {
    * @returns {null|{track, offset, startsAt, endsAt, cycleIndex, withinCycle, inGap}}
    */
   at(now = Date.now()) {
-    const era = this._effectiveEra(now);
-    if (era.tracks.length === 0 || era.cycleSeconds <= 0) return null;
-
-    const elapsed = (now - era.startTimeMs) / 1000;
-    // Negative elapsed (querying before this era's own start) still works:
-    // JS % keeps the sign, so we normalise it back into [0, cycleSeconds).
-    const localCycle = Math.floor(elapsed / era.cycleSeconds);
-    const cycleIndex = era.startAbsCycle + localCycle;
-    let pos = elapsed - localCycle * era.cycleSeconds;
-    if (pos < 0) pos += era.cycleSeconds;
+    const loc = this._locate(now);
+    if (!loc) return null;
+    const { cycleIndex, pos } = loc;
 
     const order = this.cycleOrder(cycleIndex);
     const cycleStartSec = this._startOfCycle(cycleIndex) / 1000;

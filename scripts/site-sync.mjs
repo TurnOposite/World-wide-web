@@ -26,6 +26,9 @@ export const SYNCED = [
   // tiers) — pinned by tests/viz.test.js. The site's full-page stage builds
   // on these rather than re-deriving them.
   ['public/viz.js', 'site/js/lib/viz-core.js'],
+  // The colours of a cover, read in the browser — the stage tints itself
+  // with them (docs/PROGRAMME.md). Pinned by tests/cover-palette.test.js.
+  ['public/cover-palette.js', 'site/js/lib/cover-palette.js'],
   // The queue editor's pure helpers (movableWindow, applyMove, isPermutation)
   // — pinned by tests/queue-ui.test.js.
   ['public/queue.js', 'site/js/lib/queue-core.js'],

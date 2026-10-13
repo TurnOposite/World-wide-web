@@ -13,6 +13,7 @@ import config, { ROOT } from './config.js';
 import { scanLibrary } from './lib/library.js';
 import { Station } from './lib/schedule.js';
 import { ChannelSet, DEFAULT_CHANNEL_SPEC } from './lib/channels.js';
+import { DailyStation, DEFAULT_PROGRAMME } from './lib/programme.js';
 import fs from 'node:fs';
 import { Listeners } from './lib/listeners.js';
 import { RateLimiter, rateLimit, isLoopback } from './lib/ratelimit.js';
@@ -22,11 +23,6 @@ import { Collections, isPrivatePath } from './lib/collections.js';
 
 const VERSION = '0.1.0';
 
-const station = new Station([], {
-  epoch: config.stationEpoch,
-  gapSeconds: config.gapSeconds,
-  name: config.stationName,
-});
 /**
  * The channel spec: library/channels.json beside the music if there is one
  * (CHANNELS_FILE overrides where to look), else the default — Mashup, Long
@@ -43,8 +39,24 @@ function readChannelSpec() {
   }
   return DEFAULT_CHANNEL_SPEC;
 }
+
+/**
+ * The tower's own programme. A spec with a `programme` makes it the daily
+ * one (server/lib/programme.js, docs/PROGRAMME.md): a broadcast day from
+ * 05:00 Paris time, favourites daily, the albums in rotation. Without one,
+ * the single shuffled cycle it has always been. Decided once, at start:
+ * switching between the two models moves the clock, so it waits for a
+ * restart; editing the rules does not — they take over at the next day.
+ */
+const bootSpec = readChannelSpec();
+const programmeOf = (spec) => (spec?.programme === true ? DEFAULT_PROGRAMME : spec?.programme || null);
+const stationOpts = { epoch: config.stationEpoch, gapSeconds: config.gapSeconds, name: config.stationName };
+const station = programmeOf(bootSpec)
+  ? new DailyStation([], { ...stationOpts, programme: programmeOf(bootSpec) })
+  : new Station([], stationOpts);
+
 const channels = new ChannelSet({
-  spec: readChannelSpec(),
+  spec: bootSpec,
   station: { epoch: config.stationEpoch, gapSeconds: config.gapSeconds, name: config.stationName },
   main: station,
 });
@@ -65,8 +77,16 @@ async function rescan({ useCache = true } = {}) {
   const t0 = Date.now();
   try {
     const result = await scanLibrary({ musicDir: config.musicDir, cacheFile: config.cacheFile, useCache });
-    station.setTracks(result.tracks);
-    channels.spec = readChannelSpec();
+    const spec = readChannelSpec();
+    if (station instanceof DailyStation) {
+      station.setTracks(result.tracks, { programme: programmeOf(spec) || undefined });
+    } else {
+      station.setTracks(result.tracks);
+    }
+    if (Boolean(programmeOf(spec)) !== station instanceof DailyStation) {
+      console.warn(`[programme] channels.json ${programmeOf(spec) ? 'now has' : 'no longer has'} a programme — that takes effect at the next restart`);
+    }
+    channels.spec = spec;
     channels.setTracks(result.tracks);
     state.lastScanAt = Date.now();
     state.lastScanSkipped = result.skipped;
@@ -238,6 +258,7 @@ if (isMain) {
     console.log(`  listening on http://${config.host}:${config.port}`);
     console.log(`  music: ${config.musicDir}`);
     console.log(`  epoch: ${new Date(config.stationEpoch).toISOString()}`);
+    if (station instanceof DailyStation) console.log(`  programme: daily, from ${station.rules.dayStarts} ${station.rules.timeZone} (docs/PROGRAMME.md)`);
     if (devReload) console.log(`  dev hot-reload: watching public/ (SSE at /api/dev/reload)`);
     console.log(`  warming up — scanning the library now...\n`);
   });

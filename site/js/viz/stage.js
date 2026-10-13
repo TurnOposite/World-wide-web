@@ -17,7 +17,8 @@
  * and the waveform), created on the first Tune in and never again:
  * `createMediaElementSource()` works once per <audio>, ever.
  */
-import { palette, bands, OnsetDetector, squirclePoint, magAt, clamp, lerp, TIERS, nextTier } from '../lib/viz-core.js';
+import { palette, lookParams, NEUTRAL_LOOK, bands, OnsetDetector, squirclePoint, magAt, clamp, lerp, TIERS, nextTier } from '../lib/viz-core.js';
+import { coverLook } from '../lib/cover-palette.js';
 import { CallMap, paintCallMap, fitRadius } from './callmap.js';
 
 const TAU = Math.PI * 2;
@@ -58,6 +59,11 @@ export class Stage {
 
     this.hue = 165;
     this.targetHue = 165;
+    // The cover's pull on the palette (viz-core lookParams), eased like the hue.
+    this.look = { ...NEUTRAL_LOOK };
+    this.targetLook = NEUTRAL_LOOK;
+    this.cover = null;
+    this._covers = new Map(); // art url -> coverLook() result (null: none usable)
     this.drift = 0;
     this.t = 0;          // scene time, seconds, scaled by `motion`
     this.gridPhase = 0;
@@ -110,8 +116,48 @@ export class Stage {
 
   resume() { return this.ac?.state === 'suspended' ? this.ac.resume().catch(() => {}) : Promise.resolve(); }
 
+  /**
+   * A new track: the colours follow its cover when it has one (read here,
+   * in the browser — ../lib/cover-palette.js), else its genre. The genre hue
+   * is set at once and the cover's look replaces it when the image arrives,
+   * so a slow cover never leaves the stage on the previous track's colours.
+   */
   setTrack(track) {
     if (Number.isFinite(track?.genreAccent)) this.targetHue = track.genreAccent;
+    this.targetLook = NEUTRAL_LOOK;
+    const url = track?.artUrl && track.hasArt !== false ? track.artUrl : null;
+    const token = (this._coverToken = (this._coverToken || 0) + 1);
+    if (!url || typeof Image === 'undefined') return;
+    const cached = this._covers.get(url);
+    if (cached !== undefined) { this._applyCover(cached); return; }
+    const img = new Image();
+    // The tower answers with Access-Control-Allow-Origin: *, so the canvas
+    // stays readable; a host that does not just leaves the genre colours.
+    img.crossOrigin = 'anonymous';
+    img.decoding = 'async';
+    img.onload = () => {
+      let look = null;
+      try {
+        const c = (this._coverCanvas ||= document.createElement('canvas'));
+        c.width = c.height = 48;
+        const cx = c.getContext('2d', { willReadFrequently: true });
+        cx.clearRect(0, 0, 48, 48);
+        cx.drawImage(img, 0, 0, 48, 48);
+        look = coverLook(cx.getImageData(0, 0, 48, 48).data, 48, 48);
+      } catch { /* tainted or undecodable: keep the genre */ }
+      if (this._covers.size > 64) this._covers.clear();
+      this._covers.set(url, look);
+      if (token === this._coverToken) this._applyCover(look);
+    };
+    img.onerror = () => { this._covers.set(url, null); };
+    img.src = url;
+  }
+
+  _applyCover(look) {
+    this.cover = look;
+    if (!look) return;
+    this.targetHue = look.hue;
+    this.targetLook = lookParams(look);
   }
 
   setPlaying(on) { this.playing = Boolean(on); }
@@ -219,8 +265,10 @@ export class Stage {
     this.drift = 13 * Math.sin(this.t * 0.21) + 6 * Math.sin(this.t * 0.077);
     const want = Number.isFinite(s.hue) ? s.hue : this.targetHue;
     const diff = ((want - this.hue + 540) % 360) - 180;
-    this.hue = (this.hue + diff * (1 - Math.exp(-1.6 * dt)) + 360) % 360;
-    const pal = palette(this.hue, this.drift);
+    const ease = 1 - Math.exp(-1.6 * dt);
+    this.hue = (this.hue + diff * ease + 360) % 360;
+    for (const k of ['span', 'satScale', 'lightShift']) this.look[k] += (this.targetLook[k] - this.look[k]) * ease;
+    const pal = palette(this.hue, this.drift, this.look);
     const tier = TIERS[this.tier];
     const L = s.layers;
 
@@ -603,7 +651,7 @@ export class Stage {
     const bars = 24;
     const gap = w / bars;
     const n = this.specBins.length;
-    const pal = palette(this.hue, this.drift);
+    const pal = palette(this.hue, this.drift, this.look);
     for (let i = 0; i < bars; i++) {
       const v = magAt(this.specBins, Math.floor(Math.pow(i / bars, 1.6) * n * 0.5));
       const bh = 2 + v * (h - 2);

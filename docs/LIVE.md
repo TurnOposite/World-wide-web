@@ -51,11 +51,23 @@ then the same line without `--dry-run`, and with `--publish` to send them.
 The zips stay in Downloads; `music\_albums.json` remembers what was opened.
 A pack of short sounds and a second download of the same album are skipped.
 
+## The programme
+
+Since 2026-10-14, one channel playing **the daily programme**: a day from
+05:00 Paris time, `For Radio` and `For The Waves` every day, the loop every
+two days, the Bandcamp albums mixed track by track, at most 4 long mixes a
+day, spaced out. The rules, and how to push a song up or down (the empty
+`More often` and `Less often` folders), are in
+**[`PROGRAMME.md`](./PROGRAMME.md)**. They live in the `programme` block of
+`Radio Tower\music\channels.json`. Edit it, `publish`, and the new rules take
+over at the next 05:00. The shuffle it replaced is kept beside it as
+`channels.before-programme-2026-10-13.json`.
+
 ## Channels
 
-For now one channel: the whole library, shuffled (Ortis, 2026-10-08). To bring
-back a channel per playlist folder, add this line inside the `channels` list
-of `Radio Tower\music\channels.json`, then `publish`:
+One channel, `all`, which plays the programme above. To bring back a channel
+per playlist folder, add this line inside the `channels` list of
+`Radio Tower\music\channels.json`, then `publish`:
 
 ```json
 { "auto": "crates", "order": "shuffle", "minTracks": 3 }

@@ -1,0 +1,26 @@
+{
+  "_readme": "The tower's channels.json with the daily programme switched on (docs/PROGRAMME.md). To use it: copy it to channels.json in the music folder (Radio Tower\\music\\channels.json), then node library\\bot.mjs publish, then restart the tower once. The programme block holds the rules; edit them and publish again — they take over at the next 05:00 Paris time.",
+  "default": "all",
+  "programme": {
+    "timeZone": "Europe/Paris",
+    "dayStarts": "05:00",
+    "since": "2026-10-14",
+    "lanes": [
+      { "name": "Long mixes", "minMinutes": 20, "perDay": 4, "apart": 3 },
+      { "name": "Favourites", "folders": ["For Radio", "For The Waves"], "every": 1 },
+      { "name": "More often", "folders": ["More often"], "every": 3 },
+      { "name": "Less often", "folders": ["Less often"], "every": 30 },
+      { "name": "Albums", "folders": ["Crates/Bandcamp"], "fill": true },
+      { "name": "Loop", "every": 2 }
+    ],
+    "aliases": {}
+  },
+  "channels": [
+    {
+      "slug": "all",
+      "label": "Everything",
+      "blurb": "Favourites every day, the loop every other day, the albums mixed in turn. A new day at 05:00 Paris time.",
+      "order": "station"
+    }
+  ]
+}

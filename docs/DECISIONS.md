@@ -3211,3 +3211,80 @@ notes file because nobody can remember 32 hex characters.
   station `tower.json` names.
 - **Not done:** a chosen passphrase instead of the random key — offered,
   declined (2026-10-13). `public/queue.js` (the Pi's own page) keeps rule 2.
+
+## 2026-10-14 — A daily programme: favourites every day, the albums mixed in turn, the day from 05:00 Paris
+
+Ortis, 2026-10-13, with 151 Bandcamp albums (1,624 tracks, 131 h) waiting to
+join a 140-track loop: every album track should play "over however long that
+takes", mixed track by track, never album by album; the two lists he made
+(`For Radio`, `For The Waves`) every day; the old loop more often than the
+albums but not necessarily daily (every two days, his choice); not the same
+artist twice in a row; long mixes at most 4 a day, never consecutive, at least
+two or three songs between; room to push songs up or down later; a 24-hour
+day starting at 05:00 Paris time. And the visuals should follow the album
+cover, not the genre.
+
+**The model.** `server/lib/programme.js`, `DailyStation extends Station`: a
+cycle is one broadcast day. Station's three new hooks (`_locate`,
+`_nextBoundary`, `_fingerprintOf`) are the only places that knew a cycle was
+"every track once"; the shuffle station's behaviour is unchanged (the 337
+existing tests, untouched, pass). Eras, the DJ's permutations, the fence,
+upcoming/history/schedule all work on days as they did on cycles. The
+station's one idea holds: a day is a pure function of library, rules and
+date, rebuilt identically anywhere — nothing is stored.
+
+- **Lanes**, first match wins: `perDay`/`apart` (Long mixes: the next 4 of a
+  per-pass shuffle each day, placed evenly through the songs, ≥ 3 songs
+  apart), `every: 1` (Favourites), `every: N` (a pass of N days cut into
+  equal-duration slices of a per-pass shuffle — Loop, and the two reserved
+  lanes More often / Less often, empty until Ortis files songs there),
+  `fill` (Albums: an endless stream of shuffled passes).
+- **Where the albums' stretch of day d starts** is the sum of the album time
+  of every day since `since` — each day *measured* (its loop slice and its
+  long mixes), not built, memoised on the era's plan. That is what lets the
+  albums fill each day exactly however long its four mixes are, and still play
+  each track once per pass. A first version placed it at d × a fixed budget
+  and let a night block absorb the difference; Ortis does not want a night
+  block ("I don't distinguish between day and night"), so the albums absorb
+  it instead. The cost, accepted: adding albums re-deals the pass in progress
+  from the next morning; every track still plays within two passes.
+  Alternatives weighed and dropped: stored play history (against BRIEF §3);
+  hashing each track to a fixed day (day loads vary ±7 %, pass changes
+  re-deal anyway); file mtimes as arrival dates (lost by any re-upload).
+- **Fitting the day exactly:** the albums stop on a track boundary, so a day
+  can be a song short (encores: loop tracks not heard today) or over (the
+  last track is cut at 05:00: a copy with a shorter `duration`, same id —
+  both players roll over on the clock, never on `ended`).
+- **Artists:** a collaboration clashes with each of its artists; untagged
+  files read "Artist - Title". `dealSpread` repairs a clash only from the next
+  3 slots — an unbounded repair spent every other artist early and left a
+  131-track undersaken run at the end of the day (measured on the real
+  library). When one artist is more than half the day (undersaken: 70 %),
+  `spreadArtists` deals the others first and puts him in the gaps: runs of
+  ⌈U/(others+1)⌉, 3 at 70 %. A long mix goes where the run it joins is
+  shortest (an undersaken mix dropped into his run made 26 runs of 4 and one
+  of 5 in 28 days; 13 of 4 after, all on days over ¾ undersaken).
+  `separateAlbums` swaps a track with a later one of the same artist from
+  another album, so the artist pattern does not move: 0 same-album pairs in
+  7,540. `Saken 天` / `saken` are undersaken, but kept separate on purpose —
+  listeners don't know (Ortis); `aliases` exists if that changes.
+- **Paris time without Intl:** the EU summer-time rule (last Sunday of March
+  and of October, 01:00 UTC) is arithmetic, identical in every engine; days
+  of 23 and 25 hours are tested.
+- **Switching on:** a `programme` block in `channels.json` (beside the music)
+  makes the tower's own station daily, so `/api/station` with or without a
+  channel, the DJ CLI and `/api/health` all see the same programme. Adding or
+  removing the block, or changing the time zone or start hour, waits for a
+  restart (it moves the clock); editing lanes takes over at the next 05:00.
+
+**Visuals from the cover.** `public/cover-palette.js` (copied to
+`site/js/lib/`) reads the cover in the listener's browser at 48×48: main hue,
+answering hue, saturation, lightness. `palette()` takes an optional look;
+`NEUTRAL_LOOK` returns exactly the old strings (tested), so a track without
+a cover looks as before and the stage eases between the two without a jump.
+Read in the browser rather than on the tower: the browser decodes JPEG for
+free, the tower would need an image dependency and Pi time. The tower already
+answers `Access-Control-Allow-Origin: *`, so the site on Vercel can read
+covers from the tower's origin (checked against the live tower, 2026-10-13,
+and rendered on the real stage with four covers). The Pi's own page
+(`public/app.js`) still uses the genre hue.

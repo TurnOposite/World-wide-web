@@ -160,23 +160,57 @@ export function defaultKnobs() {
  * side of the accent instead of all using the same one, so the ring shifts
  * colour along its own length the way an oil slick does.
  *
- * @param {number|null|undefined} hue  degrees, from GENRES[].accent
+ * A cover can steer it (`look`, from lookParams() below): each role leans
+ * part of the way toward the cover's answering hue, and saturation and
+ * lightness follow how colourful and how dark the sleeve is. NEUTRAL_LOOK
+ * — what a track without a cover gets — changes nothing, so a stage can
+ * ease between the two without a jump.
+ *
+ * @param {number|null|undefined} hue  degrees: the cover's main hue, else GENRES[].accent
  * @param {number} drift  slow global rotation in degrees, for shimmer
+ * @param {{span: number, satScale: number, lightShift: number}} [look]
  */
-export function palette(hue, drift = 0) {
+export function palette(hue, drift = 0, look = NEUTRAL_LOOK) {
   const h = Number.isFinite(hue) ? ((hue % 360) + 360) % 360 : DEFAULT_HUE;
-  const at = (offset, s, l, a) => `hsla(${(h + offset + drift + 360) % 360} ${s}% ${l}% / ${a})`;
+  const span = Number.isFinite(look?.span) ? look.span : 0;
+  const ks = Number.isFinite(look?.satScale) ? look.satScale : 1;
+  const dl = Number.isFinite(look?.lightShift) ? look.lightShift : 0;
+  const at = (offset, s, l, a, lean = 0) => {
+    const sat = ks === 1 ? s : Math.round(clamp(s * ks, 0, 100));
+    const lit = dl === 0 ? l : Math.round(clamp(l + dl, 22, 86));
+    return `hsla(${(h + offset + span * lean + drift + 360) % 360} ${sat}% ${lit}% / ${a})`;
+  };
   return {
     hue: h,
-    /** Hue at position `t` (0..1) along an iridescent sweep. */
-    sweep: (t, s = 62, l = 66, a = 1) => at(lerp(-38, 38, clamp(t, 0, 1)), s, l, a),
+    /** Hue at position `t` (0..1) along an iridescent sweep — through the cover's second colour, when it has one. */
+    sweep: (t, s = 62, l = 66, a = 1) => at(lerp(-38, 38, clamp(t, 0, 1)), s, l, a, clamp(t, 0, 1)),
     ring: (a = 0.9) => at(0, 60, 70, a),
-    ringGlow: (a = 0.32) => at(18, 70, 54, a),
+    ringGlow: (a = 0.32) => at(18, 70, 54, a, 0.3),
     bloomA: (a = 0.16) => at(-30, 55, 50, a),
-    bloomB: (a = 0.13) => at(28, 50, 46, a),
-    shock: (a = 0.5) => at(8, 66, 72, a),
-    spark: (a = 0.9) => at(-16, 52, 80, a),
-    ribbon: (a = 0.85) => at(12, 64, 68, a),
+    bloomB: (a = 0.13) => at(28, 50, 46, a, 1),
+    shock: (a = 0.5) => at(8, 66, 72, a, 0.5),
+    spark: (a = 0.9) => at(-16, 52, 80, a, 1),
+    ribbon: (a = 0.85) => at(12, 64, 68, a, 0.6),
+  };
+}
+
+/** A palette steered by nothing: the genre palette, unchanged. */
+export const NEUTRAL_LOOK = Object.freeze({ span: 0, satScale: 1, lightShift: 0 });
+
+/**
+ * What a cover (public/cover-palette.js coverLook()) does to the palette.
+ * `span` is the signed way round from the main hue to the answering one. A
+ * black-and-white sleeve keeps a trace of colour (0.18), never none, so the
+ * stage still reads as alive; a pale sleeve lifts the stage a little, a dark
+ * one sinks it — within the band where the additive layers stay pastel.
+ */
+export function lookParams(look) {
+  if (!look || !Number.isFinite(look.hue)) return NEUTRAL_LOOK;
+  const span = Number.isFinite(look.accent) ? ((((look.accent - look.hue) % 360) + 540) % 360) - 180 : 0;
+  return {
+    span: Math.round(span * 10) / 10,
+    satScale: look.mono ? 0.18 : Math.round(clamp(0.4 + (look.sat || 0) * 1.1, 0.4, 1.3) * 100) / 100,
+    lightShift: Math.round(clamp(((look.light ?? 0.5) - 0.5) * 24, -10, 10) * 10) / 10,
   };
 }
 
