@@ -1,1 +1,29 @@
-{"$schema":"https://openapi.vercel.sh/vercel.json","buildCommand":"node scripts/site-build.mjs","outputDirectory":"dist","installCommand":"echo 'static build needs no dependencies'","trailingSlash":false,"headers":[{"source":"/station/control.json","headers":[{"key":"Cache-Control","value":"public, max-age=0, must-revalidate"}]},{"source":"/config.json","headers":[{"key":"Cache-Control","value":"public, max-age=0, must-revalidate"}]}]}
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "node scripts/site-build.mjs",
+  "outputDirectory": "dist",
+  "installCommand": "echo 'static build needs no dependencies'",
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/station/control.json",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+    },
+    {
+      "source": "/config.json",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
+    },
+    {
+      "source": "/collections/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
+    },
+    {
+      "source": "/press/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400" }]
+    }
+  ]
+}

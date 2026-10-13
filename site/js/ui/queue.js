@@ -17,6 +17,9 @@
 import { movableWindow, isPermutation } from '../lib/queue-core.js';
 import { esc, fmt, clock } from './util.js';
 
+const DJ_POLL_MS = 5000;
+const LISTENER_POLL_MS = 15_000;
+
 const REASONS = {
   too_close_to_air: 'too close to air — pick something further down',
   window_crosses_cycle: 'that run crosses the end of the loop',
@@ -63,7 +66,20 @@ export class QueueEditor {
     this._offControl = client.on?.('control', () => this.refresh({ force: true }));
     this._onTrack = () => this.refresh({ force: true });
     player.addEventListener('track', this._onTrack);
-    this._timer = setInterval(() => this.refresh(), 5000);
+    // The queue changes when a track ends or a DJ acts, and both already
+    // refresh it (above). Polling only catches a DJ in another tab, so a
+    // listener asks every 15 s and a hidden tab not at all; the DJ, who
+    // watches the fence close in, keeps 5 s. On a tower every poll is a
+    // request from every open tab, against a per-address budget a whole
+    // room on one Wi-Fi shares (server/lib/ratelimit.js).
+    this._polledAt = 0;
+    this._timer = setInterval(() => {
+      if (document.hidden) return;
+      if (!this.canWrite && Date.now() - this._polledAt < LISTENER_POLL_MS) return;
+      this.refresh();
+    }, DJ_POLL_MS);
+    this._onVisible = () => { if (!document.hidden) this.refresh({ force: true }); };
+    document.addEventListener('visibilitychange', this._onVisible);
     this.refresh({ force: true });
   }
 
@@ -72,6 +88,7 @@ export class QueueEditor {
     clearTimeout(this._keyTimer);
     this._offControl?.();
     this.player.removeEventListener('track', this._onTrack);
+    document.removeEventListener('visibilitychange', this._onVisible);
   }
 
   get canWrite() { return this.client.canWrite; }
@@ -85,6 +102,7 @@ export class QueueEditor {
   async refresh({ force = false } = {}) {
     if (this.drag || this.busy || this._keyTimer) return;
     if (!force && Date.now() - this.lastTouch < 4000) return;
+    this._polledAt = Date.now();
     try {
       const data = await this.client.get('/api/queue');
       this.data = data;

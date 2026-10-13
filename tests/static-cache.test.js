@@ -25,6 +25,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import http, { createServer } from 'node:http';
+import { fileURLToPath } from 'node:url';
 
 process.env.MUSIC_DIR = await fs.mkdtemp(path.join(os.tmpdir(), 'rt-cache-'));
 process.env.CACHE_FILE = path.join(process.env.MUSIC_DIR, '.cache', 'library.json');
@@ -83,7 +84,9 @@ test('no-cache still means "keep it, but ask" — a conditional request gets a 3
 });
 
 test('/assets/ may be cached hard — images are large and their names change with their contents', async () => {
-  const dir = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'public', 'assets', 'backdrops');
+  // fileURLToPath, not URL.pathname: on Windows the latter is "/C:/…", the
+  // readdir below failed, and this test passed without checking anything.
+  const dir = fileURLToPath(new URL('../public/assets/backdrops', import.meta.url));
   let sample;
   try {
     const entries = await fs.readdir(dir);
@@ -97,4 +100,23 @@ test('/assets/ may be cached hard — images are large and their names change wi
   assert.equal(res.status, 200);
   const cc = res.headers.get('cache-control') ?? '';
   assert.match(cc, /max-age=\d{4,}/, `assets should stay cacheable, got "${cc}"`);
+});
+
+// The website is served by Vercel, not by this server (docs/LIVE.md), so the
+// same rule has to hold in vercel.json — where no other test would notice it
+// broken, and a returning listener would run stale modules again.
+test('vercel.json keeps the rule: only assets, portfolio files and clippings are held', async () => {
+  const cfg = JSON.parse(await fs.readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
+  assert.equal(cfg.buildCommand, 'node scripts/site-build.mjs');
+  assert.equal(cfg.outputDirectory, 'dist');
+  const cacheOf = (source) => cfg.headers.find((h) => h.source === source)?.headers
+    .find((x) => x.key.toLowerCase() === 'cache-control')?.value ?? '';
+  for (const source of ['/station/control.json', '/config.json']) {
+    assert.match(cacheOf(source), /max-age=0\b.*must-revalidate/, `${source} is what the DJ and the deploy change — it must never be held`);
+  }
+  assert.match(cacheOf('/assets/(.*)'), /max-age=\d{4,}/);
+  for (const h of cfg.headers) {
+    const held = h.headers.some((x) => x.key.toLowerCase() === 'cache-control' && /max-age=[1-9]/.test(x.value));
+    if (held) assert.match(h.source, /^\/(assets|collections|press)\//, `${h.source}: only files that are not code may be held`);
+  }
 });
