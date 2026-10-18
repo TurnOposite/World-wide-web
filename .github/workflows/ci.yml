@@ -45,6 +45,7 @@ jobs:
         run: |
           node scripts/site-sync.mjs --check
           node scripts/site-texts.mjs --check
+          node scripts/site-echo.mjs --check
           node scripts/site-collections.mjs --check
           node scripts/cloud-library.mjs check
 

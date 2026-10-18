@@ -104,7 +104,7 @@ try {
   await a.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await a.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
   const tabs = await a.$$eval('.tabs a', (els) => els.map((e) => e.textContent.trim()));
-  check('the site shell loads with its four sections', tabs.join(',') === 'Radio,Atlas,Écrits,Portfolio', tabs.join(', '));
+  check('the site shell loads with its five sections', tabs.join(',') === 'Radio,Atlas,Écrits,Echo,Portfolio', tabs.join(', '));
   check('the mark is the green hybrid tower', await a.$eval('.brand .mark', (el) => getComputedStyle(el).color === 'rgb(52, 211, 153)'));
 
   const title = await a.textContent('#rTitle');
@@ -318,6 +318,13 @@ try {
   await a.waitForSelector('.reading .body.verse p', { timeout: 5000 });
   check('a poem opens verbatim, set as verse, with its score', /toits d.ardoise/.test(await a.textContent('.reading .body')) && Boolean(await a.$('#scoreBox:not([hidden])')));
 
+  await a.click('.tabs a[href="echo"]');
+  await a.waitForSelector('.echo-card', { timeout: 5000 });
+  check('Echo lists its articles and filters by tag', (await a.$$('.echo-card')).length >= 1);
+  await a.click('.echo-card');
+  await a.waitForSelector('.echo-article .echo-body .pull', { timeout: 5000 });
+  check('an Echo article opens: standfirst, hero with credit, pull quote, notes', Boolean(await a.$('.echo-standfirst') && await a.$('.echo-hero figcaption') && await a.$('.echo-notes li')));
+
   await a.click('.tabs a[href="portfolio"]');
   await a.waitForSelector('.room .book', { timeout: 8000 });
   const books = (await a.$$('.room .book')).length;
@@ -396,7 +403,7 @@ try {
   watch(m, 'phone');
   const overflow = [];
   const a11y = [];
-  for (const r of ['', 'radio', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
+  for (const r of ['', 'radio', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo', 'echo/article-temoin', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
     await m.goto(dev + r, { waitUntil: 'domcontentloaded' });
     await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
     await m.waitForTimeout(700);

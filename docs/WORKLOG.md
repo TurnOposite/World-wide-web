@@ -2778,3 +2778,7 @@ What actually happened after "push everything", in order, each step checked:
   Library with the university's site on its own line): unit tests green; site
   smoke 49/50 then 50/50 twice — the cloud booth's "…it is a permutation"
   check failed once more, the same intermittent as earlier today.
+
+## 2026-10-18 — Echo, phase 1: the online media room (branch `claude/echo`)
+
+Articles live in `echo/articles/<yyyy-mm-dd>-<slug>.md` (front matter: title, standfirst, author, date, place, tags, hero + alt/caption/credit, lang). `scripts/site-echo.mjs` builds `site/data/echo.json` (French typography applied at build; `--check` in CI; wired into `site-build.mjs`, which also writes a shell at `echo` and `echo/<slug>`). New page `site/js/pages/echo.js`, route and nav tab, CSS block at the end of `site.css`. One neutral sample ("Article témoin"), no real people. Tests: 3 in `tests/site-modules.test.js`; smoke covers list, article, phone overflow and axe. The nav smoke check now expects five tabs. Saw one unrelated flaky browser check ("rolls over to the next track automatically") in 1 of 5 self-test runs.

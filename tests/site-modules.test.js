@@ -14,6 +14,7 @@ import * as cli from '../dj/dj.mjs';
 import * as web from '../site/js/ui/moods.js';
 import { normalise, lookToSettings, VisualSettings, LOOKS, LAYERS } from '../site/js/viz/settings.js';
 import { toHtml, frontMatter, build as buildTexts } from '../scripts/site-texts.mjs';
+import { build as buildEcho, frenchTypo, parseArticle } from '../scripts/site-echo.mjs';
 import { routes, normaliseBase, shellFor } from '../scripts/site-build.mjs';
 import { CloudEngine } from '../site/js/engine/cloud.js';
 import { webAudioIsSafe } from '../site/js/player.js';
@@ -136,4 +137,34 @@ test('the Pages shell gives link previews an absolute picture and address', () =
   const local = shellFor(html, { base: '/' });
   assert.match(local, /content="assets\/share-card\.jpg"/, 'no address known: left relative');
   assert.doesNotMatch(local, /property="og:url"/);
+});
+
+test('Echo: the sample article builds with French typography, notes and a route', () => {
+  const data = buildEcho();
+  const a = data.articles.find((x) => x.slug === 'article-temoin');
+  assert.ok(a, 'the sample article is built from echo/articles');
+  assert.deepEqual(a.tags, ['témoin', 'reportage']);
+  assert.ok(a.hero.credit && a.hero.caption, 'hero carries caption and credit');
+  assert.match(a.html, /class="pull"/);
+  assert.match(a.html, /<hr class="break">/);
+  assert.match(a.html, /<h2>Premier mouvement<\/h2>/);
+  assert.ok(a.notes.items.length >= 1, 'the Sources list becomes the notes block');
+  assert.ok(!a.html.includes('Sources'), 'notes are not repeated in the body');
+  assert.match(a.html, /«\u00a0Ceci/);
+  assert.match(a.html, /\u00a0»/);
+  assert.match(a.html, /\u202f!/);
+  assert.ok(a.readingTime >= 1);
+  assert.ok(routes([], data.articles).includes('echo/article-temoin') && routes([]).includes('echo'));
+  assert.ok(fs.existsSync(path.join(ROOT, 'site', a.hero.src)), 'the hero image exists');
+});
+
+test('Echo: typography and front-matter errors', () => {
+  assert.equal(frenchTypo('Quoi ? Oui : « non »!'), 'Quoi\u202f? Oui\u00a0: «\u00a0non\u00a0»\u202f!');
+  assert.throws(() => parseArticle('bad.md', '---\ntitle: x\n---\ntext'), /name must be/);
+  assert.throws(() => parseArticle('2026-01-01-x.md', '---\ntitle: x\n---\ntext'), /lacks "standfirst"/);
+});
+
+test('Echo: site/data/echo.json is not stale', () => {
+  const have = fs.readFileSync(path.join(ROOT, 'site/data/echo.json'), 'utf8');
+  assert.equal(have, JSON.stringify(buildEcho(), null, 1) + '\n');
 });

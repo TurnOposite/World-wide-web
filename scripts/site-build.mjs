@@ -52,11 +52,12 @@ export function shellFor(html, { base = '/', siteUrl = '' } = {}) {
 }
 
 /** Every route that should answer 200 on a cold load. */
-export function routes(texts) {
+export function routes(texts, echo = []) {
   return [
     'radio', 'atlas', 'ecrits', 'portfolio', 'booth',
     'portfolio/library', 'portfolio/photos', 'portfolio/crates',
     ...texts.map((t) => `ecrits/${t.slug}`),
+    'echo', ...echo.map((a) => `echo/${a.slug}`),
   ];
 }
 
@@ -77,7 +78,7 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   const log = (...a) => { if (!quiet) console.log(...a); };
 
   // 1. generated inputs
-  for (const s of ['site-sync.mjs', 'site-texts.mjs', 'site-collections.mjs']) {
+  for (const s of ['site-sync.mjs', 'site-texts.mjs', 'site-echo.mjs', 'site-collections.mjs']) {
     execFileSync(process.execPath, [path.join(ROOT, 'scripts', s)], { stdio: quiet ? 'ignore' : 'inherit' });
   }
 
@@ -100,8 +101,9 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   const shell = shellFor(await fsp.readFile(path.join(SITE, 'index.html'), 'utf8'), { base, siteUrl });
   await fsp.writeFile(path.join(DIST, 'index.html'), shell);
   const texts = JSON.parse(await fsp.readFile(path.join(DIST, 'data/texts.json'), 'utf8')).texts;
+  const echo = JSON.parse(await fsp.readFile(path.join(DIST, 'data/echo.json'), 'utf8')).articles;
   if (shells) await fsp.writeFile(path.join(DIST, '404.html'), shell);
-  for (const r of shells ? routes(texts) : []) {
+  for (const r of shells ? routes(texts, echo) : []) {
     await fsp.mkdir(path.join(DIST, r), { recursive: true });
     await fsp.writeFile(path.join(DIST, r, 'index.html'), shell);
   }
@@ -124,7 +126,7 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   await fsp.writeFile(path.join(DIST, '.nojekyll'), '');
 
   log(`  ✓ dist/ ready — base ${base}${siteUrl ? ` at ${siteUrl}` : ''}${owner ? `, booth writes to ${owner}/${name}` : ', booth read-only (no repository)'}; ${files.length} portfolio files (${(bytes / 1048576).toFixed(1)} MB)`);
-  return { base, files: files.length, routes: routes(texts).length };
+  return { base, files: files.length, routes: routes(texts, echo).length };
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

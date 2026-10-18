@@ -489,3 +489,31 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
 .reading .body.verse h2{margin-top:1.4em}
 .room .btn{color:var(--signal-ink)}
 
+
+/* Echo — the online media room */
+.echo-lede{font:17px/1.6 var(--serif);color:var(--text-dim)}
+.echo-filter{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 18px}
+.echo-filter .chip{font:inherit;font-size:13.5px;color:var(--text-dim);border:1px solid var(--line);border-radius:999px;padding:7px 15px;background:rgba(18,22,27,.72);cursor:pointer}
+.echo-filter .chip[aria-pressed="true"]{color:var(--text);border-color:var(--signal);background:var(--signal-soft)}
+.echo-grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
+.echo-card{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:var(--text);background:rgba(12,15,19,.94);border:1px solid var(--line-soft);border-radius:16px;padding:0 0 16px;overflow:hidden}
+.echo-card[hidden]{display:none}
+.echo-card:hover{border-color:var(--signal)}
+.echo-card img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+.echo-card>:not(img){margin:0 16px}
+.echo-card b{font:600 20px/1.2 var(--serif)}
+.echo-kicker{font:12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--signal);margin-top:12px}
+.echo-card .echo-dek{font:15px/1.5 var(--serif);color:var(--text-dim)}
+.echo-meta{font:12px var(--mono);color:var(--text-faint)}
+.echo-article .echo-kicker{margin:14px 0 0}
+.echo-standfirst{font:italic 20px/1.5 var(--serif);color:var(--text-dim);margin:0 0 14px}
+.echo-hero{margin:24px 0 0}
+.echo-hero img{width:100%;height:auto;border-radius:12px;display:block}
+.echo-hero figcaption{font:13px/1.5 var(--serif);color:var(--text-faint);margin-top:8px}
+.echo-hero .credit{font:12px var(--mono)}
+.echo-body .pull{margin:1.6em 0;padding:0 0 0 18px;border-left:3px solid var(--signal)}
+.echo-body .pull p{font:italic 600 22px/1.4 var(--serif);color:var(--text);margin:0}
+.echo-body .break{border:0;text-align:center;margin:2em 0;height:1em}
+.echo-body .break::before{content:"* * *";letter-spacing:.6em;color:var(--text-faint)}
+.echo-notes{margin-top:36px;padding-top:20px;border-top:1px solid var(--line);font:15px/1.6 var(--serif);color:var(--text-dim)}
+.echo-notes h2{font:12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin:0 0 8px}

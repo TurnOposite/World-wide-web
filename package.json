@@ -20,6 +20,7 @@
     "cloud:check": "node scripts/cloud-library.mjs check",
     "site": "node scripts/site-serve.mjs",
     "site:texts": "node scripts/site-texts.mjs",
+    "site:echo": "node scripts/site-echo.mjs",
     "site:collections": "node scripts/site-collections.mjs",
     "site:build": "node scripts/site-build.mjs",
     "site:smoke": "node scripts/site-smoke.mjs",
