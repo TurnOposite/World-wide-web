@@ -23,6 +23,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { atomFeed, articleShell } from './site-echo.mjs';
 import { buildView } from './site-collections.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -103,10 +104,14 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   const texts = JSON.parse(await fsp.readFile(path.join(DIST, 'data/texts.json'), 'utf8')).texts;
   const echo = JSON.parse(await fsp.readFile(path.join(DIST, 'data/echo.json'), 'utf8')).articles;
   if (shells) await fsp.writeFile(path.join(DIST, '404.html'), shell);
+  const root = siteUrl ? new URL(base.replace(/^\//, ''), siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).href : '';
+  const bySlug = new Map(echo.map((a) => [`echo/${a.slug}`, a]));
   for (const r of shells ? routes(texts, echo) : []) {
     await fsp.mkdir(path.join(DIST, r), { recursive: true });
-    await fsp.writeFile(path.join(DIST, r, 'index.html'), shell);
+    const a = bySlug.get(r);
+    await fsp.writeFile(path.join(DIST, r, 'index.html'), a ? articleShell(shell, a, { root }) : shell);
   }
+  await fsp.writeFile(path.join(DIST, 'echo/feed.xml'), atomFeed(echo, { root }));
 
   // 5. config: which repository the booth writes to
   const cfgPath = path.join(DIST, 'config.json');

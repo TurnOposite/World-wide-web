@@ -103,6 +103,67 @@ export function build() {
   return { _generated: 'by scripts/site-echo.mjs from echo/articles — edit the .md files, not this', articles };
 }
 
+const plain = (html) => html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+const RASTER = /\.(jpe?g|png|webp)$/i;
+
+/**
+ * The Atom feed (dist/echo/feed.xml). Entry ids are tag: URIs built from the
+ * date and slug, so they survive a change of domain — readers keep their
+ * "already read" marks when the site moves. `root` is the site's absolute
+ * address when known (SITE_URL + base); without it links stay relative.
+ */
+export function atomFeed(articles, { root = '' } = {}) {
+  const abs = (rel) => (root ? new URL(rel, root).href : rel);
+  const updated = articles.length ? `${articles[0].date}T12:00:00Z` : '1970-01-01T00:00:00Z';
+  const entries = articles.map((a) => `  <entry>
+    <id>tag:globe-trotter,${a.date}:echo/${esc(a.slug)}</id>
+    <title>${esc(plain(a.title))}</title>
+    <link rel="alternate" type="text/html" href="${esc(abs(`echo/${a.slug}`))}"/>
+    <updated>${a.date}T12:00:00Z</updated>
+    <author><name>${esc(a.author)}</name></author>
+${a.tags.map((t) => `    <category term="${esc(t)}"/>`).join('\n')}
+    <summary>${esc(plain(a.standfirst))}</summary>
+    <content type="html" xml:lang="${esc(a.lang)}">${esc(a.html)}</content>
+  </entry>`).join('\n');
+  return `<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="fr">
+  <id>tag:globe-trotter:echo</id>
+  <title>Echo — Globe Trotter</title>
+  <subtitle>Reportages et analyses.</subtitle>
+  <link rel="self" type="application/atom+xml" href="${esc(abs('echo/feed.xml'))}"/>
+  <link rel="alternate" type="text/html" href="${esc(abs('echo'))}"/>
+  <updated>${updated}</updated>
+${entries}
+</feed>
+`;
+}
+
+/**
+ * Per-article link-preview tags, written into that article's cold-load shell
+ * (the page itself is drawn in the browser, which crawlers do not run).
+ * Only a raster hero replaces the site's share card: previews ignore SVG.
+ */
+export function articleShell(shell, a, { root = '' } = {}) {
+  const abs = (rel) => (root ? new URL(rel, root).href : rel);
+  const title = `${plain(a.title)} — Echo`;
+  const set = (re, val) => { shell = shell.replace(re, (_, x, y) => `${x}${esc(val)}${y}`); };
+  shell = shell.replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`);
+  set(/(<meta name="description" content=")[^"]*(">)/, plain(a.standfirst));
+  set(/(<meta property="og:title" content=")[^"]*(">)/, title);
+  set(/(<meta property="og:description" content=")[^"]*(">)/, plain(a.standfirst));
+  shell = shell.replace('<meta property="og:type" content="website">', '<meta property="og:type" content="article">');
+  const extra = [`<meta property="article:published_time" content="${a.date}">`, `<meta property="article:author" content="${esc(a.author)}">`];
+  shell = shell.replace(/<meta property="og:url"[^>]*>\n?/, '');
+  if (root) extra.unshift(`<meta property="og:url" content="${esc(abs(`echo/${a.slug}`))}">`);
+  shell = shell.replace(/(<meta property="og:type"[^>]*>)/, `$1\n${extra.join('\n')}`);
+  if (a.hero && RASTER.test(a.hero.src)) {
+    set(/(<meta property="og:image" content=")[^"]*(">)/, abs(a.hero.src));
+    set(/(<meta property="og:image:alt" content=")[^"]*(">)/, a.hero.alt || plain(a.title));
+    shell = shell.replace(/<meta property="og:image:(width|height)"[^>]*>\n?/g, '');
+  }
+  return shell;
+}
+
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
   const want = JSON.stringify(build(), null, 1) + '\n';

@@ -168,3 +168,34 @@ test('Echo: site/data/echo.json is not stale', () => {
   const have = fs.readFileSync(path.join(ROOT, 'site/data/echo.json'), 'utf8');
   assert.equal(have, JSON.stringify(buildEcho(), null, 1) + '\n');
 });
+
+test('Echo: the Atom feed, per-article link previews and the import script', async () => {
+  const { atomFeed, articleShell } = await import('../scripts/site-echo.mjs');
+  const { importMarkdown, slugify } = await import('../scripts/echo-import.mjs');
+  const { articles } = buildEcho();
+  const root = 'https://example.org/site/';
+
+  const feed = atomFeed(articles, { root });
+  assert.match(feed, /<feed xmlns="http:\/\/www\.w3\.org\/2005\/Atom"/);
+  assert.match(feed, /<link rel="alternate" type="text\/html" href="https:\/\/example\.org\/site\/echo\/article-temoin"\/>/);
+  assert.match(feed, /<id>tag:globe-trotter,2026-10-01:echo\/article-temoin<\/id>/);
+  assert.ok(!/<(?:p|h2)>/.test(feed.replace(/<content[\s\S]*?<\/content>/g, '')), 'markup only appears escaped inside <content>');
+
+  const shell = shellFor(fs.readFileSync(path.join(ROOT, 'site/index.html'), 'utf8'), { base: '/site/', siteUrl: 'https://example.org/site' });
+  const out = articleShell(shell, articles[0], { root });
+  assert.match(out, /<title>Article témoin[^<]* — Echo<\/title>/);
+  assert.match(out, /og:type" content="article"/);
+  assert.match(out, /og:url" content="https:\/\/example\.org\/site\/echo\/article-temoin"/);
+  assert.match(out, /og:image" content="https:\/\/example\.org\/site\/assets\/share-card\.jpg"/, 'an SVG hero never replaces the share card');
+  const withPhoto = articleShell(shell, { ...articles[0], hero: { ...articles[0].hero, src: 'assets/echo/a.jpg' } }, { root });
+  assert.match(withPhoto, /og:image" content="https:\/\/example\.org\/site\/assets\/echo\/a\.jpg"/);
+
+  assert.equal(slugify('L’été à Paris : « fin »'), 'l-ete-a-paris-fin');
+  const imp = importMarkdown('# Un titre\n\nTexte.\n\n### Partie\n\n* * *\n\nSuite.\n', { date: '2026-01-02', author: 'A. B.' });
+  assert.equal(imp.file, '2026-01-02-un-titre.md');
+  const parsed = parseArticle(imp.file, imp.text);
+  assert.equal(parsed.title, 'Un titre');
+  assert.match(parsed.standfirst, /à compléter/);
+  assert.match(parsed.html, /<h2>Partie<\/h2>[\s\S]*<hr class="break">/);
+  assert.throws(() => importMarkdown('# X\n\ny', {}), /date/);
+});

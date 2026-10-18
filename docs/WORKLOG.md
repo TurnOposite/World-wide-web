@@ -2782,3 +2782,7 @@ What actually happened after "push everything", in order, each step checked:
 ## 2026-10-18 — Echo, phase 1: the online media room (branch `claude/echo`)
 
 Articles live in `echo/articles/<yyyy-mm-dd>-<slug>.md` (front matter: title, standfirst, author, date, place, tags, hero + alt/caption/credit, lang). `scripts/site-echo.mjs` builds `site/data/echo.json` (French typography applied at build; `--check` in CI; wired into `site-build.mjs`, which also writes a shell at `echo` and `echo/<slug>`). New page `site/js/pages/echo.js`, route and nav tab, CSS block at the end of `site.css`. One neutral sample ("Article témoin"), no real people. Tests: 3 in `tests/site-modules.test.js`; smoke covers list, article, phone overflow and axe. The nav smoke check now expects five tabs. Saw one unrelated flaky browser check ("rolls over to the next track automatically") in 1 of 5 self-test runs.
+
+## 2026-10-18 — Echo, phase 2: publishing comfort (branch `claude/echo`)
+
+Atom feed (`atomFeed`, written to `dist/echo/feed.xml` by `site-build.mjs`, linked from `site/index.html`), per-article link-preview shells (`articleShell`: title, description, `og:type=article`, `og:url`, raster hero as `og:image`), print stylesheet at the end of `site/css/site.css`, `scripts/echo-import.mjs` (Markdown draft → article, never overwrites, missing fields marked `[à compléter]`), `docs/ECHO.md`. One new test covers feed, shell and importer on the sample only.

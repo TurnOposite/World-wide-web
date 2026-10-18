@@ -517,3 +517,15 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
 .echo-body .break::before{content:"* * *";letter-spacing:.6em;color:var(--text-faint)}
 .echo-notes{margin-top:36px;padding-top:20px;border-top:1px solid var(--line);font:15px/1.6 var(--serif);color:var(--text-dim)}
 .echo-notes h2{font:12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);margin:0 0 8px}
+
+/* Echo on paper: the article alone, black on white, links spelled out. */
+@media print{
+  :root{--text:#000;--text-dim:#222;--text-faint:#444;--line:#999;--signal:#000}
+  html,body{background:#fff!important;color:#000}
+  .masthead,.sitefoot,.minibar,.visuals,.toast,.skip,.scanlines,#viz,canvas,.echo-article .back,.echo-filter{display:none!important}
+  .echo-article{max-width:none;padding:0;margin:0}
+  .echo-hero img{border-radius:0;max-height:9cm;width:auto;max-width:100%}
+  .echo-body .pull,.echo-hero,.echo-notes{break-inside:avoid}
+  .echo-body h2{break-after:avoid}
+  .echo-body a[href^="http"]::after,.echo-notes a[href^="http"]::after{content:" (" attr(href) ")";font-size:.85em;word-break:break-all}
+}
