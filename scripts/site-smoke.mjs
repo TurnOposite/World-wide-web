@@ -104,7 +104,7 @@ try {
   await a.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await a.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
   const tabs = await a.$$eval('.tabs a', (els) => els.map((e) => e.textContent.trim()));
-  check('the site shell loads with its five sections', tabs.join(',') === 'Radio,Atlas,Écrits,Echo,Portfolio', tabs.join(', '));
+  check('the site shell loads with its five sections', tabs.join(',') === 'Radio,Atlas,Portfolio,Echo', tabs.join(', '));
   check('the mark is the green hybrid tower', await a.$eval('.brand .mark', (el) => getComputedStyle(el).color === 'rgb(52, 211, 153)'));
 
   const title = await a.textContent('#rTitle');
@@ -309,12 +309,14 @@ try {
   check('a Spontaneous Emission answers (emitted, or says why not)', moodMsg.trim().length > 0, moodMsg.trim().slice(0, 70));
 
   /* ------------------------------------------------------ Écrits, rooms -- */
-  await a.click('.tabs a[href="ecrits"]');
+  await a.click('.tabs a[href="echo"]');
+  await a.waitForSelector('.echo-lede a[href="echo/lectures"]', { timeout: 5000 });
+  await a.click('.echo-lede a[href="echo/lectures"]');
   await a.waitForSelector('.text-card', { timeout: 5000 });
   check('Écrits lists the six texts', (await a.$$('.text-card')).length === 6);
   const pond = await a.evaluate(() => { const c = document.querySelector('#pond canvas.pond-water'); return c ? { w: c.width, h: c.height, still: document.querySelector('#pond').classList.contains('still') } : null; });
   check('Écrits: the texts lie at the bottom of a pond', Boolean(pond && pond.w > 0 && pond.h > 0), pond ? `${pond.w}×${pond.h}, ${pond.still ? 'still floor (no WebGL)' : 'WebGL water'}` : 'no pond');
-  await a.click('.text-card[href="ecrits/voyages"]');
+  await a.click('.text-card[href="echo/lectures/voyages"]');
   await a.waitForSelector('.reading .body.verse p', { timeout: 5000 });
   check('a poem opens verbatim, set as verse, with its score', /toits d.ardoise/.test(await a.textContent('.reading .body')) && Boolean(await a.$('#scoreBox:not([hidden])')));
 
@@ -351,7 +353,7 @@ try {
     const get = client.get.bind(client);
     client.get = (p) => (p.startsWith('/api/collections') ? new Promise((r) => setTimeout(r, 700)).then(() => get(p)) : get(p));
     router.go('portfolio/library');
-    router.go('ecrits/voyages');
+    router.go('echo/lectures/voyages');
     router.go('radio');
     await new Promise((r) => setTimeout(r, 1500));
     const onRadio = { path: location.pathname, radio: Boolean(document.querySelector('#view #rTitle')), pages: document.querySelectorAll('#view > .page').length, flag: document.body.classList.contains('on-radio') };
@@ -403,7 +405,7 @@ try {
   watch(m, 'phone');
   const overflow = [];
   const a11y = [];
-  for (const r of ['', 'radio', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo', 'echo/article-temoin', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
+  for (const r of ['', 'radio', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo/lectures', 'echo/lectures/voyages', 'echo', 'echo/article-temoin', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
     await m.goto(dev + r, { waitUntil: 'domcontentloaded' });
     await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
     await m.waitForTimeout(700);
@@ -445,6 +447,7 @@ try {
   await d.goto(`http://127.0.0.1:${distPort}/radio-tower/ecrits/opal-orre`, { waitUntil: 'domcontentloaded' });
   await d.waitForSelector('.reading h1', { timeout: 10000 }).catch(() => {});
   const dh = await d.textContent('.reading h1').catch(() => '');
+  check('the old /ecrits address still opens the text and moves to /echo/lectures', dh === 'Opal Orre' && d.url().endsWith('/radio-tower/echo/lectures/opal-orre'), d.url());
   const cfg = await d.evaluate(() => window.radioTower?.client?.config?.github);
   check('the built site answers a cold deep link under /<repo>/', dh === 'Opal Orre', dh || 'no heading');
   check('…and knows which repository its booth writes to', cfg?.owner === 'ortis' && cfg?.repo === 'radio-tower');

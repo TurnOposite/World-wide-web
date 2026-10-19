@@ -126,7 +126,7 @@ export function mount(root, ctx) {
     const sc = $('rScore');
     if (score) {
       sc.hidden = false;
-      sc.href = `ecrits/${score}`;
+      sc.href = `echo/lectures/${score}`;
       sc.textContent = `♦ the score of « ${ctx.textTitle?.(score) || score} » — read it while it plays`;
     } else sc.hidden = true;
     if (t.artUrl !== lastArt) {

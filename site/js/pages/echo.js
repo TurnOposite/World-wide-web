@@ -33,7 +33,7 @@ export async function mount(root, ctx) {
   if (!slug) {
     document.title = 'Echo';
     const tags = [...new Set(data.articles.flatMap((a) => a.tags))].sort((x, y) => x.localeCompare(y, 'fr'));
-    root.innerHTML = `<div class="page-head"><h1>Echo</h1><p class="echo-lede">Reportages et analyses.</p></div>
+    root.innerHTML = `<div class="page-head"><h1>Echo</h1><p class="echo-lede">Reportages et analyses. <a href="echo/lectures" data-link>Lectures →</a></p></div>
       <div class="echo-filter" role="group" aria-label="Filtrer par thème">
         <button type="button" class="chip" data-tag="" aria-pressed="true">Tout</button>
         ${tags.map((t) => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="false">${esc(t)}</button>`).join('')}

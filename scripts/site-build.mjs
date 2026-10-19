@@ -58,6 +58,7 @@ export function routes(texts, echo = []) {
     'radio', 'atlas', 'ecrits', 'portfolio', 'booth',
     'portfolio/library', 'portfolio/photos', 'portfolio/crates',
     ...texts.map((t) => `ecrits/${t.slug}`),
+    'echo/lectures', ...texts.map((t) => `echo/lectures/${t.slug}`),
     'echo', ...echo.map((a) => `echo/${a.slug}`),
   ];
 }

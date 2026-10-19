@@ -1,5 +1,7 @@
 /**
- * /ecrits and /ecrits/<slug> — the Globe Trotter texts, verbatim.
+ * /echo/lectures and /echo/lectures/<slug> — the Globe Trotter texts, verbatim.
+ * (They lived at /ecrits until 2026-10-19; those addresses still answer and
+ * move to the new ones.)
  *
  * Three of them are "scored": a track in the rotation was chosen for them.
  * On Wix the score was a private player inside the post. Here the radio is a
@@ -10,7 +12,8 @@
  */
 import { esc, fmt, clock } from '../ui/util.js';
 
-export const title = 'Écrits';
+export const title = 'Lectures';
+const BASE = 'echo/lectures';
 
 let DATA = null;
 async function load() {
@@ -36,7 +39,7 @@ async function nextAiring(client, trackId) {
 function stone(t) {
   const meta = [t.category, t.readingTime].filter(Boolean).join(' · ');
   return {
-    href: `ecrits/${esc(t.slug)}`,
+    href: `${BASE}/${esc(t.slug)}`,
     title: t.title,
     meta,
     scored: Boolean(t.scoredBy),
@@ -47,10 +50,14 @@ function stone(t) {
 export async function mount(root, ctx) {
   const data = await load();
   const slug = ctx.params.slug;
+  if (ctx.router.current?.name === 'ecrits') {
+    ctx.router.go(slug ? `${BASE}/${slug}` : BASE, { replace: true });
+    return;
+  }
   if (!slug) {
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     // No instructions over the pond (Ortis, 2026-10-13): readers find the stones.
-    root.innerHTML = `<div class="page-head"><h1>Écrits</h1><p style="font-family:var(--serif);font-size:17px">${esc(data.intro)}</p></div>
+    root.innerHTML = `<div class="page-head"><h1>Lectures</h1><p style="font-family:var(--serif);font-size:17px">${esc(data.intro)}</p></div>
       <div class="pond-wrap"><div id="pond" role="group" aria-label="Les textes, au fond de l'étang"></div></div>`;
     const { createPond } = await import('../ui/pond.js');
     const pond = createPond(root.querySelector('#pond'), data.texts.map(stone), { reducedMotion: still });
@@ -58,13 +65,13 @@ export async function mount(root, ctx) {
   }
   const t = data.texts.find((x) => x.slug === slug);
   if (!t) {
-    root.innerHTML = `<div class="reading"><a class="back" href="ecrits" data-link>← Écrits</a><h1>Introuvable</h1><p>Ce texte n'existe pas (ou plus).</p></div>`;
+    root.innerHTML = `<div class="reading"><a class="back" href="echo/lectures" data-link>← Lectures</a><h1>Introuvable</h1><p>Ce texte n'existe pas (ou plus).</p></div>`;
     return;
   }
-  document.title = `${t.title} — Écrits`;
+  document.title = `${t.title} — Lectures`;
   const verse = /po[eè]me/i.test(t.category || '');
   root.innerHTML = `<article class="reading">
-      <a class="back" href="ecrits" data-link>← Écrits</a>
+      <a class="back" href="echo/lectures" data-link>← Lectures</a>
       <h1>${esc(t.title)}</h1>
       <p class="meta">${esc(t.category)} · ${esc(t.signature || '')} · ${esc(t.published || '')} · ${esc(t.readingTime || '')}</p>
       <div class="score-box" id="scoreBox" hidden></div>

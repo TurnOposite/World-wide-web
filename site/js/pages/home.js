@@ -31,6 +31,11 @@ export async function mount(root, ctx) {
         </div>
       </section>
 
+      <section class="textstrip">
+        <div class="panel-head"><span class="eyebrow">Echo · le média</span><a class="btn small" href="echo" data-link>Lire Echo</a></div>
+        <p class="intro">Reportages et analyses, en colonnes. La Zone, c'est la radio ; Echo, c'est le journal.</p>
+      </section>
+
       <section class="mapbox" aria-label="Atlas">
         <div class="panel-head" style="margin-bottom:6px"><span class="eyebrow">Atlas · hover a city</span><a class="btn small" href="atlas" data-link>Open</a></div>
         <div id="hMap"></div>
@@ -38,7 +43,7 @@ export async function mount(root, ctx) {
       </section>
 
       <section class="textstrip">
-        <div class="panel-head"><span class="eyebrow">Écrits</span><a class="btn small" href="ecrits" data-link>Tous les textes</a></div>
+        <div class="panel-head"><span class="eyebrow">Echo · Lectures</span><a class="btn small" href="echo/lectures" data-link>Tous les textes</a></div>
         <p class="intro" id="hIntro"></p>
         <div class="tcards" id="hTexts" style="margin-top:14px"></div>
       </section>
@@ -94,7 +99,7 @@ export async function mount(root, ctx) {
   }
   if (texts) {
     $('hIntro').textContent = texts.intro;
-    $('hTexts').innerHTML = texts.texts.map((t) => `<a class="tcard" href="ecrits/${esc(t.slug)}" data-link><b>${esc(t.title)}</b><span>${esc(t.category)}${t.scoredBy ? ' · <span class="scored">♦ scoré</span>' : ''}</span></a>`).join('');
+    $('hTexts').innerHTML = texts.texts.map((t) => `<a class="tcard" href="echo/lectures/${esc(t.slug)}" data-link><b>${esc(t.title)}</b><span>${esc(t.category)}${t.scoredBy ? ' · <span class="scored">♦ scoré</span>' : ''}</span></a>`).join('');
   }
   const u = rooms?.university; const ph = rooms?.photos; const mu = rooms?.music;
   const works = (u?.shelves || []).reduce((s, sh) => s + (sh.books || []).length, 0) + (u?.thesis ? 1 : 0);
