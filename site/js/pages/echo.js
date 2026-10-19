@@ -6,6 +6,7 @@
  * tag filter, and a reading page.
  */
 import { esc } from '../ui/util.js';
+import { side, ash } from '../ui/echo-front.js';
 
 export const title = 'Echo';
 
@@ -27,18 +28,43 @@ function card(a) {
     </a>`;
 }
 
+function lead(a) {
+  const media = a.video
+    ? `<video controls preload="none" playsinline muted${a.video.poster ? ` poster="${esc(a.video.poster)}"` : ''} src="${esc(a.video.src)}"></video>`
+    : '';
+  const pic = !a.video && a.hero ? `<a class="echo-lead-pic" href="echo/${esc(a.slug)}" data-link tabindex="-1" aria-hidden="true"><img src="${esc(a.hero.src)}" alt=""></a>` : '';
+  return `<article class="echo-lead echo-card" data-tags="${esc(a.tags.join('|'))}">
+      ${media || pic}
+      <p class="echo-kicker">${esc(a.tags[0] || 'Echo')}</p>
+      <h2><a href="echo/${esc(a.slug)}" data-link>${esc(a.title)}</a></h2>
+      <p class="echo-dek">${esc(a.standfirst)}</p>
+      <p class="echo-meta">${esc(a.author)} · ${esc(dateFr(a.date))} · ${a.readingTime} min</p>
+    </article>`;
+}
+
 export async function mount(root, ctx) {
   const data = await load();
   const slug = ctx.params.slug;
   if (!slug) {
     document.title = 'Echo';
     const tags = [...new Set(data.articles.flatMap((a) => a.tags))].sort((x, y) => x.localeCompare(y, 'fr'));
-    root.innerHTML = `<div class="page-head"><h1>Echo</h1><p class="echo-lede">Reportages et analyses. <a href="echo/lectures" data-link>Lectures →</a></p></div>
-      <div class="echo-filter" role="group" aria-label="Filtrer par thème">
-        <button type="button" class="chip" data-tag="" aria-pressed="true">Tout</button>
-        ${tags.map((t) => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="false">${esc(t)}</button>`).join('')}
+    const [first, ...rest] = data.articles;
+    const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    root.innerHTML = `<div class="echo-front">
+      <canvas class="echo-ash" aria-hidden="true"></canvas>
+      ${side('left')}
+      <div class="echo-paper">
+        <header class="echo-mast"><p class="echo-dateline">${esc(today)}</p><h1>ECHO</h1><p class="echo-lede">Reportages et analyses. <a href="echo/lectures" data-link>Lectures →</a></p></header>
+        <div class="echo-filter" role="group" aria-label="Filtrer par thème">
+          <button type="button" class="chip" data-tag="" aria-pressed="true">Tout</button>
+          ${tags.map((t) => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="false">${esc(t)}</button>`).join('')}
+        </div>
+        ${first ? lead(first) : ''}
+        <div class="echo-grid">${rest.map(card).join('')}</div>
       </div>
-      <div class="echo-grid">${data.articles.map(card).join('')}</div>`;
+      ${side('right')}
+    </div>`;
+    const stopAsh = ash(root.querySelector('.echo-ash'));
     const apply = (tag) => {
       root.querySelectorAll('.echo-filter .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tag === tag)));
       root.querySelectorAll('.echo-card').forEach((c) => { c.hidden = Boolean(tag) && !c.dataset.tags.split('|').includes(tag); });
@@ -47,7 +73,7 @@ export async function mount(root, ctx) {
       const b = e.target.closest('.chip');
       if (b) apply(b.dataset.tag);
     });
-    return;
+    return stopAsh;
   }
   const a = data.articles.find((x) => x.slug === slug);
   if (!a) {

@@ -238,3 +238,13 @@ test('Echo: echo-publish copies, un-drafts, rebuilds and refuses oversized media
     assert.throws(() => checkMedia(media), /not an image or mp4/);
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
+
+test('Echo front page: side silhouettes are drawn in SVG, both sides, no external images', async () => {
+  const { side } = await import('../site/js/ui/echo-front.js');
+  for (const which of ['left', 'right']) {
+    const html = side(which);
+    assert.equal((html.match(/<svg /g) || []).length, 3, which);
+    assert.match(html, /aria-hidden="true"/);
+    assert.doesNotMatch(html, /<img|href=|http/);
+  }
+});

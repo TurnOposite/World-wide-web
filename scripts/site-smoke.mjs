@@ -323,6 +323,8 @@ try {
   await a.click('.tabs a[href="echo"]');
   await a.waitForSelector('.echo-card', { timeout: 5000 });
   check('Echo lists its articles and filters by tag', (await a.$$('.echo-card')).length >= 1);
+  check('Echo front page is a newspaper: masthead, lead with title link, side silhouettes, ash canvas', Boolean(
+    await a.$('.echo-front .echo-mast h1') && await a.$('.echo-lead h2 a[href^="echo/"]') && (await a.$$('.echo-side .sil')).length >= 6 && await a.$('canvas.echo-ash')));
   await a.click('.echo-card');
   await a.waitForSelector('.echo-article .echo-body .pull', { timeout: 5000 });
   check('an Echo article opens: standfirst, hero with credit, pull quote, notes', Boolean(await a.$('.echo-standfirst') && await a.$('.echo-hero figcaption') && await a.$('.echo-notes li')));
