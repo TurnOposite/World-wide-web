@@ -309,27 +309,46 @@ try {
   check('a Spontaneous Emission answers (emitted, or says why not)', moodMsg.trim().length > 0, moodMsg.trim().slice(0, 70));
 
   /* ------------------------------------------------------ Écrits, rooms -- */
+  // On every Echo route Zone's visuals are gone: no visible visualiser canvas, the engine paused, no full-page overlay.
+  const echoClean = () => a.evaluate(() => {
+    const vis = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0; };
+    const canvases = [...document.querySelectorAll('#stage, #stageFront, #mbSpec')].filter(vis).map((c) => c.id);
+    const veils = [...document.querySelectorAll('body *')].filter((el) => {
+      const cs = getComputedStyle(el); if (cs.position !== 'fixed' || !vis(el)) return false;
+      const r = el.getBoundingClientRect(); return r.width >= innerWidth * 0.9 && r.height >= innerHeight * 0.9;
+    }).map((el) => el.id || el.className);
+    return { canvases, veils, running: window.radioTower.stage.running, onEcho: document.body.classList.contains('on-echo') };
+  });
   await a.click('.tabs a[href="echo"]');
-  await a.waitForSelector('.echo-lede a[href="echo/lectures"]', { timeout: 5000 });
-  await a.click('.echo-lede a[href="echo/lectures"]');
-  await a.waitForSelector('.text-card', { timeout: 5000 });
-  check('Écrits lists the six texts', (await a.$$('.text-card')).length === 6);
-  const pond = await a.evaluate(() => { const c = document.querySelector('#pond canvas.pond-water'); return c ? { w: c.width, h: c.height, still: document.querySelector('#pond').classList.contains('still') } : null; });
-  check('Écrits: the texts lie at the bottom of a pond', Boolean(pond && pond.w > 0 && pond.h > 0), pond ? `${pond.w}×${pond.h}, ${pond.still ? 'still floor (no WebGL)' : 'WebGL water'}` : 'no pond');
-  await a.click('.text-card[href="echo/lectures/voyages"]');
+  await a.waitForSelector('.echo-foot a[href="echo/lectures"]', { timeout: 5000 });
+  await a.click('.echo-foot a[href="echo/lectures"]');
+  await a.waitForSelector('.echo-list li', { timeout: 5000 });
+  check('Lectures lists the six texts, one per line between thin rules', (await a.$$('.echo-list li')).length === 6 && await a.$eval('.echo-list li', (li) => getComputedStyle(li).borderBottomWidth === '1px'));
+  const lect = await echoClean();
+  check('Lectures: no Zone visualiser, no overlay, a non-empty list', lect.onEcho && lect.canvases.length === 0 && lect.veils.length === 0 && lect.running === false, JSON.stringify(lect));
+  await a.click('.echo-list a[href="echo/lectures/voyages"]');
   await a.waitForSelector('.reading .body.verse p', { timeout: 5000 });
   check('a poem opens verbatim, set as verse, with its score', /toits d.ardoise/.test(await a.textContent('.reading .body')) && Boolean(await a.$('#scoreBox:not([hidden])')));
 
-  await a.click('.tabs a[href="echo"]');
+  await a.click('.echo-znav a[href="echo"]');
   await a.waitForSelector('.echo-card', { timeout: 5000 });
   check('Echo lists its articles and filters by tag', (await a.$$('.echo-card')).length >= 1);
   check('Echo front page is a newspaper: masthead, lead with title link, side silhouettes, ash canvas', Boolean(
     await a.$('.echo-front .echo-mast h1') && await a.$('.echo-lead h2 a[href^="echo/"]') && (await a.$$('.echo-side .sil')).length >= 6 && await a.$('canvas.echo-ash')));
+  const frontPage = await echoClean();
+  check('Echo front page: no Zone visualiser drawn or running, no full-page overlay', frontPage.onEcho && frontPage.canvases.length === 0 && frontPage.veils.length === 0 && frontPage.running === false, JSON.stringify(frontPage));
+  check('Echo front page: thin 1 px ink rules (nav, masthead, lead text, footer) on a white paper', await a.evaluate(() => {
+    const w = (sel, side) => getComputedStyle(document.querySelector(sel))[`border${side}Width`];
+    return w('.echo-znav', 'Bottom') === '1px' && w('.echo-mast', 'Bottom') === '1px' && w('.echo-lead-txt', 'Top') === '1px' && w('.echo-foot', 'Top') === '1px'
+      && getComputedStyle(document.querySelector('.echo-col')).backgroundColor === 'rgb(245, 244, 241)';
+  }));
   await a.click('.echo-card');
   await a.waitForSelector('.echo-article .echo-body .pull', { timeout: 5000 });
+  const art = await echoClean();
+  check('Echo article page: no Zone visualiser, no overlay, nameplate links back to /echo', art.canvases.length === 0 && art.veils.length === 0 && art.running === false && await a.$('.echo-mast-small a.echo-name[href="echo"]') !== null, JSON.stringify(art));
   check('an Echo article opens: standfirst, hero with credit, pull quote, notes', Boolean(await a.$('.echo-standfirst') && await a.$('.echo-hero figcaption') && await a.$('.echo-notes li')));
 
-  await a.click('.tabs a[href="portfolio"]');
+  await a.click('.echo-znav a[href="portfolio"]');
   await a.waitForSelector('.room .book', { timeout: 8000 });
   const books = (await a.$$('.room .book')).length;
   check('Portfolio: the library puts every book on a shelf', books >= 20, `${books} spines`);

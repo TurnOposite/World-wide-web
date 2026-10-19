@@ -245,6 +245,12 @@ test('Echo front page: side silhouettes are drawn in SVG, both sides, no externa
     const html = side(which);
     assert.equal((html.match(/<svg /g) || []).length, 3, which);
     assert.match(html, /aria-hidden="true"/);
-    assert.doesNotMatch(html, /<img|href=|http/);
+    // Silhouettes reference the inline sprite by fragment only: no image, no URL.
+    assert.doesNotMatch(html, /<img|http|\.svg|\.png|\.jpg/);
+    assert.equal((html.match(/href="#s-[a-z]+"/g) || []).length, 3, which);
   }
+  const { frame } = await import('../site/js/ui/echo-front.js');
+  const src = fs.readFileSync(new URL('../site/js/ui/echo-front.js', import.meta.url), 'utf8');
+  for (const id of ['flag', 'fist', 'crowd', 'drum', 'horn', 'statue']) assert.match(src, new RegExp(`<symbol id="s-${id}"`), id);
+  assert.equal(typeof frame, 'function');
 });

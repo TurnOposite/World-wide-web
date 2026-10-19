@@ -11,6 +11,7 @@
  * then, for everyone. That is what the score box does.
  */
 import { esc, fmt, clock } from '../ui/util.js';
+import { frame, ash } from '../ui/echo-front.js';
 
 export const title = 'Lectures';
 const BASE = 'echo/lectures';
@@ -55,29 +56,37 @@ export async function mount(root, ctx) {
     return;
   }
   if (!slug) {
-    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // No instructions over the pond (Ortis, 2026-10-13): readers find the stones.
-    root.innerHTML = `<div class="page-head"><h1>Lectures</h1><p style="font-family:var(--serif);font-size:17px">${esc(data.intro)}</p></div>
-      <div class="pond-wrap"><div id="pond" role="group" aria-label="Les textes, au fond de l'étang"></div></div>`;
-    const { createPond } = await import('../ui/pond.js');
-    const pond = createPond(root.querySelector('#pond'), data.texts.map(stone), { reducedMotion: still });
-    return () => pond.destroy();
+    // A newspaper list, one text per line between thin rules. (The pond that
+    // used to carry the texts is still in ui/pond.js; Echo does not use it.)
+    document.title = 'Lectures — Echo';
+    root.innerHTML = frame(`<section class="echo-lectures">
+        <p class="echo-kicker">Lectures</p>
+        <h1>Lectures</h1>
+        <p class="echo-standfirst">${esc(data.intro)}</p>
+        <ul class="echo-list">${data.texts.map((t) => `<li><a href="${BASE}/${esc(t.slug)}" data-link>
+          <b>${esc(t.title)}</b>
+          <span class="echo-meta">${esc([t.category, t.readingTime].filter(Boolean).join(' · '))}${t.scoredBy ? ' · scoré' : ''}</span>
+          <span class="echo-dek">${esc(t.excerpt || '')}</span></a></li>`).join('')}</ul>
+        <p class="echo-foot"><a class="back" href="echo" data-link>← Retour à Echo</a></p>
+      </section>`, { current: 'lectures', sides: 2 });
+    return ash(root.querySelector('.echo-ash'), { slow: true });
   }
   const t = data.texts.find((x) => x.slug === slug);
   if (!t) {
-    root.innerHTML = `<div class="reading"><a class="back" href="echo/lectures" data-link>← Lectures</a><h1>Introuvable</h1><p>Ce texte n'existe pas (ou plus).</p></div>`;
-    return;
+    root.innerHTML = frame(`<div class="reading"><a class="back" href="echo/lectures" data-link>← Lectures</a><h1>Introuvable</h1><p>Ce texte n'existe pas (ou plus).</p></div>`, { current: 'lectures', sides: 1 });
+    return ash(root.querySelector('.echo-ash'), { slow: true });
   }
   document.title = `${t.title} — Lectures`;
   const verse = /po[eè]me/i.test(t.category || '');
-  root.innerHTML = `<article class="reading">
+  root.innerHTML = frame(`<article class="reading">
       <a class="back" href="echo/lectures" data-link>← Lectures</a>
       <h1>${esc(t.title)}</h1>
       <p class="meta">${esc(t.category)} · ${esc(t.signature || '')} · ${esc(t.published || '')} · ${esc(t.readingTime || '')}</p>
       <div class="score-box" id="scoreBox" hidden></div>
       <div class="body${verse ? ' verse' : ''}">${t.html}</div>
       ${t.afterword ? `<p class="aveu"><span class="eyebrow" style="display:block;margin-bottom:8px;font-style:normal">Aveu de l'auteur</span>${esc(t.afterword)}</p>` : ''}
-    </article>`;
+    </article>`, { current: 'lectures', sides: 2 });
+  const stopAsh = ash(root.querySelector('.echo-ash'), { slow: true });
 
   if (t.scoredBy) {
     const box = root.querySelector('#scoreBox');
@@ -98,6 +107,7 @@ export async function mount(root, ctx) {
     paint();
     const timer = setInterval(paint, 30_000);
     ctx.player.addEventListener('track', paint);
-    return () => { clearInterval(timer); ctx.player.removeEventListener('track', paint); };
+    return () => { stopAsh(); clearInterval(timer); ctx.player.removeEventListener('track', paint); };
   }
+  return stopAsh;
 }

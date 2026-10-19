@@ -90,7 +90,12 @@ async function boot() {
   stage.start();
   mountMinibar({ player, stage });
 
-  document.addEventListener('visibilitychange', () => (document.hidden ? stage.stop() : stage.start()));
+  // Zone's visualiser belongs to Zone: on every Echo route it is hidden (CSS, body.on-echo)
+  // and paused here, so it costs no CPU behind the paper.
+  let onEcho = false;
+  const syncStage = () => (document.hidden || onEcho ? stage.stop() : stage.start());
+  globalThis.__echoStage = (on) => { onEcho = on; syncStage(); };
+  document.addEventListener('visibilitychange', syncStage);
 
   // Titles of the texts, for "the score of …" links — loaded once, lazily.
   let textTitles = null;
@@ -123,6 +128,9 @@ async function boot() {
     render: async (page, match, { fromPop, isCurrent = () => true }) => {
       try { cleanup?.(); } catch (e) { console.error(e); }
       cleanup = null;
+      const echoRoute = ['echo', 'lectures', 'ecrits'].includes(match.name);
+      document.body.classList.toggle('on-echo', echoRoute);
+      globalThis.__echoStage?.(echoRoute);
       sceneFn = () => null;
       view.classList.remove('entering');
       void view.offsetWidth;
