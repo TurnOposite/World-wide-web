@@ -317,6 +317,42 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
 
 .atlas .mapbox{padding:14px 14px 12px}
 
+/* ----------------------------------------------------------------- zone */
+/* /zone: the world, and the one place the signal leaves from. The point
+   speaks the logo's language — a green dot, the mark's sideways arcs leaving
+   it slowly (DESIGN-BRIEF §2). Still for reduced motion: three arcs drawn. */
+.zone{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:16px;align-items:start}
+.zone-mapbox{background:rgba(14,18,23,.92);border:1px solid var(--line);border-radius:18px;padding:14px;min-width:0}
+.zone-map{display:block;width:100%;height:auto}
+.zone-land path{fill:#1a212a;stroke:#26303b;stroke-width:.25}
+.zone-guides line{stroke:#1d2731;stroke-width:.2;stroke-dasharray:1 1.4}
+.zone-guides line.eq{stroke:#22303a}
+.zone-origin .zo-core{fill:var(--signal)}
+.zone-origin .zo-halo{fill:var(--signal);opacity:.18}
+.zone-origin .zw path{fill:none;stroke:var(--signal);stroke-width:.45;stroke-linecap:round}
+.zone-origin .zw{transform-box:fill-box;transform-origin:center;opacity:0;animation:zone-wave 4.8s cubic-bezier(.2,.6,.3,1) infinite}
+.zone-origin .zw:nth-child(2){animation-delay:1.6s}.zone-origin .zw:nth-child(3){animation-delay:3.2s}
+@keyframes zone-wave{0%{opacity:0;transform:scale(.55)}15%{opacity:.95}100%{opacity:0;transform:scale(3.2)}}
+.zo-label{font:600 4px var(--font);fill:var(--text);paint-order:stroke;stroke:#0e1217;stroke-width:1.1px;letter-spacing:.02em}
+.zone-listener circle{fill:var(--ink);stroke:#0e1217;stroke-width:.4}
+.zone-card .zone-place{font:600 clamp(24px,3vw,30px)/1.15 var(--serif);color:var(--text)}
+.zone-card .zone-coords{font:12.5px var(--mono);color:var(--signal);margin-top:6px}
+.zone-card .zone-time{margin-top:12px;color:var(--text-dim);font-size:13.5px}
+.zone-card .zone-time b{font:600 15px var(--mono);color:var(--text);margin-left:6px}
+.zone-card .zone-you{margin-top:12px;font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:8px}
+.zone-card .zone-you i{width:9px;height:9px;border-radius:50%;background:var(--ink)}
+@media (max-width:759px){
+  .zone{grid-template-columns:1fr}
+  .zone-mapbox{padding:8px;border-radius:14px}
+  .zo-label{font-size:6px;stroke-width:1.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  .zone-origin .zw{animation:none!important}
+  .zone-origin .zw:nth-child(1){opacity:.9;transform:scale(1)}
+  .zone-origin .zw:nth-child(2){opacity:.5;transform:scale(1.7)}
+  .zone-origin .zw:nth-child(3){opacity:.25;transform:scale(2.4)}
+}
+
 /* The postcard. Floats beside its pin; unfolds on a rest of the pointer. */
 .postcard{
   --pc-w:344px;

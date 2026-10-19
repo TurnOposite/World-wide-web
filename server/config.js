@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { originFromEnv } from './lib/origin.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(__dirname, '..');
@@ -41,6 +42,11 @@ export const config = {
   // Station identity, surfaced in the UI and in /api/station.
   stationName: process.env.STATION_NAME || 'Radio Tower',
   stationTagline: process.env.STATION_TAGLINE || 'One signal. Everyone on the same second.',
+
+  // Where the tower broadcasts from (the site's Zone map): STATION_LAT /
+  // STATION_LON / STATION_PLACE, optional STATION_TZ. null = not said, and
+  // the site uses its own config.json. See server/lib/origin.js.
+  stationOrigin: originFromEnv(process.env),
 
   // How many upcoming tracks /api/station reveals.
   lookahead: envInt('LOOKAHEAD', 5),

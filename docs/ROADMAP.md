@@ -491,6 +491,12 @@ and no route changed.
 ### 21. NEW 2026-08-19 — The Zone tab, origin point only
 **Spec: [`docs/DESIGN-BRIEF.md`](./DESIGN-BRIEF.md) §2.**
 
+> **Done 2026-10-19** on the static site (`/zone`, `site/js/pages/zone.js`;
+> `STATION_LAT/LON/PLACE/TZ` → `/api/station` → `station.origin`, else
+> `site/config.json`). Verified by `tests/zone.test.js` and three site-smoke
+> checks (60/60). See WORKLOG/DECISIONS 2026-10-19. #22's point is built behind
+> `config.json` → `zone.listener`, off, with no geo source.
+
 A third view: minimal world map, green pulsing point where the tower is.
 
 - **Origin is configuration.** `STATION_LAT` / `STATION_LON` / `STATION_PLACE`

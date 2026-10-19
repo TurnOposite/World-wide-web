@@ -164,6 +164,7 @@ AUTO_RESCAN_MINUTES=0 \
 STATION_NAME="Self Test Tower" \
 STATION_KEY="selftest-key" \
 QUEUE_LOCK_SECONDS=20 \
+STATION_LAT=10.5 STATION_LON=-20.25 STATION_PLACE="Self Test Point" STATION_TZ=Etc/GMT+1 \
   node server/index.js > "$FIXTURE_DIR/server.log" 2>&1 &
 SERVER_PID=$!
 

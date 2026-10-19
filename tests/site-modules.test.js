@@ -111,7 +111,7 @@ test('the texts come through verbatim — spelling, punctuation and all', () => 
 
 test('the build writes a shell at every route, including every text', () => {
   const r = routes([{ slug: 'voyages' }, { slug: 'odes' }]);
-  for (const want of ['radio', 'atlas', 'ecrits', 'portfolio/photos', 'booth', 'ecrits/voyages', 'ecrits/odes']) assert.ok(r.includes(want), want);
+  for (const want of ['radio', 'atlas', 'zone', 'ecrits', 'portfolio/photos', 'booth', 'ecrits/voyages', 'ecrits/odes']) assert.ok(r.includes(want), want);
   assert.equal(normaliseBase('radio-tower'), '/radio-tower/');
   assert.equal(normaliseBase('/radio-tower/'), '/radio-tower/');
   assert.equal(normaliseBase(''), '/');
