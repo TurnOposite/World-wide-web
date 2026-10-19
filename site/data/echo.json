@@ -13,6 +13,8 @@
     "reportage"
    ],
    "lang": "fr",
+   "draft": false,
+   "video": null,
    "hero": {
     "src": "assets/echo/temoin.svg",
     "alt": "Un aplat de couleurs sobres, sans motif identifiable.",

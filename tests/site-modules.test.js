@@ -8,6 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 import * as cli from '../dj/dj.mjs';
@@ -198,4 +199,42 @@ test('Echo: the Atom feed, per-article link previews and the import script', asy
   assert.match(parsed.standfirst, /à compléter/);
   assert.match(parsed.html, /<h2>Partie<\/h2>[\s\S]*<hr class="break">/);
   assert.throws(() => importMarkdown('# X\n\ny', {}), /date/);
+});
+
+test('Echo: drafts stay out of echo.json and the feed unless ECHO_DRAFTS is set', async () => {
+  const { atomFeed } = await import('../scripts/site-echo.mjs');
+  const live = buildEcho();
+  const all = buildEcho({ drafts: true });
+  assert.ok(!live.articles.some((a) => a.draft), 'no draft in the default build');
+  assert.ok(all.articles.some((a) => a.slug === 'brouillon-temoin' && a.draft), 'the draft sample exists');
+  assert.ok(!atomFeed(live.articles).includes('brouillon-temoin'));
+  assert.ok(!routes([], live.articles).includes('echo/brouillon-temoin'));
+});
+
+test('Echo: a video in the front matter is carried to the article', () => {
+  const a = parseArticle('2026-01-01-v.md', '---\ntitle: t\nstandfirst: s\nauthor: a\ndate: 2026-01-01\nvideo: assets/echo/v.mp4\nvideo_poster: assets/echo/v.jpg\n---\ntexte');
+  assert.deepEqual(a.video, { src: 'assets/echo/v.mp4', poster: 'assets/echo/v.jpg', caption: '' });
+});
+
+test('Echo: echo-publish copies, un-drafts, rebuilds and refuses oversized media', async () => {
+  const { publish, undraft, checkMedia, MAX_FILE } = await import('../scripts/echo-publish.mjs');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'echo-pub-'));
+  try {
+    const media = path.join(tmp, 'media'); fs.mkdirSync(media);
+    fs.writeFileSync(path.join(media, 'a.jpg'), 'x');
+    const art = path.join(tmp, '2026-02-02-essai.md');
+    fs.writeFileSync(art, '---\ntitle: Essai\nstandfirst: s\nauthor: a\ndate: 2026-02-02\ndraft: true\nhero: assets/echo/a.jpg\n---\ntexte');
+    const root = path.join(tmp, 'repo');
+    const r = publish(art, media, { root, test: false });
+    assert.deepEqual(r.media, ['a.jpg']);
+    assert.ok(fs.existsSync(path.join(root, 'site/assets/echo/a.jpg')));
+    assert.match(fs.readFileSync(path.join(root, 'echo/articles/2026-02-02-essai.md'), 'utf8'), /draft: false/);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(root, 'site/data/echo.json'), 'utf8')).articles[0].slug, 'essai');
+    assert.equal((undraft('---\ntitle: x\ndraft: true\n---\nb').match(/draft:/g) || []).length, 1);
+    fs.writeFileSync(path.join(media, 'big.mp4'), Buffer.alloc(MAX_FILE + 1));
+    assert.throws(() => checkMedia(media), /8 MB per file/);
+    fs.rmSync(path.join(media, 'big.mp4'));
+    fs.writeFileSync(path.join(media, 'notes.docx'), 'x');
+    assert.throws(() => checkMedia(media), /not an image or mp4/);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });

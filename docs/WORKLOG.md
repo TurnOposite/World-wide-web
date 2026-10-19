@@ -2786,3 +2786,7 @@ Articles live in `echo/articles/<yyyy-mm-dd>-<slug>.md` (front matter: title, st
 ## 2026-10-18 — Echo, phase 2: publishing comfort (branch `claude/echo`)
 
 Atom feed (`atomFeed`, written to `dist/echo/feed.xml` by `site-build.mjs`, linked from `site/index.html`), per-article link-preview shells (`articleShell`: title, description, `og:type=article`, `og:url`, raster hero as `og:image`), print stylesheet at the end of `site/css/site.css`, `scripts/echo-import.mjs` (Markdown draft → article, never overwrites, missing fields marked `[à compléter]`), `docs/ECHO.md`. One new test covers feed, shell and importer on the sample only.
+
+## 2026-10-19 — Echo, phase 3a: drafts, video, one-step publish (branch `claude/echo`)
+
+`draft: true` in front matter keeps an article out of `echo.json`, the feed, the index and the routes unless `ECHO_DRAFTS=1` (second neutral sample, `brouillon-temoin`). `video:` / `video_poster:` / `video_caption:` render a `<video controls preload="none">` on the article page. `scripts/echo-publish.mjs <article.md> [<media-dir>]` copies article and media (8 MB per file, 60 MB total, images and mp4 only), sets `draft: false`, rebuilds `echo.json`, runs `npm test`; it never commits. Three tests. Still to do for phase 3: the Zone/Echo split with reading moved to `/echo/lectures`, and the red newspaper front page.

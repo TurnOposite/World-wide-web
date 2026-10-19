@@ -87,6 +87,8 @@ export function parseArticle(file, text) {
     place: meta.place || null,
     tags: (meta.tags || '').split(',').map((x) => x.trim()).filter(Boolean),
     lang,
+    draft: /^(true|yes|1)$/i.test(meta.draft || ''),
+    video: meta.video ? { src: meta.video, poster: meta.video_poster || '', caption: t(meta.video_caption || '') } : null,
     hero: meta.hero ? { src: meta.hero, alt: meta.hero_alt || '', caption: t(meta.hero_caption || ''), credit: meta.hero_credit || '' } : null,
     readingTime: Math.max(1, Math.ceil(words / 220)),
     html,
@@ -94,9 +96,10 @@ export function parseArticle(file, text) {
   };
 }
 
-export function build() {
-  const files = fs.existsSync(SRC) ? fs.readdirSync(SRC).filter((f) => f.endsWith('.md')).sort() : [];
-  const articles = files.map((f) => parseArticle(f, fs.readFileSync(path.join(SRC, f), 'utf8')));
+/** Drafts (`draft: true`) stay out of echo.json, the feed and the index unless ECHO_DRAFTS=1. */
+export function build({ drafts = process.env.ECHO_DRAFTS === '1', src = SRC } = {}) {
+  const files = fs.existsSync(src) ? fs.readdirSync(src).filter((f) => f.endsWith('.md')).sort() : [];
+  const articles = files.map((f) => parseArticle(f, fs.readFileSync(path.join(src, f), 'utf8'))).filter((a) => drafts || !a.draft);
   const slugs = new Set();
   for (const a of articles) { if (slugs.has(a.slug)) throw new Error(`duplicate slug ${a.slug}`); slugs.add(a.slug); }
   articles.sort((a, b) => b.date.localeCompare(a.date) || a.slug.localeCompare(b.slug));

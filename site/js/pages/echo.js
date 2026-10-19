@@ -62,6 +62,7 @@ export async function mount(root, ctx) {
       <p class="echo-standfirst">${esc(a.standfirst)}</p>
       <p class="meta">Par ${esc(a.author)} · ${a.place ? `${esc(a.place)}, ` : ''}<time datetime="${esc(a.date)}">${esc(dateFr(a.date))}</time> · ${a.readingTime} min de lecture</p>
       ${a.hero ? `<figure class="echo-hero"><img src="${esc(a.hero.src)}" alt="${esc(a.hero.alt)}"><figcaption>${esc(a.hero.caption)}${a.hero.credit ? ` <span class="credit">${esc(a.hero.credit)}</span>` : ''}</figcaption></figure>` : ''}
+      ${a.video ? `<figure class="echo-video"><video controls preload="none" playsinline src="${esc(a.video.src)}"${a.video.poster ? ` poster="${esc(a.video.poster)}"` : ''}></video>${a.video.caption ? `<figcaption>${esc(a.video.caption)}</figcaption>` : ''}</figure>` : ''}
       <div class="body echo-body">${a.html}</div>
       ${a.notes ? `<aside class="echo-notes"><h2>${esc(a.notes.title)}</h2><ol>${a.notes.items.map((i) => `<li>${i}</li>`).join('')}</ol></aside>` : ''}
       <p><a class="back" href="echo" data-link>← Retour à Echo</a></p>
