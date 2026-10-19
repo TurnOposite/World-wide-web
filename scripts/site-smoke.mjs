@@ -104,7 +104,7 @@ try {
   await a.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await a.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
   const tabs = await a.$$eval('.tabs a', (els) => els.map((e) => e.textContent.trim()));
-  check('the site shell loads with its four sections', tabs.join(',') === 'Radio,Atlas,Écrits,Portfolio', tabs.join(', '));
+  check('the site shell loads with its sections', tabs.join(',') === 'Radio,Echoes,Atlas,Écrits,Portfolio', tabs.join(', '));
   check('the mark is the green hybrid tower', await a.$eval('.brand .mark', (el) => getComputedStyle(el).color === 'rgb(52, 211, 153)'));
 
   const title = await a.textContent('#rTitle');
@@ -186,6 +186,39 @@ try {
     shown: getComputedStyle(document.querySelector('.minibar .mb-meta')).visibility !== 'hidden',
   }));
   check('on a desktop the mini-player names the song, on the radio page too', bar.shown && bar.mb === bar.card, bar.mb);
+
+  /* ---------------------------------------------------- Echoes, its own page -- */
+  // Ortis 2026-10-19: Up next, Just played and the next hours left /radio
+  // for /echoes. Radio keeps the card, the channels and the queue.
+  const radioRest = await a.evaluate(() => ({
+    lists: ['rNext', 'rRecent', 'rGuide', 'rTz'].filter((id) => document.getElementById(id)).concat(document.querySelector('#view .echoes, #view .guide') ? ['.echoes'] : []),
+    queue: Boolean(document.querySelector('#rQueue .tracklist, #rQueue li')),
+    link: Boolean(document.querySelector('#view a[href="echoes"]')),
+  }));
+  check('Radio keeps the on-air card and the queue, and no longer carries Echoes (a link to it instead)', radioRest.lists.length === 0 && radioRest.queue && radioRest.link, radioRest.lists.join(', ') || 'card + queue + link');
+  await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); });
+  await a.click('.tabs a[href="echoes"]');
+  await a.waitForSelector('#eGuide li .at', { timeout: 8000 }).catch(() => {});
+  const echoes = await a.evaluate(() => {
+    const { player } = window.radioTower;
+    const au = document.getElementById('audio');
+    const titles = (sel) => [...document.querySelectorAll(`${sel} li:not(.empty):not(.guide-day) .t`)].map((n) => n.textContent);
+    return {
+      path: location.pathname, tab: document.querySelector('.tabs a[aria-current="page"]')?.textContent,
+      now: document.getElementById('eTitle')?.textContent, onAir: player.onAir?.title,
+      next: titles('#eNext'), wantNext: (player.data?.upcoming || []).map((t) => t.title),
+      recent: titles('#eRecent'), guide: titles('#eGuide'),
+      times: [...document.querySelectorAll('#eGuide li .at')].map((n) => n.textContent),
+      tz: document.getElementById('eTz')?.textContent, wantTz: Intl.DateTimeFormat().resolvedOptions().timeZone.replace(/_/g, ' '),
+      same: au === window.__sameAudio, paused: au.paused, drift: au.currentTime - player.livePosition(),
+    };
+  });
+  check('Echoes: its own tab, the track on air in one line', echoes.path === '/echoes' && echoes.tab === 'Echoes' && echoes.now === echoes.onAir, echoes.now);
+  check('Echoes: Up next is the station\'s next tracks, Just played is filled', echoes.next.length >= 2 && echoes.next.join() === echoes.wantNext.join() && echoes.recent.length >= 1,
+    `${echoes.next.length} next, ${echoes.recent.length} played`);
+  check('Echoes: the next hours, timed in the listener\'s own zone', echoes.guide.length >= 5 && echoes.times.every((t) => /\d{1,2}[:.h]\d{2}/.test(t)) && echoes.tz === echoes.wantTz,
+    `${echoes.guide.length} rows, ${echoes.tz}`);
+  check('…and the music did not stop to show it', echoes.same && !echoes.paused && Math.abs(echoes.drift) < 1.5, `drift ${echoes.drift.toFixed(2)}s`);
 
   /* ------------------------------------------- music survives navigation -- */
   const audioBefore = await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); return document.getElementById('audio').currentTime; });
@@ -396,7 +429,7 @@ try {
   watch(m, 'phone');
   const overflow = [];
   const a11y = [];
-  for (const r of ['', 'radio', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
+  for (const r of ['', 'radio', 'echoes', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
     await m.goto(dev + r, { waitUntil: 'domcontentloaded' });
     await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
     await m.waitForTimeout(700);
@@ -471,6 +504,15 @@ try {
     }
     check('pointed at a Radio Tower server, the same front end plays its programme', shown.mode === 'tower' && shown.id === server.onAir?.id, `${server.onAir?.title}`);
     check('…and shows the server\'s real listener count', /listening/.test(shown.pill || ''), (shown.pill || '').trim());
+    // Echoes in tower mode: the lists and the guide come from the server.
+    await t.click('.tabs a[href="echoes"]');
+    await t.waitForSelector('#eGuide li .at', { timeout: 8000 }).catch(() => {});
+    const tEcho = await t.evaluate(() => ({
+      next: document.querySelectorAll('#eNext li:not(.empty)').length,
+      guide: document.querySelectorAll('#eGuide li .at').length,
+      empty: document.querySelector('#eGuide .empty')?.textContent || '',
+    }));
+    check('…and its Echoes page reads Up next and the next hours from the tower', tEcho.next >= 1 && tEcho.guide >= 5, tEcho.empty || `${tEcho.next} next, ${tEcho.guide} in the guide`);
 
     // The booth on a tower (2026-10-13): the Desktop shortcut's #key unlocks
     // it without staying on the address bar; remembering is opt-in and per

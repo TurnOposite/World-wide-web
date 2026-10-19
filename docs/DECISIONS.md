@@ -3313,3 +3313,16 @@ back panel can reach behind the board above it. Because each `.shelf` now
 joins the 3D space, its flat box would sit in front of the books that recede
 behind it and swallow their pointer: `.shelf` ignores the pointer and only
 books take it (phones, where the shelf scrolls sideways, keep it).
+
+## 2026-10-19 — Echoes is its own page
+
+Ortis asked for Echoes (Up next, Just played, the next hours) to leave the
+Radio page for its own tab. Radio is now what you *do* (tune in, pick a
+channel, see and reorder the queue); Echoes is what you *read* (the
+programme around the track on air). The guide code moved rather than being
+shared: only one page shows it now, so a shared helper would have had one
+caller. Echoes builds no player state of its own — it reads `player.data`
+and asks `client.get('/api/schedule')`, so it works in cloud and tower mode
+and the music is untouched by the navigation. The guide stays at four hours
+(the size it had on Radio; the tower rate-limits its public API, and one
+request a minute per open Echoes tab is the same load Radio used to make).

@@ -55,6 +55,7 @@ export function shellFor(html, { base = '/', siteUrl = '' } = {}) {
 export function routes(texts) {
   return [
     'radio', 'atlas', 'ecrits', 'portfolio', 'booth',
+    'echoes',
     'portfolio/library', 'portfolio/photos', 'portfolio/crates',
     ...texts.map((t) => `ecrits/${t.slug}`),
   ];

@@ -2778,3 +2778,43 @@ What actually happened after "push everything", in order, each step checked:
   Library with the university's site on its own line): unit tests green; site
   smoke 49/50 then 50/50 twice — the cloud booth's "…it is a permutation"
   check failed once more, the same intermittent as earlier today.
+
+## 2026-10-19 — Echoes gets its own page (Claude Code, for Ortis)
+
+- **New `/echoes`** (`site/js/pages/echoes.js`): on air in one line (title,
+  artist, channel, time left, a link back to Radio), **Up next** and **Just
+  played** side by side, then **The next hours** — four hours of
+  `/api/schedule`, times in the listener's own clock with the time-zone pill,
+  and a day header where the programme crosses midnight. The lists read
+  `player.data` (the `/api/station` body the one player already polls, so the
+  page adds no request for them); the guide goes through `client.get`, which
+  answers in the browser (cloud) or from the tower, on this listener's
+  channel. Refreshes every minute, on a DJ's control document and on a
+  channel change.
+- **Radio** keeps the channels, the on-air card, the controls and the queue;
+  the Echoes panels and the guide code moved out (not duplicated), and a
+  small "Echoes — just played, and the next hours →" link sits under the
+  queue.
+- Wiring, one line each: route in `site/js/main.js`, tab after Radio in
+  `site/index.html`, `'echoes'` in `routes()` of `scripts/site-build.mjs` (a
+  cold `/echoes` gets a shell in `dist/`; checked `dist/echoes/index.html`
+  exists). `vercel.json` needs no rewrite: the build writes a real
+  `echoes/index.html`, the same way `/radio` and `/atlas` already answer.
+- CSS: `.echoes`/`.guide` moved under an "echoes" block in `site.css`, plus
+  the one-line on-air strip; the 720 px rule for `.echoes` is unchanged.
+- Smoke (`scripts/site-smoke.mjs`): the tabs check now expects
+  Radio, Echoes, Atlas, Écrits, Portfolio; new checks that Radio has no
+  Echoes lists but has its queue and the link; that `/echoes` shows the
+  on-air track, Up next equal to the station's upcoming, Just played filled,
+  ≥5 guide rows timed in the browser's zone; that the same `<audio>` keeps
+  playing on the clock across the switch; `/echoes` joins the phone overflow
+  and axe pass; and, in tower mode, that Echoes reads its lists and guide
+  from the server. `tests/site-modules.test.js` expects `echoes` in the
+  routes.
+- Self-test before: **388 tests, 43/43 browser, 57/57 site**. After:
+  **388 tests, 43/43 browser, 63/63 site**. Screenshots taken at 1280 px and
+  390 px (Africa/Maputo zone) of both pages: no overflow, lists and guide
+  render.
+- Not verified: the live tower at `129-151-227-129.sslip.io` (this sandbox's
+  proxy refuses that host); tower mode was proved against the self-test's
+  local server, which serves the same `/api/schedule`.

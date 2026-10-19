@@ -111,6 +111,7 @@ async function boot() {
     routes: [
       { name: 'home', pattern: /^$/, load: () => import('./pages/home.js') },
       { name: 'radio', pattern: /^radio$/, load: () => import('./pages/radio.js') },
+      { name: 'echoes', pattern: /^echoes$/, load: () => import('./pages/echoes.js') },
       { name: 'atlas', pattern: /^atlas$/, load: () => import('./pages/atlas.js') },
       { name: 'ecrits', pattern: /^ecrits(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
       { name: 'portfolio', pattern: /^portfolio(?:\/(?<room>[\w-]+))?$/, load: () => import('./pages/portfolio.js') },
