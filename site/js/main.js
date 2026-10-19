@@ -113,6 +113,7 @@ async function boot() {
       { name: 'radio', pattern: /^radio$/, load: () => import('./pages/radio.js') },
       { name: 'echoes', pattern: /^echoes$/, load: () => import('./pages/echoes.js') },
       { name: 'atlas', pattern: /^atlas$/, load: () => import('./pages/atlas.js') },
+      { name: 'zone', pattern: /^zone$/, load: () => import('./pages/zone.js') },
       { name: 'ecrits', pattern: /^ecrits(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
       { name: 'portfolio', pattern: /^portfolio(?:\/(?<room>[\w-]+))?$/, load: () => import('./pages/portfolio.js') },
       { name: 'booth', pattern: /^booth$/, load: () => import('./pages/booth.js') },

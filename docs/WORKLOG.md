@@ -2818,3 +2818,55 @@ What actually happened after "push everything", in order, each step checked:
 - Not verified: the live tower at `129-151-227-129.sslip.io` (this sandbox's
   proxy refuses that host); tower mode was proved against the self-test's
   local server, which serves the same `/api/schedule`.
+
+## 2026-10-19 — The Zone tab (roadmap #21; #22 built behind a flag) (Claude Code, worktree agent)
+
+- **New page `/zone`** (`site/js/pages/zone.js`): the world outline from
+  `site/data/world.json` on the Atlas's projection (x = lon + 180,
+  y = 90 − lat), one green point at the broadcast origin, and three of the
+  mark's sideways arcs leaving it slowly (4.8 s cycle). Beside it: the place
+  name, its coordinates, the local time there (when the origin carries an
+  IANA `timeZone`), and where the position came from. No map library, no
+  tiles, no third-party call. With `prefers-reduced-motion` the arcs stand
+  still at three sizes, which reads as the logo. Single column under 760 px.
+- **Wiring, one line each in the shared files**: the "Zone" link in
+  `<nav class="tabs">` (after Atlas), the route in `site/js/main.js`, `'zone'`
+  in `scripts/site-build.mjs` routes (the build writes `dist/zone/index.html`,
+  so Vercel serves `/zone` with no `vercel.json` change, the same as `/atlas`).
+- **Origin as configuration.** On the server, `STATION_LAT` / `STATION_LON` /
+  `STATION_PLACE` (+ optional `STATION_TZ`) are parsed by
+  `server/lib/origin.js` into `config.stationOrigin` and added to
+  `/api/station` → `station.origin`. If the env is unset, half-set or off the
+  globe, nothing is added. The page prefers the tower's origin in tower mode,
+  then `site/config.json` → `station.origin` (now with
+  `"timeZone": "Africa/Maputo"`). If neither exists, there is no point and the
+  page says so. Documented in `deploy/radio-tower.env.example`, commented out.
+- **Listener point (#22)**: `resolveListener` renders a blue point only when
+  `config.json` → `zone.listener === true` **and** the tower's `/api/station`
+  carries a `listener` {lat, lon}. No geo-IP source exists, so the flag stays
+  absent and nothing renders. No Geolocation API.
+- **Tests.** New `tests/zone.test.js` (7): env parsing and rejection,
+  projection equals the Atlas's, tower-over-config precedence, the shipped
+  config is a real point, the SVG places the core at the projected x/y, no
+  listener point without flag + server position, coords and local time across
+  DST. `tests/api.test.js` asserts `station.origin` from the env;
+  `site-modules` and `cloud-tower` include `/zone`. Site smoke: the nav check
+  now expects five tabs, and three new checks cover the map, the on-screen
+  position of the point against config.json's lat/lon (0.00 px off), the absent
+  listener point, and in tower mode the server's origin winning. `/zone` was
+  added to the phone overflow and axe pass. `build-test.sh` starts its tower
+  with a test origin (10.5, −20.25, "Self Test Point") so the tower-mode check
+  can tell the two sources apart.
+- **Self-test before**: 388 unit tests, 43/43 browser, site 49/50 (run 1:
+  `fetch failed` in the tower-mode block) and 56/57 on a re-run (Canopy
+  intermittent; that run's browser stage was also 42/43, "audio element is
+  playing"). Both are flakes that predate this change. **After**: 395 unit
+  tests, 43/43 browser, **60/60 site**, "the tower is sound".
+- **For Ortis:** the configured origin is still **Maputo** (`site/config.json`
+  → `station.origin`, −25.97, 32.58). You are in Amsterdam now. This run did
+  not change the value; you decide. Either edit `config.json` (with
+  `"timeZone": "Europe/Amsterdam"`), or set `STATION_LAT=52.37`
+  `STATION_LON=4.90` `STATION_PLACE=Amsterdam` `STATION_TZ=Europe/Amsterdam` in
+  the tower's `/etc/radio-tower.env` and restart. The live site is in tower
+  mode, so the env wins. The share card (`scripts/site-card.mjs`) and the
+  Atlas's tower pin read config.json only.

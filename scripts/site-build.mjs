@@ -56,6 +56,7 @@ export function routes(texts) {
   return [
     'radio', 'atlas', 'ecrits', 'portfolio', 'booth',
     'echoes',
+    'zone',
     'portfolio/library', 'portfolio/photos', 'portfolio/crates',
     ...texts.map((t) => `ecrits/${t.slug}`),
   ];
