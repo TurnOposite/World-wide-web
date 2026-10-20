@@ -19,7 +19,10 @@
  *   - nothing overflows a 390 px phone;
  *   - the built dist/ works under a repository sub-path on a cold deep link;
  *   - pointed at a real Radio Tower server (`?tower=`), the same front end
- *     shows the server's programme.
+ *     shows the server's programme;
+ *   - the world shell (docs/WORLD.md) stays off unless asked for, and with
+ *     ?world=1 the camera flies to each route's district while the radio
+ *     plays on, by tag, arrow key, minimap, switch and Back.
  *
  * Usage: node scripts/site-smoke.mjs [towerUrl]
  */
@@ -515,6 +518,123 @@ try {
     return { first, second };
   });
   check('one track that will not load waits for the next; two in a row say the music is unreachable', /will not load/.test(outage.first) && /not reachable/.test(outage.second), outage.second);
+
+  /* ------------------------------------- the world shell (docs/WORLD.md) -- */
+  // Phase 1: behind a flag. Off, the classic site above never loaded any of it.
+  check('world shell: off by default — no world, no world.css on the classic site', await a.evaluate(() => !document.querySelector('.w-root')
+    && !document.documentElement.classList.contains('world-on') && ![...document.querySelectorAll('link[rel="stylesheet"]')].some((l) => l.href.includes('world.css'))));
+  const wctx = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+  const w = await wctx.newPage();
+  watch(w, 'world');
+  const settled = (id) => w.waitForFunction((i) => window.radioTower?.world?.current === i && !window.radioTower.world.camera.moving, id, { timeout: 8000 }).catch(() => {});
+  const shot = (id) => w.evaluate((i) => {
+    const r = document.getElementById(`w-${i}`).getBoundingClientRect();
+    return {
+      path: location.pathname, current: document.querySelector('.w-tag[aria-current="true"]')?.dataset.go,
+      centre: Math.round(Math.abs(r.left + r.width / 2 - innerWidth / 2)), inside: r.left >= 0 && r.right <= innerWidth && r.top >= 0,
+      filter: document.querySelector('.w-plane').style.filter, echo: document.body.classList.contains('on-echo'),
+      mix: getComputedStyle(document.querySelector('.w-root')).getPropertyValue('--w-mix').trim(),
+      pressed: document.querySelector('.w-switch button[aria-pressed="true"]')?.textContent,
+    };
+  }, id);
+  await w.goto(dev + 'radio?world=1', { waitUntil: 'domcontentloaded' });
+  await w.waitForFunction(() => window.radioTower?.world?.current === 'radio' && window.radioTower.player?.onAir, null, { timeout: 10000 });
+  const landed = { ...(await shot('radio')), tags: await w.$$eval('.w-tags .w-tag', (els) => els.length),
+    hidden: await w.evaluate(() => { const v = document.getElementById('view'); return getComputedStyle(v).visibility === 'hidden' && v.inert && Boolean(v.querySelector('.page')); }) };
+  check('world shell (?world=1): eleven tags, Radio current, the camera already there — no flight on a cold link', landed.tags === 11 && landed.current === 'radio'
+    && landed.centre < 30 && landed.inside && landed.filter === '' && landed.pressed === 'Zone' && !landed.echo, JSON.stringify(landed));
+  check('…the classic page is still mounted, hidden and inert, until phase 2 moves it into its district', landed.hidden);
+
+  await w.click('#mbTune');
+  await w.waitForFunction(() => { const au = document.getElementById('audio'); return !au.paused && au.currentTime > 0.3; }, null, { timeout: 10000 }).catch(() => {});
+  await w.evaluate(() => { window.__worldAudio = document.getElementById('audio'); });
+  await w.click('.w-tag[data-go="une"]');
+  await w.waitForFunction(() => window.radioTower.world.current === 'une', null, { timeout: 8000 }).catch(() => {});
+  const midFlight = await w.evaluate(() => ({ moving: window.radioTower.world.camera.moving, filter: document.querySelector('.w-plane').style.filter }));
+  await settled('une');
+  const une = await shot('une');
+  check('the Une tag flies the camera to Echo: a real address, the motion blur only while moving', midFlight.moving && /wBlur/.test(midFlight.filter)
+    && une.path === '/echo' && une.current === 'une' && une.centre < 30 && une.inside && une.filter === '', JSON.stringify({ midFlight, une }));
+  check('…across the seam: the paper fades in, the switch reads Echo, Zone\'s visualiser rests', une.mix === '1.000' && une.echo && une.pressed === 'Echo'
+    && await w.evaluate(() => window.radioTower.stage.running === false), JSON.stringify(une));
+  const heard = await w.evaluate(() => {
+    const au = document.getElementById('audio');
+    return { same: au === window.__worldAudio, paused: au.paused, d: au.currentTime - window.radioTower.player.livePosition() };
+  });
+  check('…and the radio plays on through the flight, on the station\'s second', heard.same && !heard.paused && Math.abs(heard.d) < 1.5, `drift ${heard.d.toFixed(2)}s`);
+
+  await w.keyboard.press('ArrowRight');
+  await settled('articles');
+  const walk1 = await shot('articles');
+  await w.keyboard.press('ArrowRight');
+  await settled('lectures');
+  const walk2 = await shot('lectures');
+  check('→ walks the map: Articles moves only the camera, Lectures opens its address', walk1.current === 'articles' && walk1.path === '/echo' && walk1.centre < 30
+    && walk2.current === 'lectures' && walk2.path === '/echo/lectures' && walk2.centre < 30, `${walk1.path} → ${walk2.path}`);
+
+  await w.reload({ waitUntil: 'domcontentloaded' });
+  await w.waitForFunction(() => window.radioTower?.world?.current === 'lectures', null, { timeout: 10000 }).catch(() => {});
+  const reloaded = await shot('lectures');
+  check('a reload keeps the world for the tab and lands without a flight', reloaded.current === 'lectures' && reloaded.centre < 30 && reloaded.filter === ''
+    && await w.evaluate(() => !window.radioTower.world.camera.moving), JSON.stringify(reloaded));
+  await w.goBack({ waitUntil: 'domcontentloaded' });
+  await settled('radio');
+  const back = await shot('radio');
+  check('Back flies back to where the reader was', back.current === 'radio' && back.path === '/radio' && back.centre < 30, back.path);
+
+  const atlasAt = await w.evaluate(() => {
+    const r = document.querySelector('.w-minimap').getBoundingClientRect();
+    return { x: r.left + r.width * (1330 / 5200), y: r.top + r.height * (1430 / 2600) };
+  });
+  await w.mouse.click(atlasAt.x, atlasAt.y);
+  await settled('atlas');
+  const viaMap = await shot('atlas');
+  await w.click('.w-switch button:nth-of-type(2)');
+  await settled('une');
+  const viaSwitch = await shot('une');
+  check('the minimap and the Zone ⇄ Echo switch fly there too', viaMap.path === '/atlas' && viaMap.current === 'atlas' && viaSwitch.path === '/echo' && viaSwitch.pressed === 'Echo',
+    `${viaMap.path}, ${viaSwitch.path}`);
+  const worldA11y = [];
+  for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop: ${v}`);
+
+  await w.goto(dev + 'radio?world=0', { waitUntil: 'domcontentloaded' });
+  await w.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
+  await w.goto(dev + 'atlas', { waitUntil: 'domcontentloaded' });
+  await w.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
+  check('?world=0 turns it off, and the next page stays classic', await w.evaluate(() => !document.querySelector('.w-root') && window.radioTower.world === null
+    && getComputedStyle(document.getElementById('view')).visibility === 'visible'));
+  await wctx.close();
+
+  const still = await (await browser.newContext({ viewport: { width: 1280, height: 860 }, reducedMotion: 'reduce' })).newPage();
+  watch(still, 'world, reduced motion');
+  await still.goto(dev + 'radio?world=1', { waitUntil: 'domcontentloaded' });
+  await still.waitForFunction(() => window.radioTower?.world?.current === 'radio', null, { timeout: 10000 });
+  await still.click('.w-tag[data-go="lectures"]');
+  await still.waitForFunction(() => window.radioTower.world.current === 'lectures', null, { timeout: 8000 }).catch(() => {});
+  const cut = await still.evaluate(() => {
+    const r = document.getElementById('w-lectures').getBoundingClientRect();
+    return { moving: window.radioTower.world.camera.moving, filter: document.querySelector('.w-plane').style.filter, centre: Math.abs(r.left + r.width / 2 - innerWidth / 2) };
+  });
+  check('reduced motion: a cut, not a pan — no flight, no blur', !cut.moving && cut.filter === '' && cut.centre < 30, JSON.stringify(cut));
+  await still.context().close();
+
+  const wm = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
+  watch(wm, 'world, phone');
+  await wm.goto(dev + 'radio?world=1', { waitUntil: 'domcontentloaded' });
+  await wm.waitForFunction(() => window.radioTower?.world?.current === 'radio', null, { timeout: 10000 });
+  const strip = await wm.evaluate(() => {
+    const nav = document.querySelector('.w-tags');
+    const tops = new Set([...nav.querySelectorAll('.w-tag')].map((b) => Math.round(b.getBoundingClientRect().top)));
+    return { rows: tops.size, scrolls: nav.scrollWidth > nav.clientWidth, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth, minimap: getComputedStyle(document.querySelector('.w-minimap')).display };
+  });
+  await wm.tap('.w-tag[data-go="une"]');
+  await wm.waitForFunction(() => window.radioTower.world.current === 'une' && !window.radioTower.world.camera.moving, null, { timeout: 8000 }).catch(() => {});
+  const flewTo = await wm.evaluate(() => ({ path: location.pathname, here: document.querySelector('.w-tag[aria-current="true"]')?.dataset.go }));
+  check('world shell on a phone: the tags are one strip that scrolls, nothing overflows, a tap flies', strip.rows === 1 && strip.scrolls && strip.overflow <= 1
+    && strip.minimap === 'none' && flewTo.path === '/echo' && flewTo.here === 'une', JSON.stringify({ ...strip, ...flewTo }));
+  for (const v of (await axeRun(wm)) || []) worldA11y.push(`phone: ${v}`);
+  if (AXE) check('world shell: no accessibility violations above minor (desktop + phone)', worldA11y.length === 0, worldA11y.slice(0, 3).join(' | ') || 'names, roles, landmarks, contrast');
+  await wm.context().close();
 
   /* ------------------------------------------------------------- phone -- */
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });

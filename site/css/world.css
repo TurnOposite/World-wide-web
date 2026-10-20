@@ -1,0 +1,141 @@
+/* The world shell, phase 1 (docs/WORLD.md). Loaded only when the world is on —
+   site/js/world/world.js adds it — so the classic site never downloads it.
+   Direction A « Velvet Grid »: tamed neon on deep night for Zone, the Gazette's
+   paper for Echo. Phases 3–4 dress the windows; these are the frame's tokens.
+   The station green stays the mark, the focus ring and nothing else. */
+
+.w-root{
+  --w-night:#0c0e18; --w-night-2:#141a2a; --w-glass:rgba(22,29,50,.86); --w-edge:#2e3858;
+  --w-text:#dce3ee; --w-dim:#8f99af;
+  --w-neon-a:#5aaebf; --w-neon-b:#b06a9b; --w-neon-c:#c4a160;
+  --w-paper:#f2f0eb; --w-paper-2:#e8e5dd; --w-ink:#171615; --w-mute:#5b5650; --w-red:#a3161f; --w-rule:#1d1c1b;
+  --w-signal:#34d399; /* the brand green, not body.on-echo's --signal */
+  --w-cut:14px; --w-slant:-10deg;
+  --w-ui:"Chakra Petch","Bahnschrift","DIN Alternate","Segoe UI",system-ui,sans-serif;
+  --w-head:"Old Standard TT",Georgia,"Times New Roman",serif;
+  --w-mix:0;
+  position:fixed;inset:0;z-index:20;color:var(--w-text);font:15px/1.5 var(--w-ui);
+}
+html.world-on,html.world-on body{height:100%;overflow:hidden}
+/* The classic shell stays in the document (the pages still mount there until phase 2), unseen and inert. */
+.world-on body>.masthead,.world-on body>main,.world-on body>.sitefoot{visibility:hidden}
+.world-on .preview-note{position:fixed;z-index:26;left:0;right:0;bottom:calc(var(--mb-h) + 6px);margin:0 auto;text-align:center}
+.world-on body.theatre .w-root{opacity:0;pointer-events:none;transition:opacity .4s}
+.w-root :focus-visible{outline:2px solid var(--w-signal);outline-offset:3px}
+.w-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:0}
+
+/* ---- the far layer: night grid on Zone, paper on Echo, crossfaded by the camera ---- */
+.w-far{position:absolute;inset:0;pointer-events:none}
+.w-far>i{position:absolute;inset:-40px}
+/* Zone's ground is not opaque: the station's visualiser still glows through it. */
+.w-dark{opacity:calc(1 - var(--w-mix));background:
+  linear-gradient(rgba(90,174,191,.07) 1px,transparent 1px) 0 var(--w-py,0)/64px 64px,
+  linear-gradient(90deg,rgba(90,174,191,.07) 1px,transparent 1px) var(--w-px,0) 0/64px 64px,
+  radial-gradient(ellipse 80% 55% at 30% 115%,rgba(90,174,191,.18),transparent 70%),
+  radial-gradient(ellipse 60% 40% at 85% -10%,rgba(176,106,155,.12),transparent 70%),
+  rgba(12,14,24,.8)}
+.w-light{opacity:var(--w-mix);background:repeating-linear-gradient(0deg,rgba(23,22,21,.025) 0 1px,transparent 1px 4px),var(--w-paper)}
+
+/* ---- the plane ---- */
+.w-viewport{position:absolute;inset:0;overflow:hidden;overflow:clip}
+.w-plane{position:absolute;left:0;top:0;width:5200px;height:2600px;transform-origin:0 0;will-change:transform}
+.w-ground{position:absolute;left:2720px;top:0;right:0;bottom:0;background:var(--w-paper);
+  background-image:repeating-linear-gradient(0deg,rgba(23,22,21,.03) 0 1px,transparent 1px 5px)}
+/* The seam: Zone's scan lines run out where the paper starts. */
+.w-seam{position:absolute;left:2480px;top:0;width:240px;height:2600px;
+  background:linear-gradient(90deg,transparent 0,transparent 48%,var(--w-paper) 52%,var(--w-paper) 100%)}
+.w-seam::before{content:"";position:absolute;inset:0;opacity:.3;
+  background:repeating-linear-gradient(180deg,var(--w-neon-a) 0 2px,transparent 2px 46px);
+  -webkit-mask:linear-gradient(90deg,transparent 30%,#000 47%,transparent 50%);mask:linear-gradient(90deg,transparent 30%,#000 47%,transparent 50%)}
+
+/* ---- districts: a dashed frame, a code, corner brackets that light up on arrival ---- */
+.w-district{position:absolute;padding:40px 30px 30px;transform:rotate(var(--rot,0deg));outline:none}
+.w-district::before{content:"";position:absolute;inset:0;border:1px dashed rgba(143,153,175,.3);pointer-events:none;transition:border-color .3s}
+.w-district.here::before{border-color:rgba(143,153,175,.55)}
+.w-code{position:absolute;left:16px;top:-12px;font:500 13px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--w-dim);background:var(--w-night);padding:5px 9px}
+.w-corner{position:absolute;width:26px;height:26px;border:2px solid var(--w-neon-a);opacity:0;transition:opacity .35s,transform .35s}
+.w-corner.c1{left:-7px;top:-7px;border-right:0;border-bottom:0;transform:translate(-9px,-9px)}
+.w-corner.c2{right:-7px;top:-7px;border-left:0;border-bottom:0;transform:translate(9px,-9px)}
+.w-corner.c3{left:-7px;bottom:-7px;border-right:0;border-top:0;transform:translate(-9px,9px)}
+.w-corner.c4{right:-7px;bottom:-7px;border-left:0;border-top:0;transform:translate(9px,9px)}
+.w-district.here .w-corner{opacity:1;transform:none}
+.w-echo-d::before{border:3px double rgba(29,28,27,.2)}
+.w-echo-d .w-code{background:var(--w-paper);color:var(--w-mute)}
+.w-echo-d .w-corner{border-color:var(--w-red)}
+
+/* ---- windows: Zone's are glass with cut corners, Echo's are a sheet with one ink rule ---- */
+.w-win{position:relative;padding:1px;background:var(--w-edge);max-width:640px;
+  clip-path:polygon(var(--w-cut) 0,100% 0,100% calc(100% - var(--w-cut)),calc(100% - var(--w-cut)) 100%,0 100%,0 var(--w-cut));transition:background .2s}
+.w-win:hover,.w-win:focus-within{background:var(--w-neon-a)}
+.w-in{position:relative;padding:18px 22px 22px;background:linear-gradient(180deg,rgba(255,255,255,.13) 0,rgba(255,255,255,0) 34%),var(--w-glass);
+  clip-path:polygon(var(--w-cut) 0,100% 0,100% calc(100% - var(--w-cut)),calc(100% - var(--w-cut)) 100%,0 100%,0 var(--w-cut))}
+.w-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-4px 0 14px}
+.w-wt{display:inline-block;margin:0;transform:skewX(var(--w-slant));background:var(--w-neon-a);color:var(--w-night);
+  font:700 22px/1 var(--w-ui);letter-spacing:.14em;text-transform:uppercase;padding:9px 18px 8px}
+.w-wt>span{display:inline-block;transform:skewX(calc(var(--w-slant) * -1))}
+.w-cd{font:400 13px/1 var(--mono);color:var(--w-dim);letter-spacing:.1em}
+.w-hosts{margin:0 0 10px;font-size:20px;line-height:1.35}
+.w-soon{margin:0;font:14px/1.4 var(--mono);color:var(--w-dim)}
+.w-soon a{color:var(--w-text)}
+.w-echo-d .w-win{background:var(--w-rule);clip-path:none}
+.w-echo-d .w-win:hover,.w-echo-d .w-win:focus-within{background:var(--w-red)}
+.w-echo-d .w-in{background:var(--w-paper);color:var(--w-ink);clip-path:none}
+.w-echo-d .w-wt{transform:none;background:none;color:var(--w-ink);font:700 30px/1.1 var(--w-head);letter-spacing:.02em;text-transform:none;padding:0}
+.w-echo-d .w-wt>span{transform:none}
+.w-echo-d .w-cd,.w-echo-d .w-soon{color:var(--w-mute)}
+.w-echo-d .w-hosts{font-family:var(--w-head)}
+.w-echo-d .w-soon a{color:var(--w-ink)}
+
+/* ---- HUD: the brand, the Zone ⇄ Echo switch, the minimap ---- */
+.w-hud{position:absolute;z-index:4;top:0;left:0;right:0;display:flex;align-items:flex-start;gap:12px;pointer-events:none;
+  padding:max(12px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.w-hud>*{pointer-events:auto}
+.w-brand{display:flex;align-items:center;gap:10px;padding:7px 14px 7px 9px;background:rgba(12,14,24,.86);border:1px solid var(--w-edge);
+  color:var(--w-text);text-decoration:none}
+.w-brand svg{color:var(--w-signal)}
+.w-brand b{font:700 15px/1 var(--w-ui);letter-spacing:.06em}
+.w-switch{position:relative;display:grid;grid-template-columns:1fr 1fr;margin:0 auto;background:rgba(12,14,24,.9);border:1px solid var(--w-edge);
+  clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+.w-switch button{position:relative;z-index:1;border:0;background:none;padding:11px 28px;cursor:pointer;font:700 14px/1 var(--w-ui);
+  letter-spacing:.2em;text-transform:uppercase;color:var(--w-dim)}
+.w-switch button[aria-pressed="true"]{color:var(--w-night)}
+.w-ind{position:absolute;top:0;bottom:0;left:0;width:50%;background:var(--w-neon-a);transform:translateX(calc(var(--w-mix) * 100%))}
+.w-at-echo .w-ind{background:var(--w-red)}
+.w-at-echo .w-switch button[aria-pressed="true"]{color:var(--w-paper)}
+.w-minimap{display:block;flex:none;width:176px;height:88px;border:1px solid var(--w-edge);background:rgba(12,14,24,.86);cursor:pointer}
+.w-minimap .z{fill:rgba(90,174,191,.25)}
+.w-minimap .e{fill:rgba(242,240,235,.55)}
+.w-minimap .d{fill:none;stroke:var(--w-dim);stroke-width:14}
+.w-minimap .d.here{stroke:var(--w-neon-c)}
+.w-minimap .cam{fill:none;stroke:var(--w-signal);stroke-width:22}
+
+/* ---- tags: the menu ---- */
+.w-tags{position:absolute;z-index:3;inset:0;pointer-events:none;outline:none}
+.w-tag{position:absolute;top:var(--tt);left:var(--tl,auto);right:var(--tr,auto);pointer-events:auto;cursor:pointer;
+  border:0;padding:0;background:none;transform:rotate(var(--r,0deg))}
+.w-tag>span{display:inline-block;transform:skewX(var(--w-slant));padding:8px 15px 7px;font:700 14px/1 var(--w-ui);letter-spacing:.16em;
+  text-transform:uppercase;background:rgba(12,14,24,.92);color:var(--w-text);border:1px solid var(--w-edge);
+  transition:background .12s,color .12s,box-shadow .12s,transform .12s}
+.w-tag>span>i{display:inline-block;font-style:normal;transform:skewX(calc(var(--w-slant) * -1))}
+.w-tag[data-half="echo"]>span{background:var(--w-paper);color:var(--w-ink);border-color:var(--w-rule);font-family:var(--w-head);letter-spacing:.12em}
+.w-tag:hover>span,.w-tag:focus-visible>span{background:var(--w-neon-a);color:var(--w-night);box-shadow:5px 5px 0 var(--w-neon-b);transform:skewX(var(--w-slant)) scale(1.08)}
+.w-tag[data-half="echo"]:hover>span,.w-tag[data-half="echo"]:focus-visible>span{background:var(--w-red);color:var(--w-paper);box-shadow:5px 5px 0 var(--w-ink)}
+.w-tag:focus-visible{outline:none}
+.w-tag[aria-current="true"]>span{box-shadow:0 0 0 2px var(--w-night),0 0 0 4px var(--w-neon-c)}
+.w-tag[data-half="echo"][aria-current="true"]>span{box-shadow:0 0 0 2px var(--w-paper),0 0 0 4px var(--w-red)}
+.w-tag.faint>span{opacity:.75;font-size:12px}
+
+/* ---- phone: the tags become a strip under the header (phase 5 adds the swipe between halves) ---- */
+@media (max-width:760px){
+  .w-brand b,.w-minimap{display:none}
+  .w-brand{padding:7px}
+  .w-switch button{padding:10px 16px;letter-spacing:.14em}
+  .w-tags{inset:62px 0 auto 0;height:50px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;pointer-events:auto;
+    padding:6px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px))}
+  .w-tag{position:static;flex:none;transform:none}
+  .w-tag>span{font-size:12px;padding:8px 12px 7px}
+}
+@media (prefers-reduced-motion:reduce){
+  .w-district::before,.w-corner,.w-tag>span{transition:none}
+}

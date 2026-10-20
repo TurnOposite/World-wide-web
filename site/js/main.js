@@ -13,6 +13,7 @@ import { VisualsPanel } from './ui/visuals.js';
 import { toast, esc } from './ui/util.js';
 import { initBanner, markHalf } from './ui/banner.js';
 import { ONDES_LABEL } from './labels.js';
+import { worldWanted } from './world/flag.js';
 
 const $ = (id) => document.getElementById(id);
 const view = $('view');
@@ -117,6 +118,12 @@ async function boot() {
   };
 
   let cleanup = null;
+  // The world shell (docs/WORLD.md), behind a flag: config.world, or ?world=1 for this tab.
+  // Off, nothing under world/ but the flag is loaded and the site is the classic one.
+  let world = null;
+  let session = null;
+  try { session = sessionStorage; } catch { /* storage blocked: the flag lasts this page */ }
+  const wantWorld = worldWanted({ config: client.config, search: location.search, storage: session });
   const router = new Router({
     mode: client.config.router === 'hash' ? 'hash' : 'history',
     routes: [
@@ -140,6 +147,7 @@ async function boot() {
       const echoRoute = ['echo', 'lectures', 'ecrits'].includes(match.name);
       document.body.classList.toggle('on-echo', echoRoute);
       globalThis.__echoStage?.(echoRoute);
+      world?.show(match);
       sceneFn = () => null;
       view.classList.remove('entering');
       void view.offsetWidth;
@@ -165,6 +173,7 @@ async function boot() {
     },
   });
   ctx.router = router;
+  if (wantWorld) world = await (await import('./world/world.js')).mountWorld({ router, site });
   await router.start();
 
   // Keys: V visuals, F full screen, M tune in / mute. Never while typing.
@@ -177,7 +186,7 @@ async function boot() {
   });
 
   // For the e2e tests and for curious listeners with a console open.
-  globalThis.radioTower = { client, player, stage, settings, router };
+  globalThis.radioTower = { client, player, stage, settings, router, world };
 }
 
 boot();

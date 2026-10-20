@@ -1,10 +1,11 @@
 {
-  "_readme": "Site settings. github.owner/repo are filled in by the Pages workflow from the repository it runs in — leave them empty here. mode 'tower' + tower.url points the site at a Radio Tower server instead of computing the programme in the browser; ?tower=<url> does the same for one visit, but only for a url in tower.allowed (or this site's own origin, or localhost).",
+  "_readme": "Site settings. github.owner/repo are filled in by the Pages workflow from the repository it runs in — leave them empty here. mode 'tower' + tower.url points the site at a Radio Tower server instead of computing the programme in the browser; ?tower=<url> does the same for one visit, but only for a url in tower.allowed (or this site's own origin, or localhost). world true turns on the redesign's world shell for everyone (docs/WORLD.md); ?world=1 does it for one tab.",
   "site": {
     "title": "Globe Trotter",
     "author": "Zoneko",
     "lang": "fr"
   },
+  "world": false,
   "mode": "tower",
   "tower": {
     "url": "https://129-151-227-129.sslip.io",

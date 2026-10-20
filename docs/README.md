@@ -30,6 +30,7 @@ Where two documents overlap, this column says which one wins.
 | Subject | Authority | Superseded / historical |
 |---|---|---|
 | Identity, mark, colour, navigation, the Zone tab | **[`DESIGN-BRIEF.md`](./DESIGN-BRIEF.md)** | `IDENTITY-OPTIONS.md` is the menu that was chosen *from*. Do not edit it to match the outcome |
+| The redesign as one world (Zone ⇄ Echo, the camera, the tags), its phases and its flag | **[`WORLD.md`](./WORLD.md)** | Until its last phase the classic shell is what is live; `DESIGN-BRIEF.md` still rules the identity |
 | Deploying to the Pi | **[`../pi/README.md`](../pi/README.md)** (blank card) and [`DEPLOY.md`](./DEPLOY.md) | — |
 | Plugging the tower in anywhere — unknown Wi-Fi, your domain, keeping it live | **[`../pi/anywhere/README.md`](../pi/anywhere/README.md)** and [`../pi/anywhere/DOMAIN.md`](../pi/anywhere/DOMAIN.md) | `../scripts/setup-tunnel.sh named` (interactive login on the Pi) is the older route to a domain |
 | Moving the tower to a new Wi-Fi network | **[`../pi/NEW-NETWORK.md`](../pi/NEW-NETWORK.md)** — the card-edit route, no SSH needed | `../pi/NETWORK.md` §"Scenario C" is the older, SSH-only answer and assumes you can already reach the Pi |

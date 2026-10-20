@@ -3384,3 +3384,20 @@ iframe at the top of `/playlists`. The original decision was about *playback*; i
 65 other playlists of the ZoNeKo profile are cards that link out, and the station's own stream is unchanged.
 Known cost: logged-out visitors hear **30-second previews** in the embed. No CSP or frame header exists in `vercel.json`,
 so nothing blocks `open.spotify.com` frames; if one is ever added it must allow `frame-src https://open.spotify.com`.
+
+## 2026-10-20 — The world shell, phase 1: beside the classic shell, behind a flag
+
+**Chosen:** the redesign Ortis approved on 20/10 (one world, Zone ⇄ Echo, a camera that flies between districts,
+tags for the menu — `docs/WORLD.md`) is built as a **new shell around the existing pages**, not a new site, in five
+phases on `claude/rework`. Phase 1 adds `site/js/world/` and `site/css/world.css` and is **off unless asked for**
+(`config.json` → `"world": true`, or `?world=1` for one tab).
+**Because:** the engine (station clock, player, router, control plane) is tested and is the product; the redesign is a
+shell and a skin. A flag lets each phase reach a Vercel preview and be reviewed while the live site stays byte-for-byte
+the classic one — the smoke test checks that the flag-off site loads no world and no `world.css`.
+**How it sits:** the world is mounted beside `<main>`, which stays in the document, hidden and `inert`, so the router
+and every page keep working unchanged until phase 2 moves each page into its district. The `<audio>` and the
+mini-player are outside the plane, so the radio plays through every flight (smoke-tested, same element, same second).
+**Assumed, pending Ortis:** direction A « Velvet Grid »; the home lands on Radio; the brand green stays `#34d399`;
+the Greetings embed is unchanged for now. **No new dependency, no build step;** the fonts of phase 3 will be
+self-hosted OFL subsets like the Gazette's.
+**Revisit if** the flag-off site ever differs from `main` before the switch-over phase.
