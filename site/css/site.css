@@ -80,11 +80,6 @@ body.canopy-back .ch:not(.on){background:rgba(13,16,20,.5)}
 .brand-text{display:flex;flex-direction:column;line-height:1.15;text-shadow:0 1px 10px rgba(0,0,0,.95)}
 .brand-text b{font-size:19px;letter-spacing:-.01em}
 .brand-text small{font:11.5px var(--mono);color:var(--text-faint);margin-top:3px}
-.tabs{display:flex;gap:6px;flex-wrap:wrap}
-.tabs a{font-size:13.5px;text-decoration:none;color:var(--text-dim);border:1px solid var(--line);background:rgba(18,22,27,.72);
-  border-radius:999px;padding:7px 15px;transition:color .15s,border-color .15s,background .15s}
-.tabs a:hover{color:var(--text);border-color:#33404d}
-.tabs a[aria-current="page"]{color:var(--text);border-color:var(--signal);background:var(--signal-soft)}
 
 main{position:relative;z-index:5;max-width:var(--wrap);margin:0 auto;padding:6px var(--gutter) 40px;outline:none}
 /* <main> takes focus after each page change so screen readers land on the new
@@ -526,7 +521,6 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
 }
 @media (max-width:420px){
   .mb-time{display:none}
-  .tabs a{padding:6px 11px;font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
@@ -576,14 +570,26 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
   .echo-body h2{break-after:avoid}
   .echo-body a[href^="http"]::after,.echo-notes a[href^="http"]::after{content:" (" attr(href) ")";font-size:.85em;word-break:break-all}
 }
-.tabs-label{align-self:center;font:11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);padding:0 4px 0 6px}
-.tabs{align-items:center;gap:6px 14px}
-.tabs-group{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.tabs-label-echo{color:#e0968c}
-.tabs-echo{padding-left:14px;border-left:1px solid var(--line)}
-@media (max-width:640px){.tabs-echo{padding-left:0;border-left:0;border-top:1px solid var(--line);padding-top:6px;width:100%}}
-.tabs a.tab-echo{border-color:#6b1d1d;color:#f0c4bd}
-.tabs a.tab-echo[aria-current="page"]{border-color:#c0392b;background:rgba(192,57,43,.18);color:#fff}
+/* The banner: two doors, each owning half of the header; the sub-menus open on hover, focus or tap. */
+.masthead{flex-wrap:nowrap;z-index:35}
+.tabs{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0;max-width:520px;margin-left:auto}
+.half{position:relative;display:flex;justify-content:center;align-self:stretch}
+.half-btn{font:600 15px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim);background:none;border:0;border-bottom:2px solid transparent;
+  padding:12px 18px;cursor:pointer;width:100%;transition:color .15s,border-color .15s,background .15s}
+.half-echo .half-btn{color:#e0968c}
+.half:hover .half-btn,.half.open .half-btn,.half-btn:focus-visible{color:var(--text);background:rgba(18,22,27,.72)}
+.half.current .half-btn{color:var(--text);border-bottom-color:var(--signal)}
+.half-echo.current .half-btn{border-bottom-color:#c0392b}
+.half-btn::after{content:"▾";margin-left:8px;font-size:11px;opacity:.6}
+.half-menu{position:absolute;top:100%;left:0;right:0;z-index:20;display:none;flex-direction:column;gap:4px;padding:10px;
+  background:rgba(14,18,23,.96);border:1px solid var(--line);border-radius:var(--radius-sm);box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.half.open .half-menu{display:flex}
+.half-echo .half-menu{border-color:#6b1d1d}
+.half-menu a{font-size:14px;text-decoration:none;color:var(--text-dim);border:1px solid transparent;border-radius:8px;padding:9px 12px}
+.half-menu a:hover,.half-menu a:focus-visible{color:var(--text);border-color:var(--line);background:rgba(255,255,255,.04)}
+.half-menu a[aria-current="page"]{color:var(--text);border-color:var(--signal);background:var(--signal-soft)}
+.half-echo .half-menu a[aria-current="page"]{border-color:#c0392b;background:rgba(192,57,43,.18)}
+@media (max-width:640px){.masthead{gap:8px}.tabs{max-width:none}.brand-text small{display:none}.half-btn{padding:12px 6px}}
 
 /* ---------------------------------------------------------------- Echo — the Gazette
    A white paper column with 1 px ink rules, standing in the dark between black
@@ -738,3 +744,4 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .door-zone:hover{border-color:var(--signal)}
 .door-echo{border-color:#6b1d1d}.door-echo:hover{border-color:#c0392b}
 @media (max-width:640px){.doors{grid-template-columns:1fr}}
+.pl-featured{margin-top:18px}.pl-featured iframe{display:block;max-width:100%}.pl-profile{margin:22px 0 0}.pl-profile a{color:var(--signal)}

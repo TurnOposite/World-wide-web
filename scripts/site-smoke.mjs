@@ -96,6 +96,14 @@ const watch = (page, tag) => {
   });
 };
 
+/** Sub-menus are closed until a half is opened: hover its half, then click the link. */
+const tab = async (pg, href) => {
+  const half = await pg.evaluateHandle((h) => document.querySelector(`.tabs a[href="${h}"]`).closest('.half'), href);
+  await pg.mouse.move(2, 300); // leave first: pointerenter only fires on entering
+  await half.asElement().hover();
+  await pg.click(`.tabs a[href="${href}"]`);
+};
+
 try {
   /* --------------------------------------------------------- listener A -- */
   const ctxA = await browser.newContext({ viewport: { width: 1280, height: 860 } });
@@ -104,8 +112,24 @@ try {
   await a.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await a.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
   const tabs = await a.$$eval('.tabs a', (els) => els.map((e) => e.textContent.trim()));
-  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Zone,Playlists,Atlas,Portfolio,Gazette,Lectures', tabs.join(', '));
-  check('…each under its own label', (await a.$$eval('.tabs-label', (els) => els.map((e) => e.textContent.trim()))).join() === 'Zone,Echo');
+  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Zone,Playlists,Atlas,Portfolio,Une,Articles,Lectures', tabs.join(', '));
+  check('…each under its own label', (await a.$$eval('.half-btn', (els) => els.map((e) => e.textContent.trim()))).join() === 'Zone,Echo');
+  // The banner: two doors only; hover, focus, tap, Esc, outside tap.
+  const open = () => a.$$eval('.half.open', (e) => e.map((x) => x.dataset.half).join());
+  check('banner: both menus closed at rest', (await open()) === '');
+  await a.hover('.half-zone .half-btn');
+  check('banner: hovering ZONE opens its sub-menu (and only it)', (await open()) === 'zone' && await a.isVisible('.half-zone .half-menu a[href="playlists"]') && !(await a.isVisible('.half-echo .half-menu a')));
+  await a.hover('.half-echo .half-btn');
+  check('banner: hovering ECHO opens ECHO, closes ZONE', (await open()) === 'echo');
+  await a.mouse.move(5, 400);
+  check('banner: leaving closes it', (await open()) === '');
+  await a.focus('.half-zone .half-btn'); await a.keyboard.press('Shift+Tab'); await a.keyboard.press('Tab');
+  check('banner: keyboard focus opens it', (await open()) === 'zone');
+  await a.keyboard.press('ArrowDown');
+  check('banner: arrows move into the menu', await a.evaluate(() => document.activeElement?.getAttribute('href') === 'radio'));
+  await a.keyboard.press('Escape');
+  check('banner: Esc closes and returns to the word', (await open()) === '' && await a.evaluate(() => document.activeElement?.id === 'halfZone'));
+  await a.mouse.move(5, 400);
   check('the mark is the green hybrid tower', await a.$eval('.brand .mark', (el) => getComputedStyle(el).color === 'rgb(52, 211, 153)'));
 
   const title = await a.textContent('#rTitle');
@@ -198,7 +222,7 @@ try {
   }));
   check('Radio keeps the on-air card and the queue, and no longer carries Ondes (a link to it instead)', radioRest.lists.length === 0 && radioRest.queue && radioRest.link, radioRest.lists.join(', ') || 'card + queue + link');
   await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); });
-  await a.click('.tabs a[href="ondes"]');
+  await tab(a, 'ondes');
   await a.waitForSelector('#eGuide li .at', { timeout: 8000 }).catch(() => {});
   const echoes = await a.evaluate(() => {
     const { player } = window.radioTower;
@@ -227,14 +251,14 @@ try {
   check('the old /echoes address answers and moves to /ondes', (await a.evaluate(() => location.pathname)).endsWith('/ondes'));
 
   /* ------------------------------------------ Playlists: cards that link out -- */
-  await a.click('.tabs a[href="playlists"]');
+  await tab(a, 'playlists');
   await a.waitForSelector('.pl-card', { timeout: 8000 }).catch(() => {});
-  const pl = await a.evaluate(() => ({ cards: [...document.querySelectorAll('.pl-card')].map((c) => c.href), iframes: document.querySelectorAll('#view iframe').length }));
-  check('Playlists: a card per playlist, linking out to Spotify, no embedded player', pl.cards.length >= 1 && pl.cards.every((h) => h.startsWith('https://open.spotify.com/')) && pl.iframes === 0, pl.cards.join());
+  const pl = await a.evaluate(() => ({ cards: [...document.querySelectorAll('.pl-card')].map((c) => c.href), iframes: [...document.querySelectorAll('#view iframe')].map((f) => f.src) }));
+  check('Playlists: 65 cards linking out to Spotify, plus the one featured embed', pl.cards.length >= 60 && pl.cards.every((h) => h.startsWith('https://open.spotify.com/playlist/')) && pl.iframes.length === 1 && pl.iframes[0].startsWith('https://open.spotify.com/embed/playlist/'), `${pl.cards.length} cards, ${pl.iframes.join()}`);
 
   /* ------------------------------------------- music survives navigation -- */
   const audioBefore = await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); return document.getElementById('audio').currentTime; });
-  await a.click('.tabs a[href="atlas"]');
+  await tab(a, 'atlas');
   await a.waitForSelector('.mapbox svg .pin', { timeout: 5000 });
   await a.waitForTimeout(1200);
   // Compare against the clock, not the previous position: a short fixture can
@@ -273,7 +297,7 @@ try {
   // DESIGN-BRIEF §2 / roadmap #21: the green point sits where config.json
   // says (x = lon + 180, y = 90 − lat on the world's viewBox, measured on
   // screen), and no listener point exists without a geo source.
-  await a.click('.tabs a[href="zone"]');
+  await tab(a, 'zone');
   await a.waitForSelector('#zMap svg.zone-map .zone-origin', { timeout: 5000 }).catch(() => {});
   const zone = await a.evaluate(() => {
     const svg = document.querySelector('#zMap svg.zone-map');
@@ -391,7 +415,7 @@ try {
     }).map((el) => el.id || el.className);
     return { canvases, veils, running: window.radioTower.stage.running, onEcho: document.body.classList.contains('on-echo') };
   });
-  await a.click('.tabs a[href="echo"]');
+  await tab(a, 'echo');
   await a.waitForSelector('.echo-foot a[href="echo/lectures"]', { timeout: 5000 });
   await a.click('.echo-foot a[href="echo/lectures"]');
   await a.waitForSelector('.echo-list li', { timeout: 5000 });
@@ -506,6 +530,17 @@ try {
     if (o > 1) overflow.push(`/${r} ${o}px`);
     for (const v of (await axeRun(m)) || []) a11y.push(`/${r}: ${v}`);
   }
+  // Touch: a tap opens a half's menu, a second tap closes it, a tap outside closes it.
+  await m.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
+  await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
+  const mopen = () => m.$$eval('.half.open', (e) => e.length);
+  await m.tap('.half-zone .half-btn');
+  check('banner (touch): a tap opens the half\'s menu', (await mopen()) === 1 && await m.isVisible('.half-zone .half-menu a[href="playlists"]'));
+  await m.tap('.half-zone .half-btn');
+  check('banner (touch): a second tap closes it', (await mopen()) === 0);
+  await m.tap('.half-echo .half-btn');
+  await m.tap('.brand-text');
+  check('banner (touch): a tap outside closes it', (await mopen()) === 0);
   check('nothing overflows a 390 px phone', overflow.length === 0, overflow.join(', ') || 'every page fits');
   if (AXE) {
     for (const v of (await axeRun(booth)) || []) a11y.push(`booth (unlocked): ${v}`);
@@ -575,7 +610,7 @@ try {
     check('pointed at a Radio Tower server, the same front end plays its programme', shown.mode === 'tower' && shown.id === server.onAir?.id, `${server.onAir?.title}`);
     check('…and shows the server\'s real listener count', /listening/.test(shown.pill || ''), (shown.pill || '').trim());
     // Ondes in tower mode: the lists and the guide come from the server.
-    await t.click('.tabs a[href="ondes"]');
+    await tab(t, 'ondes');
     await t.waitForSelector('#eGuide li .at', { timeout: 8000 }).catch(() => {});
     const tEcho = await t.evaluate(() => ({
       next: document.querySelectorAll('#eNext li:not(.empty)').length,
@@ -587,7 +622,7 @@ try {
     // Zone on a tower: the tower's own origin (STATION_LAT/LON/PLACE, set by
     // build-test.sh) wins over config.json's; a tower that names none leaves
     // config.json's in place.
-    await t.click('.tabs a[href="zone"]');
+    await tab(t, 'zone');
     await t.waitForSelector('#zMap .zone-origin', { timeout: 5000 }).catch(() => {});
     const tz = await t.evaluate(() => {
       const g = document.querySelector('#zMap .zone-origin');

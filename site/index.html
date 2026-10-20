@@ -43,21 +43,26 @@
       <small>par <span id="siteAuthor">Zoneko</span></small>
     </span>
   </a>
-  <nav class="tabs" aria-label="Sections">
-    <span class="tabs-group tabs-zone">
-      <span class="tabs-label">Zone</span>
-      <a href="radio" data-link>Radio</a>
-      <a href="ondes" data-link data-ondes-label>Ondes</a>
-      <a href="zone" data-link>Zone</a>
-      <a href="playlists" data-link>Playlists</a>
-      <a href="atlas" data-link>Atlas</a>
-      <a href="portfolio" data-link>Portfolio</a>
-    </span>
-    <span class="tabs-group tabs-echo">
-      <span class="tabs-label tabs-label-echo">Echo</span>
-      <a href="echo" data-link class="tab-echo">Gazette</a>
-      <a href="echo/lectures" data-link class="tab-echo">Lectures</a>
-    </span>
+  <nav class="tabs" aria-label="Sections" id="banner">
+    <div class="half half-zone" data-half="zone">
+      <button type="button" class="half-btn" id="halfZone" aria-expanded="false" aria-controls="menuZone">Zone</button>
+      <div class="half-menu" id="menuZone" role="group" aria-labelledby="halfZone">
+        <a href="radio" data-link>Radio</a>
+        <a href="ondes" data-link data-ondes-label>Ondes</a>
+        <a href="zone" data-link>Zone</a>
+        <a href="playlists" data-link>Playlists</a>
+        <a href="atlas" data-link>Atlas</a>
+        <a href="portfolio" data-link>Portfolio</a>
+      </div>
+    </div>
+    <div class="half half-echo" data-half="echo">
+      <button type="button" class="half-btn" id="halfEcho" aria-expanded="false" aria-controls="menuEcho">Echo</button>
+      <div class="half-menu" id="menuEcho" role="group" aria-labelledby="halfEcho">
+        <a href="echo" data-link>Une</a>
+        <a href="echo#articles" data-link>Articles</a>
+        <a href="echo/lectures" data-link>Lectures</a>
+      </div>
+    </div>
   </nav>
 </header>
 

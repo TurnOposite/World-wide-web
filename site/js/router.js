@@ -131,6 +131,7 @@ export class Router {
         const on = target && (route === target || route.startsWith(target + '/'));
         if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
       });
+      globalThis.__markHalf?.();
       await this.render(page, this.current, { fromPop, isCurrent });
       return;
     }

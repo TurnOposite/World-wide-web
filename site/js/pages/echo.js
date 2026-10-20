@@ -57,7 +57,7 @@ export async function mount(root, ctx) {
           ${tags.map((t) => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="false">${esc(t)}</button>`).join('')}
         </div>
         ${first ? lead(first) : ''}
-        <div class="echo-grid">${rest.map(card).join('')}</div>
+        <div class="echo-grid" id="articles">${rest.map(card).join('')}</div>
         <p class="echo-foot"><a href="echo/lectures" data-link>Lectures →</a><a href="radio" data-link>Zone · la radio en direct</a></p>`,
     { current: 'echo', full: true });
     root.firstElementChild.classList.add('echo-front');

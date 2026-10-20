@@ -11,12 +11,15 @@ import { Router } from './router.js';
 import { mountMinibar } from './ui/minibar.js';
 import { VisualsPanel } from './ui/visuals.js';
 import { toast, esc } from './ui/util.js';
+import { initBanner, markHalf } from './ui/banner.js';
 import { ONDES_LABEL } from './labels.js';
 
 const $ = (id) => document.getElementById(id);
 const view = $('view');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 
+initBanner();
+globalThis.__markHalf = markHalf;
 const settings = new VisualSettings({ reducedMotion: reduced.matches });
 let sceneFn = () => null;
 const ambientScene = () => {

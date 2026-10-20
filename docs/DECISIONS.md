@@ -3376,3 +3376,11 @@ constant, `site/js/labels.js`. Ortis's words: « Echo and Echoes are not the sam
 **Because:** the 2026-08-17 « No Spotify » decision was about *playback* — the embed gives logged-out visitors
 only 30-second previews. A link does not play anything on the site, so the decision stands; it just points to
 where the playlists live. **Revisit if** Spotify's embed ever plays full tracks for logged-out visitors.
+
+## 2026-10-20 — Playlists: one Spotify embed, reopening « No Spotify »
+
+Arthur reopened the 2026-08 « No Spotify » decision for **one** embed: the « Greetings » playlist, shown as a Spotify
+iframe at the top of `/playlists`. The original decision was about *playback*; it still holds for everything else: the
+65 other playlists of the ZoNeKo profile are cards that link out, and the station's own stream is unchanged.
+Known cost: logged-out visitors hear **30-second previews** in the embed. No CSP or frame header exists in `vercel.json`,
+so nothing blocks `open.spotify.com` frames; if one is ever added it must allow `frame-src https://open.spotify.com`.

@@ -255,15 +255,20 @@ test('Echo front page: side silhouettes are drawn in SVG, both sides, no externa
   assert.equal(typeof frame, 'function');
 });
 
-test('Playlists (Zone): playlists.json is well formed, links out to Spotify, and the page has no embed', async () => {
+test('Playlists (Zone): playlists.json is well formed, links out to Spotify, and the only embed is the featured playlist', async () => {
   const data = JSON.parse(fs.readFileSync(new URL('../site/data/playlists.json', import.meta.url), 'utf8'));
-  assert.ok(data.playlists.length >= 1);
+  assert.ok(data.playlists.length >= 60);
+  assert.equal(new Set(data.playlists.map((p) => p.url)).size, data.playlists.length, 'no duplicate playlist');
+  assert.match(data.profile, /^https:\/\/open\.spotify\.com\/user\/[a-z0-9]+$/);
+  assert.match(data.featured.embed, /^https:\/\/open\.spotify\.com\/embed\/playlist\/[A-Za-z0-9]+/);
   for (const p of data.playlists) {
     for (const k of ['title', 'url', 'vibe', 'years']) assert.equal(typeof p[k], 'string', k);
     assert.match(p.url, /^https:\/\/open\.spotify\.com\/playlist\/[A-Za-z0-9]+$/);
   }
   const src = fs.readFileSync(new URL('../site/js/pages/playlists.js', import.meta.url), 'utf8');
-  assert.ok(!/<iframe|embed\/|spotify\.com\/embed/i.test(src), 'no embedded player (docs/DECISIONS.md 2026-08-17)');
+  assert.equal((src.match(/<iframe/g) || []).length, 1, 'one embed only: the featured playlist (docs/DECISIONS.md 2026-10-20)');
+  assert.match(src, /height="352"/);
+  assert.match(src, /loading="lazy"/);
   const { ONDES_LABEL } = await import('../site/js/labels.js');
   assert.equal(ONDES_LABEL, 'Ondes');
 });

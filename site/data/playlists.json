@@ -1,6 +1,401 @@
 {
-  "intro": "Les playlists Spotify faites au fil des années — chaque carte ouvre Spotify dans un nouvel onglet. Ici, pas de lecteur : la radio, c'est la Zone.",
-  "playlists": [
-    { "title": "à compléter", "url": "https://open.spotify.com/playlist/1SlghWegqTJxx8CCzcddoS", "vibe": "à compléter", "years": "à compléter" }
-  ]
+ "intro": "Les playlists Spotify du profil ZoNeKo — chaque carte ouvre Spotify dans un nouvel onglet. La radio, c’est la Zone.",
+ "profile": "https://open.spotify.com/user/o8cvfba151z9uzmex53vzkacl",
+ "featured": {
+  "title": "Greetings",
+  "url": "https://open.spotify.com/playlist/0XeQKa4xS4I74EsGKl8GpI",
+  "embed": "https://open.spotify.com/embed/playlist/0XeQKa4xS4I74EsGKl8GpI?utm_source=generator"
+ },
+ "playlists": [
+  {
+   "title": "SCAC-list Moçambique",
+   "url": "https://open.spotify.com/playlist/5gxWwpFydxwP25qAU3DCgs",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "MozamBARS",
+   "url": "https://open.spotify.com/playlist/5Tp4YlUB7bnQGIJ8QlwuvH",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Digi-log",
+   "url": "https://open.spotify.com/playlist/62R53sXcTPov9K2oYvHya0",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Gone fishing",
+   "url": "https://open.spotify.com/playlist/6Sj4JhgDD52zkbCJ0oqWJR",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Club de lecture",
+   "url": "https://open.spotify.com/playlist/2Yk19KUfFiryTnW3IAxcDd",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Alouette FM",
+   "url": "https://open.spotify.com/playlist/0fCHkNEWn4vGXsRsvPmY3u",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "LETY RAID",
+   "url": "https://open.spotify.com/playlist/0GEzdkQL5C2VQEhhAwj9FR",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Catpiss inspo",
+   "url": "https://open.spotify.com/playlist/68yHLAyeuFalmhHMQMV8xd",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "The dispatch",
+   "url": "https://open.spotify.com/playlist/3bqj1VdAabgIWzoHKFgfz6",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "The beat box",
+   "url": "https://open.spotify.com/playlist/5YYmZCpf32BMyvn4dbEINa",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Haze",
+   "url": "https://open.spotify.com/playlist/1SlghWegqTJxx8CCzcddoS",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Spook fest",
+   "url": "https://open.spotify.com/playlist/7lpekOoueGxZpYQSaLldvt",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Greetings",
+   "url": "https://open.spotify.com/playlist/0XeQKa4xS4I74EsGKl8GpI",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Susbstantial pérégrinations",
+   "url": "https://open.spotify.com/playlist/7xuG9Rfqcr7bIawRmDEy3q",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Electronic Dance Martin",
+   "url": "https://open.spotify.com/playlist/7FpE3cAAWZh2AoYE4dcdUd",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Flow",
+   "url": "https://open.spotify.com/playlist/1jKYwYhZScV3MBDdmD3J66",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "ukg NOT garage",
+   "url": "https://open.spotify.com/playlist/416rmkcOT6nCwlBpShoA3l",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "🔀Sound🔊Tracks🛤️",
+   "url": "https://open.spotify.com/playlist/23RPbrwqk1O6VOgLuEgweS",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Breaking cores",
+   "url": "https://open.spotify.com/playlist/2e9ODET2iyrdiVXDwR19xz",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "don't even",
+   "url": "https://open.spotify.com/playlist/3oYCn1sV0Z1kFwWeOOZ8Cn",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Corporate vibing",
+   "url": "https://open.spotify.com/playlist/0GjWjwj6U5VUUrtZU0kOsI",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Globe Trotter",
+   "url": "https://open.spotify.com/playlist/57RbhT6qBCed0hw8ZHR6qF",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "On deck",
+   "url": "https://open.spotify.com/playlist/55iVzdpbor1cAMNmgb3Nmx",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Lounging",
+   "url": "https://open.spotify.com/playlist/1kEo4A87xjoSPnbA9ElS0F",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Chilz bilz",
+   "url": "https://open.spotify.com/playlist/5raKwnucniDzSJt8nvbuQs",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Skya",
+   "url": "https://open.spotify.com/playlist/4lzcjY8MfdImNR21gcZdi4",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Déchire tes tympans.com",
+   "url": "https://open.spotify.com/playlist/2lcBxUBbx8jaRhojHZ2cCO",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Rap shit",
+   "url": "https://open.spotify.com/playlist/0dIa1ilJUSicw3HXgmlUOs",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "rocks n docks",
+   "url": "https://open.spotify.com/playlist/4YD48pExiZUIp3za62ut50",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": ".br",
+   "url": "https://open.spotify.com/playlist/3sSLzkjhsznT9ABLsonKjW",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "DLofi",
+   "url": "https://open.spotify.com/playlist/5Rv46HSmmdKaB2wxa18wLe",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Lancer tribute",
+   "url": "https://open.spotify.com/playlist/0ToWRh0Vp6g1Nq6cSyeeOg",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Picnik electronik",
+   "url": "https://open.spotify.com/playlist/2hauWzaShoRWCnS8YoXd6M",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Hotbox",
+   "url": "https://open.spotify.com/playlist/1jxKPBpzhTOI9wZUgzuzxw",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Classic (litz)",
+   "url": "https://open.spotify.com/playlist/3Z2YmOIHovQ1kGJwIYFxEX",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": ".fr",
+   "url": "https://open.spotify.com/playlist/23fXihdpH0jiBj3NOgFpTj",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Junglr - Atmospheric Drum & Bass/Jungle",
+   "url": "https://open.spotify.com/playlist/6jLBzRJWkaLfJsRTFhRg4P",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "the one that must be made",
+   "url": "https://open.spotify.com/playlist/3Hht68ujNC0z2cgFgCbnmZ",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "shit idk cool shit",
+   "url": "https://open.spotify.com/playlist/44hUPgShZyKzVn07l7BfHn",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Nu Brazilian",
+   "url": "https://open.spotify.com/playlist/2aSZ50YD5rYPSwk7hGnQ9O",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "if tom hansen was in a really good mood",
+   "url": "https://open.spotify.com/playlist/4VfyZTjd65uQkMkmd7NE7O",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "BAILE DA CLASHSA",
+   "url": "https://open.spotify.com/playlist/2rbFYFEVdv2oRSpYsuKVXU",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Sounds of Time - Bossa nova",
+   "url": "https://open.spotify.com/playlist/3Nxr2knIa2veW917qd9fz3",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Un gurbetçi au Canada",
+   "url": "https://open.spotify.com/playlist/4LWyhgXaKs6G1zMg4N4DyI",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Truly random",
+   "url": "https://open.spotify.com/playlist/2AuF5VdzeP0UhBV97g1TzC",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Songs that jeanne tolerates",
+   "url": "https://open.spotify.com/playlist/1xoLPSPqS3Qecp0aJhtbHK",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Vald - Mixtape",
+   "url": "https://open.spotify.com/playlist/0idVB2aGsgmq4CrVYjLE2z",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "What’s in store",
+   "url": "https://open.spotify.com/playlist/4YTXQbInH3O0q3DWJrQkHg",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Eurostar",
+   "url": "https://open.spotify.com/playlist/3re1LanJC0elE0Pd721qs7",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Log post recharge",
+   "url": "https://open.spotify.com/playlist/0YHnQAF8f01S5tBzGOZRQt",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Boiling them rooms",
+   "url": "https://open.spotify.com/playlist/3oD7WbUJ9v6SjlRRB4FvgX",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Bagulhos do plot",
+   "url": "https://open.spotify.com/playlist/3vFvltD1lOD5RrwSELba9A",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Last flat party",
+   "url": "https://open.spotify.com/playlist/047CytGm6zdULlhLZgSjxx",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Songs of storm",
+   "url": "https://open.spotify.com/playlist/3JaXR3CxsS6qqtUC1NeZZl",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Ranked?",
+   "url": "https://open.spotify.com/playlist/0I1g1ezDT73zej0AvFPnkT",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "EMERGENCY NEW YORK PLAYLIST",
+   "url": "https://open.spotify.com/playlist/5PlZi0wIwsEx5u29dWRMky",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "I boil at 101*C",
+   "url": "https://open.spotify.com/playlist/5SFCqrMiPyck9Fjf7mpZUR",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Zone",
+   "url": "https://open.spotify.com/playlist/09rIzYIUZexI1yjypLCmQv",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "PCBTOS",
+   "url": "https://open.spotify.com/playlist/4wn46pvsyrrPEk30eAcKQi",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Crescendolls",
+   "url": "https://open.spotify.com/playlist/6ozYLjfYN4whsd5esxYUCn",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Sum fòn",
+   "url": "https://open.spotify.com/playlist/7GyNHcXclVytCtXdOXVldv",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "chilly in da billy",
+   "url": "https://open.spotify.com/playlist/0lmSXiNqD8h8lsNnr3MEjC",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Nicolas Hulo Flex",
+   "url": "https://open.spotify.com/playlist/1UiSXmv1becS3wbNbQHjTw",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "Vending machine but it’s free",
+   "url": "https://open.spotify.com/playlist/7K5bTaAA4aJGK7EtqrZOWw",
+   "vibe": "",
+   "years": ""
+  },
+  {
+   "title": "When is Ra’z uploading",
+   "url": "https://open.spotify.com/playlist/16AEve2KFCYp0bOzhJERO5",
+   "vibe": "",
+   "years": ""
+  }
+ ]
 }
