@@ -9,6 +9,7 @@
 import { esc, fmt, fmtSpan, coverSvg } from '../ui/util.js';
 import { QueueEditor } from '../ui/queue.js';
 import { ChannelDial } from '../ui/channels.js';
+import { ONDES_LABEL } from '../labels.js';
 
 export const title = 'Radio';
 
