@@ -114,6 +114,8 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
     const a = bySlug.get(r);
     await fsp.writeFile(path.join(DIST, r, 'index.html'), a ? articleShell(shell, a, { root }) : shell);
   }
+  // A build without route shells (the claude.ai preview) has made no echo/ folder yet.
+  await fsp.mkdir(path.join(DIST, 'echo'), { recursive: true });
   await fsp.writeFile(path.join(DIST, 'echo/feed.xml'), atomFeed(echo, { root }));
 
   // 5. config: which repository the booth writes to
