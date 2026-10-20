@@ -85,6 +85,20 @@ const devPort = await listen(devServer);
 const dev = `http://127.0.0.1:${devPort}/`;
 
 const browser = await chromium.launch(launchOpts);
+// Spotify's player is someone else's page: the smoke proves the site asks for
+// it, not that Spotify answers, and it must pass offline without Spotify's own
+// console noise. Every context gets a stub that records what was asked for.
+const SPOTIFY = 'https://open.spotify.com/embed/playlist/';
+const spotifyAsked = [];
+const newContext = browser.newContext.bind(browser);
+browser.newContext = async (o) => {
+  const c = await newContext(o);
+  await c.route('https://open.spotify.com/**', (r) => {
+    spotifyAsked.push(r.request().url());
+    return r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Spotify stub</title><p>stub</p>' });
+  });
+  return c;
+};
 const errors = [];
 const watch = (page, tag) => {
   page.on('pageerror', (e) => errors.push(`${tag}: ${e.message}`));
@@ -250,11 +264,30 @@ try {
   await a.waitForFunction(() => location.pathname.endsWith('/ondes'), null, { timeout: 5000 }).catch(() => {});
   check('the old /echoes address answers and moves to /ondes', (await a.evaluate(() => location.pathname)).endsWith('/ondes'));
 
-  /* ------------------------------------------ Playlists: cards that link out -- */
+  /* ---------------------------- Playlists: every one plays in the one Spotify player -- */
+  // 2026-10-20: the player was a lazy frame that never loaded (a blank box on
+  // the live site). Now it must be *requested*, and a card must swap it.
   await tab(a, 'playlists');
-  await a.waitForSelector('.pl-card', { timeout: 8000 }).catch(() => {});
-  const pl = await a.evaluate(() => ({ cards: [...document.querySelectorAll('.pl-card')].map((c) => c.href), iframes: [...document.querySelectorAll('#view iframe')].map((f) => f.src) }));
-  check('Playlists: 65 cards linking out to Spotify, plus the one featured embed', pl.cards.length >= 60 && pl.cards.every((h) => h.startsWith('https://open.spotify.com/playlist/')) && pl.iframes.length === 1 && pl.iframes[0].startsWith('https://open.spotify.com/embed/playlist/'), `${pl.cards.length} cards, ${pl.iframes.join()}`);
+  await a.waitForSelector('.sp-pick', { timeout: 8000 }).catch(() => {});
+  const asked = (id) => spotifyAsked.some((u) => u.startsWith(SPOTIFY + id));
+  const deckState = () => a.evaluate(() => ({
+    picks: [...document.querySelectorAll('#view .sp-pick')].map((b) => ({ id: b.dataset.id, on: b.getAttribute('aria-pressed') === 'true', title: b.querySelector('b').textContent })),
+    iframes: [...document.querySelectorAll('#view iframe')].map((f) => f.src), lazy: document.querySelector('#view .sp-frame')?.loading,
+    now: document.querySelector('#view .sp-title')?.textContent, open: document.querySelector('#view .sp-open')?.href,
+    playing: !document.getElementById('audio').paused,
+  }));
+  await a.waitForTimeout(800); // the frame's request reaches the stub
+  const pl = await deckState();
+  const firstId = pl.picks[0]?.id;
+  check('Playlists: one Spotify player, loaded (not lazy), with every playlist as a card', pl.picks.length >= 60 && pl.iframes.length === 1 && pl.iframes[0].startsWith(SPOTIFY + firstId) && pl.lazy !== 'lazy' && asked(firstId) && pl.picks[0].on,
+    `${pl.picks.length} cards, ${pl.iframes.join()}, asked ${spotifyAsked.length}`);
+  const picked = pl.picks[2];
+  await a.click(`#view .sp-pick[data-id="${picked.id}"]`);
+  await a.waitForTimeout(800);
+  const pl2 = await deckState();
+  check('Playlists: a card loads its playlist into the same player, and the radio plays on', pl2.iframes.length === 1 && pl2.iframes[0].startsWith(SPOTIFY + picked.id) && asked(picked.id)
+    && pl2.now === picked.title && pl2.open === `https://open.spotify.com/playlist/${picked.id}` && pl2.picks.filter((p) => p.on).map((p) => p.id).join() === picked.id && pl2.playing,
+    `${picked.title} → ${pl2.iframes.join()}`);
 
   /* ------------------------------------------- music survives navigation -- */
   const audioBefore = await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); return document.getElementById('audio').currentTime; });
@@ -319,6 +352,13 @@ try {
   check('Zone: the world map renders, and the tower\'s green point lands on the configured lat/lon', zone.land > 50 && zone.off < 1.5 && zone.waves === 3 && zone.place === zone.origin?.place && zone.path === '/zone',
     zone.core ? `${zone.place} (${zone.origin.lat}, ${zone.origin.lon}) ${zone.off.toFixed(2)}px off, ${zone.land} land paths` : JSON.stringify(zone));
   check('Zone: no listener point without a geo source, and the music plays on', zone.core && !zone.listener && zone.playing);
+  await a.waitForSelector('#zDeck .sp-pick', { timeout: 5000 }).catch(() => {});
+  const zdeck = await a.evaluate(() => ({
+    iframes: [...document.querySelectorAll('#view iframe')].map((f) => f.src), chips: document.querySelectorAll('#zDeck .sp-pick').length,
+    compact: Boolean(document.querySelector('#zDeck .sp-deck.compact')),
+  }));
+  check('Zone: the playlists are there too, in one Spotify player', zdeck.compact && zdeck.chips >= 60 && zdeck.iframes.length === 1 && zdeck.iframes[0].startsWith(SPOTIFY),
+    `${zdeck.chips} chips, ${zdeck.iframes.join()}`);
 
   /* --------------------------------------------------------- listener B -- */
   const ctxB = await browser.newContext({ viewport: { width: 1280, height: 860 } });

@@ -3384,3 +3384,19 @@ iframe at the top of `/playlists`. The original decision was about *playback*; i
 65 other playlists of the ZoNeKo profile are cards that link out, and the station's own stream is unchanged.
 Known cost: logged-out visitors hear **30-second previews** in the embed. No CSP or frame header exists in `vercel.json`,
 so nothing blocks `open.spotify.com` frames; if one is ever added it must allow `frame-src https://open.spotify.com`.
+
+## 2026-10-20 — Playlists play on the site: one Spotify player, every playlist, on Zone too
+
+Arthur: « make the spotify integration work for the playlists — meaning getting them on zone and pushing ».
+**Chosen:** one Spotify player (`site/js/ui/spotify-deck.js`) and every ZoNeKo playlist as a card that loads into it,
+on `/playlists` and, compact, under the map on `/zone`. It replaces « one embed + cards that link out »; each playlist
+still has « Ouvrir dans Spotify ↗ ».
+**Why one frame:** 65 iframes would load 65 copies of Spotify's player; swapping one frame's `src` costs one.
+**The bug it also fixes:** the featured embed was `loading="lazy"` and never loaded on the live site (85c46c1) — a blank
+box. The frame now loads eagerly; the unit test and the smoke (which stubs `open.spotify.com` so it runs offline)
+check that it is requested and that a card swaps it.
+**The radio and Spotify never play together:** picking a card does not stop the station (reading is not listening);
+pressing anything inside the Spotify player focuses the frame, the window blurs, and the station is muted. Its own
+play button brings it back on the clock.
+**Known cost, unchanged:** without a Spotify account signed in in that browser, Spotify plays 30-second previews; the
+intro text says so. The 2026-08 « No Spotify » decision still holds for the station's own stream.
