@@ -11,6 +11,7 @@ import { Router } from './router.js';
 import { mountMinibar } from './ui/minibar.js';
 import { VisualsPanel } from './ui/visuals.js';
 import { toast, esc } from './ui/util.js';
+import { ONDES_LABEL } from './labels.js';
 
 const $ = (id) => document.getElementById(id);
 const view = $('view');
@@ -103,6 +104,8 @@ async function boot() {
     textTitles = new Map((j.texts || []).map((t) => [t.slug, t.title]));
   }).catch(() => {});
 
+  document.querySelectorAll('[data-ondes-label]').forEach((el) => { el.textContent = ONDES_LABEL; });
+
   const ctx = {
     client, player, stage, settings, visuals, toast, theatre,
     config: client.config,
@@ -116,9 +119,12 @@ async function boot() {
     routes: [
       { name: 'home', pattern: /^$/, load: () => import('./pages/home.js') },
       { name: 'radio', pattern: /^radio$/, load: () => import('./pages/radio.js') },
+      { name: 'ondes', pattern: /^(?:ondes|echoes)$/, load: () => import('./pages/ondes.js') },
+      { name: 'playlists', pattern: /^playlists$/, load: () => import('./pages/playlists.js') },
       { name: 'atlas', pattern: /^atlas$/, load: () => import('./pages/atlas.js') },
       { name: 'lectures', pattern: /^echo\/lectures(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
       // Old address of the reading section: kept alive, and moved to /echo/lectures by the page.
+      { name: 'zone', pattern: /^zone$/, load: () => import('./pages/zone.js') },
       { name: 'ecrits', pattern: /^ecrits(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
       { name: 'echo', pattern: /^echo(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/echo.js') },
       { name: 'portfolio', pattern: /^portfolio(?:\/(?<room>[\w-]+))?$/, load: () => import('./pages/portfolio.js') },

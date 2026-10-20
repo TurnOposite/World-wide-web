@@ -91,6 +91,8 @@ The site is credited to **Zoneko**, not Ortis.
 
 The previous-and-next-tracks view is called **Echoes**.
 
+> **2026-10-20:** renamed again — the page is now **Ondes** (`/ondes`), because « Echo » is the journal half of the site. The label is `ONDES_LABEL` in `site/js/labels.js`.
+
 Touches: the `<a class="ghost">` label in `public/index.html` (line ~34), the
 `<title>` and any heading inside `public/schedule.html`, and any doc that names
 the tab. **Keep the URL `/schedule.html`** — the route name is not user-facing

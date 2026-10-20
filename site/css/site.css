@@ -187,12 +187,24 @@ input[type=range]{accent-color:var(--signal)}
 .ch-now{font-size:12.5px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ch-meta{font:11px var(--mono);color:var(--text-faint)}
 
-.echoes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
 .radio-grid{display:grid;grid-template-columns:1fr;gap:18px;margin-top:18px}
 .radio-head{text-shadow:0 1px 10px rgba(0,0,0,.95);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:6px 0 16px}
+.radio-more{margin:14px 0 0;display:flex;justify-content:flex-end}
 
-/* guide (Echoes, further out) */
+/* ---------------------------------------------------------------- ondes (was echoes)
+   Its own page since 2026-10-19 (pages/ondes.js): on air in one line, Up
+   next / Just played side by side, then the guide for the next hours. */
+.ondes-now{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0;padding:12px 16px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg-glass)}
+.ondes-now .badge{flex:none}
+.echo-track{flex:1 1 220px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.echo-track b{color:var(--text);font-weight:650}
+.echo-track .a{color:var(--text-dim);margin-left:6px;font-size:13.5px}
+.echo-left{font:12px var(--mono);color:var(--text-faint);font-variant-numeric:tabular-nums}
+.ondes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.ondes-guide{margin-top:18px}
 .guide-day{font:600 11px var(--font);letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);margin:16px 0 4px}
+.tracklist li.guide-day{display:block;border-bottom:0;padding:12px 0 2px}
 .guide li .at{font:12px var(--mono);color:var(--text-dim);min-width:3.4em}
 
 /* ---------------------------------------------------------------- queue */
@@ -316,6 +328,42 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
 .map-legend .sw.ring{background:none;border:1.5px solid var(--signal)}
 
 .atlas .mapbox{padding:14px 14px 12px}
+
+/* ----------------------------------------------------------------- zone */
+/* /zone: the world, and the one place the signal leaves from. The point
+   speaks the logo's language — a green dot, the mark's sideways arcs leaving
+   it slowly (DESIGN-BRIEF §2). Still for reduced motion: three arcs drawn. */
+.zone{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:16px;align-items:start}
+.zone-mapbox{background:rgba(14,18,23,.92);border:1px solid var(--line);border-radius:18px;padding:14px;min-width:0}
+.zone-map{display:block;width:100%;height:auto}
+.zone-land path{fill:#1a212a;stroke:#26303b;stroke-width:.25}
+.zone-guides line{stroke:#1d2731;stroke-width:.2;stroke-dasharray:1 1.4}
+.zone-guides line.eq{stroke:#22303a}
+.zone-origin .zo-core{fill:var(--signal)}
+.zone-origin .zo-halo{fill:var(--signal);opacity:.18}
+.zone-origin .zw path{fill:none;stroke:var(--signal);stroke-width:.45;stroke-linecap:round}
+.zone-origin .zw{transform-box:fill-box;transform-origin:center;opacity:0;animation:zone-wave 4.8s cubic-bezier(.2,.6,.3,1) infinite}
+.zone-origin .zw:nth-child(2){animation-delay:1.6s}.zone-origin .zw:nth-child(3){animation-delay:3.2s}
+@keyframes zone-wave{0%{opacity:0;transform:scale(.55)}15%{opacity:.95}100%{opacity:0;transform:scale(3.2)}}
+.zo-label{font:600 4px var(--font);fill:var(--text);paint-order:stroke;stroke:#0e1217;stroke-width:1.1px;letter-spacing:.02em}
+.zone-listener circle{fill:var(--ink);stroke:#0e1217;stroke-width:.4}
+.zone-card .zone-place{font:600 clamp(24px,3vw,30px)/1.15 var(--serif);color:var(--text)}
+.zone-card .zone-coords{font:12.5px var(--mono);color:var(--signal);margin-top:6px}
+.zone-card .zone-time{margin-top:12px;color:var(--text-dim);font-size:13.5px}
+.zone-card .zone-time b{font:600 15px var(--mono);color:var(--text);margin-left:6px}
+.zone-card .zone-you{margin-top:12px;font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:8px}
+.zone-card .zone-you i{width:9px;height:9px;border-radius:50%;background:var(--ink)}
+@media (max-width:759px){
+  .zone{grid-template-columns:1fr}
+  .zone-mapbox{padding:8px;border-radius:14px}
+  .zo-label{font-size:6px;stroke-width:1.5px}
+}
+@media (prefers-reduced-motion:reduce){
+  .zone-origin .zw{animation:none!important}
+  .zone-origin .zw:nth-child(1){opacity:.9;transform:scale(1)}
+  .zone-origin .zw:nth-child(2){opacity:.5;transform:scale(1.7)}
+  .zone-origin .zw:nth-child(3){opacity:.25;transform:scale(2.4)}
+}
 
 /* The postcard. Floats beside its pin; unfolds on a rest of the pointer. */
 .postcard{
@@ -460,7 +508,7 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
   .onair{grid-template-columns:1fr;gap:20px;padding:20px;border-radius:18px;
     background:linear-gradient(180deg,rgba(14,18,23,.38) 0,rgba(14,18,23,.38) 40%,rgba(14,18,23,.95) 56%)}
   .onair .cover{max-width:280px;width:100%;justify-self:center}
-  .echoes{grid-template-columns:1fr}
+  .ondes{grid-template-columns:1fr}
   .minibar{grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px}
   .mb-spec,.mb-progress{display:none}
   /* On a phone the on-air card already names the song right above; on a desktop the bar does too (Ortis, 2026-10-12). */
@@ -529,7 +577,11 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
   .echo-body a[href^="http"]::after,.echo-notes a[href^="http"]::after{content:" (" attr(href) ")";font-size:.85em;word-break:break-all}
 }
 .tabs-label{align-self:center;font:11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);padding:0 4px 0 6px}
-.tabs-label-echo{margin-left:8px;padding-left:12px;border-left:1px solid var(--line)}
+.tabs{align-items:center;gap:6px 14px}
+.tabs-group{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tabs-label-echo{color:#e0968c}
+.tabs-echo{padding-left:14px;border-left:1px solid var(--line)}
+@media (max-width:640px){.tabs-echo{padding-left:0;border-left:0;border-top:1px solid var(--line);padding-top:6px;width:100%}}
 .tabs a.tab-echo{border-color:#6b1d1d;color:#f0c4bd}
 .tabs a.tab-echo[aria-current="page"]{border-color:#c0392b;background:rgba(192,57,43,.18);color:#fff}
 
@@ -668,3 +720,21 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
   .echo-col{padding:20px 18px 28px;margin-block:0 0}
 }
 @media print{.echo-ash,.echo-side,.echo-znav{display:none!important}body.on-echo{background:#fff}.echo-stage{background:none;min-height:0}.echo-layout{display:block;padding:0}.echo-col{box-shadow:none;padding:0;margin:0}.echo-mast-small{display:none}}
+
+/* ---------------------------------------------------------------- playlists (Zone) */
+.playlists{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:18px}
+.pl-card{display:flex;flex-direction:column;gap:6px;padding:16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg-glass);text-decoration:none;color:var(--text)}
+.pl-card:hover{border-color:var(--signal)}
+.pl-card b{font-size:17px}
+.pl-years{font:11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)}
+.pl-vibe{color:var(--text-dim);margin:0}
+.pl-out{margin-top:auto;font-size:13px;color:var(--signal)}
+
+/* ---------------------------------------------------------------- the two doors on the home page */
+.doors{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 18px}
+.door{display:flex;flex-direction:column;gap:4px;padding:18px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg-glass);text-decoration:none;color:var(--text)}
+.door b{font-size:22px}
+.door span:last-child{color:var(--text-dim);font-size:14px}
+.door-zone:hover{border-color:var(--signal)}
+.door-echo{border-color:#6b1d1d}.door-echo:hover{border-color:#c0392b}
+@media (max-width:640px){.doors{grid-template-columns:1fr}}

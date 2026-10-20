@@ -19,7 +19,8 @@
     "origin": {
       "lat": -25.97,
       "lon": 32.58,
-      "place": "Maputo"
+      "place": "Maputo",
+      "timeZone": "Africa/Maputo"
     }
   },
   "github": {

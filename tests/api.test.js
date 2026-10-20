@@ -50,6 +50,11 @@ process.env.CACHE_FILE = CACHE;
 process.env.STATION_EPOCH = '2026-01-01T00:00:00Z';
 process.env.STATION_NAME = 'Test Tower';
 process.env.AUTO_RESCAN_MINUTES = '0';
+// The Zone map's origin (server/lib/origin.js): one line each in the env.
+process.env.STATION_LAT = '52.37';
+process.env.STATION_LON = '4.9';
+process.env.STATION_PLACE = 'Test Harbour';
+process.env.STATION_TZ = 'Europe/Amsterdam';
 
 const { createApp, rescan, station } = await import('../server/index.js');
 
@@ -94,6 +99,7 @@ test('GET /api/station describes what is on air', async (t) => {
   if (!hasFfmpeg) return t.skip('ffmpeg not available');
   const body = await (await get('/api/station')).json();
   assert.equal(body.station.name, 'Test Tower');
+  assert.deepEqual(body.station.origin, { lat: 52.37, lon: 4.9, place: 'Test Harbour', timeZone: 'Europe/Amsterdam' }, 'STATION_LAT/LON/PLACE/TZ surface in /api/station');
   assert.ok(body.onAir, 'nothing on air');
   assert.ok(body.onAir.offset >= 0 && body.onAir.offset <= body.onAir.duration);
   assert.match(body.onAir.streamUrl, /^\/api\/track\/[0-9a-f]{12}\/stream$/);

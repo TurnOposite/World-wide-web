@@ -66,7 +66,7 @@ test('the tower serves the whole site, tuned to itself', { skip: !hasFfmpeg && '
   await new Promise((r) => server.once('listening', r));
   const base = `http://127.0.0.1:${server.address().port}`;
   try {
-    for (const p of ['/', '/radio', '/booth', '/atlas']) {
+    for (const p of ['/', '/radio', '/booth', '/atlas', '/zone']) {
       const r = await fetch(base + p);
       assert.equal(r.status, 200, p);
       assert.match(await r.text(), /<base href="\/">/, `${p} is the site's shell`);

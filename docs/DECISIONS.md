@@ -3313,3 +3313,66 @@ back panel can reach behind the board above it. Because each `.shelf` now
 joins the 3D space, its flat box would sit in front of the books that recede
 behind it and swallow their pointer: `.shelf` ignores the pointer and only
 books take it (phones, where the shelf scrolls sideways, keep it).
+
+## 2026-10-19 — Echoes is its own page
+
+Ortis asked for Echoes (Up next, Just played, the next hours) to leave the
+Radio page for its own tab. Radio is now what you *do* (tune in, pick a
+channel, see and reorder the queue); Echoes is what you *read* (the
+programme around the track on air). The guide code moved rather than being
+shared: only one page shows it now, so a shared helper would have had one
+caller. Echoes builds no player state of its own — it reads `player.data`
+and asks `client.get('/api/schedule')`, so it works in cloud and tower mode
+and the music is untouched by the navigation. The guide stays at four hours
+(the size it had on Radio; the tower rate-limits its public API, and one
+request a minute per open Echoes tab is the same load Radio used to make).
+
+## 2026-10-19 — Zone: its own page, the tower's origin over the site's, the listener point gated twice
+
+**Chosen.** `/zone` is a separate page (`site/js/pages/zone.js`), not a mode of
+the Atlas. It reuses the Atlas's data (`site/data/world.json`) and its
+projection (x = lon + 180, y = 90 − lat), but does not import `atlas.js`.
+That module brings the postcards (~26 KB) with it, the projection is one line,
+and a test pins the two projections equal. The point uses the mark's own
+geometry, not a generic radar ring: two sideways arcs, scaled out and faded,
+three at a time.
+
+**Where the origin comes from.** The tower's env (`STATION_LAT` /
+`STATION_LON` / `STATION_PLACE`, optional `STATION_TZ`) via `/api/station` →
+`station.origin`, as DESIGN-BRIEF §2 asked. Then `site/config.json` →
+`station.origin`. The tower wins **only in tower mode**: in the browser's own
+station, `origin` in the body is config.json's echoed back, so it is not a
+second source. A half-set or out-of-range env is *no* origin rather than a
+partial one. A point in the wrong ocean is a guess, and the brief forbids
+guessing. `/api/station` stays byte-identical when the env is unset, so no
+existing client sees a change.
+
+**Local time** needs an IANA zone, so the origin gained an optional
+`timeZone` (`STATION_TZ`). It was not derived from lat/lon: that needs a
+time-zone boundary dataset, far more than "cheap". Without a zone the time
+line is hidden.
+
+**The listener point (#22) is gated twice:** a site flag
+(`config.json` → `zone.listener`, absent = off) *and* a server-supplied
+`listener` {lat, lon} in `/api/station`. The tower has no geo-IP source, and
+this change does not add one (no GeoIP database, no third-party lookup). So
+the point cannot render today, and a test asserts the site ships with the
+flag off. Whoever adds a coarse server-side source fills `listener` and turns
+the flag on. Nothing else is needed.
+
+**Not changed:** the origin value. It is still Maputo, although Ortis is now in
+Amsterdam. That is his call, and the WORKLOG entry of the same date says how.
+
+**Revisit if** a third surface (share card, Atlas) should also follow the
+tower's origin instead of config.json's. Today only Zone does.
+
+## 2026-10-20 — Two halves (Zone / Echo), « Echoes » becomes « Ondes », Spotify playlists as links
+
+**Chosen:** the site is part radio, part journal. **Zone** = the radio tower (Radio, Ondes, Zone, Playlists, Atlas,
+Portfolio); **Echo** = the journal (Gazette front page, articles, Lectures). The page that used to be « Echoes »
+(just played / up next / the guide) is **Ondes** (`/ondes`, `/echoes` still answers); its label lives in one
+constant, `site/js/labels.js`. Ortis's words: « Echo and Echoes are not the same thing ».
+**Playlists:** `site/data/playlists.json` → cards that **link out** to Spotify, no embedded player.
+**Because:** the 2026-08-17 « No Spotify » decision was about *playback* — the embed gives logged-out visitors
+only 30-second previews. A link does not play anything on the site, so the decision stands; it just points to
+where the playlists live. **Revisit if** Spotify's embed ever plays full tracks for logged-out visitors.

@@ -56,7 +56,7 @@ free plan could not do (`Web-Creative/sites/globe-trotter/RADIO-TOWER-COMPAT.md`
 A persistent **mini-player** sits at the bottom of every route.
 
 Identity follows `docs/DESIGN-BRIEF.md` (locked 2026-08-19): green mark (tower +
-sideways arcs), `#34d399`, credit **Zoneko**, "Echoes" not "Guide".
+sideways arcs), `#34d399`, credit **Zoneko**, "Echoes" (since 2026-10-20 "Ondes") not "Guide".
 
 ## 3. The radio, precisely
 

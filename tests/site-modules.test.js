@@ -113,7 +113,7 @@ test('the texts come through verbatim — spelling, punctuation and all', () => 
 
 test('the build writes a shell at every route, including every text', () => {
   const r = routes([{ slug: 'voyages' }, { slug: 'odes' }]);
-  for (const want of ['radio', 'atlas', 'ecrits', 'portfolio/photos', 'booth', 'ecrits/voyages', 'ecrits/odes', 'echo/lectures', 'echo/lectures/voyages']) assert.ok(r.includes(want), want);
+  for (const want of ['radio', 'ondes', 'echoes', 'playlists', 'atlas', 'zone', 'ecrits', 'portfolio/photos', 'booth', 'ecrits/voyages', 'ecrits/odes', 'echo/lectures', 'echo/lectures/voyages']) assert.ok(r.includes(want), want);
   assert.equal(normaliseBase('radio-tower'), '/radio-tower/');
   assert.equal(normaliseBase('/radio-tower/'), '/radio-tower/');
   assert.equal(normaliseBase(''), '/');
@@ -253,4 +253,17 @@ test('Echo front page: side silhouettes are drawn in SVG, both sides, no externa
   const src = fs.readFileSync(new URL('../site/js/ui/echo-front.js', import.meta.url), 'utf8');
   for (const id of ['flag', 'fist', 'crowd', 'drum', 'horn', 'statue']) assert.match(src, new RegExp(`<symbol id="s-${id}"`), id);
   assert.equal(typeof frame, 'function');
+});
+
+test('Playlists (Zone): playlists.json is well formed, links out to Spotify, and the page has no embed', async () => {
+  const data = JSON.parse(fs.readFileSync(new URL('../site/data/playlists.json', import.meta.url), 'utf8'));
+  assert.ok(data.playlists.length >= 1);
+  for (const p of data.playlists) {
+    for (const k of ['title', 'url', 'vibe', 'years']) assert.equal(typeof p[k], 'string', k);
+    assert.match(p.url, /^https:\/\/open\.spotify\.com\/playlist\/[A-Za-z0-9]+$/);
+  }
+  const src = fs.readFileSync(new URL('../site/js/pages/playlists.js', import.meta.url), 'utf8');
+  assert.ok(!/<iframe|embed\/|spotify\.com\/embed/i.test(src), 'no embedded player (docs/DECISIONS.md 2026-08-17)');
+  const { ONDES_LABEL } = await import('../site/js/labels.js');
+  assert.equal(ONDES_LABEL, 'Ondes');
 });

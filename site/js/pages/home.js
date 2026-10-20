@@ -17,6 +17,11 @@ export async function mount(root, ctx) {
         <div class="meters"><span class="pill"><span class="dot"></span> Radio Tower à l'antenne</span></div>
       </div>
 
+      <nav class="doors" aria-label="Les deux moitiés du site">
+        <a class="door door-zone" href="radio" data-link><span class="eyebrow">Zone</span><b>La radio</b><span>Le Tower, la file d'attente, les playlists, l'Atlas, le Portfolio.</span></a>
+        <a class="door door-echo" href="echo" data-link><span class="eyebrow">Echo</span><b>Le journal</b><span>Reportages, analyses et lectures, en colonnes.</span></a>
+      </nav>
+
       <section class="onair" aria-live="polite">
         <div class="cover" id="hCover">${coverSvg(40)}</div>
         <div class="onair-text">

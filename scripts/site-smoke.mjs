@@ -104,7 +104,8 @@ try {
   await a.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await a.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
   const tabs = await a.$$eval('.tabs a', (els) => els.map((e) => e.textContent.trim()));
-  check('the site shell loads with its five sections', tabs.join(',') === 'Radio,Atlas,Portfolio,Echo', tabs.join(', '));
+  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Zone,Playlists,Atlas,Portfolio,Gazette,Lectures', tabs.join(', '));
+  check('…each under its own label', (await a.$$eval('.tabs-label', (els) => els.map((e) => e.textContent.trim()))).join() === 'Zone,Echo');
   check('the mark is the green hybrid tower', await a.$eval('.brand .mark', (el) => getComputedStyle(el).color === 'rgb(52, 211, 153)'));
 
   const title = await a.textContent('#rTitle');
@@ -187,6 +188,50 @@ try {
   }));
   check('on a desktop the mini-player names the song, on the radio page too', bar.shown && bar.mb === bar.card, bar.mb);
 
+  /* ---------------------------------------------------- Ondes, its own page -- */
+  // Ortis 2026-10-19: Up next, Just played and the next hours left /radio
+  // for /ondes. Radio keeps the card, the channels and the queue.
+  const radioRest = await a.evaluate(() => ({
+    lists: ['rNext', 'rRecent', 'rGuide', 'rTz'].filter((id) => document.getElementById(id)).concat(document.querySelector('#view .echoes, #view .guide') ? ['.echoes'] : []),
+    queue: Boolean(document.querySelector('#rQueue .tracklist, #rQueue li')),
+    link: Boolean(document.querySelector('#view a[href="ondes"]')),
+  }));
+  check('Radio keeps the on-air card and the queue, and no longer carries Ondes (a link to it instead)', radioRest.lists.length === 0 && radioRest.queue && radioRest.link, radioRest.lists.join(', ') || 'card + queue + link');
+  await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); });
+  await a.click('.tabs a[href="ondes"]');
+  await a.waitForSelector('#eGuide li .at', { timeout: 8000 }).catch(() => {});
+  const echoes = await a.evaluate(() => {
+    const { player } = window.radioTower;
+    const au = document.getElementById('audio');
+    const titles = (sel) => [...document.querySelectorAll(`${sel} li:not(.empty):not(.guide-day) .t`)].map((n) => n.textContent);
+    return {
+      path: location.pathname, tab: document.querySelector('.tabs a[aria-current="page"]')?.textContent,
+      now: document.getElementById('eTitle')?.textContent, onAir: player.onAir?.title,
+      next: titles('#eNext'), wantNext: (player.data?.upcoming || []).map((t) => t.title),
+      recent: titles('#eRecent'), guide: titles('#eGuide'),
+      times: [...document.querySelectorAll('#eGuide li .at')].map((n) => n.textContent),
+      tz: document.getElementById('eTz')?.textContent, wantTz: Intl.DateTimeFormat().resolvedOptions().timeZone.replace(/_/g, ' '),
+      same: au === window.__sameAudio, paused: au.paused, drift: au.currentTime - player.livePosition(),
+    };
+  });
+  check('Ondes: its own tab, the track on air in one line', echoes.path === '/ondes' && echoes.tab === 'Ondes' && echoes.now === echoes.onAir, echoes.now);
+  check('Ondes: Up next is the station\'s next tracks, Just played is filled', echoes.next.length >= 2 && echoes.next.join() === echoes.wantNext.join() && echoes.recent.length >= 1,
+    `${echoes.next.length} next, ${echoes.recent.length} played`);
+  check('Ondes: the next hours, timed in the listener\'s own zone', echoes.guide.length >= 5 && echoes.times.every((t) => /\d{1,2}[:.h]\d{2}/.test(t)) && echoes.tz === echoes.wantTz,
+    `${echoes.guide.length} rows, ${echoes.tz}`);
+  check('…and the music did not stop to show it', echoes.same && !echoes.paused && Math.abs(echoes.drift) < 1.5, `drift ${echoes.drift.toFixed(2)}s`);
+
+  // The old address still answers, and lands on the new one.
+  await a.evaluate(() => window.radioTower.router.go('echoes'));
+  await a.waitForFunction(() => location.pathname.endsWith('/ondes'), null, { timeout: 5000 }).catch(() => {});
+  check('the old /echoes address answers and moves to /ondes', (await a.evaluate(() => location.pathname)).endsWith('/ondes'));
+
+  /* ------------------------------------------ Playlists: cards that link out -- */
+  await a.click('.tabs a[href="playlists"]');
+  await a.waitForSelector('.pl-card', { timeout: 8000 }).catch(() => {});
+  const pl = await a.evaluate(() => ({ cards: [...document.querySelectorAll('.pl-card')].map((c) => c.href), iframes: document.querySelectorAll('#view iframe').length }));
+  check('Playlists: a card per playlist, linking out to Spotify, no embedded player', pl.cards.length >= 1 && pl.cards.every((h) => h.startsWith('https://open.spotify.com/')) && pl.iframes === 0, pl.cards.join());
+
   /* ------------------------------------------- music survives navigation -- */
   const audioBefore = await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); return document.getElementById('audio').currentTime; });
   await a.click('.tabs a[href="atlas"]');
@@ -223,6 +268,33 @@ try {
   });
   check('Atlas: Novo Hamburgo\'s postcard unfolds to the newspaper columns, and they open', nh.picture && nh.clips >= 20 && nh.stations === 4 && nh.pdf,
     `${nh.clips} columns, ${nh.stations} metro stops, ${nh.first}`);
+
+  /* ---------------------------------------------------------------- Zone -- */
+  // DESIGN-BRIEF §2 / roadmap #21: the green point sits where config.json
+  // says (x = lon + 180, y = 90 − lat on the world's viewBox, measured on
+  // screen), and no listener point exists without a geo source.
+  await a.click('.tabs a[href="zone"]');
+  await a.waitForSelector('#zMap svg.zone-map .zone-origin', { timeout: 5000 }).catch(() => {});
+  const zone = await a.evaluate(() => {
+    const svg = document.querySelector('#zMap svg.zone-map');
+    const core = svg?.querySelector('.zone-origin .zo-core');
+    const o = window.radioTower.client.config.station?.origin;
+    if (!svg || !core || !o) return { svg: Boolean(svg), core: Boolean(core), origin: o || null };
+    const [vx, vy, vw, vh] = svg.getAttribute('viewBox').split(/\s+/).map(Number);
+    const s = svg.getBoundingClientRect();
+    const c = core.getBoundingClientRect();
+    const want = { x: s.left + ((o.lon + 180 - vx) / vw) * s.width, y: s.top + ((90 - o.lat - vy) / vh) * s.height };
+    const got = { x: c.left + c.width / 2, y: c.top + c.height / 2 };
+    return {
+      svg: true, core: true, origin: o, land: svg.querySelectorAll('.zone-land path').length,
+      off: Math.hypot(got.x - want.x, got.y - want.y), waves: svg.querySelectorAll('.zone-origin .zw').length,
+      place: document.getElementById('zPlace')?.textContent, listener: Boolean(svg.querySelector('.zone-listener')),
+      playing: !document.getElementById('audio').paused, path: location.pathname,
+    };
+  });
+  check('Zone: the world map renders, and the tower\'s green point lands on the configured lat/lon', zone.land > 50 && zone.off < 1.5 && zone.waves === 3 && zone.place === zone.origin?.place && zone.path === '/zone',
+    zone.core ? `${zone.place} (${zone.origin.lat}, ${zone.origin.lon}) ${zone.off.toFixed(2)}px off, ${zone.land} land paths` : JSON.stringify(zone));
+  check('Zone: no listener point without a geo source, and the music plays on', zone.core && !zone.listener && zone.playing);
 
   /* --------------------------------------------------------- listener B -- */
   const ctxB = await browser.newContext({ viewport: { width: 1280, height: 860 } });
@@ -426,7 +498,7 @@ try {
   watch(m, 'phone');
   const overflow = [];
   const a11y = [];
-  for (const r of ['', 'radio', 'atlas', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo/lectures', 'echo/lectures/voyages', 'echo', 'echo/article-temoin', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
+  for (const r of ['', 'radio', 'ondes', 'playlists', 'atlas', 'zone', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo/lectures', 'echo/lectures/voyages', 'echo', 'echo/article-temoin', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
     await m.goto(dev + r, { waitUntil: 'domcontentloaded' });
     await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
     await m.waitForTimeout(700);
@@ -502,6 +574,28 @@ try {
     }
     check('pointed at a Radio Tower server, the same front end plays its programme', shown.mode === 'tower' && shown.id === server.onAir?.id, `${server.onAir?.title}`);
     check('…and shows the server\'s real listener count', /listening/.test(shown.pill || ''), (shown.pill || '').trim());
+    // Ondes in tower mode: the lists and the guide come from the server.
+    await t.click('.tabs a[href="ondes"]');
+    await t.waitForSelector('#eGuide li .at', { timeout: 8000 }).catch(() => {});
+    const tEcho = await t.evaluate(() => ({
+      next: document.querySelectorAll('#eNext li:not(.empty)').length,
+      guide: document.querySelectorAll('#eGuide li .at').length,
+      empty: document.querySelector('#eGuide .empty')?.textContent || '',
+    }));
+    check('…and its Ondes page reads Up next and the next hours from the tower', tEcho.next >= 1 && tEcho.guide >= 5, tEcho.empty || `${tEcho.next} next, ${tEcho.guide} in the guide`);
+
+    // Zone on a tower: the tower's own origin (STATION_LAT/LON/PLACE, set by
+    // build-test.sh) wins over config.json's; a tower that names none leaves
+    // config.json's in place.
+    await t.click('.tabs a[href="zone"]');
+    await t.waitForSelector('#zMap .zone-origin', { timeout: 5000 }).catch(() => {});
+    const tz = await t.evaluate(() => {
+      const g = document.querySelector('#zMap .zone-origin');
+      return { lat: Number(g?.dataset.lat), lon: Number(g?.dataset.lon), place: document.getElementById('zPlace')?.textContent, cfg: window.radioTower.client.config.station?.origin };
+    });
+    const so = server.station?.origin;
+    const wantZ = so || tz.cfg;
+    check(`Zone on a tower shows ${so ? 'the tower\'s own origin, not config.json\'s' : 'config.json\'s origin (this tower names none)'}`, Boolean(wantZ) && tz.lat === wantZ.lat && tz.lon === wantZ.lon && tz.place === wantZ.place, `${tz.place} (${tz.lat}, ${tz.lon})`);
 
     // The booth on a tower (2026-10-13): the Desktop shortcut's #key unlocks
     // it without staying on the address bar; remembering is opt-in and per

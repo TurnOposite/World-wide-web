@@ -1,12 +1,12 @@
 /**
  * /radio — the station.
  *
- * On air (cover, title, progress, Tune in), then Echoes: what just played and
- * what comes next, the programme for the next hours, and the queue. The
- * full-page visualiser is the backdrop of this whole page; this module only
- * tells it where the cover is.
+ * On air (cover, title, progress, Tune in), the channels and the queue.
+ * What just played and the programme for the next hours moved to /ondes
+ * (pages/ondes.js, 2026-10-19). The full-page visualiser is the backdrop of
+ * this whole page; this module only tells it where the cover is.
  */
-import { esc, fmt, fmtSpan, clock, coverSvg } from '../ui/util.js';
+import { esc, fmt, fmtSpan, coverSvg } from '../ui/util.js';
 import { QueueEditor } from '../ui/queue.js';
 import { ChannelDial } from '../ui/channels.js';
 
@@ -50,18 +50,10 @@ export function mount(root, ctx) {
       </div>
     </section>
 
-    <section class="echoes" aria-label="Echoes">
-      <div class="panel"><h2>Up next</h2><ol class="tracklist" id="rNext"></ol></div>
-      <div class="panel"><h2>Just played</h2><ol class="tracklist muted" id="rRecent"></ol></div>
-    </section>
-
     <section class="radio-grid">
       <div class="panel" id="rQueue"></div>
-      <div class="panel">
-        <div class="panel-head"><h2>Echoes — the next hours</h2><span class="pill" id="rTz"></span></div>
-        <ol class="tracklist guide" id="rGuide"></ol>
-      </div>
-    </section>`;
+    </section>
+    <p class="radio-more"><a class="btn small" href="ondes" data-link>${ONDES_LABEL} — just played, and the next hours →</a></p>`;
 
   const $ = (id) => root.querySelector(`#${id}`);
   const cover = $('rCover');
@@ -133,8 +125,6 @@ export function mount(root, ctx) {
       lastArt = t.artUrl;
       cover.innerHTML = t.artUrl ? `<img src="${esc(t.artUrl)}" alt="">` : coverSvg(72);
     }
-    list($('rNext'), d.upcoming || [], (x) => `<span class="idx">${clock(x.startsAt)}</span>`);
-    list($('rRecent'), (d.recent || []).slice(0, 4), () => '<span class="idx">·</span>');
     const cyc = d.station?.cycleSeconds;
     if (cyc && client.mode === 'cloud') {
       const into = ((client.now() - Date.parse(client.engine.library.epoch)) / 1000) % cyc;
@@ -142,12 +132,6 @@ export function mount(root, ctx) {
     } else if (cyc) {
       $('rLoop').innerHTML = `${d.station.trackCount} tracks · ${fmtSpan(cyc)} loop`;
     }
-  };
-
-  const list = (node, items, idx) => {
-    node.innerHTML = items.length
-      ? items.map((x) => `<li>${idx(x)}<span class="ta"><span class="t">${esc(x.title)}</span><span class="a">${esc(x.artist)}</span></span><span class="d">${fmt(x.duration)}</span></li>`).join('')
-      : '<li class="empty">nothing here yet</li>';
   };
 
   const onTick = (e) => {
@@ -175,28 +159,11 @@ export function mount(root, ctx) {
   player.addEventListener('status', onStatus);
   player.addEventListener('playing', onPlaying);
 
-  // ---- guide: the next few hours, from the same clock
-  const tzName = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time';
-  $('rTz').textContent = tzName.replace(/_/g, ' ');
-  const paintGuide = async () => {
-    try {
-      const from = new Date(client.now()).toISOString();
-      const to = new Date(client.now() + 4 * 3600e3).toISOString();
-      const g = await client.get(`/api/schedule?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
-      $('rGuide').innerHTML = g.items.slice(1, 40).map((x) =>
-        `<li><span class="at">${clock(x.startsAt)}</span><span class="ta"><span class="t">${esc(x.title)}</span><span class="a">${esc(x.artist)}</span></span><span class="d">${fmt(x.duration)}</span></li>`).join('');
-    } catch {
-      $('rGuide').innerHTML = '<li class="empty">the guide is not reachable right now</li>';
-    }
-  };
-  paintGuide();
-  const guideTimer = setInterval(paintGuide, 60_000);
-  const offCtl = client.on?.('control', paintGuide);
-
+  // Up next, Just played and the guide for the next hours live on /ondes.
   const queue = new QueueEditor({ root: $('rQueue'), client, player, title: "What's next" });
   const dial = new ChannelDial({ root: $('rChannels'), client, label: 'Channels' });
-  // A new channel means a new guide and a new queue, right away.
-  const offCh = client.on?.('channel', () => { paintGuide(); queue.refresh?.({ force: true }); });
+  // A new channel means a new queue, right away.
+  const offCh = client.on?.('channel', () => { queue.refresh?.({ force: true }); });
 
   setPlaying(player.playing);
   paintStation();
@@ -204,8 +171,6 @@ export function mount(root, ctx) {
 
   return () => {
     document.body.classList.remove('on-radio');
-    clearInterval(guideTimer);
-    offCtl?.();
     offCh?.();
     dial.destroy();
     queue.destroy();

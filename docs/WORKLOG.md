@@ -2796,3 +2796,98 @@ Atom feed (`atomFeed`, written to `dist/echo/feed.xml` by `site-build.mjs`, link
 - 2026-10-19 (builder, B1b part 2): Echo front page is a newspaper — red theme, masthead « ECHO » with date line, one centre column, big clickable lead (hero or `<video controls preload="none">` + title link), black SVG silhouettes (flag, fist, crowd, drum, statue — own paths, no real people) on the sides over a slow canvas ash drift (`site/js/ui/echo-front.js`; static under `prefers-reduced-motion`, sides collapse to a thin band under 820 px, no new dependency). Smoke and unit test extended; nothing weakened.
 
 - 2026-10-19 (builder, B1c): Echo redrawn in the « Gazette » design Arthur picked: white paper column (#f5f4f1) on a night stage with black silhouettes rimmed in red, ash + a few embers on a canvas (paused off-screen, static under reduced motion), red blackletter nameplate, Old Standard TT / Libre Caslon Text, thin 1 px ink rules only. Same frame on the front, article and Lectures (list of the six texts replaces the pond there). Zone's visualiser is hidden and the stage paused on every Echo route (`body.on-echo`), no scanline veil, neutral player bar; phone: the side figures become a band above the paper. Fonts self-hosted in `site/fonts/` (SIL OFL, 5 latin woff2, ~130 kB). Tests: smoke asserts on each Echo route (no visualiser, no overlay, list non-empty, 1 px rules); the silhouette unit test now checks sprite refs instead of forbidding `href=`; the pond smoke check became the Lectures-list check. Note: smoke check « reorder is a permutation » failed once, passed on rerun (booth queue differs per run) — unrelated.
+
+## 2026-10-19 — Echoes gets its own page (Claude Code, for Ortis)
+
+- **New `/echoes`** (`site/js/pages/echoes.js`): on air in one line (title,
+  artist, channel, time left, a link back to Radio), **Up next** and **Just
+  played** side by side, then **The next hours** — four hours of
+  `/api/schedule`, times in the listener's own clock with the time-zone pill,
+  and a day header where the programme crosses midnight. The lists read
+  `player.data` (the `/api/station` body the one player already polls, so the
+  page adds no request for them); the guide goes through `client.get`, which
+  answers in the browser (cloud) or from the tower, on this listener's
+  channel. Refreshes every minute, on a DJ's control document and on a
+  channel change.
+- **Radio** keeps the channels, the on-air card, the controls and the queue;
+  the Echoes panels and the guide code moved out (not duplicated), and a
+  small "Echoes — just played, and the next hours →" link sits under the
+  queue.
+- Wiring, one line each: route in `site/js/main.js`, tab after Radio in
+  `site/index.html`, `'echoes'` in `routes()` of `scripts/site-build.mjs` (a
+  cold `/echoes` gets a shell in `dist/`; checked `dist/echoes/index.html`
+  exists). `vercel.json` needs no rewrite: the build writes a real
+  `echoes/index.html`, the same way `/radio` and `/atlas` already answer.
+- CSS: `.echoes`/`.guide` moved under an "echoes" block in `site.css`, plus
+  the one-line on-air strip; the 720 px rule for `.echoes` is unchanged.
+- Smoke (`scripts/site-smoke.mjs`): the tabs check now expects
+  Radio, Echoes, Atlas, Écrits, Portfolio; new checks that Radio has no
+  Echoes lists but has its queue and the link; that `/echoes` shows the
+  on-air track, Up next equal to the station's upcoming, Just played filled,
+  ≥5 guide rows timed in the browser's zone; that the same `<audio>` keeps
+  playing on the clock across the switch; `/echoes` joins the phone overflow
+  and axe pass; and, in tower mode, that Echoes reads its lists and guide
+  from the server. `tests/site-modules.test.js` expects `echoes` in the
+  routes.
+- Self-test before: **388 tests, 43/43 browser, 57/57 site**. After:
+  **388 tests, 43/43 browser, 63/63 site**. Screenshots taken at 1280 px and
+  390 px (Africa/Maputo zone) of both pages: no overflow, lists and guide
+  render.
+- Not verified: the live tower at `129-151-227-129.sslip.io` (this sandbox's
+  proxy refuses that host); tower mode was proved against the self-test's
+  local server, which serves the same `/api/schedule`.
+
+## 2026-10-19 — The Zone tab (roadmap #21; #22 built behind a flag) (Claude Code, worktree agent)
+
+- **New page `/zone`** (`site/js/pages/zone.js`): the world outline from
+  `site/data/world.json` on the Atlas's projection (x = lon + 180,
+  y = 90 − lat), one green point at the broadcast origin, and three of the
+  mark's sideways arcs leaving it slowly (4.8 s cycle). Beside it: the place
+  name, its coordinates, the local time there (when the origin carries an
+  IANA `timeZone`), and where the position came from. No map library, no
+  tiles, no third-party call. With `prefers-reduced-motion` the arcs stand
+  still at three sizes, which reads as the logo. Single column under 760 px.
+- **Wiring, one line each in the shared files**: the "Zone" link in
+  `<nav class="tabs">` (after Atlas), the route in `site/js/main.js`, `'zone'`
+  in `scripts/site-build.mjs` routes (the build writes `dist/zone/index.html`,
+  so Vercel serves `/zone` with no `vercel.json` change, the same as `/atlas`).
+- **Origin as configuration.** On the server, `STATION_LAT` / `STATION_LON` /
+  `STATION_PLACE` (+ optional `STATION_TZ`) are parsed by
+  `server/lib/origin.js` into `config.stationOrigin` and added to
+  `/api/station` → `station.origin`. If the env is unset, half-set or off the
+  globe, nothing is added. The page prefers the tower's origin in tower mode,
+  then `site/config.json` → `station.origin` (now with
+  `"timeZone": "Africa/Maputo"`). If neither exists, there is no point and the
+  page says so. Documented in `deploy/radio-tower.env.example`, commented out.
+- **Listener point (#22)**: `resolveListener` renders a blue point only when
+  `config.json` → `zone.listener === true` **and** the tower's `/api/station`
+  carries a `listener` {lat, lon}. No geo-IP source exists, so the flag stays
+  absent and nothing renders. No Geolocation API.
+- **Tests.** New `tests/zone.test.js` (7): env parsing and rejection,
+  projection equals the Atlas's, tower-over-config precedence, the shipped
+  config is a real point, the SVG places the core at the projected x/y, no
+  listener point without flag + server position, coords and local time across
+  DST. `tests/api.test.js` asserts `station.origin` from the env;
+  `site-modules` and `cloud-tower` include `/zone`. Site smoke: the nav check
+  now expects five tabs, and three new checks cover the map, the on-screen
+  position of the point against config.json's lat/lon (0.00 px off), the absent
+  listener point, and in tower mode the server's origin winning. `/zone` was
+  added to the phone overflow and axe pass. `build-test.sh` starts its tower
+  with a test origin (10.5, −20.25, "Self Test Point") so the tower-mode check
+  can tell the two sources apart.
+- **Self-test before**: 388 unit tests, 43/43 browser, site 49/50 (run 1:
+  `fetch failed` in the tower-mode block) and 56/57 on a re-run (Canopy
+  intermittent; that run's browser stage was also 42/43, "audio element is
+  playing"). Both are flakes that predate this change. **After**: 395 unit
+  tests, 43/43 browser, **60/60 site**, "the tower is sound".
+- **For Ortis:** the configured origin is still **Maputo** (`site/config.json`
+  → `station.origin`, −25.97, 32.58). You are in Amsterdam now. This run did
+  not change the value; you decide. Either edit `config.json` (with
+  `"timeZone": "Europe/Amsterdam"`), or set `STATION_LAT=52.37`
+  `STATION_LON=4.90` `STATION_PLACE=Amsterdam` `STATION_TZ=Europe/Amsterdam` in
+  the tower's `/etc/radio-tower.env` and restart. The live site is in tower
+  mode, so the env wins. The share card (`scripts/site-card.mjs`) and the
+  Atlas's tower pin read config.json only.
+
+- 2026-10-19 (evening, from the log gap — Ortis's own session, merged to main as 74410a2 / b984147): « Echoes gets its own page » (`pages/echoes.js`, route `/echoes`, Up next / Just played / the guide moved out of Radio) and « the Zone tab — where the tower broadcasts from » (`pages/zone.js`, roadmap #21). Logged here because that session did not write its own line.
+- 2026-10-20 (builder, B6): merged `origin/main` into `claude/echo` (conflicts in nav, router, smoke, site-modules test, WORKLOG resolved keeping both). Two halves: navigation is two labelled groups (Zone: Radio, Ondes, Zone, Playlists, Atlas, Portfolio · Echo: Gazette, Lectures) and the home page opens with two doors. « Echoes » → **Ondes** (`pages/ondes.js`, `/ondes`, `/echoes` alias, CSS `.ondes*`, label constant in `site/js/labels.js`). New Playlists page (`site/data/playlists.json`, cards linking out to Spotify, no embed; DECISIONS 2026-10-20). Smoke nav/Ondes/alias/Playlists checks updated or added, none weakened; one unit test added. The old Écrits tab (superseded by Echo/Lectures on this branch) is not in the nav; `/ecrits` still answers.

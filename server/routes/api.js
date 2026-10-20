@@ -147,7 +147,9 @@ export function apiRouter(ctx) {
       config,
       listeners: listeners.count(),
       warmingUp: state.scanning && state.lastScanAt === null,
-      extra,
+      // The broadcast origin (STATION_LAT/LON/PLACE) — the site's Zone map
+      // prefers it over its own config.json. Absent when unset, never guessed.
+      extra: config.stationOrigin ? { origin: config.stationOrigin, ...extra } : extra,
     }));
   });
 
