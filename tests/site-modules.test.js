@@ -255,7 +255,7 @@ test('Echo front page: side silhouettes are drawn in SVG, both sides, no externa
   assert.equal(typeof frame, 'function');
 });
 
-test('Playlists (Zone): playlists.json is well formed, links out to Spotify, and the only embed is the featured playlist', async () => {
+test('Playlists (Zone): playlists.json is well formed, and every playlist plays in the one Spotify player', async () => {
   const data = JSON.parse(fs.readFileSync(new URL('../site/data/playlists.json', import.meta.url), 'utf8'));
   assert.ok(data.playlists.length >= 60);
   assert.equal(new Set(data.playlists.map((p) => p.url)).size, data.playlists.length, 'no duplicate playlist');
@@ -265,10 +265,27 @@ test('Playlists (Zone): playlists.json is well formed, links out to Spotify, and
     for (const k of ['title', 'url', 'vibe', 'years']) assert.equal(typeof p[k], 'string', k);
     assert.match(p.url, /^https:\/\/open\.spotify\.com\/playlist\/[A-Za-z0-9]+$/);
   }
-  const src = fs.readFileSync(new URL('../site/js/pages/playlists.js', import.meta.url), 'utf8');
-  assert.equal((src.match(/<iframe/g) || []).length, 1, 'one embed only: the featured playlist (docs/DECISIONS.md 2026-10-20)');
-  assert.match(src, /height="352"/);
-  assert.match(src, /loading="lazy"/);
+  // One player, whatever the number of playlists (docs/DECISIONS.md 2026-10-20).
+  const deck = fs.readFileSync(new URL('../site/js/ui/spotify-deck.js', import.meta.url), 'utf8');
+  assert.equal((deck.match(/<iframe/g) || []).length, 1, 'one Spotify player');
+  assert.doesNotMatch(deck.match(/<iframe[^>]*>/)[0], /loading=/, 'a lazy frame never loaded here: the player stayed blank on 85c46c1');
+  for (const page of ['playlists', 'zone']) {
+    const src = fs.readFileSync(new URL(`../site/js/pages/${page}.js`, import.meta.url), 'utf8');
+    assert.equal((src.match(/<iframe/g) || []).length, 0, `${page}: no frame of its own, only the deck's`);
+    assert.match(src, /mountDeck\(/, `${page} carries the deck`);
+  }
+  const { playlistId, embedUrl, deckList } = await import('../site/js/ui/spotify-deck.js');
+  assert.equal(playlistId('https://open.spotify.com/playlist/0XeQKa4xS4I74EsGKl8GpI'), '0XeQKa4xS4I74EsGKl8GpI');
+  assert.equal(playlistId(data.featured.embed), '0XeQKa4xS4I74EsGKl8GpI');
+  for (const bad of ['https://evil.example/playlist/0XeQKa4xS4I74EsGKl8GpI', 'javascript:alert(1)', 'https://open.spotify.com/playlist/x"onload="1', '', null]) {
+    assert.equal(playlistId(bad), null, String(bad));
+  }
+  assert.equal(embedUrl('0XeQKa4xS4I74EsGKl8GpI'), 'https://open.spotify.com/embed/playlist/0XeQKa4xS4I74EsGKl8GpI?utm_source=generator');
+  const list = deckList(data);
+  assert.equal(list[0].title, data.featured.title, 'the featured playlist is in the player first');
+  assert.equal(new Set(list.map((p) => p.id)).size, list.length, 'each playlist once');
+  assert.ok(list.length >= data.playlists.length);
+  assert.ok(list.every((p) => p.url === `https://open.spotify.com/playlist/${p.id}`));
   const { ONDES_LABEL } = await import('../site/js/labels.js');
   assert.equal(ONDES_LABEL, 'Ondes');
 });

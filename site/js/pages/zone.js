@@ -21,8 +21,12 @@
  * carries a coarse, server-side geo-IP position in `listener`. Nothing serves
  * one today, so it does not render. Never the browser Geolocation API, never
  * a guess.
+ *
+ * Under the map, the Spotify deck in its compact form (ui/spotify-deck.js):
+ * the ZoNeKo playlists, playable in one Spotify player (Arthur, 2026-10-20).
  */
 import { esc } from '../ui/util.js';
+import { mountDeck } from '../ui/spotify-deck.js';
 
 export const title = 'Zone';
 
@@ -120,7 +124,14 @@ export async function mount(root, ctx) {
     <section class="zone">
       <div class="zone-mapbox" id="zMap"><p class="empty">…</p></div>
       <div class="zone-card panel" id="zCard" aria-live="polite"></div>
+    </section>
+    <section class="zone-playlists" aria-labelledby="zPlH">
+      <h2 id="zPlH">Playlists</h2>
+      <p class="hint">Les playlists du profil ZoNeKo, à écouter ici : choisissez-en une, elle passe dans le lecteur Spotify. <a href="playlists">Toutes en grand</a></p>
+      <div id="zDeck"></div>
     </section>`;
+  // The deck loads beside the map, not after it.
+  const deck = mountDeck(root.querySelector('#zDeck'), { player, compact: true });
   if (!WORLD) WORLD = await (await fetch(new URL('data/world.json', document.baseURI))).json();
   const box = root.querySelector('#zMap');
   const card = root.querySelector('#zCard');
@@ -161,8 +172,10 @@ export async function mount(root, ctx) {
   paint();
   player.addEventListener('station', paint);
   const tick = setInterval(paintTime, 15_000);
+  const stopDeck = await deck;
   return () => {
     player.removeEventListener('station', paint);
     clearInterval(tick);
+    stopDeck();
   };
 }
