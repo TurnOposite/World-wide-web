@@ -3417,3 +3417,20 @@ pressing anything inside the Spotify player focuses the frame, the window blurs,
 play button brings it back on the clock.
 **Known cost, unchanged:** without a Spotify account signed in in that browser, Spotify plays 30-second previews; the
 intro text says so. The 2026-08 « No Spotify » decision still holds for the station's own stream.
+
+## 2026-10-21 — The world shell, phase 2: the pages open in their districts, at 1:1
+
+**Chosen:** with the world on, the router mounts each page in its district's window (`.w-box`) instead of `<main>`.
+One page is live at a time; the one the camera leaves sleeps in its frame during the flight (inert, iframes and
+media removed) and is a door again once the camera lands. The box carries `zoom: 1 / scale` so a page's text reaches
+the screen at its own size whatever the camera's scale; on a phone the frame is the screen itself, at scale 1.
+**Because:** pages were written to be alone on the screen — their timers, subscriptions, the visualiser scene and the
+Spotify frame assume it. Keeping that contract (same `mount`/`cleanup`, one live page) means no page changes in this
+phase; mounting pages "as the camera approaches" would run several at once for nothing, so a page loads when its
+address is opened. A camera that shrinks pages to 0.6 would make the radio unreadable; `zoom` (Chrome, Safari,
+Firefox ≥ 126) is one property, no layout code. A landscape frame scaled onto a portrait phone would leave a window a
+few lines tall, so the phone frame is portrait, capped at 700 px so stacked frames never overlap (unit-tested).
+**Assumed, pending Ortis:** the home `/` opens Radio in the world (the classic « Seuil » page is not shown there).
+**Revisit if** a page needs to stay alive off camera (e.g. a visualiser in a neighbouring window): that is a page
+change, not a shell change.
+

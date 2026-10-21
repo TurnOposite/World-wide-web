@@ -127,7 +127,8 @@ async function boot() {
   const router = new Router({
     mode: client.config.router === 'hash' ? 'hash' : 'history',
     routes: [
-      { name: 'home', pattern: /^$/, load: () => import('./pages/home.js') },
+      // In the world the home is the world itself, the camera on Radio (docs/WORLD.md, open question 2).
+      { name: 'home', pattern: /^$/, load: () => (world ? import('./pages/radio.js') : import('./pages/home.js')) },
       { name: 'radio', pattern: /^radio$/, load: () => import('./pages/radio.js') },
       { name: 'ondes', pattern: /^(?:ondes|echoes)$/, load: () => import('./pages/ondes.js') },
       { name: 'playlists', pattern: /^playlists$/, load: () => import('./pages/playlists.js') },
@@ -147,19 +148,23 @@ async function boot() {
       const echoRoute = ['echo', 'lectures', 'ecrits'].includes(match.name);
       document.body.classList.toggle('on-echo', echoRoute);
       globalThis.__echoStage?.(echoRoute);
-      world?.show(match);
+      // With the world on, the page opens in its district's window, not in <main>.
+      const place = world?.show(match) || null;
+      const host = place?.box || view;
       sceneFn = () => null;
-      view.classList.remove('entering');
-      void view.offsetWidth;
-      view.classList.add('entering');
+      if (!place) {
+        view.classList.remove('entering');
+        void view.offsetWidth;
+        view.classList.add('entering');
+      }
       document.title = page.title ? `${page.title} — ${site.title || 'Globe Trotter'}` : (site.title || 'Globe Trotter');
-      // Each page gets its own box inside <main>. A page still loading when
-      // the reader moves on keeps working on its own, now detached, box —
+      // Each page gets its own box inside <main> (or its district). A page
+      // still loading when the reader moves on keeps working on its own box —
       // never on the page that replaced it — and is cleaned up the moment
       // it finishes.
       const root = document.createElement('div');
       root.className = 'page';
-      view.replaceChildren(root);
+      host.replaceChildren(root);
       const done = (await page.mount(root, {
         ...ctx, router, params: match.params,
         setScene: (fn) => { if (isCurrent()) sceneFn = fn; },
@@ -167,8 +172,11 @@ async function boot() {
       if (!isCurrent()) { try { done?.(); } catch (e) { console.error(e); } return; }
       cleanup = done;
       if (!fromPop) {
-        window.scrollTo({ top: 0 });
-        view.focus({ preventScroll: true });
+        if (place) place.focus();
+        else {
+          window.scrollTo({ top: 0 });
+          view.focus({ preventScroll: true });
+        }
       }
     },
   });

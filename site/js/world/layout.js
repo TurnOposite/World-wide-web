@@ -64,14 +64,35 @@ export function districtFor(name, params = {}) {
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
+/** At or under this width the world is laid out for a phone (world.css's breakpoint). */
+export const PHONE_MAX = 760;
+/** On a phone the frame leaves this much screen at each side, and starts under the header and the tag strip. */
+const PHONE_SIDE = 12;
+const PHONE_TOP = 116;
+/** A phone frame is never taller than the map's tightest stack (Zone over Playlists: 730 apart), so two never overlap. */
+const PHONE_MAX_H = 700;
+
+/**
+ * The size a district's frame takes on this screen. On a desktop it is the
+ * map's. On a phone it is the screen itself — the free area under the tag
+ * strip — because a landscape frame scaled down to a portrait screen would
+ * leave a page a few lines tall; the camera then shows it at 1:1.
+ */
+export function frameFor(d, vw, vh, { phone = vw <= PHONE_MAX, bottom = 64 } = {}) {
+  if (!phone) return { w: d.w, h: d.h };
+  return { w: Math.max(240, vw - 2 * PHONE_SIDE), h: clamp(vh - PHONE_TOP - bottom, 240, PHONE_MAX_H) };
+}
+
 /**
  * Where the camera sits to show a district: centred in the screen's free
  * area and scaled down until the whole frame fits. On a desktop the tags
- * own a column on each side; on a phone they are a strip under the header.
+ * own a column on each side; on a phone they are a strip under the header
+ * and the frame is the screen (frameFor), so the scale is 1.
  */
-export function cameraFor(d, vw, vh, { phone = vw <= 760, bottom = 64 } = {}) {
-  const side = phone ? 12 : Math.min(260, vw * 0.18);
-  const top = phone ? 116 : 96;
+export function cameraFor(d, vw, vh, { phone = vw <= PHONE_MAX, bottom = 64 } = {}) {
+  if (phone) return { tx: PHONE_SIDE - d.x, ty: PHONE_TOP - d.y, s: 1 };
+  const side = Math.min(260, vw * 0.18);
+  const top = 96;
   const aw = Math.max(120, vw - 2 * side);
   const ah = Math.max(120, vh - top - bottom);
   const s = clamp(Math.min(aw / (d.w + 40), ah / (d.h + 60)), MIN_SCALE, 1);
@@ -81,6 +102,14 @@ export function cameraFor(d, vw, vh, { phone = vw <= 760, bottom = 64 } = {}) {
     s,
   };
 }
+
+/**
+ * The zoom a district's page is drawn at, so that once the camera has
+ * scaled the plane by `s` its text is back at 1:1 on screen: the page lays
+ * itself out in the frame's on-screen width, as it would in a window that
+ * size. 1 needs no zoom at all ('' in the style).
+ */
+export const pageZoom = (s) => (s >= 0.999 ? 1 : Number((1 / s).toFixed(4)));
 
 /** The world point under the middle of the screen. */
 export const centreOf = (cam, vw, vh) => ({ x: (vw / 2 - cam.tx) / cam.s, y: (vh / 2 - cam.ty) / cam.s });

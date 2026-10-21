@@ -10,7 +10,7 @@ import fs from 'node:fs';
 
 import { worldChoice, worldWanted } from '../site/js/world/flag.js';
 import {
-  WORLD, DISTRICTS, MIN_SCALE, byId, districtFor, cameraFor, centreOf, flightMs, ease, pullBack, seamMix, nearest,
+  WORLD, DISTRICTS, MIN_SCALE, PHONE_MAX, byId, districtFor, frameFor, cameraFor, pageZoom, centreOf, flightMs, ease, pullBack, seamMix, nearest,
 } from '../site/js/world/layout.js';
 import { routes } from '../scripts/site-build.mjs';
 
@@ -91,11 +91,15 @@ test('the camera centres a district in the free area and fits the whole frame', 
   for (const [vw, vh] of [[1280, 860], [1440, 900], [1920, 1080], [390, 844]]) {
     for (const d of DISTRICTS) {
       const cam = cameraFor(d, vw, vh);
+      const f = frameFor(d, vw, vh);
       assert.ok(cam.s >= MIN_SCALE && cam.s <= 1, `${d.id} @${vw}: scale ${cam.s}`);
+      // On a phone the frame is the screen, shown at 1:1; on a desktop it is the map's own size.
+      if (vw <= PHONE_MAX) assert.equal(cam.s, 1, `${d.id} @${vw}: a phone shows its frame at 1:1`);
+      else assert.deepEqual(f, { w: d.w, h: d.h });
       const left = d.x * cam.s + cam.tx;
-      const right = (d.x + d.w) * cam.s + cam.tx;
+      const right = (d.x + f.w) * cam.s + cam.tx;
       const top = d.y * cam.s + cam.ty;
-      const bottom = (d.y + d.h) * cam.s + cam.ty;
+      const bottom = (d.y + f.h) * cam.s + cam.ty;
       // Centred between the tag columns (desktop) or the screen edges (phone).
       assert.ok(Math.abs((left + right) / 2 - vw / 2) < 0.5, `${d.id} @${vw} is centred`);
       if (cam.s > MIN_SCALE) {
@@ -113,6 +117,28 @@ test('the camera centres a district in the free area and fits the whole frame', 
   const cam = cameraFor(d, 1440, 900);
   const c = centreOf(cam, 1440, 900);
   assert.ok(Math.abs(c.x - (d.x + d.w / 2)) < 0.5);
+});
+
+test('a page reads at 1:1: its zoom undoes the camera\'s scale, and a phone\'s frames never overlap', () => {
+  for (const [vw, vh] of [[1280, 860], [1440, 900], [1920, 1080], [900, 700]]) {
+    for (const d of DISTRICTS) {
+      const { s } = cameraFor(d, vw, vh);
+      assert.ok(Math.abs(pageZoom(s) * s - 1) < 1e-3, `${d.id} @${vw}: zoom ${pageZoom(s)} × scale ${s}`);
+    }
+  }
+  assert.equal(pageZoom(1), 1, 'no zoom where the camera does not scale');
+  for (const [vw, vh] of [[360, 640], [390, 844], [430, 932], [760, 1024]]) {
+    const rects = DISTRICTS.map((d) => ({ id: d.id, x: d.x, y: d.y, ...frameFor(d, vw, vh) }));
+    for (const r of rects) assert.ok(r.w >= 240 && r.w <= vw && r.h >= 240, `${r.id} @${vw}x${vh}: ${r.w}×${r.h}`);
+    for (let i = 0; i < rects.length; i++) {
+      for (let j = i + 1; j < rects.length; j++) {
+        const a = rects[i];
+        const b = rects[j];
+        const apart = a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y;
+        assert.ok(apart, `${a.id} and ${b.id} overlap on a ${vw}x${vh} phone`);
+      }
+    }
+  }
 });
 
 test('a flight: 380–820 ms by distance, eased from rest to rest, a pull-back of at most 12 %', () => {

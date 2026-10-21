@@ -7,7 +7,7 @@
  * 160 ms fade instead of the pan. Only the plane moves: the HUD, the tags,
  * the mini-player and the <audio> are outside it.
  */
-import { cameraFor, centreOf, ease, flightMs, pullBack, seamMix } from './layout.js';
+import { PHONE_MAX, cameraFor, centreOf, ease, flightMs, pullBack, seamMix } from './layout.js';
 
 export class Camera {
   /**
@@ -25,7 +25,7 @@ export class Camera {
     this.moving = false;
     this._raf = 0;
     this._done = null;
-    this.phone = matchMedia('(max-width: 760px)');
+    this.phone = matchMedia(`(max-width: ${PHONE_MAX}px)`);
     this.reduced = matchMedia('(prefers-reduced-motion: reduce)');
   }
 
@@ -60,16 +60,18 @@ export class Camera {
     this.district = d;
     const to = this.target(d);
     const from = { ...this.cam };
+    const dist = Math.hypot(to.tx - from.tx, to.ty - from.ty);
+    // Already there (a door focused with Tab, then opened): nothing to fly.
+    const still = dist < 0.5 && Math.abs(to.s - from.s) < 1e-4;
     return new Promise((resolve) => {
       this._done = resolve;
-      if (instant || this.reduced.matches) {
+      if (instant || still || this.reduced.matches) {
         this.cam = to;
         this.paint();
-        if (!instant) this.plane.animate?.([{ opacity: 0.35 }, { opacity: 1 }], { duration: 160 });
+        if (!instant && !still) this.plane.animate?.([{ opacity: 0.35 }, { opacity: 1 }], { duration: 160 });
         this._settle();
         return;
       }
-      const dist = Math.hypot(to.tx - from.tx, to.ty - from.ty);
       const dur = flightMs(dist);
       const pull = this.phone.matches ? 0 : 1;
       this.moving = true;
