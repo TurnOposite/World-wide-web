@@ -5,7 +5,9 @@
  * mid-way and — on a desktop, only while moving — a motion blur sized to the
  * speed (an SVG blur with separate x/y deviations). Reduced motion gets a
  * 160 ms fade instead of the pan. Only the plane moves: the HUD, the tags,
- * the mini-player and the <audio> are outside it.
+ * the mini-player and the <audio> are outside it. The plane is promoted to
+ * its own layer (will-change) only while it moves: a layer kept after
+ * landing is drawn from a bitmap and the scaled windows' text goes soft.
  */
 import { PHONE_MAX, cameraFor, centreOf, ease, flightMs, pullBack, seamMix } from './layout.js';
 
@@ -47,6 +49,7 @@ export class Camera {
   _settle() {
     this.moving = false;
     this.plane.style.filter = '';
+    this.plane.style.willChange = '';
     this.blur?.setAttribute('stdDeviation', '0 0');
     const done = this._done;
     this._done = null;
@@ -75,6 +78,7 @@ export class Camera {
       const dur = flightMs(dist);
       const pull = this.phone.matches ? 0 : 1;
       this.moving = true;
+      this.plane.style.willChange = 'transform';
       if (this.blur && !this.phone.matches) this.plane.style.filter = 'url(#wBlur)';
       const t0 = performance.now();
       const step = (now) => {

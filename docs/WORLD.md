@@ -46,6 +46,40 @@ is the classic one, and the site smoke test checks that no world and no `world.c
 - An address that is no page of the map opens the "missing" page in a window over the world
   (`.w-lost`); the camera stays where it was, or lands on Radio on a cold link.
 
+## The Zone skin (phase 3)
+
+- **Glass over the visualiser.** The station's visualiser (`#stage`, behind the whole world) is
+  Zone's background: the ground in front of it is a haze (`.w-dark`, 55 % night), not a wall.
+  Zone's windows are clear glass (`--w-glass`, 74 %; 88 % on a phone) with cut corners. Not
+  frosted: a `backdrop-filter` over the always-moving visualiser re-blurs every frame, and it
+  took the page from 39 to 18 fps in headless Chrome. The window's edge is drawn *over* the glass
+  (`.w-win::after`: four sides and the two cut diagonals), because a solid backing under it would
+  hide what the glass shows.
+- **Pages keep their code.** The classic pages take their colours, radii and faces from
+  `site.css`'s tokens; inside a Zone window those tokens are re-pointed (`.w-zone-d .w-box`), so
+  Radio, Ondes, Zone, Atlas, Portfolio, Playlists and the Booth wear the skin without a line of
+  page code changing. Panels stay nearly opaque: the glass shows the visualiser around the text,
+  never under it.
+- **Faces.** Chakra Petch (400, 600, 700) for Zone's UI, IBM Plex Mono (400) for codes and data,
+  self-hosted Latin subsets in `site/fonts/` (~44 KB, OFL, credited in `OFL.txt`), loaded only by
+  `world.css` — the classic site never fetches them.
+- **« Écran »** (`screen.js`), the HUD's screen menu: **Fond** — Grille (lines on the ground,
+  drifting with the camera), Pluie (slanted dashes falling; a transform, no repaint), Vide (the
+  haze alone); **Bulles de verre** — quelques-unes (10), beaucoup (26), aucune; **Menu** —
+  étiquettes éparses or **Pile** (the tags stacked down the left, a Persona pause menu; a phone
+  keeps its strip); **Lignes de balayage** — oui / non (the world's own; the classic overlay
+  steps aside). Radio buttons in four groups; every arrow stays inside the panel (the world's
+  ← → would otherwise walk the map); Esc closes it onto its button. Kept per browser in
+  `localStorage` (`gt.world.screen`) — a viewer's taste, never the broadcast look, which stays
+  the visualiser panel's (V).
+- **Bubbles** (`bubbles.js`): ≤ 26, ~30 fps, faded across the seam; the loop itself stops on
+  Echo, in a hidden tab, with none asked for, and under reduced motion (none at all). Half on a
+  phone.
+- **One light sweep** crosses the window the camera rests on every 9 s (a transform). Under
+  reduced motion: no bubbles, no sweep, no rain — smoke-tested with `document.getAnimations()`.
+- **Crisp text.** The plane gets `will-change: transform` only while it flies; kept after
+  landing, Chrome drew the scaled windows from a bitmap and their text went soft.
+
 ## Files
 
 | File | What |
@@ -55,8 +89,11 @@ is the classic one, and the site smoke test checks that no world and no `world.c
 | `site/js/world/camera.js` | the flight: easeInOutQuart, 380–820 ms by distance, a ≤12 % pull-back, motion blur on desktop while moving; a 160 ms fade under reduced motion |
 | `site/js/world/tags.js` | the tag menu: real buttons in a `<nav>`, `aria-current` on the district shown |
 | `site/js/world/minimap.js` | the world at 1/30, a pointer shortcut (`aria-hidden`: the tags say the same) |
+| `site/js/world/screen.js` | « Écran »: the four settings as data (unit-tested), their storage, the panel |
+| `site/js/world/bubbles.js` | the glass bubbles behind Zone's windows, and when their loop runs |
 | `site/js/world/world.js` | mounts all of it beside the classic shell; the router's `render` calls `world.show(match)` and mounts the page in the box it returns |
-| `site/css/world.css` | loaded only when the world is on; direction A « Velvet Grid » tokens, prefixed `--w-` |
+| `site/css/world.css` | loaded only when the world is on; direction A « Velvet Grid » tokens, prefixed `--w-`; Zone's `@font-face` |
+| `site/fonts/ChakraPetch-*.woff2`, `IBMPlexMono-400.woff2` | Zone's faces (Latin subsets from Fontsource, OFL) |
 
 ## The map
 
@@ -89,9 +126,12 @@ switch flies to Radio or Une.
    1:1 (`zoom` against the camera's scale; a phone's frame is the screen); Tab follows the
    camera; every route answers on a cold link (15 addresses smoke-tested); the radio never
    cuts out across 20 pans, half of them cut short (smoke-tested).
-3. **Zone skin** — the tokens, cut-corner glass windows, the « Écran » settings menu
-   (background Grille / Pluie / Vide, bubbles, tag scatter or stack, scanlines), the
-   station's visualiser as the Zone background. Self-host Chakra Petch + IBM Plex Mono.
+3. **Zone skin** — done 2026-10-22: glass windows with cut corners over the station's
+   visualiser, the classic pages re-skinned through their tokens, « Écran » (Grille / Pluie /
+   Vide, bubbles, scatter or stack, scan lines), Chakra Petch + IBM Plex Mono self-hosted,
+   the plane crisp at rest. Smoke-tested: the faces load from the site, no backdrop blur, the
+   layer dropped and the bubbles stopped on landing on Echo, each « Écran » choice applies and survives a reload,
+   nothing in the world moves under reduced motion, axe on the open menu.
 4. **Echo skin + the seam** — the Gazette inside district windows, cross-world links
    (« À l'antenne » → Radio, Archives → Portfolio), the Archives index.
 5. **Phone + switch-over** — swipe between the halves, scroll inside each; flip the flag,
@@ -107,10 +147,14 @@ switch flies to Radio or Une.
 
 ## Known limits (for the phases ahead)
 
-- Pages keep their classic styling inside the windows: the Gazette still draws its own night
-  sides and its own Zone/Echo nav inside E-01…E-03, and Zone pages their own panels. Phases 3–4
-  dress them.
+- Echo's pages keep their classic styling inside the windows: the Gazette still draws its own
+  night sides and its own Zone/Echo nav inside E-01…E-03. Phase 4 dresses them. (Zone's pages
+  wear the skin since phase 3, through their tokens; a page that hard-codes a colour keeps it.)
 - A phone held sideways (wider than 760 px, ~390 px tall) gets the desktop layout at the
   minimum scale: a short window. Phase 5 is the phone phase.
-- The plane keeps `will-change: transform`; Chrome may draw a scaled frame slightly soft.
-  Dropping it once the camera has landed is a phase 3 performance check.
+- Not measured in the cloud: frame rate. The proposal's target (60 fps camera on a desktop,
+  ≥ 45 on a phone) needs a real machine's profiler. In headless Chrome (software drawing) the
+  world on Radio runs at ~39 fps against ~41 for the classic page; the costs that were cut are
+  listed above (no backdrop blur, bubbles and rain stop when unseen, transforms only).
+- « Écran » has no « Direction » row (A / B / C from the proposal's mock-up): A is built, and
+  choosing between directions is Ortis's question, not a reader setting.

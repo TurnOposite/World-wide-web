@@ -601,14 +601,48 @@ try {
   check('…the page opens in its district: Radio\'s window holds the on-air card at 1:1, ten doors elsewhere, <main> empty and inert', hosted.live.join() === 'radio'
     && hosted.onair && hosted.doors === 10 && hosted.asleep === 0 && Math.abs(hosted.scale - 1) < 0.05 && hosted.main, JSON.stringify(hosted));
 
+  // Phase 3: the Zone skin — its own faces, clear glass over the visualiser, bubbles, the plane crisp at rest.
+  const skin = await w.evaluate(async () => {
+    await document.fonts.ready;
+    const loaded = (fam) => [...document.fonts].filter((f) => f.family.replace(/"/g, '') === fam && f.status === 'loaded').map((f) => f.weight);
+    const res = performance.getEntriesByType('resource').map((e) => new URL(e.name));
+    const b = window.radioTower.world.bubbles;
+    const f0 = b.frames;
+    // The loop runs if it draws at all; a busy machine right after a load may give it only a few frames a second.
+    await new Promise((r) => { const t0 = performance.now(); const tick = () => (b.frames - f0 >= 3 || performance.now() - t0 > 3000 ? r() : setTimeout(tick, 50)); tick(); });
+    return {
+      chakra: loaded('Chakra Petch'), plex: loaded('IBM Plex Mono'),
+      woff2: res.filter((u) => u.pathname.endsWith('.woff2')).map((u) => (u.origin === location.origin ? u.pathname.split('/').pop() : u.href)),
+      tab: getComputedStyle(document.querySelector('#w-radio .w-wt')).fontFamily.split(',')[0], page: getComputedStyle(document.querySelector('#w-radio .w-box')).fontFamily.split(',')[0],
+      glass: getComputedStyle(document.querySelector('#w-radio .w-win')).backdropFilter, willChange: getComputedStyle(document.querySelector('.w-plane')).willChange,
+      stage: window.radioTower.stage.running, bubbles: b.list.length, drawn: b.frames - f0, bg: document.querySelector('.w-root').dataset.wBg,
+      scan: getComputedStyle(document.querySelector('.w-scan')).display, classicScan: getComputedStyle(document.querySelector('.scanlines')).display,
+    };
+  });
+  check('Zone skin: Chakra Petch and Plex Mono self-hosted (no font CDN), on the window tabs and in the page', skin.chakra.length >= 1 && skin.plex.length >= 1
+    && skin.woff2.some((f) => f.startsWith('ChakraPetch-')) && skin.woff2.every((f) => !/^https?:/.test(f)) && /Chakra Petch/.test(skin.tab) && /Chakra Petch/.test(skin.page),
+    JSON.stringify({ chakra: skin.chakra, plex: skin.plex, woff2: skin.woff2, tab: skin.tab, page: skin.page }));
+  check('…clear glass over the station\'s visualiser (running behind Zone; no backdrop blur, it halved the frame rate), ten bubbles drifting, the world\'s scan lines instead of the classic ones, the plane crisp at rest',
+    skin.glass === 'none' && skin.stage && skin.bubbles === 10 && skin.drawn >= 3 && skin.bg === 'grid' && skin.scan === 'block' && skin.classicScan === 'none'
+    && skin.willChange === 'auto', JSON.stringify({ glass: skin.glass, stage: skin.stage, bubbles: skin.bubbles, drawn: skin.drawn, bg: skin.bg, scan: skin.scan, willChange: skin.willChange }));
+
   await w.click('#mbTune');
   await w.waitForFunction(() => { const au = document.getElementById('audio'); return !au.paused && au.currentTime > 0.3; }, null, { timeout: 10000 }).catch(() => {});
   await w.evaluate(() => { window.__worldAudio = document.getElementById('audio'); });
   await w.click('.w-tag[data-go="une"]');
   await w.waitForFunction(() => window.radioTower.world.current === 'une', null, { timeout: 8000 }).catch(() => {});
-  const midFlight = await w.evaluate(() => ({ moving: window.radioTower.world.camera.moving, filter: document.querySelector('.w-plane').style.filter }));
+  const midFlight = await w.evaluate(() => ({ moving: window.radioTower.world.camera.moving, filter: document.querySelector('.w-plane').style.filter,
+    layer: document.querySelector('.w-plane').style.willChange }));
   await settled('une');
   const une = await shot('une');
+  const rest = await w.evaluate(async () => {
+    const b = window.radioTower.world.bubbles;
+    const f0 = b.frames;
+    await new Promise((r) => setTimeout(r, 500));
+    return { layer: document.querySelector('.w-plane').style.willChange, running: b.running, drawn: b.frames - f0 };
+  });
+  check('…while it flies the plane gets its own layer; landed on Echo, the layer is dropped and the bubbles stop',
+    midFlight.layer === 'transform' && rest.layer === '' && !rest.running && rest.drawn === 0, JSON.stringify({ midFlight, rest }));
   check('the Une tag flies the camera to Echo: a real address, the motion blur only while moving', midFlight.moving && /wBlur/.test(midFlight.filter)
     && une.path === '/echo' && une.current === 'une' && une.centre < 30 && une.inside && une.filter === '', JSON.stringify({ midFlight, une }));
   check('…across the seam: the paper fades in, the switch reads Echo, Zone\'s visualiser rests', une.mix === '1.000' && une.echo && une.pressed === 'Echo'
@@ -660,10 +694,11 @@ try {
     window.__worldAudio = au;
     window.__worldMuted = 0;
     window.radioTower.player.addEventListener('playing', (e) => { if (!e.detail) window.__worldMuted += 1; });
-    // The player's own track change: a new src is loaded, and the element waits for its metadata, paused.
+    // The player's own track change: the track ends (the element pauses until the station's clock rolls over — up to
+    // ~1 s, measured on the code before the Zone skin too), a new src is loaded, and the element waits for its metadata, paused.
     window.__worldSwap = -1e9;
     window.__worldSwaps = 0;
-    for (const ev of ['emptied', 'loadstart']) au.addEventListener(ev, () => { window.__worldSwap = performance.now(); window.__worldSwaps += ev === 'loadstart' ? 1 : 0; });
+    for (const ev of ['ended', 'emptied', 'loadstart']) au.addEventListener(ev, () => { window.__worldSwap = performance.now(); window.__worldSwaps += ev === 'loadstart' ? 1 : 0; });
   });
   const pans = ['ondes', 'zone', 'atlas', 'une', 'articles', 'lectures', 'portfolio', 'playlists', 'radio', 'archives',
     'booth', 'une', 'radio', 'lectures', 'atlas', 'ondes', 'une', 'zone', 'articles', 'radio'];
@@ -743,6 +778,46 @@ try {
   await settled('radio');
   for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop, radio: ${v}`);
 
+  // « Écran »: the screen menu — four radio groups, arrows stay inside it, the choices apply at once and are remembered.
+  await w.click('.w-screen-btn');
+  const opened3 = await w.evaluate(() => {
+    const p = document.getElementById('wScreen');
+    return { shown: !p.hidden && p.getBoundingClientRect().height > 100, expanded: document.querySelector('.w-screen-btn').getAttribute('aria-expanded'),
+      groups: p.querySelectorAll('[role="radiogroup"]').length, radios: p.querySelectorAll('[role="radio"]').length,
+      focus: document.activeElement?.dataset.val || null, checked: document.activeElement?.getAttribute('aria-checked') };
+  });
+  await w.keyboard.press('ArrowRight');
+  await w.keyboard.press('ArrowDown');
+  const arrows = await w.evaluate(() => ({ focus: document.activeElement?.dataset.val, current: window.radioTower.world.current, path: location.pathname }));
+  for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop, Écran: ${v}`);
+  check('« Écran » opens from the HUD: 4 groups, 10 choices, focus on the current one; ← → ↑ ↓ move inside it and never walk the map',
+    opened3.shown && opened3.expanded === 'true' && opened3.groups === 4 && opened3.radios === 10 && opened3.focus === 'grid' && opened3.checked === 'true'
+    && arrows.focus === 'void' && arrows.current === 'radio' && arrows.path === '/radio', JSON.stringify({ opened3, arrows }));
+  for (const [set, val] of [['bg', 'rain'], ['list', 'stack'], ['bub', 'none'], ['scan', 'off']]) await w.click(`.w-opt[data-set="${set}"][data-val="${val}"]`);
+  const screened = () => w.evaluate(() => {
+    const root = document.querySelector('.w-root');
+    const tags = [...document.querySelectorAll('.w-tag')].map((b) => b.getBoundingClientRect());
+    const xs = tags.map((r) => r.left);
+    return {
+      bg: root.dataset.wBg, list: root.dataset.wList, bub: root.dataset.wBub, scan: root.dataset.wScan,
+      rain: getComputedStyle(document.querySelector('.w-dark'), '::after').animationName,
+      stacked: Math.max(...xs) - Math.min(...xs) <= 24 && Math.max(...tags.map((r) => r.right)) < 300 && tags.every((r, i) => i === 0 || r.top > tags[i - 1].top),
+      bubbles: window.radioTower.world.bubbles.running, scanShown: getComputedStyle(document.querySelector('.w-scan')).display !== 'none',
+      checked: [...document.querySelectorAll('.w-opt[aria-checked="true"]')].map((b) => b.dataset.val).join(),
+    };
+  });
+  const chosen = await screened();
+  await w.keyboard.press('Escape');
+  const closed = await w.evaluate(() => ({ hidden: document.getElementById('wScreen').hidden, focus: document.activeElement?.classList.contains('w-screen-btn') }));
+  check('…Pluie, Pile, no bubbles, no scan lines: each applies at once (rain falls, the tags stack down the left, the bubbles stop); Esc closes it back onto its button',
+    chosen.bg === 'rain' && chosen.rain === 'w-rain' && chosen.list === 'stack' && chosen.stacked && chosen.bub === 'none' && !chosen.bubbles && chosen.scan === 'off'
+    && !chosen.scanShown && chosen.checked === 'rain,none,stack,off' && closed.hidden && closed.focus, JSON.stringify({ chosen, closed }));
+  await w.reload({ waitUntil: 'domcontentloaded' });
+  await settled('radio');
+  const kept = await screened();
+  check('…and remembered by this browser after a reload', kept.bg === 'rain' && kept.list === 'stack' && kept.stacked && !kept.bubbles && !kept.scanShown, JSON.stringify(kept));
+  await w.evaluate(() => localStorage.removeItem('gt.world.screen'));
+
   await w.goto(dev + 'radio?world=0', { waitUntil: 'domcontentloaded' });
   await w.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
   await w.goto(dev + 'atlas', { waitUntil: 'domcontentloaded' });
@@ -762,6 +837,19 @@ try {
     return { moving: window.radioTower.world.camera.moving, filter: document.querySelector('.w-plane').style.filter, centre: Math.abs(r.left + r.width / 2 - innerWidth / 2) };
   });
   check('reduced motion: a cut, not a pan — no flight, no blur', !cut.moving && cut.filter === '' && cut.centre < 30, JSON.stringify(cut));
+  await still.click('.w-tag[data-go="ondes"]');
+  await still.waitForFunction(() => window.radioTower.world.current === 'ondes', null, { timeout: 8000 }).catch(() => {});
+  const calm = await still.evaluate(async () => {
+    document.querySelector('.w-root').dataset.wBg = 'rain';
+    await new Promise((r) => setTimeout(r, 400));
+    // The world's own ambient loops — its frame, not the pages inside the windows, which follow their own reduced-motion
+    // rules; the camera's 160 ms crossfade is the reduced-motion cut itself, not a loop.
+    const moving = document.getAnimations().filter((a) => a.playState === 'running' && a.effect?.getComputedTiming().iterations === Infinity
+      && a.effect.target?.closest?.('.w-root') && !a.effect.target.closest('.w-box'))
+      .map((a) => `${a.animationName || 'script'}@${a.effect.target.className}${a.effect.pseudoElement || ''}`);
+    return { moving, bubbles: window.radioTower.world.bubbles.list.length, running: window.radioTower.world.bubbles.running };
+  });
+  check('…and nothing in the world loops on its own: no bubbles, no light sweep, no rain', calm.moving.length === 0 && calm.bubbles === 0 && !calm.running, JSON.stringify(calm));
   await still.context().close();
 
   const wm = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
@@ -778,6 +866,13 @@ try {
   const flewTo = await wm.evaluate(() => ({ path: location.pathname, here: document.querySelector('.w-tag[aria-current="true"]')?.dataset.go }));
   check('world shell on a phone: the tags are one strip that scrolls, nothing overflows, a tap flies', strip.rows === 1 && strip.scrolls && strip.overflow <= 1
     && strip.minimap === 'none' && flewTo.path === '/echo' && flewTo.here === 'une', JSON.stringify({ ...strip, ...flewTo }));
+  const phoneSkin = await wm.evaluate(() => {
+    const btn = document.querySelector('.w-screen-btn').getBoundingClientRect();
+    return { btnIn: btn.left >= 0 && btn.right <= innerWidth && btn.width >= 32, glass: getComputedStyle(document.querySelector('#w-radio .w-win')).backdropFilter,
+      bubbles: window.radioTower.world.bubbles.list.length, name: document.querySelector('.w-screen-btn').textContent.trim() };
+  });
+  check('…the Zone skin on a phone: « Écran » fits the header as an icon (its name still read out), clear glass, half the bubbles', phoneSkin.btnIn
+    && phoneSkin.name === 'Écran' && phoneSkin.glass === 'none' && phoneSkin.bubbles === 5, JSON.stringify(phoneSkin));
   await wm.waitForFunction(() => document.querySelector('#w-une .w-box > .page')?.textContent.trim().length > 20, null, { timeout: 8000 }).catch(() => {});
   const phoneFrame = await wm.evaluate(() => {
     const s = document.getElementById('w-une').getBoundingClientRect();

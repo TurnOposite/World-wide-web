@@ -3434,3 +3434,27 @@ few lines tall, so the phone frame is portrait, capped at 700 px so stacked fram
 **Revisit if** a page needs to stay alive off camera (e.g. a visualiser in a neighbouring window): that is a page
 change, not a shell change.
 
+
+## 2026-10-22 — The world shell, phase 3: Zone's skin is re-pointed tokens, glass over the visualiser, two self-hosted faces
+
+**Chosen:** Zone's pages wear the redesign through `site.css`'s own tokens, re-pointed inside a Zone window
+(`.w-zone-d .w-box`: colours, radii, `--font`, `--mono`), not through per-page CSS. The windows are clear glass (74 %,
+88 % on a phone) over the station's visualiser, which is now Zone's background (the haze in front of it went from 80 %
+to 55 % night), with the cut-corner edge drawn *over* the glass. **Not frosted**, unlike the proposal's mock-up. « Écran » (`site/js/world/screen.js`) is
+the reader's screen menu — Fond (Grille / Pluie / Vide), bubbles, the tags scattered or stacked, scan lines — kept per
+browser in `localStorage`. Chakra Petch (400/600/700) and IBM Plex Mono (400) are self-hosted Latin subsets.
+**Because:** re-pointing tokens skins seven pages with no page code changed, so phase 2's contract (pages unchanged,
+same `mount`/`cleanup`) holds and the classic site is untouched. The solid edge backing of phase 2 sat under the glass
+and hid the visualiser — the one thing the glass is for — so the edge moved on top. A backdrop blur over a canvas
+that animates every frame is re-computed every frame: measured in headless Chrome on Radio, 18 fps with it, 39 without,
+41 for the classic page (scan lines, sweep and bubbles made no measurable difference) — so the glass is thicker
+instead. The plane gets `will-change` only in flight, because a layer kept at rest drew the scaled text soft. « Écran » is a viewer's taste, so it lives in
+the viewer's browser; the broadcast look stays the DJ's (control plane) and the visualiser panel's (V).
+**Fonts, not a dependency:** four `.woff2` files copied from Fontsource's npm packages (OFL; credited in
+`site/fonts/OFL.txt`), ~44 KB, fetched only by `world.css`. No package added, no Google Fonts call. With the Gazette's
+faces (~129 KB, fetched only on Echo) the total is over the proposal's 130 KB font budget; a Zone-only visit stays at
+~44 KB.
+**Not built:** the mock-up's « Direction » row (A / B / C) — direction A is assumed until Ortis answers, and choosing
+between directions is his call, not a reader setting.
+**Revisit if** a page hard-codes a colour that clashes on the glass (it keeps it: fix the page's token use, not the
+skin), or if a real-machine profile (with a GPU) shows a frosted window is cheap enough to bring back.

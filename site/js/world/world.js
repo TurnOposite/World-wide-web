@@ -12,11 +12,18 @@
  * a door — a real link to its address, so Tab still finds it, and focusing
  * it flies the camera there. The mini-player and the one <audio> are
  * outside the plane, so the radio plays through every flight.
+ *
+ * Phase 3: the Zone skin. The station's visualiser glows through Zone's
+ * ground, glass bubbles drift in front of it, and « Écran » (screen.js) lets
+ * the reader pick what is behind the windows, the bubbles, the menu's shape
+ * and the scan lines.
  */
 import { DISTRICTS, PHONE_MAX, byId, districtFor, frameFor, pageZoom } from './layout.js';
 import { Camera } from './camera.js';
 import { mountTags } from './tags.js';
 import { mountMinimap } from './minimap.js';
+import { Bubbles } from './bubbles.js';
+import { bubbleCount, mountScreen } from './screen.js';
 import { ZONE_LABEL, ECHO_LABEL } from '../labels.js';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -102,6 +109,11 @@ export async function mountWorld({ router, site = {} }) {
   const far = el('div', 'w-far');
   far.setAttribute('aria-hidden', 'true');
   far.append(el('i', 'w-dark'), el('i', 'w-light'));
+  const bubbleCanvas = el('canvas', 'w-bubbles');
+  bubbleCanvas.setAttribute('aria-hidden', 'true');
+  const bubbles = new Bubbles(bubbleCanvas);
+  const scan = el('div', 'w-scan');
+  scan.setAttribute('aria-hidden', 'true');
 
   const viewport = el('div', 'w-viewport');
   const plane = el('div', 'w-plane');
@@ -144,7 +156,13 @@ export async function mountWorld({ router, site = {} }) {
   let current = null;
   const minimap = mountMinimap((id) => pick(id));
   const tags = mountTags((id) => pick(id));
-  hud.append(title, brand, sw, minimap.svg);
+  const phone = matchMedia(`(max-width: ${PHONE_MAX}px)`);
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+  const count = (bub) => bubbles.setCount(bubbleCount(bub, { phone: phone.matches, reduced: reduced.matches }));
+  const screen = mountScreen({ root, onChange: (p) => count(p.bub) });
+  phone.addEventListener?.('change', () => count(screen.prefs.bub));
+  reduced.addEventListener?.('change', () => count(screen.prefs.bub));
+  hud.append(title, brand, sw, screen.button, minimap.svg);
 
   // The motion blur: one SVG filter the camera turns up while it moves.
   const defs = document.createElementNS(NS, 'svg');
@@ -164,10 +182,9 @@ export async function mountWorld({ router, site = {} }) {
   const lostBox = el('div', 'w-box');
   lost.append(lostH, lostBox);
 
-  root.append(far, hud, tags.nav, viewport, lost, defs);
+  root.append(far, bubbleCanvas, hud, screen.panel, tags.nav, viewport, scan, lost, defs);
   document.getElementById('minibar').before(root);
 
-  const phone = matchMedia(`(max-width: ${PHONE_MAX}px)`);
   const camera = new Camera(plane, {
     blur: defs.querySelector('feGaussianBlur'),
     onPaint: (cam, mix) => {
@@ -175,6 +192,7 @@ export async function mountWorld({ router, site = {} }) {
       root.style.setProperty('--w-px', `${(cam.tx * 0.22).toFixed(1)}px`);
       root.style.setProperty('--w-py', `${(cam.ty * 0.22).toFixed(1)}px`);
       root.classList.toggle('w-at-echo', mix > 0.5);
+      bubbles.follow(mix, cam.tx);
       minimap.draw(cam, current);
     },
   });
@@ -269,6 +287,8 @@ export async function mountWorld({ router, site = {} }) {
 
   return {
     camera,
+    bubbles,
+    screen,
     get current() { return current; },
     pick,
     /**

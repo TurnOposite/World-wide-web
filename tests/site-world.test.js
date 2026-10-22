@@ -13,6 +13,7 @@ import {
   WORLD, DISTRICTS, MIN_SCALE, PHONE_MAX, byId, districtFor, frameFor, cameraFor, pageZoom, centreOf, flightMs, ease, pullBack, seamMix, nearest,
 } from '../site/js/world/layout.js';
 import { routes } from '../scripts/site-build.mjs';
+import { SCREEN_KEY, SCREEN_OPTIONS, SCREEN_DEFAULTS, normalScreen, readScreen, writeScreen, bubbleCount } from '../site/js/world/screen.js';
 
 function memoryStorage() {
   const m = new Map();
@@ -174,4 +175,59 @@ test('a click on the minimap picks the district under it', () => {
   for (const d of DISTRICTS) assert.equal(nearest(d.x + d.w / 2, d.y + d.h / 2).id, d.id);
   assert.equal(nearest(0, 0).id, 'radio');
   assert.equal(nearest(WORLD.w, WORLD.h).id, 'archives');
+});
+
+test('« Écran »: four settings, each default one of its own choices, anything unknown falls back', () => {
+  assert.deepEqual(Object.keys(SCREEN_OPTIONS), ['bg', 'bub', 'list', 'scan']);
+  assert.deepEqual(SCREEN_OPTIONS.bg.choices.map(([v]) => v), ['grid', 'rain', 'void'], 'Grille, Pluie, Vide');
+  for (const [k, { choices }] of Object.entries(SCREEN_OPTIONS)) {
+    assert.ok(choices.some(([v]) => v === SCREEN_DEFAULTS[k]), `default ${k} is a choice`);
+    assert.ok(choices.every(([v, name]) => v && name), `${k}: every choice has a value and a name`);
+  }
+  assert.deepEqual(normalScreen(null), SCREEN_DEFAULTS);
+  assert.deepEqual(normalScreen('rain'), SCREEN_DEFAULTS);
+  assert.deepEqual(normalScreen({ bg: 'rain', bub: 'lots', list: 'stack', scan: 0, extra: 'x' }),
+    { ...SCREEN_DEFAULTS, bg: 'rain', list: 'stack' }, 'only known values survive, nothing extra');
+});
+
+test('« Écran » is remembered per browser, and a broken or blocked storage gives the defaults', () => {
+  const store = memoryStorage();
+  assert.deepEqual(readScreen(store), SCREEN_DEFAULTS);
+  writeScreen(store, { ...SCREEN_DEFAULTS, bg: 'void', scan: 'off' });
+  assert.deepEqual(readScreen(store), { ...SCREEN_DEFAULTS, bg: 'void', scan: 'off' });
+  store.setItem(SCREEN_KEY, '{not json');
+  assert.deepEqual(readScreen(store), SCREEN_DEFAULTS);
+  const blocked = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } };
+  assert.deepEqual(readScreen(blocked), SCREEN_DEFAULTS);
+  assert.doesNotThrow(() => writeScreen(blocked, SCREEN_DEFAULTS));
+  assert.deepEqual(readScreen(null), SCREEN_DEFAULTS);
+});
+
+test('the bubbles: at most 26, half on a phone, none when asked or under reduced motion', () => {
+  assert.equal(bubbleCount('few'), 10);
+  assert.equal(bubbleCount('many'), 26);
+  assert.equal(bubbleCount('none'), 0);
+  assert.equal(bubbleCount('???'), 10);
+  assert.equal(bubbleCount('many', { phone: true }), 13);
+  assert.equal(bubbleCount('few', { phone: true }), 5);
+  for (const p of ['few', 'many', 'none']) assert.equal(bubbleCount(p, { reduced: true }), 0);
+});
+
+test('Zone\'s faces are self-hosted: every @font-face in world.css points at a woff2 in site/fonts, with its licence', () => {
+  const css = fs.readFileSync(new URL('../site/css/world.css', import.meta.url), 'utf8');
+  const faces = [...css.matchAll(/@font-face\{[^}]*\}/g)].map((m) => m[0]);
+  const fams = new Set(faces.map((f) => f.match(/font-family:"([^"]+)"/)[1]));
+  assert.deepEqual([...fams].sort(), ['Chakra Petch', 'IBM Plex Mono']);
+  let bytes = 0;
+  for (const f of faces) {
+    const src = f.match(/url\("\.\.\/fonts\/([\w-]+\.woff2)"\)/);
+    assert.ok(src, `local woff2 only: ${f.slice(0, 80)}`);
+    bytes += fs.statSync(new URL(`../site/fonts/${src[1]}`, import.meta.url)).size;
+    assert.match(f, /font-display:swap/);
+  }
+  assert.ok(bytes < 60 * 1024, `Zone's fonts stay small: ${bytes} bytes`);
+  assert.doesNotMatch(css, /fonts\.(googleapis|gstatic)\.com/);
+  const ofl = fs.readFileSync(new URL('../site/fonts/OFL.txt', import.meta.url), 'utf8');
+  assert.match(ofl, /Chakra Petch Project Authors/);
+  assert.match(ofl, /IBM Corp/);
 });
