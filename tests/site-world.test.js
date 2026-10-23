@@ -10,8 +10,9 @@ import fs from 'node:fs';
 
 import { worldChoice, worldWanted } from '../site/js/world/flag.js';
 import {
-  WORLD, DISTRICTS, MIN_SCALE, PHONE_MAX, byId, districtFor, frameFor, cameraFor, pageZoom, centreOf, flightMs, ease, pullBack, seamMix, nearest,
+  WORLD, DISTRICTS, FIGURES, MIN_SCALE, PHONE_MAX, byId, districtFor, frameFor, cameraFor, pageZoom, centreOf, flightMs, ease, pullBack, seamMix, nearest,
 } from '../site/js/world/layout.js';
+import { byTag, pressOf, dateFr } from '../site/js/pages/archives.js';
 import { routes } from '../scripts/site-build.mjs';
 import { SCREEN_KEY, SCREEN_OPTIONS, SCREEN_DEFAULTS, normalScreen, readScreen, writeScreen, bubbleCount } from '../site/js/world/screen.js';
 
@@ -76,16 +77,59 @@ test('every route lands in a district, and every district with a page names a ro
   for (const d of DISTRICTS) if (d.route !== null) assert.ok(served.has(d.route), `${d.id} → /${d.route}`);
   const expect = {
     home: 'radio', radio: 'radio', ondes: 'ondes', zone: 'zone', atlas: 'atlas', portfolio: 'portfolio',
-    playlists: 'playlists', booth: 'booth', lectures: 'lectures', ecrits: 'lectures',
+    playlists: 'playlists', booth: 'booth', lectures: 'lectures', ecrits: 'lectures', archives: 'archives',
   };
   for (const [name, id] of Object.entries(expect)) assert.equal(districtFor(name, {}), id, name);
   assert.equal(districtFor('echo', {}), 'une');
   assert.equal(districtFor('echo', { slug: 'article-temoin' }), 'articles', 'an article opens on the reading desk');
   assert.equal(districtFor('missing', {}), null, 'a page that does not exist leaves the camera where it is');
   // Every route name main.js declares is mapped (a new route must be placed on the map).
-  for (const name of ['home', 'radio', 'ondes', 'playlists', 'atlas', 'lectures', 'zone', 'ecrits', 'echo', 'portfolio', 'booth']) {
+  for (const name of ['home', 'radio', 'ondes', 'playlists', 'atlas', 'lectures', 'zone', 'ecrits', 'archives', 'echo', 'portfolio', 'booth']) {
     assert.ok(districtFor(name, {}), name);
   }
+  // Since phase 4 only Articles has no address of its own: it is reached through an article's.
+  assert.deepEqual(DISTRICTS.filter((d) => d.route === null).map((d) => d.id), ['articles']);
+  assert.equal(byId('archives').route, 'echo/archives');
+});
+
+test('Echo\'s figures stand on the paper, in the gutters: never over a window, every one a symbol the Gazette draws', () => {
+  const sprite = fs.readFileSync(new URL('../site/js/ui/echo-front.js', import.meta.url), 'utf8');
+  assert.ok(FIGURES.length >= 4);
+  for (const f of FIGURES) {
+    assert.ok(sprite.includes(`id="s-${f.kind}"`), `${f.kind} is a symbol of echo-front.js`);
+    assert.ok(f.x >= WORLD.seam + 20 && f.x + f.w <= WORLD.w && f.y >= 0 && f.y + f.h <= WORLD.h, `${f.kind} is on Echo's paper, past the torn edge`);
+    for (const d of DISTRICTS) {
+      const apart = f.x + f.w <= d.x || d.x + d.w <= f.x || f.y + f.h <= d.y || d.y + d.h <= f.y;
+      assert.ok(apart, `${f.kind} stands over ${d.id}`);
+    }
+  }
+});
+
+test('Archives: the press from the Atlas\'s places, the articles by tag, French dates', () => {
+  const places = JSON.parse(fs.readFileSync(new URL('../site/data/places.json', import.meta.url), 'utf8')).places;
+  const press = pressOf(places);
+  assert.ok(press.length >= 1, 'at least the Jornal NH');
+  const nh = press.find((p) => p.slug === 'novo-hamburgo');
+  assert.ok(nh && /Jornal NH/.test(nh.outlet));
+  const src = places.find((p) => p.slug === 'novo-hamburgo').press;
+  assert.equal(nh.column.items.length, src.column.items.length, 'every column is listed');
+  assert.equal(nh.series.items.length, src.series.items.length, 'every episode of the series is listed');
+  for (const list of [nh.column.items, nh.series.items]) {
+    assert.deepEqual(list.map((i) => i.date), list.map((i) => i.date).sort(), 'in date order');
+    for (const i of list) assert.ok(fs.existsSync(new URL(`../site/${i.pages[0]}`, import.meta.url)), `${i.pages[0]} is on the site`);
+  }
+  assert.ok(nh.from <= nh.to && nh.from === [...src.column.items, ...src.series.items].map((i) => i.date).sort()[0]);
+  assert.deepEqual(pressOf([{ slug: 'x' }, { slug: 'y', press: { outlet: 'Z', column: { title: 't', items: [] } } }]), [], 'a place without press is left out');
+
+  const arts = [
+    { slug: 'b', title: 'B', date: '2026-02-01', tags: ['Écologie', 'paris'] },
+    { slug: 'a', title: 'A', date: '2026-01-01', tags: ['paris'] },
+  ];
+  assert.deepEqual(byTag(arts).map((t) => [t.tag, t.articles.map((a) => a.slug)]), [['Écologie', ['b']], ['paris', ['b', 'a']]],
+    'tags in French order, articles kept newest first');
+  assert.deepEqual(byTag([]), []);
+  assert.equal(dateFr('2024-06-06'), '6 juin 2024');
+  assert.equal(dateFr('2024-08-01'), '1er août 2024');
 });
 
 test('the camera centres a district in the free area and fits the whole frame', () => {

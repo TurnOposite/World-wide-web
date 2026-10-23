@@ -163,6 +163,8 @@ test('Echo: typography and front-matter errors', () => {
   assert.equal(frenchTypo('Quoi ? Oui : « non »!'), 'Quoi\u202f? Oui\u00a0: «\u00a0non\u00a0»\u202f!');
   assert.throws(() => parseArticle('bad.md', '---\ntitle: x\n---\ntext'), /name must be/);
   assert.throws(() => parseArticle('2026-01-01-x.md', '---\ntitle: x\n---\ntext'), /lacks "standfirst"/);
+  // /echo/lectures and /echo/archives are pages: an article with that slug could never be opened.
+  for (const slug of ['lectures', 'archives']) assert.throws(() => parseArticle(`2026-01-01-${slug}.md`, '---\ntitle: x\n---\ntext'), /another Echo page/);
 });
 
 test('Echo: site/data/echo.json is not stale', () => {

@@ -8,6 +8,10 @@
  *
  * The silhouettes are shapes (a flag, a fist, a crowd, a drum, a horn, a
  * statue), not people.
+ *
+ * In the world (docs/WORLD.md) the window is the sheet and the world draws
+ * the night, the figures and the ash itself, on Echo's ground: frame() then
+ * gives the paper column alone.
  */
 import { esc } from './util.js';
 
@@ -23,7 +27,10 @@ const SIDES = {
   right: [['drum', 150, 250], ['horn', 182, 130], ['statue', 150, 300]],
 };
 
-function ensureSprite() {
+/** Is the page opening in a window of the world rather than in the classic shell? */
+export const inWorld = () => document.documentElement.classList.contains('world-on');
+
+export function ensureSprite() {
   if (document.getElementById('echoSprite')) return;
   const d = document.createElement('div');
   d.id = 'echoSprite';
@@ -44,7 +51,7 @@ const dateFr = (d = new Date()) => d.toLocaleDateString('fr-FR', { weekday: 'lon
 /** The Zone / Média navigation line at the top of the paper. */
 export function znav(current = 'echo') {
   const on = (k) => (current === k ? ' class="on" aria-current="page"' : '');
-  return `<nav class="echo-znav" aria-label="Rubriques"><span class="zl">Zone</span><a href="radio" data-link>Radio</a><a href="atlas" data-link>Atlas</a><a href="portfolio" data-link>Portfolio</a><span class="sep" aria-hidden="true"></span><span class="zl">Média</span><a href="echo" data-link${on('echo')}>Echo</a><a href="echo/lectures" data-link${on('lectures')}>Lectures</a></nav>`;
+  return `<nav class="echo-znav" aria-label="Rubriques"><span class="zl">Zone</span><a href="radio" data-link>Radio</a><a href="atlas" data-link>Atlas</a><a href="portfolio" data-link>Portfolio</a><span class="sep" aria-hidden="true"></span><span class="zl">Média</span><a href="echo" data-link${on('echo')}>Echo</a><a href="echo/lectures" data-link${on('lectures')}>Lectures</a><a href="echo/archives" data-link${on('archives')}>Archives</a></nav>`;
 }
 
 /** Nameplate: the full masthead on the front page, a small link back on the others. */
@@ -59,6 +66,8 @@ export function nameplate({ full = false, tag = 'Reportages et analyses' } = {})
  * @param {{current?:string, full?:boolean, sides?:number, slow?:boolean, tag?:string}} o
  */
 export function frame(inner, { current = 'echo', full = false, sides = 3, tag } = {}) {
+  // The world's tags are the navigation, and its Echo ground carries the figures and the ash.
+  if (inWorld()) return `<div class="echo-stage echo-in-world"><div class="echo-col">${nameplate({ full, tag })}${inner}</div></div>`;
   ensureSprite();
   return `<div class="echo-stage${sides < 3 ? ' echo-calm' : ''}">
     <canvas class="echo-ash" aria-hidden="true"></canvas>
@@ -73,12 +82,14 @@ export function frame(inner, { current = 'echo', full = false, sides = 3, tag } 
 /**
  * Ash drifting down and a few embers rising, on a canvas. Returns stop().
  * `slow` halves the speed (article pages). Paused while off-screen or hidden.
+ * `ink` is the world's paper ground: dark flakes, fewer, Gazette-red embers.
+ * No canvas (a page in the world's window) is nothing to run.
  */
-export function ash(canvas, { slow = false, reduced = matchMedia('(prefers-reduced-motion: reduce)').matches } = {}) {
-  const ctx = canvas.getContext('2d');
+export function ash(canvas, { slow = false, ink = false, reduced = matchMedia('(prefers-reduced-motion: reduce)').matches } = {}) {
+  const ctx = canvas?.getContext('2d');
   if (!ctx) return () => {};
-  const ASH = 'rgba(200,196,190,.55)';
-  const EMBER = 'rgba(255,72,40,.9)';
+  const ASH = ink ? 'rgba(40,37,34,.42)' : 'rgba(200,196,190,.55)';
+  const EMBER = ink ? 'rgba(168,18,28,.8)' : 'rgba(255,72,40,.9)';
   const k = slow ? 0.5 : 1;
   let W = 0, H = 0, raf = 0, visible = true, ps = [];
   const spawn = (init, ember) => {
@@ -118,7 +129,7 @@ export function ash(canvas, { slow = false, reduced = matchMedia('(prefers-reduc
     if (!W || !H) return;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const n = Math.min(110, Math.round(W * H / 9000));
+    const n = Math.min(110, Math.round(W * H / (ink ? 14000 : 9000)));
     ps = Array.from({ length: n }, () => spawn(true));
     draw(true);
   };

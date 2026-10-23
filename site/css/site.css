@@ -708,6 +708,34 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .echo-list a:hover b{text-decoration:underline}
 .echo-list .echo-dek{font-size:16px}
 
+/* two columns: the Une's lead and its side column (in the world: « À l'antenne », Lectures), Archives' press and the rest */
+.echo-cols{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:22px;align-items:start}
+.echo-cols>.echo-aside{display:grid;gap:18px;align-content:start;border-left:1px solid var(--ink);padding-left:20px}
+.echo-aside h2,.echo-archives h2{font:700 21px/1.2 "Old Standard TT",Georgia,serif;margin:0 0 6px}
+.echo-aside section{display:grid;gap:6px}
+.echo-onair{border:1px solid var(--ink);padding:10px 12px}
+.echo-onair .echo-meta{text-transform:uppercase;font-variant:normal;font-size:11px;letter-spacing:.18em}
+.echo-onair-t b{font-size:18px}
+.echo-go{color:var(--red);font-weight:700;text-decoration:none}
+.echo-go:hover{text-decoration:underline}
+
+/* Archives */
+.echo-archives{display:grid;gap:14px;container-type:inline-size}
+.echo-archives h1{font-size:clamp(34px,6cqw,56px);line-height:1}
+.echo-archives h3{font:700 18px/1.25 "Old Standard TT",Georgia,serif;margin:6px 0 0}
+.echo-archives h3.echo-kicker{font:700 12px/1.2 "Libre Caslon Text",Georgia,serif;margin:10px 0 4px}
+.echo-press{display:grid;gap:6px;margin-bottom:18px}
+.echo-sub{font-style:italic;margin-top:8px}
+.echo-press-list li{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0}
+.echo-tag-list li{display:grid;gap:2px;padding:7px 0}
+.echo-press-list a,.echo-tag-list a{display:block;padding:0}
+.echo-press-list b,.echo-tag-list b{font-size:16px;line-height:1.3}
+.echo-press-list .echo-meta,.echo-tag-list .echo-meta{flex:none}
+@container (max-width:640px){
+  .echo-cols{grid-template-columns:minmax(0,1fr)}
+  .echo-cols>.echo-aside{border-left:0;padding-left:0;border-top:1px solid var(--ink);padding-top:14px}
+}
+
 /* narrow screens: the side figures become one band above the paper */
 @container (max-width:760px){
   .echo-layout{grid-template-columns:minmax(0,1fr);gap:0;padding:0}

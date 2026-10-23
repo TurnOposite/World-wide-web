@@ -3458,3 +3458,30 @@ faces (~129 KB, fetched only on Echo) the total is over the proposal's 130 KB fo
 between directions is his call, not a reader setting.
 **Revisit if** a page hard-codes a colour that clashes on the glass (it keeps it: fix the page's token use, not the
 skin), or if a real-machine profile (with a GPU) shows a frosted window is cheap enough to bring back.
+
+
+## 2026-10-23 — The world shell, phase 4: Echo's window is the sheet, its night sides become its ground, Archives gets an address
+
+**Chosen:** in the world, Echo's pages open as the bare Gazette column — `echo-front.js`'s `frame()` leaves out the
+night sides, the silhouettes, the per-page ash and the Zone/Média line when the world is on (`inWorld()`), and the
+column loses its own paper, margins and shadow inside the window. The classic Une's night sides move onto Echo's
+ground: the six silhouettes stand in the gutters between Echo's windows (`layout.js` `FIGURES`, never over a window),
+and the ash falls on the far layer's paper behind the windows, in ink (`ash({ ink: true })`), only while the camera is
+on Echo. For that, the plane's paper fades out as the camera crosses the seam; the seam itself is a torn paper edge
+over a thin red rim. Archives (E-04) became a page, `/echo/archives`, on the classic site as well: the press of every
+Atlas card (today the Jornal NH), the articles by tag, the collections (→ Portfolio) and the feed. The Une gets R9's
+« À l'antenne » column in the world only. Article slugs `lectures` and `archives` are refused by `site-echo.mjs`.
+**Because:** R9 asks for "the Gazette CSS in district windows" and for "the silhouettes and ash [to] become the Echo
+side's backdrop" — every feature in its map kept. Drawing the night sides inside each window would have put a dark
+frame inside a paper window on a paper half; drawing them once on the ground keeps one ash loop (as the classic Une
+had) and no per-page canvas. The ash cannot sit between the plane's paper and the windows without a world-sized
+canvas (2600 × 2600 px), so the plane's paper gives way to the far layer's — which already took over at rest on Echo,
+since the far layer crossfades with the same `--w-mix`. Archives on the classic site too, because a page that only
+exists behind a flag cannot be linked to, and the classic shell is still what is live. The live box stays out of the
+classic Une, which Ortis approved as it is (B1c).
+**Print:** R9's check for this phase ("print preview of an article is unchanged") is a smoke test: printed at A4
+width, an article from the world and from the classic site have the same column, headline, body and notes, the same
+PDF page count, and nothing of the world on paper (`world.css` lays the district in view out flat).
+**Not built:** R9's « ♪ next on air » markers on the Lectures list — the score box on each scored text already says
+when its music plays next. **Revisit if** the ash on paper reads as dirt on a real screen (the ink colour and density
+are two constants in `ash()`), or if an Echo page grows content that needs the night sides back.

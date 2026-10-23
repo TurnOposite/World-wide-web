@@ -80,6 +80,37 @@ is the classic one, and the site smoke test checks that no world and no `world.c
 - **Crisp text.** The plane gets `will-change: transform` only while it flies; kept after
   landing, Chrome drew the scaled windows from a bitmap and their text went soft.
 
+## The Echo skin (phase 4)
+
+- **The window is the sheet.** In the world, `ui/echo-front.js`'s `frame()` gives Echo's pages
+  (the Une, an article, Lectures, Archives) the bare Gazette column: the nameplate and the
+  page, without the classic night sides, silhouettes, ash canvas or Zone/Média line. The column
+  drops its own paper, margins and shadow inside the window (`.w-echo-d .echo-in-world`); the
+  window's tab is an ink label in Old Standard. The classic pages are unchanged.
+- **The night sides became Echo's ground.** The silhouettes (`layout.js` `FIGURES`, the same
+  six symbols — shapes, not people) stand on the paper in the gutters between Echo's windows,
+  never over one (unit-tested); ink with a thin red rim, static. The ash falls on the far
+  layer's paper behind the windows (`ash()` with `ink: true`: dark flakes, fewer, Gazette-red
+  embers), running only while the camera is on Echo and stopping once a flight back to Zone has
+  landed; under reduced motion it is drawn once and lies still. For the ash to show, the
+  plane's paper (`.w-ground`) fades out as the camera crosses (`1 − --w-mix`): at rest on Echo
+  the paper you see is the far layer's.
+- **The seam** is a torn edge of paper (`.w-tear`, an SVG tile repeated down a mask) over a
+  2 px red rim, where Zone's scan dashes run out. It shows from Zone; over Echo it fades with the
+  plane's paper.
+- **Cross-world links.** The Une gets R9's side column in the world: « À l'antenne » (the track
+  on air, live, and « ← Aller à la radio », which flies back across the seam) and a Lectures
+  teaser. Archives links to Zone's Portfolio and to each Atlas card that carries press. Both are
+  ordinary links through the router: the flight is the camera following the address.
+- **Archives** (`pages/archives.js`, `/echo/archives`, E-04) has an address: the press (every
+  column and series on the Atlas's cards — today the Jornal NH, 26 + 4, the PDFs open in a new
+  tab), every article by tag, the collections (→ Portfolio) and the Atom feed. It is on the
+  classic site too (the Gazette's Média line links it). `site-echo.mjs` refuses the article slugs
+  `lectures` and `archives`, which would be shadowed by those pages.
+- **On paper** an article prints from the world as from the classic site (`world.css`'s print
+  block lays the district in view out flat and hides the rest; `site.css`'s print rules do the
+  rest) — smoke-tested at A4 width: same column, headline, body and notes, same PDF page count.
+
 ## Files
 
 | File | What |
@@ -91,6 +122,8 @@ is the classic one, and the site smoke test checks that no world and no `world.c
 | `site/js/world/minimap.js` | the world at 1/30, a pointer shortcut (`aria-hidden`: the tags say the same) |
 | `site/js/world/screen.js` | « Écran »: the four settings as data (unit-tested), their storage, the panel |
 | `site/js/world/bubbles.js` | the glass bubbles behind Zone's windows, and when their loop runs |
+| `site/js/ui/echo-front.js` | the Gazette's frame and ash, shared by the classic Echo pages; in the world, the bare column (`inWorld()`), the sprite and the ink ash for Echo's ground |
+| `site/js/pages/archives.js` | `/echo/archives`: the press, the articles by tag, the collections, the feed (its index functions are unit-tested) |
 | `site/js/world/world.js` | mounts all of it beside the classic shell; the router's `render` calls `world.show(match)` and mounts the page in the box it returns |
 | `site/css/world.css` | loaded only when the world is on; direction A « Velvet Grid » tokens, prefixed `--w-`; Zone's `@font-face` |
 | `site/fonts/ChakraPetch-*.woff2`, `IBMPlexMono-400.woff2` | Zone's faces (Latin subsets from Fontsource, OFL) |
@@ -109,7 +142,7 @@ is the classic one, and the site smoke test checks that no world and no `world.c
 | Une | E-01 | `/echo` | Echo |
 | Articles | E-02 | `/echo/<slug>` (its tag moves only the camera) | Echo |
 | Lectures | E-03 | `/echo/lectures…`, `/ecrits…` | Echo |
-| Archives | E-04 | none yet (phase 4: press, tag index, feed) | Echo |
+| Archives | E-04 | `/echo/archives` | Echo |
 
 A tag with a route goes through the router — a real address, Back and Forward work, a cold
 link lands with the camera already there and no flight. ← → walk the districts in map order
@@ -132,8 +165,13 @@ switch flies to Radio or Une.
    the plane crisp at rest. Smoke-tested: the faces load from the site, no backdrop blur, the
    layer dropped and the bubbles stopped on landing on Echo, each « Écran » choice applies and survives a reload,
    nothing in the world moves under reduced motion, axe on the open menu.
-4. **Echo skin + the seam** — the Gazette inside district windows, cross-world links
-   (« À l'antenne » → Radio, Archives → Portfolio), the Archives index.
+4. **Echo skin + the seam** — done 2026-10-23: the Gazette as the bare column inside Echo's
+   windows, its silhouettes and ash moved onto Echo's paper, the torn seam, « À l'antenne » →
+   Radio and Archives → Portfolio, the Archives page (`/echo/archives`, classic too).
+   Smoke-tested: the Une bare in its window with the live box, the figures and the ash running
+   (and still under reduced motion), the crossing to Radio with the radio playing and the ash
+   stopped, the torn edge seen from Zone, Archives listing every piece of press, the crossing to
+   Portfolio, the article printing as on the classic site.
 5. **Phone + switch-over** — swipe between the halves, scroll inside each; flip the flag,
    keep the classic shell one release as `?classic=1`; checked on a real phone.
 
@@ -147,9 +185,10 @@ switch flies to Radio or Une.
 
 ## Known limits (for the phases ahead)
 
-- Echo's pages keep their classic styling inside the windows: the Gazette still draws its own
-  night sides and its own Zone/Echo nav inside E-01…E-03. Phase 4 dresses them. (Zone's pages
-  wear the skin since phase 3, through their tokens; a page that hard-codes a colour keeps it.)
+- Zone's pages wear the skin through their tokens (phase 3); a page that hard-codes a colour
+  keeps it.
+- R9's « ♪ next on air » markers on the Lectures list are not built: the score box on each
+  scored text (already there) says when its music next plays.
 - A phone held sideways (wider than 760 px, ~390 px tall) gets the desktop layout at the
   minimum scale: a short window. Phase 5 is the phone phase.
 - Not measured in the cloud: frame rate. The proposal's target (60 fps camera on a desktop,

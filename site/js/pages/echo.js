@@ -6,7 +6,7 @@
  * tag filter, and a reading page.
  */
 import { esc } from '../ui/util.js';
-import { frame, ash } from '../ui/echo-front.js';
+import { frame, ash, inWorld } from '../ui/echo-front.js';
 
 export const title = 'Echo';
 
@@ -44,6 +44,31 @@ function lead(a) {
     </article>`;
 }
 
+/**
+ * In the world, the Une's side column (R9, E-01): what Zone is playing right
+ * now — the way back across the seam — and a teaser for Lectures.
+ */
+function aside(texts) {
+  const some = texts.slice(0, 3).map((t) => `<a href="echo/lectures/${esc(t.slug)}" data-link>${esc(t.title)}</a>`).join(' · ');
+  return `<div class="echo-aside">
+      <section class="echo-onair">
+        <h2>À l'antenne</h2>
+        <p class="echo-meta">Zone · en direct</p>
+        <p class="echo-onair-t" aria-live="polite"><b data-onair-title>—</b> <span data-onair-artist></span></p>
+        <p><a class="echo-go" href="radio" data-link>← Aller à la radio</a></p>
+      </section>
+      <section class="echo-teaser">
+        <h2>Lectures</h2>
+        <p>${some}</p>
+        <p><a class="echo-go" href="echo/lectures" data-link>Tous les textes →</a></p>
+      </section>
+    </div>`;
+}
+
+async function loadTexts() {
+  try { return (await (await fetch(new URL('data/texts.json', document.baseURI))).json()).texts || []; } catch { return []; }
+}
+
 export async function mount(root, ctx) {
   const data = await load();
   const slug = ctx.params.slug;
@@ -51,17 +76,34 @@ export async function mount(root, ctx) {
     document.title = 'Echo';
     const tags = [...new Set(data.articles.flatMap((a) => a.tags))].sort((x, y) => x.localeCompare(y, 'fr'));
     const [first, ...rest] = data.articles;
+    const world = inWorld();
+    const top = first ? lead(first) : '';
     root.innerHTML = frame(`
         <div class="echo-filter" role="group" aria-label="Filtrer par thème">
           <button type="button" class="chip" data-tag="" aria-pressed="true">Tout</button>
           ${tags.map((t) => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="false">${esc(t)}</button>`).join('')}
         </div>
-        ${first ? lead(first) : ''}
+        ${world ? `<div class="echo-cols">${top}${aside(await loadTexts())}</div>` : top}
         <div class="echo-grid" id="articles">${rest.map(card).join('')}</div>
-        <p class="echo-foot"><a href="echo/lectures" data-link>Lectures →</a><a href="radio" data-link>Zone · la radio en direct</a></p>`,
+        <p class="echo-foot"><a href="echo/lectures" data-link>Lectures →</a>${world ? '<a href="echo/archives" data-link>Archives →</a>' : ''}<a href="radio" data-link>Zone · la radio en direct</a></p>`,
     { current: 'echo', full: true });
     root.firstElementChild.classList.add('echo-front');
     const stopAsh = ash(root.querySelector('.echo-ash'));
+    let stopAir = () => {};
+    if (world) {
+      const t = root.querySelector('[data-onair-title]');
+      const by = root.querySelector('[data-onair-artist]');
+      const paint = () => {
+        const on = ctx.player.onAir;
+        const ch = ctx.player.station?.channelLabel;
+        t.textContent = on ? on.title : 'Silence';
+        by.textContent = on ? `— ${on.artist}${ch ? ` · ${ch}` : ''}` : '';
+      };
+      paint();
+      ctx.player.addEventListener('station', paint);
+      ctx.player.addEventListener('track', paint);
+      stopAir = () => { ctx.player.removeEventListener('station', paint); ctx.player.removeEventListener('track', paint); };
+    }
     const apply = (tag) => {
       root.querySelectorAll('.echo-filter .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tag === tag)));
       root.querySelectorAll('.echo-card').forEach((c) => { c.hidden = Boolean(tag) && !c.dataset.tags.split('|').includes(tag); });
@@ -70,7 +112,7 @@ export async function mount(root, ctx) {
       const b = e.target.closest('.chip');
       if (b) apply(b.dataset.tag);
     });
-    return stopAsh;
+    return () => { stopAsh(); stopAir(); };
   }
   const a = data.articles.find((x) => x.slug === slug);
   if (!a) {

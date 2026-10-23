@@ -17,14 +17,21 @@
  * ground, glass bubbles drift in front of it, and « Écran » (screen.js) lets
  * the reader pick what is behind the windows, the bubbles, the menu's shape
  * and the scan lines.
+ *
+ * Phase 4: the Echo skin. Echo's pages open as the bare Gazette column
+ * (echo-front.js frame()), the window being the sheet; the night sides of
+ * the classic Une become Echo's ground — the silhouettes stand in the
+ * gutters, the ash falls on the paper behind the windows while the camera
+ * is on Echo — and the seam is a torn edge of paper over Zone's night.
  */
-import { DISTRICTS, PHONE_MAX, byId, districtFor, frameFor, pageZoom } from './layout.js';
+import { DISTRICTS, FIGURES, PHONE_MAX, byId, districtFor, frameFor, pageZoom } from './layout.js';
 import { Camera } from './camera.js';
 import { mountTags } from './tags.js';
 import { mountMinimap } from './minimap.js';
 import { Bubbles } from './bubbles.js';
 import { bubbleCount, mountScreen } from './screen.js';
 import { ZONE_LABEL, ECHO_LABEL } from '../labels.js';
+import { ash, ensureSprite } from '../ui/echo-front.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -38,26 +45,26 @@ function el(tag, cls, text) {
 /**
  * What a district shows while its page is not open: what it hosts, and a
  * door — the page's own address, so the router opens it in place. Articles
- * open from the Une; Archives has no page before phase 4.
+ * open from the Une.
  */
 function door(d) {
   const rest = el('div', 'w-rest');
   rest.append(el('p', 'w-hosts', d.hosts));
   const p = el('p', 'w-door');
-  if (d.route !== null) {
-    const a = el('a', '', `Ouvrir ${d.title} →`);
-    a.href = d.route;
-    p.append(a);
-  } else if (d.id === 'articles') {
-    const a = el('a', '', 'Les articles s’ouvrent depuis la Une →');
-    a.href = 'echo';
-    p.append(a);
-  } else {
-    p.className = 'w-soon';
-    p.textContent = 'Phase 4 : la presse, l’index des tags, le flux.';
-  }
+  const a = d.route !== null ? el('a', '', `Ouvrir ${d.title} →`) : el('a', '', 'Les articles s’ouvrent depuis la Une →');
+  a.href = d.route ?? 'echo';
+  p.append(a);
   rest.append(p);
   return rest;
+}
+
+/** Echo's ground: the Gazette's silhouettes, in the gutters between the windows (layout.js FIGURES). */
+function figures() {
+  ensureSprite();
+  const g = el('div', 'w-figures');
+  g.setAttribute('aria-hidden', 'true');
+  g.innerHTML = FIGURES.map((f) => `<svg class="w-fig" style="left:${f.x}px;top:${f.y}px;width:${f.w}px;height:${f.h}px" focusable="false"><use href="#s-${f.kind}"/></svg>`).join('');
+  return g;
 }
 
 function district(d) {
@@ -108,7 +115,9 @@ export async function mountWorld({ router, site = {} }) {
 
   const far = el('div', 'w-far');
   far.setAttribute('aria-hidden', 'true');
-  far.append(el('i', 'w-dark'), el('i', 'w-light'));
+  // Echo's ash falls on the paper, behind the windows: on the far layer, under the plane, whose paper fades out over Echo.
+  const ashCanvas = el('canvas', 'w-ash');
+  far.append(el('i', 'w-dark'), el('i', 'w-light'), ashCanvas);
   const bubbleCanvas = el('canvas', 'w-bubbles');
   bubbleCanvas.setAttribute('aria-hidden', 'true');
   const bubbles = new Bubbles(bubbleCanvas);
@@ -121,8 +130,10 @@ export async function mountWorld({ router, site = {} }) {
   ground.setAttribute('aria-hidden', 'true');
   const seam = el('div', 'w-seam');
   seam.setAttribute('aria-hidden', 'true');
+  // The paper's torn edge, over a thin red rim (the silhouettes' own).
+  seam.append(el('i', 'w-tear w-rim'), el('i', 'w-tear'));
   const sections = new Map(DISTRICTS.map((d) => [d.id, district(d)]));
-  plane.append(ground, seam, ...sections.values());
+  plane.append(ground, seam, figures(), ...sections.values());
   viewport.append(plane);
   // overflow:clip where supported; otherwise undo the browser's own scroll to a focused link.
   viewport.addEventListener('scroll', () => { viewport.scrollLeft = 0; viewport.scrollTop = 0; });
@@ -197,6 +208,17 @@ export async function mountWorld({ router, site = {} }) {
     },
   });
 
+  // The ash runs while the camera is on Echo, as the classic Une's did while it was on screen.
+  let stopAsh = null;
+  function ashOn(on) {
+    if (on && !stopAsh) stopAsh = ash(ashCanvas, { ink: true });
+    else if (!on && stopAsh) {
+      stopAsh();
+      stopAsh = null;
+      ashCanvas.getContext('2d')?.clearRect(0, 0, ashCanvas.width, ashCanvas.height);
+    }
+  }
+
   const skip = document.querySelector('.skip');
   function arrive(d, { instant = false } = {}) {
     current = d.id;
@@ -209,7 +231,11 @@ export async function mountWorld({ router, site = {} }) {
     globalThis.__echoStage?.(echo);
     zoneBtn.setAttribute('aria-pressed', String(!echo));
     echoBtn.setAttribute('aria-pressed', String(echo));
-    return camera.fly(d, { instant });
+    const flight = camera.fly(d, { instant });
+    // Leaving Echo, the ash stops once the paper is out of sight, not while it still fills the screen.
+    if (echo) ashOn(true);
+    else flight.then(() => { if (byId(current)?.half !== 'echo') ashOn(false); });
+    return flight;
   }
 
   // A tag with a page goes through the router (a real URL, back/forward
@@ -289,6 +315,7 @@ export async function mountWorld({ router, site = {} }) {
     camera,
     bubbles,
     screen,
+    get ash() { return Boolean(stopAsh); },
     get current() { return current; },
     pick,
     /**

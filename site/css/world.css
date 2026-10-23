@@ -2,8 +2,9 @@
    site/js/world/world.js adds it — so the classic site never downloads it.
    Direction A « Velvet Grid »: tamed neon on deep night for Zone, the Gazette's
    paper for Echo. Phase 3 dressed Zone (glass windows, the « Écran » menu, the
-   visualiser behind); phase 4 dresses Echo. The station green stays the mark,
-   the focus ring and nothing else. */
+   visualiser behind); phase 4 dressed Echo (the Gazette in its windows, the
+   silhouettes and the ash on the paper, the torn seam). The station green stays
+   the mark, the focus ring and nothing else. */
 
 /* Zone's faces, self-hosted Latin subsets (site/fonts/OFL.txt): ~44 KB, only fetched with the world on. */
 @font-face{font-family:"Chakra Petch";font-style:normal;font-weight:400;font-display:swap;src:url("../fonts/ChakraPetch-400.woff2") format("woff2");
@@ -67,19 +68,30 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
   background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
 [data-w-scan="off"] .w-scan{display:none}
 .w-light{opacity:var(--w-mix);background:repeating-linear-gradient(0deg,rgba(23,22,21,.025) 0 1px,transparent 1px 4px),var(--w-paper)}
+/* Echo's ash on the paper (echo-front.js ash(), ink colours): it runs only while the camera is on Echo. */
+.w-ash{position:absolute;inset:0;width:100%;height:100%;opacity:var(--w-mix)}
 
-/* ---- the plane ---- */
+/* ---- the plane ----
+   Echo's paper is the plane's ground while Zone is in view (its edge is the seam), and fades into the far
+   layer's paper as the camera crosses: over Echo the ash falls on the far layer, under the windows. */
 .w-viewport{position:absolute;inset:0;overflow:hidden;overflow:clip}
 /* will-change is set by camera.js only while it flies: a layer kept after landing draws the scaled text soft. */
 .w-plane{position:absolute;left:0;top:0;width:5200px;height:2600px;transform-origin:0 0}
-.w-ground{position:absolute;left:2720px;top:0;right:0;bottom:0;background:var(--w-paper);
+.w-ground{position:absolute;left:2720px;top:0;right:0;bottom:0;background:var(--w-paper);opacity:calc(1 - var(--w-mix));
   background-image:repeating-linear-gradient(0deg,rgba(23,22,21,.03) 0 1px,transparent 1px 5px)}
-/* The seam: Zone's scan lines run out where the paper starts. */
+/* The seam: Zone's scan lines run out where the paper starts, and the paper's edge is torn, over a thin red rim. */
 .w-seam{position:absolute;left:2480px;top:0;width:240px;height:2600px;
-  background:linear-gradient(90deg,transparent 0,transparent 48%,var(--w-paper) 52%,var(--w-paper) 100%)}
+  --w-torn:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='160'%3E%3Cpath d='M20 0H9L4 8L11 17L6 27L2 38L9 46L5 58L12 67L3 80L8 91L4 103L10 114L2 126L7 137L11 148L9 160H20Z'/%3E%3C/svg%3E")}
 .w-seam::before{content:"";position:absolute;inset:0;opacity:.3;
   background:repeating-linear-gradient(180deg,var(--w-neon-a) 0 2px,transparent 2px 46px);
   -webkit-mask:linear-gradient(90deg,transparent 30%,#000 47%,transparent 50%);mask:linear-gradient(90deg,transparent 30%,#000 47%,transparent 50%)}
+.w-tear{position:absolute;top:0;bottom:0;left:calc(50% - 10px);right:0;background:var(--w-paper);opacity:calc(1 - var(--w-mix));
+  -webkit-mask:var(--w-torn) 0 0/20px 160px repeat-y,linear-gradient(#000,#000) 20px 0/100% 100% no-repeat;
+  mask:var(--w-torn) 0 0/20px 160px repeat-y,linear-gradient(#000,#000) 20px 0/100% 100% no-repeat}
+.w-rim{background:var(--w-red);transform:translateX(-2px)}
+/* The Gazette's silhouettes, standing on the paper between Echo's windows (layout.js FIGURES): ink, a thin red rim. */
+.w-figures{position:absolute;inset:0;pointer-events:none}
+.w-fig{position:absolute;fill:#141312;stroke:var(--w-red);stroke-width:2.4;paint-order:stroke;opacity:.88}
 
 /* ---- districts: a dashed frame, a code, corner brackets that light up on arrival ---- */
 .w-district{position:absolute;display:flex;flex-direction:column;box-sizing:border-box;padding:40px 30px 30px;transform:rotate(var(--rot,0deg));outline:none}
@@ -132,18 +144,24 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
 .w-door a{display:inline-block;padding:9px 14px;border:1px solid var(--w-edge);color:var(--w-text);font:600 15px/1.2 var(--w-ui);
   letter-spacing:.04em;text-decoration:none;background:rgba(12,14,24,.5)}
 .w-door a:hover,.w-door a:focus-visible{border-color:var(--w-neon-a);background:var(--w-neon-a);color:var(--w-night)}
-.w-soon{margin:0;font:14px/1.4 var(--w-mono);color:var(--w-dim)}
 .w-echo-d .w-win{background:var(--w-rule);clip-path:none}
 .w-echo-d .w-win::after{content:none}
 .w-echo-d .w-win:hover,.w-echo-d .w-win:focus-within{background:var(--w-red)}
 .w-echo-d .w-in{background:var(--w-paper);color:var(--w-ink);clip-path:none}
-.w-echo-d .w-wt{transform:none;background:none;color:var(--w-ink);font:700 30px/1.1 var(--w-head);letter-spacing:.02em;text-transform:none;padding:0}
+.w-echo-d .w-wt{transform:none;background:var(--w-ink);color:var(--w-paper);font:700 15px/1 var(--w-head);letter-spacing:.16em;text-transform:uppercase;padding:8px 14px 7px}
 .w-echo-d .w-wt>span{transform:none}
-.w-echo-d .w-cd,.w-echo-d .w-soon{color:var(--w-mute)}
+.w-echo-d .w-cd{color:var(--w-mute)}
 .w-echo-d .w-hosts{font-family:var(--w-head)}
 .w-echo-d .w-box{scrollbar-color:var(--w-mute) transparent}
 .w-echo-d .w-door a{border-color:var(--w-rule);color:var(--w-ink);background:none;font-family:var(--w-head)}
 .w-echo-d .w-door a:hover,.w-echo-d .w-door a:focus-visible{background:var(--w-red);border-color:var(--w-red);color:var(--w-paper)}
+
+/* ---- Echo's pages in their windows (phase 4): echo-front.js gives the bare Gazette column — no night sides,
+   no ash, no Zone/Média line (the world draws the first two on its ground, the tags are the third). The window
+   is the sheet: the column loses its own paper, margins and shadow. ---- */
+.w-echo-d .w-box>.page{padding:0}
+.w-echo-d .echo-in-world{min-height:0;background:none;overflow:visible}
+.w-echo-d .echo-in-world .echo-col{margin:0;padding:0;box-shadow:none;background:none}
 
 /* ---- Zone's pages in their windows: the classic pages read their colours, radii and faces from site.css's
    tokens, so the skin re-points the tokens instead of restyling each page. Panels stay nearly opaque:
@@ -258,7 +276,19 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
   .w-screen{top:auto;bottom:calc(var(--mb-h) + 8px);max-height:70%}
   .w-bar{margin:0 0 10px}
   .w-wt{font-size:16px;padding:7px 13px 6px}
-  .w-echo-d .w-wt{font-size:22px}
+  .w-echo-d .w-wt{font-size:13px}
+}
+/* ---- on paper: the page in view alone, as the classic site prints it (site.css's print rules do the rest) ---- */
+@media print{
+  html.world-on,html.world-on body{height:auto;overflow:visible}
+  .world-on body>main{display:none}
+  .w-root{position:static;color:#000;font:inherit}
+  .w-far,.w-bubbles,.w-hud,.w-screen,.w-tags,.w-scan,.w-lost,.w-ground,.w-seam,.w-figures,.w-code,.w-corner,.w-bar,.w-district:not(.here){display:none!important}
+  .w-viewport,.w-plane{position:static;overflow:visible;width:auto;height:auto;transform:none!important;filter:none!important}
+  .w-district.here{display:block;position:static;transform:none;width:auto!important;height:auto!important;padding:0}
+  .w-district::before,.w-win::after,.w-in::after{content:none}
+  .w-win,.w-in{display:block;height:auto;padding:0;clip-path:none;overflow:visible;background:none!important}
+  .w-box{zoom:1!important;overflow:visible;padding:0}
 }
 @media (prefers-reduced-motion:reduce){
   .w-district::before,.w-corner,.w-tag>span,.w-opt::before,.w-box[aria-hidden="true"]{transition:none}

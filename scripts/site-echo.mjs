@@ -69,10 +69,14 @@ export function renderBody(body, { fr = true } = {}) {
   return { html: html.join('\n'), notes, words };
 }
 
+const RESERVED = ['lectures', 'archives'];
+
 export function parseArticle(file, text) {
   const { meta, body } = frontMatter(text);
   const m = path.basename(file).match(/^(\d{4}-\d{2}-\d{2})-(.+)\.md$/);
   if (!m) throw new Error(`${file}: name must be <yyyy-mm-dd>-<slug>.md`);
+  // /echo/lectures and /echo/archives are pages of their own: an article there would never be reached.
+  if (RESERVED.includes(m[2])) throw new Error(`${file}: "${m[2]}" is the address of another Echo page — pick another slug`);
   for (const k of ['title', 'standfirst', 'author', 'date']) if (!meta[k]) throw new Error(`${file}: front matter lacks "${k}"`);
   const lang = meta.lang || 'fr';
   const fr = lang.startsWith('fr');

@@ -15,7 +15,7 @@ export const MIN_SCALE = 0.3;
 /**
  * x, y, w, h in world pixels. `route` is where the district's tag goes;
  * null means the tag only moves the camera (Articles is reached through an
- * article's own address, Archives has no page before phase 4). `tag` places
+ * article's own address). `tag` places
  * the tag on a desktop: a % of the screen, from the left edge for Zone and
  * from the right edge for Echo, and a tilt in degrees.
  */
@@ -35,13 +35,27 @@ export const DISTRICTS = [
   { id: 'booth', code: 'Z-07', title: 'Booth', half: 'zone', x: 1700, y: 1960, w: 620, h: 420, rot: 1.4, route: 'booth',
     hosts: 'The DJ booth, still behind its key', tag: [4, 76, -5], faint: true },
   { id: 'une', code: 'E-01', title: 'Une', half: 'echo', x: 2820, y: 190, w: 1150, h: 980, rot: 0, route: 'echo',
-    hosts: 'The front page: masthead, lead story, the live box', tag: [4, 18, 4] },
+    hosts: 'La une : le titre, l’article de tête, ce qui passe à l’antenne', tag: [4, 18, 4] },
   { id: 'articles', code: 'E-02', title: 'Articles', half: 'echo', x: 4080, y: 120, w: 900, h: 1100, rot: 0, route: null,
-    hosts: 'The reading page: headline, hero, body, notes', tag: [12, 29, -3] },
+    hosts: 'La page de lecture : titre, photo, texte, notes', tag: [12, 29, -3] },
   { id: 'lectures', code: 'E-03', title: 'Lectures', half: 'echo', x: 2860, y: 1330, w: 900, h: 920, rot: 0, route: 'echo/lectures',
-    hosts: 'The texts, with what plays next on air', tag: [3, 41, 6] },
-  { id: 'archives', code: 'E-04', title: 'Archives', half: 'echo', x: 4000, y: 1480, w: 980, h: 800, rot: 0, route: null,
-    hosts: 'The press, the tag index, the feed', tag: [10, 53, -6] },
+    hosts: 'Les textes, et la musique qui les accompagne', tag: [3, 41, 6] },
+  { id: 'archives', code: 'E-04', title: 'Archives', half: 'echo', x: 4000, y: 1480, w: 980, h: 800, rot: 0, route: 'echo/archives',
+    hosts: 'La presse, les articles par thème, les collections, le fil', tag: [10, 53, -6] },
+];
+
+/**
+ * Echo's backdrop (phase 4): the Gazette's silhouettes — ui/echo-front.js's
+ * symbols, shapes and not people — stand on the paper in the gutters between
+ * Echo's windows, never over one. x, y, w, h in world pixels.
+ */
+export const FIGURES = [
+  { kind: 'fist', x: 2660, y: 560, w: 104, h: 228 },
+  { kind: 'flag', x: 2650, y: 1190, w: 118, h: 258 },
+  { kind: 'horn', x: 3985, y: 1250, w: 182, h: 130 },
+  { kind: 'drum', x: 3800, y: 1600, w: 150, h: 250 },
+  { kind: 'crowd', x: 2900, y: 2330, w: 392, h: 236 },
+  { kind: 'statue', x: 4500, y: 2290, w: 150, h: 300 },
 ];
 
 const BY_ID = new Map(DISTRICTS.map((d) => [d.id, d]));
@@ -58,6 +72,7 @@ export function districtFor(name, params = {}) {
     case 'ondes': case 'zone': case 'atlas': case 'portfolio': case 'playlists': case 'booth': return name;
     case 'echo': return params.slug ? 'articles' : 'une';
     case 'lectures': case 'ecrits': return 'lectures';
+    case 'archives': return 'archives';
     default: return null;
   }
 }

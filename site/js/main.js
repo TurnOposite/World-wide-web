@@ -137,6 +137,8 @@ async function boot() {
       // Old address of the reading section: kept alive, and moved to /echo/lectures by the page.
       { name: 'zone', pattern: /^zone$/, load: () => import('./pages/zone.js') },
       { name: 'ecrits', pattern: /^ecrits(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
+      // Before 'echo', whose /echo/<slug> would read it as an article (site-echo.mjs refuses the slug).
+      { name: 'archives', pattern: /^echo\/archives$/, load: () => import('./pages/archives.js') },
       { name: 'echo', pattern: /^echo(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/echo.js') },
       { name: 'portfolio', pattern: /^portfolio(?:\/(?<room>[\w-]+))?$/, load: () => import('./pages/portfolio.js') },
       { name: 'booth', pattern: /^booth$/, load: () => import('./pages/booth.js') },
@@ -145,7 +147,7 @@ async function boot() {
     render: async (page, match, { fromPop, isCurrent = () => true }) => {
       try { cleanup?.(); } catch (e) { console.error(e); }
       cleanup = null;
-      const echoRoute = ['echo', 'lectures', 'ecrits'].includes(match.name);
+      const echoRoute = ['echo', 'lectures', 'ecrits', 'archives'].includes(match.name);
       document.body.classList.toggle('on-echo', echoRoute);
       globalThis.__echoStage?.(echoRoute);
       // With the world on, the page opens in its district's window, not in <main>.

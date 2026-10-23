@@ -488,6 +488,16 @@ try {
   const art = await echoClean();
   check('Echo article page: no Zone visualiser, no overlay, nameplate links back to /echo', art.canvases.length === 0 && art.veils.length === 0 && art.running === false && await a.$('.echo-mast-small a.echo-name[href="echo"]') !== null, JSON.stringify(art));
   check('an Echo article opens: standfirst, hero with credit, pull quote, notes', Boolean(await a.$('.echo-standfirst') && await a.$('.echo-hero figcaption') && await a.$('.echo-notes li')));
+  await a.click('.echo-znav a[href="echo/archives"]');
+  await a.waitForSelector('.echo-archives .echo-press-list li', { timeout: 5000 }).catch(() => {});
+  const archC = { ...(await echoClean()), ...(await a.evaluate(() => ({
+    press: document.querySelectorAll('.echo-press-list li a[href$=".pdf"]').length, tags: document.querySelectorAll('.echo-tag-list a[href^="echo/"]').length,
+    feed: document.querySelector('.echo-archives a[href="echo/feed.xml"]') !== null, on: document.querySelector('.echo-znav a.on')?.getAttribute('href'),
+    paper: getComputedStyle(document.querySelector('.echo-col')).backgroundColor, path: location.pathname,
+  }))) };
+  check('Archives (since the world\'s phase 4, on the classic site too): the press, every article by tag, the feed — on the Gazette paper, no Zone visualiser',
+    archC.path === '/echo/archives' && archC.press >= 26 && archC.tags >= 1 && archC.feed && archC.on === 'echo/archives' && archC.paper === 'rgb(245, 244, 241)'
+    && archC.onEcho && archC.canvases.length === 0 && archC.veils.length === 0 && archC.running === false, JSON.stringify(archC));
 
   await a.click('.echo-znav a[href="portfolio"]');
   await a.waitForSelector('.room .book', { timeout: 8000 });
@@ -748,7 +758,7 @@ try {
   // Every route answers on a cold link, already in its district (no flight), the page live in its window.
   const coldRoutes = [['', 'radio'], ['radio', 'radio'], ['ondes', 'ondes'], ['echoes', 'ondes'], ['zone', 'zone'], ['atlas', 'atlas'], ['portfolio', 'portfolio'],
     ['portfolio/photos', 'portfolio'], ['playlists', 'playlists'], ['booth', 'booth'], ['echo', 'une'], ['echo/article-temoin', 'articles'],
-    ['echo/lectures', 'lectures'], ['ecrits', 'lectures'], ['nulle-part', null]];
+    ['echo/lectures', 'lectures'], ['ecrits', 'lectures'], ['echo/archives', 'archives'], ['nulle-part', null]];
   const coldMiss = [];
   for (const [route, id] of coldRoutes) {
     await w.goto(dev + route + '?world=1', { waitUntil: 'domcontentloaded' });
@@ -774,6 +784,127 @@ try {
 
   const worldA11y = [];
   for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop: ${v}`);
+
+  // Phase 4: the Echo skin — the Gazette in its windows, its figures and ash on the paper, the torn seam,
+  // the links that cross it, and Archives.
+  await w.goto(dev + 'echo?world=1', { waitUntil: 'domcontentloaded' });
+  await w.waitForFunction(() => window.radioTower?.world?.current === 'une' && !window.radioTower.world.camera.moving && window.radioTower.player.onAir
+    && document.querySelector('#w-une [data-onair-title]')?.textContent.length > 1, null, { timeout: 10000 }).catch(() => {});
+  await w.evaluate(() => {
+    // A sample of the ash canvas's alpha: how much ash is drawn, and a fingerprint to see it move. (The crossing below is no reload.)
+    window.__ink = () => {
+      const c = document.querySelector('.w-ash');
+      const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+      let n = 0;
+      let h = 0;
+      for (let i = 3; i < d.length; i += 4 * 61) { if (d[i]) n++; h = (h * 31 + d[i]) % 1000003; }
+      return { n, h };
+    };
+  });
+  const echoSkin = await w.evaluate(async () => {
+    const ink = window.__ink;
+    const box = document.querySelector('#w-une .w-box');
+    const st = box.querySelector('.echo-stage');
+    const col = box.querySelector('.echo-col');
+    const a0 = ink();
+    await new Promise((r) => setTimeout(r, 400));
+    const a1 = ink();
+    return {
+      bare: st?.classList.contains('echo-in-world'), own: box.querySelectorAll('.echo-side, .echo-ash, .echo-znav').length,
+      stage: `${getComputedStyle(st).backgroundImage} ${getComputedStyle(st).backgroundColor}`, col: `${getComputedStyle(col).boxShadow} ${getComputedStyle(col).marginTop}`,
+      mast: Boolean(box.querySelector('h1.echo-name')), lead: Boolean(box.querySelector('.echo-lead h2 a[href^="echo/"]')),
+      onair: box.querySelector('[data-onair-title]')?.textContent, playing: window.radioTower.player.onAir?.title,
+      go: box.querySelector('.echo-onair a.echo-go')?.getAttribute('href'), teaser: box.querySelectorAll('.echo-teaser a[href^="echo/lectures/"]').length,
+      cols: getComputedStyle(box.querySelector('.echo-cols')).gridTemplateColumns.split(' ').length,
+      tab: getComputedStyle(document.querySelector('#w-une .w-wt')).fontFamily.split(',')[0],
+      figures: document.querySelectorAll('.w-figures .w-fig use').length, ash: window.radioTower.world.ash, drawn: a1.n, moved: a0.h !== a1.h,
+      ground: getComputedStyle(document.querySelector('.w-ground')).opacity, tear: getComputedStyle(document.querySelector('.w-tear:not(.w-rim)')).opacity,
+    };
+  });
+  check('Echo skin: the Une opens as the bare Gazette in its window — masthead and lead, no night sides, ash or Zone/Média line of its own; the window is the sheet',
+    echoSkin.bare && echoSkin.own === 0 && echoSkin.stage === 'none rgba(0, 0, 0, 0)' && /^none 0px$/.test(echoSkin.col) && echoSkin.mast && echoSkin.lead
+    && /Old Standard TT/.test(echoSkin.tab), JSON.stringify(echoSkin));
+  check('…beside the lead, « À l\'antenne »: what Zone plays right now and the way back to the radio, and three Lectures', echoSkin.onair === echoSkin.playing
+    && echoSkin.go === 'radio' && echoSkin.teaser === 3 && echoSkin.cols === 2, JSON.stringify({ onair: echoSkin.onair, playing: echoSkin.playing, go: echoSkin.go, teaser: echoSkin.teaser, cols: echoSkin.cols }));
+  check('…the Gazette\'s silhouettes stand on Echo\'s paper and its ash falls behind the windows (the plane\'s paper has faded into the far layer)',
+    echoSkin.figures === 6 && echoSkin.ash && echoSkin.drawn > 2 && echoSkin.moved && echoSkin.ground === '0' && echoSkin.tear === '0', JSON.stringify(echoSkin));
+
+  if (!(await w.evaluate(() => window.radioTower.player.playing))) await w.click('#mbTune');
+  await w.waitForFunction(() => { const au = document.getElementById('audio'); return !au.paused && au.currentTime > 0.3; }, null, { timeout: 10000 }).catch(() => {});
+  await w.evaluate(() => { window.__worldAudio = document.getElementById('audio'); });
+  await w.click('#w-une .echo-onair a.echo-go');
+  await settled('radio');
+  await w.waitForFunction(() => !window.radioTower.world.ash, null, { timeout: 3000 }).catch(() => {});
+  const crossed = { ...(await shot('radio')), ...(await w.evaluate(() => {
+    const au = document.getElementById('audio');
+    return { same: au === window.__worldAudio, paused: au.paused, d: au.currentTime - window.radioTower.player.livePosition(), ash: window.radioTower.world.ash,
+      left: window.__ink().n, ground: getComputedStyle(document.querySelector('.w-ground')).opacity,
+      tear: getComputedStyle(document.querySelector('.w-tear:not(.w-rim)')).opacity, rim: getComputedStyle(document.querySelector('.w-rim')).backgroundColor,
+      mask: /svg/.test(getComputedStyle(document.querySelector('.w-tear')).maskImage || getComputedStyle(document.querySelector('.w-tear')).webkitMaskImage) };
+  })) };
+  check('« Aller à la radio » crosses the seam: the camera flies back to Radio, the radio plays on, the ash is gone once Zone is in view',
+    crossed.path === '/radio' && crossed.current === 'radio' && crossed.centre < 30 && crossed.same && !crossed.paused && Math.abs(crossed.d) < 1.5 && !crossed.ash && crossed.left === 0,
+    JSON.stringify(crossed));
+  check('…seen from Zone, Echo\'s paper is the ground again, its edge torn over a thin red rim', crossed.ground === '1' && crossed.tear === '1' && crossed.mask
+    && crossed.rim === 'rgb(163, 22, 31)', JSON.stringify({ ground: crossed.ground, tear: crossed.tear, mask: crossed.mask, rim: crossed.rim }));
+
+  await w.click('.w-tag[data-go="archives"]');
+  await settled('archives');
+  await w.waitForFunction(() => document.querySelector('#w-archives .w-box .echo-press-list li'), null, { timeout: 8000 }).catch(() => {});
+  const arch = { ...(await shot('archives')), ...(await w.evaluate(async () => {
+    const places = (await (await fetch('data/places.json')).json()).places;
+    const want = places.reduce((n, p) => n + (p.press?.column?.items?.length || 0) + (p.press?.series?.items?.length || 0), 0);
+    const box = document.querySelector('#w-archives .w-box');
+    return { want, press: box.querySelectorAll('.echo-press-list a[href$=".pdf"][target="_blank"]').length, tags: box.querySelectorAll('.echo-tag-list a[href^="echo/"]').length,
+      atlas: box.querySelector('a[href="atlas#novo-hamburgo"]') !== null, feed: box.querySelector('a[href="echo/feed.xml"]') !== null,
+      portfolio: box.querySelector('a[href="portfolio"]') !== null, bare: Boolean(box.querySelector('.echo-in-world')) };
+  })) };
+  check('Archives (E-04) has an address since phase 4: its tag opens /echo/archives — every piece of press on the Atlas\'s cards, the articles by tag, the feed',
+    arch.path === '/echo/archives' && arch.current === 'archives' && arch.centre < 30 && arch.want >= 26 && arch.press === arch.want && arch.tags >= 1 && arch.atlas
+    && arch.feed && arch.portfolio && arch.bare, JSON.stringify(arch));
+  await w.click('#w-archives .w-box a[href="portfolio"]');
+  await settled('portfolio');
+  const toPortfolio = { ...(await shot('portfolio')), ...(await w.evaluate(() => {
+    const au = document.getElementById('audio');
+    return { same: au === window.__worldAudio, paused: au.paused, live: Boolean(document.querySelector('#w-portfolio .w-box > .page')) };
+  })) };
+  check('…and « Ouvrir le Portfolio » crosses back to Zone\'s collections, the radio still playing', toPortfolio.path === '/portfolio' && toPortfolio.current === 'portfolio'
+    && toPortfolio.centre < 30 && toPortfolio.live && toPortfolio.same && !toPortfolio.paused, JSON.stringify(toPortfolio));
+
+  // R9's own check for this phase: an article prints from the world as it does from the classic site. Measured at the
+  // paper's width (A4 at 96 dpi), then printed to PDF.
+  const printOf = async (q) => {
+    const ctx = await browser.newContext({ viewport: { width: 794, height: 1123 } });
+    const p = await ctx.newPage();
+    watch(p, `print, ${q}`);
+    await p.goto(dev + 'echo/article-temoin?' + q, { waitUntil: 'domcontentloaded' });
+    await p.waitForFunction(() => document.querySelector('.echo-article .echo-body')?.textContent.trim().length > 50 && window.radioTower?.router?.current, null, { timeout: 10000 })
+      .catch(() => {});
+    await p.evaluate(() => document.fonts.ready);
+    await p.emulateMedia({ media: 'print' });
+    const r = await p.evaluate(() => {
+      // Measured from the printed article's own corner: the classic <main> may still carry its entrance animation's 6 px.
+      const art = document.querySelector('.echo-article').getBoundingClientRect();
+      const box = (sel) => { const b = document.querySelector(sel).getBoundingClientRect(); return [b.left - art.left, b.top - art.top, b.width, b.height].map(Math.round).join(); };
+      const shown = [...document.querySelectorAll('.w-hud, .w-tags, .w-far, .w-ground, .w-seam, .w-figures, .w-bar, .w-code, .w-district:not(.here), .minibar, .masthead, canvas')]
+        .filter((e) => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden').map((e) => e.className);
+      return { article: [art.left, art.width].map(Math.round).join(), h1: box('.echo-article h1'), body: box('.echo-article .echo-body'), notes: box('.echo-notes'), size: getComputedStyle(document.querySelector('.echo-article h1')).fontSize, shown,
+        world: document.documentElement.classList.contains('world-on') };
+    });
+    r.pages = ((await p.pdf({ format: 'A4' })).toString('latin1').match(/\/Type\s*\/Page\b(?!s)/g) || []).length;
+    await ctx.close();
+    return r;
+  };
+  const printClassic = await printOf('world=0');
+  const printWorld = await printOf('world=1');
+  check('R9\'s check: an article prints from the world as from the classic site — the same column, headline, body and notes laid out alike, the same pages, nothing of the world on paper',
+    printWorld.world && !printClassic.world && printWorld.article === printClassic.article && printWorld.h1 === printClassic.h1 && printWorld.body === printClassic.body && printWorld.notes === printClassic.notes
+    && printWorld.size === printClassic.size && printWorld.shown.length === 0 && printClassic.shown.length === 0 && printWorld.pages === printClassic.pages && printWorld.pages >= 1,
+    JSON.stringify({ classic: printClassic, world: printWorld }));
+
+  await w.goto(dev + 'echo?world=1', { waitUntil: 'domcontentloaded' });
+  await settled('une');
+  for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop, une: ${v}`);
   await w.goto(dev + 'radio?world=1', { waitUntil: 'domcontentloaded' });
   await settled('radio');
   for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop, radio: ${v}`);
@@ -850,6 +981,18 @@ try {
     return { moving, bubbles: window.radioTower.world.bubbles.list.length, running: window.radioTower.world.bubbles.running };
   });
   check('…and nothing in the world loops on its own: no bubbles, no light sweep, no rain', calm.moving.length === 0 && calm.bubbles === 0 && !calm.running, JSON.stringify(calm));
+  await still.click('.w-tag[data-go="une"]');
+  await still.waitForFunction(() => window.radioTower.world.current === 'une', null, { timeout: 8000 }).catch(() => {});
+  const stillAsh = await still.evaluate(async () => {
+    const c = document.querySelector('.w-ash');
+    const print = () => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let h = 0; let n = 0; for (let i = 3; i < d.length; i += 4 * 61) { if (d[i]) n++; h = (h * 31 + d[i]) % 1000003; } return { h, n }; };
+    await new Promise((r) => setTimeout(r, 200));
+    const a = print();
+    await new Promise((r) => setTimeout(r, 500));
+    const b = print();
+    return { drawn: a.n, still: a.h === b.h };
+  });
+  check('…and on Echo the ash lies still: drawn once, never moving', stillAsh.drawn > 0 && stillAsh.still, JSON.stringify(stillAsh));
   await still.context().close();
 
   const wm = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
@@ -883,6 +1026,13 @@ try {
   });
   check('…and on a phone the frame is the screen: the page fills it at 1:1, no zoom, nothing overflows', phoneFrame.left >= 0 && phoneFrame.left <= 16 && phoneFrame.right >= 0
     && phoneFrame.right <= 16 && phoneFrame.boxW >= 320 && phoneFrame.zoom === '' && Math.abs(phoneFrame.scale - 1) < 0.02 && phoneFrame.overflow <= 1, JSON.stringify(phoneFrame));
+  const phoneUne = await wm.evaluate(() => {
+    const cols = document.querySelector('#w-une .echo-cols');
+    const lead = cols?.querySelector('.echo-lead')?.getBoundingClientRect();
+    const side = cols?.querySelector('.echo-aside')?.getBoundingClientRect();
+    return { cols: cols ? getComputedStyle(cols).gridTemplateColumns.split(' ').length : 0, under: Boolean(lead && side && side.top >= lead.bottom - 1) };
+  });
+  check('…the Une\'s « À l\'antenne » column goes under the lead on a phone', phoneUne.cols === 1 && phoneUne.under, JSON.stringify(phoneUne));
   for (const v of (await axeRun(wm)) || []) worldA11y.push(`phone: ${v}`);
   if (AXE) check('world shell: no accessibility violations above minor (desktop + phone)', worldA11y.length === 0, worldA11y.slice(0, 3).join(' | ') || 'names, roles, landmarks, contrast');
   await wm.context().close();
@@ -893,7 +1043,7 @@ try {
   watch(m, 'phone');
   const overflow = [];
   const a11y = [];
-  for (const r of ['', 'radio', 'ondes', 'playlists', 'atlas', 'zone', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo/lectures', 'echo/lectures/voyages', 'echo', 'echo/article-temoin', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
+  for (const r of ['', 'radio', 'ondes', 'playlists', 'atlas', 'zone', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo/lectures', 'echo/lectures/voyages', 'echo', 'echo/article-temoin', 'echo/archives', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
     await m.goto(dev + r, { waitUntil: 'domcontentloaded' });
     await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
     await m.waitForTimeout(700);
