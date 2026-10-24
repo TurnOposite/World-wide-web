@@ -81,10 +81,27 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 /** At or under this width the world is laid out for a phone (world.css's breakpoint). */
 export const PHONE_MAX = 760;
+/**
+ * …and at or under this height too: a phone held sideways. Its brand, switch,
+ * tags and « Écran » then share one line, because height is what it lacks.
+ */
+export const SHORT_MAX = 500;
+/** The same two breakpoints as one media query (world.js, camera.js; world.css spells it out). */
+export const PHONE_MEDIA = `(max-width: ${PHONE_MAX}px), (max-height: ${SHORT_MAX}px)`;
+export const isPhone = (vw, vh) => vw <= PHONE_MAX || vh <= SHORT_MAX;
 /** On a phone the frame leaves this much screen at each side, and starts under the header and the tag strip. */
 const PHONE_SIDE = 12;
 const PHONE_TOP = 116;
-/** A phone frame is never taller than the map's tightest stack (Zone over Playlists: 730 apart), so two never overlap. */
+/** On its side, under the one line that holds the header and the strip. */
+const SHORT_TOP = 64;
+export const phoneTop = (vh) => (vh <= SHORT_MAX ? SHORT_TOP : PHONE_TOP);
+/**
+ * A phone frame is never wider than the map's tightest gap side by side
+ * (Atlas → Portfolio: 750 apart), nor taller than its tightest stack (Zone
+ * over Playlists: 730 apart), so two never overlap — a phone on its side is
+ * wider than any phone upright.
+ */
+const PHONE_MAX_W = 736;
 const PHONE_MAX_H = 700;
 
 /**
@@ -93,9 +110,9 @@ const PHONE_MAX_H = 700;
  * strip — because a landscape frame scaled down to a portrait screen would
  * leave a page a few lines tall; the camera then shows it at 1:1.
  */
-export function frameFor(d, vw, vh, { phone = vw <= PHONE_MAX, bottom = 64 } = {}) {
+export function frameFor(d, vw, vh, { phone = isPhone(vw, vh), bottom = 64 } = {}) {
   if (!phone) return { w: d.w, h: d.h };
-  return { w: Math.max(240, vw - 2 * PHONE_SIDE), h: clamp(vh - PHONE_TOP - bottom, 240, PHONE_MAX_H) };
+  return { w: Math.min(PHONE_MAX_W, Math.max(240, vw - 2 * PHONE_SIDE)), h: clamp(vh - phoneTop(vh) - bottom, 160, PHONE_MAX_H) };
 }
 
 /**
@@ -104,8 +121,8 @@ export function frameFor(d, vw, vh, { phone = vw <= PHONE_MAX, bottom = 64 } = {
  * own a column on each side; on a phone they are a strip under the header
  * and the frame is the screen (frameFor), so the scale is 1.
  */
-export function cameraFor(d, vw, vh, { phone = vw <= PHONE_MAX, bottom = 64 } = {}) {
-  if (phone) return { tx: PHONE_SIDE - d.x, ty: PHONE_TOP - d.y, s: 1 };
+export function cameraFor(d, vw, vh, { phone = isPhone(vw, vh), bottom = 64 } = {}) {
+  if (phone) return { tx: (vw - frameFor(d, vw, vh, { phone, bottom }).w) / 2 - d.x, ty: phoneTop(vh) - d.y, s: 1 };
   const side = Math.min(260, vw * 0.18);
   const top = 96;
   const aw = Math.max(120, vw - 2 * side);
@@ -116,6 +133,23 @@ export function cameraFor(d, vw, vh, { phone = vw <= PHONE_MAX, bottom = 64 } = 
     ty: top + ah / 2 - (d.y + d.h / 2) * s,
     s,
   };
+}
+
+/** A swipe on a phone: at least this far across, this much more across than down, this quick, and not from the screen's edge. */
+export const SWIPE = { min: 64, ratio: 1.6, ms: 650, edge: 24 };
+
+/**
+ * The half a swipe asks for, or null. The finger moving left brings Echo,
+ * which lies to the right of Zone; moving right brings Zone back. A swipe
+ * towards the half already in view asks for nothing, nor does a slow drag,
+ * a mostly vertical one (a scroll), or one that starts at the screen's edge,
+ * where the phone's own back gesture lives.
+ */
+export function swipeHalf(half, { x0, dx, dy, ms, vw }) {
+  if (x0 < SWIPE.edge || x0 > vw - SWIPE.edge) return null;
+  if (Math.abs(dx) < SWIPE.min || Math.abs(dx) < SWIPE.ratio * Math.abs(dy) || ms > SWIPE.ms) return null;
+  const want = dx < 0 ? 'echo' : 'zone';
+  return want === half ? null : want;
 }
 
 /**

@@ -9,7 +9,7 @@
  * its own layer (will-change) only while it moves: a layer kept after
  * landing is drawn from a bitmap and the scaled windows' text goes soft.
  */
-import { PHONE_MAX, cameraFor, centreOf, ease, flightMs, pullBack, seamMix } from './layout.js';
+import { PHONE_MEDIA, cameraFor, centreOf, ease, flightMs, pullBack, seamMix } from './layout.js';
 
 export class Camera {
   /**
@@ -27,7 +27,7 @@ export class Camera {
     this.moving = false;
     this._raf = 0;
     this._done = null;
-    this.phone = matchMedia(`(max-width: ${PHONE_MAX}px)`);
+    this.phone = matchMedia(PHONE_MEDIA);
     this.reduced = matchMedia('(prefers-reduced-motion: reduce)');
   }
 

@@ -10,7 +10,8 @@ import fs from 'node:fs';
 
 import { worldChoice, worldWanted } from '../site/js/world/flag.js';
 import {
-  WORLD, DISTRICTS, FIGURES, MIN_SCALE, PHONE_MAX, byId, districtFor, frameFor, cameraFor, pageZoom, centreOf, flightMs, ease, pullBack, seamMix, nearest,
+  WORLD, DISTRICTS, FIGURES, MIN_SCALE, PHONE_MAX, SHORT_MAX, PHONE_MEDIA, SWIPE, isPhone, phoneTop, swipeHalf,
+  byId, districtFor, frameFor, cameraFor, pageZoom, centreOf, flightMs, ease, pullBack, seamMix, nearest,
 } from '../site/js/world/layout.js';
 import { byTag, pressOf, dateFr } from '../site/js/pages/archives.js';
 import { routes } from '../scripts/site-build.mjs';
@@ -133,13 +134,13 @@ test('Archives: the press from the Atlas\'s places, the articles by tag, French 
 });
 
 test('the camera centres a district in the free area and fits the whole frame', () => {
-  for (const [vw, vh] of [[1280, 860], [1440, 900], [1920, 1080], [390, 844]]) {
+  for (const [vw, vh] of [[1280, 860], [1440, 900], [1920, 1080], [390, 844], [844, 390], [667, 375], [932, 430]]) {
     for (const d of DISTRICTS) {
       const cam = cameraFor(d, vw, vh);
       const f = frameFor(d, vw, vh);
       assert.ok(cam.s >= MIN_SCALE && cam.s <= 1, `${d.id} @${vw}: scale ${cam.s}`);
-      // On a phone the frame is the screen, shown at 1:1; on a desktop it is the map's own size.
-      if (vw <= PHONE_MAX) assert.equal(cam.s, 1, `${d.id} @${vw}: a phone shows its frame at 1:1`);
+      // On a phone (upright or on its side) the frame is the screen, shown at 1:1; on a desktop it is the map's own size.
+      if (isPhone(vw, vh)) assert.equal(cam.s, 1, `${d.id} @${vw}x${vh}: a phone shows its frame at 1:1`);
       else assert.deepEqual(f, { w: d.w, h: d.h });
       const left = d.x * cam.s + cam.tx;
       const right = (d.x + f.w) * cam.s + cam.tx;
@@ -184,6 +185,51 @@ test('a page reads at 1:1: its zoom undoes the camera\'s scale, and a phone\'s f
       }
     }
   }
+});
+
+test('a phone on its side is a phone: the frame starts under the one-line header, fits above the mini-player, never overlaps another', () => {
+  assert.equal(PHONE_MEDIA, `(max-width: ${PHONE_MAX}px), (max-height: ${SHORT_MAX}px)`);
+  assert.ok(isPhone(390, 844) && isPhone(844, 390) && isPhone(932, 430) && isPhone(760, 1024));
+  assert.ok(!isPhone(1280, 860) && !isPhone(1024, 768) && !isPhone(761, 501), 'a tablet on its side and a laptop keep the desktop map');
+  assert.ok(phoneTop(390) < phoneTop(844), 'on its side the strip shares the header\'s line');
+  for (const [vw, vh] of [[667, 375], [740, 360], [844, 390], [932, 430], [1180, 500]]) {
+    const rects = DISTRICTS.map((d) => ({ id: d.id, x: d.x, y: d.y, ...frameFor(d, vw, vh) }));
+    for (const r of rects) {
+      assert.ok(r.w >= 240 && r.w <= vw - 24 && r.h >= 160, `${r.id} @${vw}x${vh}: ${r.w}×${r.h}`);
+      const cam = cameraFor(byId(r.id), vw, vh);
+      const left = r.x + cam.tx;
+      assert.ok(Math.abs(left + r.w / 2 - vw / 2) < 0.5, `${r.id} @${vw}x${vh} is centred`);
+      assert.equal(r.y + cam.ty, phoneTop(vh), `${r.id} @${vw}x${vh} starts under the header`);
+      assert.ok(r.y + cam.ty + r.h <= vh - 64, `${r.id} @${vw}x${vh} ends above the mini-player`);
+    }
+    for (let i = 0; i < rects.length; i++) {
+      for (let j = i + 1; j < rects.length; j++) {
+        const a = rects[i];
+        const b = rects[j];
+        const apart = a.x + a.w <= b.x || b.x + b.w <= a.x || a.y + a.h <= b.y || b.y + b.h <= a.y;
+        assert.ok(apart, `${a.id} and ${b.id} overlap on a ${vw}x${vh} phone on its side`);
+      }
+    }
+  }
+  // world.css spells out the same breakpoints (a media query cannot read a JS constant).
+  const css = fs.readFileSync(new URL('../site/css/world.css', import.meta.url), 'utf8');
+  assert.ok(css.includes(`@media (max-width:${PHONE_MAX}px),(max-height:${SHORT_MAX}px){`), 'the phone rules cover a phone on its side');
+  assert.ok(css.includes(`@media (max-height:${SHORT_MAX}px){`), 'the one-line header');
+  assert.ok(css.includes(`@media (min-width:${PHONE_MAX + 1}px) and (min-height:${SHORT_MAX + 1}px){`), 'the stacked menu is a desktop\'s only');
+});
+
+test('a swipe across a phone goes to the other half; a scroll, a slow drag, the screen\'s edge or the half already in view do nothing', () => {
+  const g = (o) => ({ x0: 300, dx: -180, dy: 10, ms: 220, vw: 390, ...o });
+  assert.equal(swipeHalf('zone', g()), 'echo', 'finger to the left: Echo, which lies to the right');
+  assert.equal(swipeHalf('echo', g({ x0: 90, dx: 180 })), 'zone', 'finger to the right: back to Zone');
+  assert.equal(swipeHalf('echo', g()), null, 'already on Echo');
+  assert.equal(swipeHalf('zone', g({ x0: 90, dx: 180 })), null, 'already on Zone');
+  assert.equal(swipeHalf('zone', g({ dx: -(SWIPE.min - 1) })), null, 'too short');
+  assert.equal(swipeHalf('zone', g({ dx: -120, dy: 90 })), null, 'mostly down: a scroll');
+  assert.equal(swipeHalf('zone', g({ ms: SWIPE.ms + 1 })), null, 'too slow: a drag, not a swipe');
+  assert.equal(swipeHalf('echo', g({ x0: SWIPE.edge - 1, dx: 180 })), null, 'from the left edge: the phone\'s own Back');
+  assert.equal(swipeHalf('zone', g({ x0: 390 - SWIPE.edge + 1 })), null, 'from the right edge');
+  assert.equal(swipeHalf(undefined, g()), 'echo', 'off the map (no half yet): a swipe still goes');
 });
 
 test('a flight: 380–820 ms by distance, eased from rest to rest, a pull-back of at most 12 %', () => {

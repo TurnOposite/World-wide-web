@@ -111,12 +111,39 @@ is the classic one, and the site smoke test checks that no world and no `world.c
   block lays the district in view out flat and hides the rest; `site.css`'s print rules do the
   rest) — smoke-tested at A4 width: same column, headline, body and notes, same PDF page count.
 
+## The phone (phase 5)
+
+- **A swipe goes to the other half.** On a phone, a quick sideways swipe across the page in view
+  — at least 64 px, 1.6 times more across than down, under 650 ms (`layout.js` `SWIPE`,
+  `swipeHalf`) — does what the switch does: the finger moving left brings the Une (Echo lies to
+  the right), moving right brings Radio back. A swipe towards the half already in view does
+  nothing. Through the router, like a tag: a real address, Back returns. The page still scrolls
+  up and down inside its window as before.
+- **What is not a swipe.** A gesture that scrolled the page (the box moved more than 12 px), a
+  slow drag, a pinch or a zoomed-in screen, a start within 24 px of the screen's edge (where the
+  phone's own Back lives), and anything in the page that takes a sideways gesture itself: a strip
+  that scrolls across (the channels dial, the press clips, the shelf), an element with its own
+  `touch-action` (the queue's grip, the pond, the atlas map), a form field, an open dialog (the
+  lightbox). The gesture is timed with the touch events' own `timeStamp`, so a busy phone that
+  handles both ends late does not turn a slow drag into a swipe.
+- **The browser keeps out of it.** Left to Chrome, a sideways pan over the page overscrolls into
+  its own Back (measured: a browser-initiated popstate). The root's `overscroll-behavior-x` did not
+  stop it — the page's box is a scroller and lets the pan back in — so on a phone the viewport and
+  each box say `touch-action: pan-y pinch-zoom`; a strip that scrolls sideways is a scroller of its
+  own and keeps its pan. Pinch-zoom stays. Safari's edge swipe is the system's, hence the edge rule.
+- **A phone on its side is a phone** (`PHONE_MEDIA`: at most 760 px wide *or* 500 px tall). Height
+  is what it lacks, so the brand, the switch, the tags and « Écran » share one line (`fitStrip`
+  measures the room between the switch and « Écran »), and the frame starts under it
+  (`SHORT_TOP`, 64 px) and ends above the mini-player, at 1:1. A phone frame is never wider than
+  736 px — the map's tightest gap side by side (Atlas → Portfolio) — and is centred, so on a wide
+  phone on its side the neighbours stay apart and a little of the visualiser shows at the sides.
+
 ## Files
 
 | File | What |
 |---|---|
 | `site/js/world/flag.js` | is the world on? (config, query, the tab's memory) |
-| `site/js/world/layout.js` | the map: districts, codes, positions, which route lands where; the camera's arithmetic, a phone's frame size, the page zoom. No DOM — `tests/site-world.test.js` checks it |
+| `site/js/world/layout.js` | the map: districts, codes, positions, which route lands where; the camera's arithmetic, a phone's frame size (upright or on its side), the page zoom, the swipe rule. No DOM — `tests/site-world.test.js` checks it |
 | `site/js/world/camera.js` | the flight: easeInOutQuart, 380–820 ms by distance, a ≤12 % pull-back, motion blur on desktop while moving; a 160 ms fade under reduced motion |
 | `site/js/world/tags.js` | the tag menu: real buttons in a `<nav>`, `aria-current` on the district shown |
 | `site/js/world/minimap.js` | the world at 1/30, a pointer shortcut (`aria-hidden`: the tags say the same) |
@@ -172,8 +199,16 @@ switch flies to Radio or Une.
    (and still under reduced motion), the crossing to Radio with the radio playing and the ash
    stopped, the torn edge seen from Zone, Archives listing every piece of press, the crossing to
    Portfolio, the article printing as on the classic site.
-5. **Phone + switch-over** — swipe between the halves, scroll inside each; flip the flag,
-   keep the classic shell one release as `?classic=1`; checked on a real phone.
+5. **Phone + switch-over**, in two steps.
+   - **5a, the phone** — done 2026-10-24: a swipe goes to the other half, scroll inside each;
+     a phone on its side is laid out as a phone (one-line header, the frame at 1:1); frames
+     capped so they never overlap on any phone. Smoke-tested with real touches (CDP): both
+     directions with the radio playing through and the tag strip following; a scroll, a slow
+     drag, a start at the edge, a strip that scrolls sideways and a drag surface each stay put
+     (this check caught Chrome's own Back); at 844 × 390 the header on one line, the frame at
+     1:1 above the mini-player, nothing overflowing, the swipe working.
+   - **5b, the switch-over** — flip the flag (`config.json` `"world": true`), keep the classic
+     shell one release as `?classic=1` (remembered for the tab), the real-phone checklist.
 
 ## Open questions (assumed until Ortis answers)
 
@@ -189,8 +224,9 @@ switch flies to Radio or Une.
   keeps it.
 - R9's « ♪ next on air » markers on the Lectures list are not built: the score box on each
   scored text (already there) says when its music next plays.
-- A phone held sideways (wider than 760 px, ~390 px tall) gets the desktop layout at the
-  minimum scale: a short window. Phase 5 is the phone phase.
+- The swipe is checked in headless Chrome with real touch events, not on a phone: how it feels
+  under a thumb (the 64 px / 650 ms thresholds), Safari's own edge swipe and the Android back
+  gesture need the real-phone checklist (phase 5b).
 - Not measured in the cloud: frame rate. The proposal's target (60 fps camera on a desktop,
   ≥ 45 on a phone) needs a real machine's profiler. In headless Chrome (software drawing) the
   world on Radio runs at ~39 fps against ~41 for the classic page; the costs that were cut are

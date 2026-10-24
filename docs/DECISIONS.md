@@ -3485,3 +3485,30 @@ PDF page count, and nothing of the world on paper (`world.css` lays the district
 **Not built:** R9's « ♪ next on air » markers on the Lectures list — the score box on each scored text already says
 when its music plays next. **Revisit if** the ash on paper reads as dirt on a real screen (the ink colour and density
 are two constants in `ash()`), or if an Echo page grows content that needs the night sides back.
+
+
+## 2026-10-24 — The world shell, phase 5a: a swipe crosses the seam on a phone; a phone on its side is a phone
+
+**Chosen:** on a phone, a quick sideways swipe over the page in view goes to the other half — Radio or the Une, as
+the Zone ⇄ Echo switch does (R9: "swipe between the halves, scroll inside each"; its prototype does the same). The
+rule is pure and unit-tested (`layout.js` `swipeHalf`: ≥ 64 px, 1.6 × more across than down, ≤ 650 ms, not from the
+24 px at either edge, nothing towards the half already in view). A gesture that scrolled the page, a pinch, and
+anything in the page that takes a sideways gesture itself (a sideways scroller, an element with its own
+`touch-action`, a form field, an open dialog) are not swipes. A phone on its side (≤ 500 px tall) now gets the phone
+layout, its header, switch, tags and « Écran » on one line; phone frames are capped at 736 px wide and centred, so
+they never overlap on any phone. Phase 5 is split: the flag flip and `?classic=1` are 5b, the next run.
+**Because:** the swipe could have walked district by district (like ← →), but R9 and its step-by-step ("swipe left
+and right — the view switches between Zone and Echo") name the halves, and on a phone each district is a whole page
+reached from the tag strip. Landing on Radio / Une rather than "where you were in that half" keeps the swipe and the
+switch one gesture with one meaning.
+**Measured, and what it changed:** (1) Chrome treated a sideways pan over a world page as its own Back (a browser
+popstate — the new smoke check caught it); `overscroll-behavior-x: none` on the root did not stop it, because the
+page's box is a scroller and re-enables panning for everything in it. `touch-action: pan-y pinch-zoom` on the phone's
+viewport and boxes does (sideways scrollers inside a page re-enable their own pan; pinch-zoom kept; double-tap zoom
+goes, as on any `width=device-width` page it does nothing useful). (2) A busy page handles a quick swipe's two ends
+late and together, and a slow drag's too: timing with the handler's clock accepted a 900 ms drag. The gesture is
+timed with the events' own `timeStamp`.
+**Not decided here:** the thresholds on a real thumb, and Safari's / Android's own edge gestures — the real-phone
+checklist (5b). **Revisit if** readers switch halves by accident while reading (raise `SWIPE.min` or `ratio`), or
+if a page adds a sideways gesture without a scroller or a `touch-action` of its own (it must declare one).
+

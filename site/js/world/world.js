@@ -23,8 +23,12 @@
  * the classic Une become Echo's ground — the silhouettes stand in the
  * gutters, the ash falls on the paper behind the windows while the camera
  * is on Echo — and the seam is a torn edge of paper over Zone's night.
+ *
+ * Phase 5: the phone. A swipe across the screen goes to the other half, as
+ * the switch does; a phone on its side is a phone too, its header and tags
+ * on one line.
  */
-import { DISTRICTS, FIGURES, PHONE_MAX, byId, districtFor, frameFor, pageZoom } from './layout.js';
+import { DISTRICTS, FIGURES, PHONE_MEDIA, SHORT_MAX, byId, districtFor, frameFor, pageZoom, swipeHalf } from './layout.js';
 import { Camera } from './camera.js';
 import { mountTags } from './tags.js';
 import { mountMinimap } from './minimap.js';
@@ -167,7 +171,7 @@ export async function mountWorld({ router, site = {} }) {
   let current = null;
   const minimap = mountMinimap((id) => pick(id));
   const tags = mountTags((id) => pick(id));
-  const phone = matchMedia(`(max-width: ${PHONE_MAX}px)`);
+  const phone = matchMedia(PHONE_MEDIA);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const count = (bub) => bubbles.setCount(bubbleCount(bub, { phone: phone.matches, reduced: reduced.matches }));
   const screen = mountScreen({ root, onChange: (p) => count(p.bub) });
@@ -257,6 +261,51 @@ export async function mountWorld({ router, site = {} }) {
     if (s && s.dataset.d !== current) arrive(byId(s.dataset.d));
   });
 
+  // Phone: a swipe across the screen goes to the other half — Radio or the Une, as the switch does.
+  // Never from something that takes the gesture itself (ownsSwipe), nor a pinch, nor a scroll that
+  // drifted sideways: the page under the finger must not have moved.
+  let touch = null;
+  viewport.addEventListener('touchstart', (e) => {
+    touch = null;
+    if (!phone.matches || e.touches.length !== 1 || (globalThis.visualViewport?.scale ?? 1) > 1.01 || ownsSwipe(e.target)) return;
+    const t = e.touches[0];
+    const scroller = scrollerOf(e.target);
+    // The events' own time, not the handler's: on a busy phone both ends of a quick swipe can be handled late, together.
+    touch = { x: t.clientX, y: t.clientY, ts: e.timeStamp, t: performance.now(), scroller, top: scroller?.scrollTop ?? 0 };
+  }, { passive: true });
+  viewport.addEventListener('touchmove', (e) => { if (e.touches.length > 1) touch = null; }, { passive: true });
+  viewport.addEventListener('touchcancel', () => { touch = null; }, { passive: true });
+  viewport.addEventListener('touchend', (e) => {
+    const s = touch;
+    touch = null;
+    if (!s || e.touches.length || Math.abs((s.scroller?.scrollTop ?? 0) - s.top) > 12) return;
+    const t = e.changedTouches[0];
+    const ms = e.timeStamp > s.ts && s.ts > 0 ? e.timeStamp - s.ts : performance.now() - s.t;
+    const half = swipeHalf(byId(current)?.half, { x0: s.x, dx: t.clientX - s.x, dy: t.clientY - s.y, ms, vw: innerWidth });
+    if (half) pick(half === 'echo' ? 'une' : 'radio');
+  }, { passive: true });
+  /**
+   * Something in the page under the finger that takes a sideways gesture itself: a strip that scrolls
+   * across, a slider, a drag (its own touch-action), a dialog. The box's own pan-y is the world's (world.css).
+   */
+  function ownsSwipe(target) {
+    if (document.querySelector('dialog[open]')) return true;
+    for (let n = target instanceof Element ? target : target?.parentElement; n && n !== viewport && !n.classList.contains('w-box'); n = n.parentElement) {
+      if (n.matches('input, textarea, select, [contenteditable], video, audio')) return true;
+      const cs = getComputedStyle(n);
+      if (cs.touchAction !== 'auto' && cs.touchAction !== 'manipulation' && !cs.touchAction.includes('pan-x')) return true;
+      if (/auto|scroll/.test(cs.overflowX) && n.scrollWidth > n.clientWidth + 1) return true;
+    }
+    return false;
+  }
+  /** The box (or a list inside it) the finger would scroll up and down. */
+  function scrollerOf(target) {
+    for (let n = target instanceof Element ? target : target?.parentElement; n && n !== viewport; n = n.parentElement) {
+      if (/auto|scroll/.test(getComputedStyle(n).overflowY) && n.scrollHeight > n.clientHeight + 1) return n;
+    }
+    return null;
+  }
+
   // ← → walk the districts in map order: from the page itself, the HUD, the
   // tags or a frame — never from inside a page's box, whose own arrows (the
   // lightbox, the atlas, the dial) are the page's.
@@ -285,7 +334,13 @@ export async function mountWorld({ router, site = {} }) {
     }
   }
   placeAll();
-  addEventListener('resize', () => { placeAll(); camera.refit(); });
+  // A phone on its side: the tag strip shares the header's line, between the switch and « Écran ».
+  function fitStrip() {
+    if (innerHeight > SHORT_MAX) return;
+    root.style.setProperty('--w-strip-l', `${Math.round(sw.getBoundingClientRect().right + 8)}px`);
+    root.style.setProperty('--w-strip-r', `${Math.round(innerWidth - screen.button.getBoundingClientRect().left + 8)}px`);
+  }
+  addEventListener('resize', () => { placeAll(); camera.refit(); fitStrip(); });
 
   // The one live page. The page the camera leaves sleeps in its frame (inert,
   // its players silenced) until the camera lands, then its frame is a door again.
@@ -310,6 +365,13 @@ export async function mountWorld({ router, site = {} }) {
   html.classList.add('world-on');
   for (const c of document.querySelectorAll('body > .masthead, body > main, body > .sitefoot')) c.inert = true;
   await loaded;
+  fitStrip();
+  // Zone's faces swap in when first used, after the sheet, and change the switch's width: measure again when it does.
+  if (globalThis.ResizeObserver) {
+    const ro = new ResizeObserver(() => fitStrip());
+    ro.observe(sw);
+    ro.observe(screen.button);
+  }
 
   return {
     camera,

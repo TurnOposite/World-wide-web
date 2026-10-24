@@ -24,7 +24,9 @@
  *     ?world=1 the camera flies to each route's district while the radio
  *     plays on, by tag, arrow key, minimap, switch and Back; each page opens
  *     in its district's window at 1:1, every route answers on a cold link,
- *     20 pans never cut the radio, and Tab follows the camera.
+ *     20 pans never cut the radio, and Tab follows the camera; on a phone
+ *     (upright or on its side) a swipe goes to the other half and nothing
+ *     that is not a swipe does.
  *
  * Usage: node scripts/site-smoke.mjs [towerUrl]
  */
@@ -1033,9 +1035,102 @@ try {
     return { cols: cols ? getComputedStyle(cols).gridTemplateColumns.split(' ').length : 0, under: Boolean(lead && side && side.top >= lead.bottom - 1) };
   });
   check('…the Une\'s « À l\'antenne » column goes under the lead on a phone', phoneUne.cols === 1 && phoneUne.under, JSON.stringify(phoneUne));
+  // Phase 5: a swipe across the phone goes to the other half, as the switch does — real touches (CDP), not synthetic
+  // events. Each touch carries the time the finger is meant to be there (the page reads the events' own timeStamp),
+  // so a busy test machine delivering them late does not turn a quick swipe into a slow drag.
+  const swipe = async (pg, x0, y0, x1, y1, { ms = 160 } = {}) => {
+    const cdp = await pg.context().newCDPSession(pg);
+    const t = Date.now() / 1000;
+    const steps = [[x0, y0], [x0 + (x1 - x0) / 3, y0 + (y1 - y0) / 3], [x0 + (2 * (x1 - x0)) / 3, y0 + (2 * (y1 - y0)) / 3], [x1, y1]];
+    for (const [i, [x, y]] of steps.entries()) {
+      await cdp.send('Input.dispatchTouchEvent', { type: i ? 'touchMove' : 'touchStart', touchPoints: [{ x, y }], timestamp: t + (i * ms) / 3000 });
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [], timestamp: t + ms / 1000 });
+    await cdp.detach();
+    return ms;
+  };
+  const landedOn = (pg, id) => pg.waitForFunction((i) => window.radioTower.world.current === i && !window.radioTower.world.camera.moving, id, { timeout: 8000 }).catch(() => {});
+  await wm.tap('#mbTune');
+  await wm.waitForFunction(() => { const au = document.getElementById('audio'); return !au.paused && au.currentTime > 0.3; }, null, { timeout: 10000 }).catch(() => {});
+  await wm.evaluate(() => { window.__swipeAudio = document.getElementById('audio'); });
+  const swiped = { ms: [] };
+  swiped.ms.push(await swipe(wm, 90, 520, 300, 530));
+  await landedOn(wm, 'radio');
+  swiped.right = await wm.evaluate(() => location.pathname);
+  swiped.ms.push(await swipe(wm, 300, 520, 90, 510));
+  await landedOn(wm, 'une');
+  swiped.left = await wm.evaluate(() => location.pathname);
+  await wm.waitForFunction(() => !document.getElementById('audio').paused, null, { timeout: 3000 }).catch(() => {});
+  Object.assign(swiped, await wm.evaluate(() => {
+    const au = document.getElementById('audio');
+    const nav = document.querySelector('.w-tags');
+    const cur = nav.querySelector('[aria-current]').getBoundingClientRect();
+    return { same: au === window.__swipeAudio, playing: !au.paused && !au.muted, strip: cur.left >= 0 && cur.right <= innerWidth, scrolled: nav.scrollLeft > 0 };
+  }));
+  check('phone: a swipe to the right brings Zone (Radio), one to the left the Une — the radio plays on, the tag strip follows', swiped.right === '/radio'
+    && swiped.left === '/echo' && swiped.same && swiped.playing && swiped.strip && swiped.scrolled, JSON.stringify(swiped));
+  // What is not a swipe stays put: a scroll, a slow drag, the screen's edge, and a gesture something in the page takes itself.
+  const stays = async (label, act) => {
+    await act();
+    await wm.waitForTimeout(500);
+    const at = await wm.evaluate(() => [window.radioTower.world.current, location.pathname, window.radioTower.world.camera.moving]);
+    return at[0] === 'une' && at[1] === '/echo' && !at[2] ? null : `${label} → ${at.join(' ')}`;
+  };
+  const unmoved = [];
+  const top0 = await wm.evaluate(() => document.querySelector('#w-une .w-box').scrollTop);
+  unmoved.push(await stays('scroll', () => swipe(wm, 200, 640, 150, 300)));
+  const scrolledDown = await wm.evaluate((t) => document.querySelector('#w-une .w-box').scrollTop > t + 50, top0);
+  unmoved.push(await stays('slow drag', () => swipe(wm, 90, 400, 320, 400, { ms: 900 })));
+  unmoved.push(await stays('left edge', () => swipe(wm, 8, 400, 260, 400)));
+  await wm.evaluate(() => {
+    const box = document.querySelector('#w-une .w-box');
+    const strip = Object.assign(document.createElement('div'), { id: 'swipeStrip' });
+    strip.style.cssText = 'overflow-x:auto;height:120px';
+    strip.innerHTML = '<div style="width:2400px;height:100px"></div>';
+    const pad = Object.assign(document.createElement('div'), { id: 'swipePad' });
+    pad.style.cssText = 'touch-action:none;height:120px';
+    box.prepend(strip, pad);
+    box.scrollTop = 0;
+    strip.scrollLeft = 900;
+  });
+  const at = (sel) => wm.evaluate((q) => { const r = document.querySelector(q).getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, sel);
+  const [sx, sy] = await at('#swipeStrip');
+  unmoved.push(await stays('a strip that scrolls sideways', () => swipe(wm, sx - 100, sy, sx + 120, sy)));
+  const stripMoved = await wm.evaluate(() => document.getElementById('swipeStrip').scrollLeft < 900);
+  const [px, py] = await at('#swipePad');
+  unmoved.push(await stays('a drag surface (touch-action)', () => swipe(wm, px - 100, py, px + 120, py)));
+  await wm.evaluate(() => { document.getElementById('swipeStrip').remove(); document.getElementById('swipePad').remove(); });
+  check('…and what is not a swipe stays put: a scroll (the page scrolls), a slow drag, a start at the screen\'s edge, a strip that scrolls sideways (it scrolls), a drag surface',
+    unmoved.every((u) => u === null) && scrolledDown && stripMoved, JSON.stringify({ unmoved: unmoved.filter(Boolean), scrolledDown, stripMoved }));
   for (const v of (await axeRun(wm)) || []) worldA11y.push(`phone: ${v}`);
   if (AXE) check('world shell: no accessibility violations above minor (desktop + phone)', worldA11y.length === 0, worldA11y.slice(0, 3).join(' | ') || 'names, roles, landmarks, contrast');
   await wm.context().close();
+
+  // A phone on its side (844×390): still a phone — the header, the switch, the tags and « Écran » on one line, the frame the rest of the screen at 1:1.
+  const wl = await (await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
+  watch(wl, 'world, phone on its side');
+  await wl.goto(dev + 'radio?world=1', { waitUntil: 'domcontentloaded' });
+  await wl.waitForFunction(() => window.radioTower?.world?.current === 'radio' && document.querySelector('#w-radio .w-box .onair'), null, { timeout: 10000 }).catch(() => {});
+  await wl.evaluate(() => document.fonts.ready);
+  const side = await wl.evaluate(() => {
+    const r = (q) => document.querySelector(q).getBoundingClientRect();
+    const [brand, sw, tags, scr, frame, mb] = ['.w-brand', '.w-switch', '.w-tags', '.w-screen-btn', '#w-radio', '#minibar'].map(r);
+    const box = document.querySelector('#w-radio .w-box');
+    const page = box.querySelector(':scope > .page');
+    return {
+      line: [brand, sw, tags, scr].every((b) => b.top < 20 && b.bottom <= 60), apart: brand.right <= sw.left && sw.right <= tags.left && tags.right <= scr.left,
+      under: frame.top >= tags.bottom, above: frame.bottom <= mb.top + 2, inside: frame.left >= 0 && frame.right <= innerWidth,
+      zoom: box.style.zoom, scale: page ? page.getBoundingClientRect().width / page.offsetWidth : 0,
+      minimap: getComputedStyle(document.querySelector('.w-minimap')).display, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    };
+  });
+  check('phone on its side (844×390): brand, switch, tags and « Écran » share one line; the frame fills the rest at 1:1, above the mini-player; nothing overflows',
+    side.line && side.apart && side.under && side.above && side.inside && side.zoom === '' && Math.abs(side.scale - 1) < 0.02 && side.minimap === 'none' && side.overflow <= 1,
+    JSON.stringify(side));
+  await swipe(wl, 600, 220, 300, 225);
+  await landedOn(wl, 'une');
+  check('…and a swipe there goes to the Une too', await wl.evaluate(() => location.pathname === '/echo' && window.radioTower.world.current === 'une'));
+  await wl.context().close();
 
   /* ------------------------------------------------------------- phone -- */
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
