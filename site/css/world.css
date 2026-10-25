@@ -246,7 +246,9 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
 .w-tag:focus-visible{outline:none}
 .w-tag[aria-current="true"]>span{box-shadow:0 0 0 2px var(--w-night),0 0 0 4px var(--w-neon-c)}
 .w-tag[data-half="echo"][aria-current="true"]>span{box-shadow:0 0 0 2px var(--w-paper),0 0 0 4px var(--w-red)}
-.w-tag.faint>span{opacity:.75;font-size:12px}
+/* Faint by its text and a dashed edge, never by opacity: a see-through tag over Echo's paper loses its contrast. */
+.w-tag.faint>span{font-size:12px;border-style:dashed}
+.w-tag.faint:not(:hover):not(:focus-visible)>span{color:var(--w-dim)}
 /* « Écran » → Menu → Pile: the tags stacked down the left, a Persona pause menu (desktop; a phone keeps its strip). */
 @media (min-width:761px) and (min-height:501px){
   [data-w-list="stack"] .w-tags{display:flex;flex-direction:column;align-items:flex-start;gap:7px;

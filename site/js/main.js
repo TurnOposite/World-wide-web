@@ -118,8 +118,8 @@ async function boot() {
   };
 
   let cleanup = null;
-  // The world shell (docs/WORLD.md), behind a flag: config.world, or ?world=1 for this tab.
-  // Off, nothing under world/ but the flag is loaded and the site is the classic one.
+  // The world shell (docs/WORLD.md): on when config.world says so (it ships on), off for a tab
+  // that asked for ?classic=1. Off, nothing under world/ but the flag is loaded and the site is the classic one.
   let world = null;
   let session = null;
   try { session = sessionStorage; } catch { /* storage blocked: the flag lasts this page */ }

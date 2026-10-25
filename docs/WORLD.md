@@ -12,14 +12,18 @@ Approved by Ortis on 2026-10-20. The old site is kept on two archive branches,
 
 ## See it
 
-Behind a flag until the last phase:
+Since the switch-over (phase 5b) the world **is** the site: `config.json` ships `"world": true`.
 
-- `?world=1` on any address turns it on for the tab (remembered in `sessionStorage`, because
-  the site's links are relative and drop the query); `?world=0` or `?classic=1` turns it off.
-- `config.json` → `"world": true` turns it on for everyone. It ships `false`.
+- `?classic=1` (or `?world=0`) on any address opens the **classic shell** instead, kept one
+  release as a way back. The choice is remembered for the tab (`sessionStorage`, because the
+  site's links are relative and drop the query); a new tab opens the world again.
+- `?world=1` asks for the world on a build that ships it off (a fork, a rollback), remembered
+  the same way.
 
 With the flag off, `main.js` loads `world/flag.js` and nothing else from `world/`; the page
 is the classic one, and the site smoke test checks that no world and no `world.css` appear.
+The classic checks of the smoke test (listeners A and B, the booth, the rooms, the classic
+phone pass) run under `?classic=1`; everything else runs on bare addresses — what ships.
 
 ## How a page sits in its district (phase 2)
 
@@ -207,8 +211,57 @@ switch flies to Radio or Une.
      drag, a start at the edge, a strip that scrolls sideways and a drag surface each stay put
      (this check caught Chrome's own Back); at 844 × 390 the header on one line, the frame at
      1:1 above the mini-player, nothing overflowing, the swipe working.
-   - **5b, the switch-over** — flip the flag (`config.json` `"world": true`), keep the classic
-     shell one release as `?classic=1` (remembered for the tab), the real-phone checklist.
+   - **5b, the switch-over** — done 2026-10-25: `config.json` ships `"world": true`; the classic
+     shell stays one release behind `?classic=1`, remembered for the tab (`?world=1` likewise).
+     Smoke-tested: the world checks on bare addresses (a cold link to each of 16 addresses lands
+     in its district with no query); `?classic=1` opens the classic shell and 17 cold loads after
+     it in the same tab stay classic; `?world=1` brings the world back; every one of the phone
+     pass's 17 pages fits a 390 px phone *in the world* — the document and the page inside its
+     window — with no axe violation above minor; the built `dist/` under a sub-path opens the
+     world on a cold deep link (and the classic shell under `?classic=1`); in tower mode — the
+     live site's set-up — the world's Radio plays the tower's programme and its Ondes window reads
+     the tower's guide; axe runs on every cold-link address on a laptop too. Those new passes
+     found two faults in what was about to ship, both fixed: a district window was a landmark
+     named like a section of its own page (Ondes' « Ondes », Zone's « Playlists » beside the
+     Playlists district) — districts are now named « Fenêtre <title> »; and the faint Booth tag,
+     faded with `opacity`, lost its contrast over Echo's paper — it is now faint by its text
+     colour and a dashed edge. What only a phone can say is the checklist below.
+
+## Before merging: the real-phone checklist
+
+Emulation (Chromium at phone size, real touch events) has settled the layout, the taps and the
+swipe rule. It cannot say how the world feels under a thumb, or anything about iOS Safari's
+audio (`.claude/skills/tower-mobile-check/SKILL.md`). Ten minutes, on the branch's preview, with
+an iPhone (Safari) and, if one is at hand, an Android phone (Chrome). Each line is a yes/no.
+
+1. **iPhone, Safari: open the bare address.** ✔ The world opens on Radio, no query needed.
+   Tap ▶ in the bottom bar. ✔ Music within a couple of seconds.
+2. **Same second as a laptop** on the same address. ✔ Same track, same place (BRIEF §7).
+3. **Silent switch on.** ✔ Still audible (the `audioSession` line, `tower-mobile-check`).
+4. **Swipe from right to left across the page,** a quick flick from mid-screen. ✔ The Une
+   comes in, the music never stops. Then left to right. ✔ Radio again. Five swipes each way:
+   ✔ none missed, none needed twice (else: `SWIPE.min` / `maxMs` in `layout.js`).
+5. **Read the Une and an article, scrolling normally, a bit diagonally too.** ✔ It never
+   jumps to Radio while you read (else: `SWIPE.ratio`).
+6. **Safari's own edge swipe** (from the very left edge) and, on Android, **the back gesture.**
+   ✔ The phone goes Back as it always does; the world does not also swipe.
+7. **Flick the channels row on Radio, the press clips on the Atlas, the shelf in Portfolio → Bibliothèque.**
+   ✔ Each scrolls sideways; you stay where you are.
+8. **Turn the phone on its side.** ✔ One line at the top, the page at normal size under it,
+   the bottom bar below; a swipe still works.
+9. **Lock the phone for 60 s, unlock.** ✔ The music still plays (or the Tune in button is back
+   with « tap Tune in »), the world where you left it. **Switch to another app for 2 min, come
+   back.** ✔ The player re-joins live, not behind.
+10. **`?classic=1`.** ✔ The old site, and it stays old while you click around; a new tab opens
+    the world.
+11. **Laptop, Chrome → DevTools → Lighthouse → Mobile → Performance** on the preview's `/radio`.
+    R9's bar is **≥ 85** (not measurable in the cloud: Lighthouse is not installed there, and the
+    chain does not download tools to run).
+
+If 1–10 hold, the PR can be merged: Vercel rebuilds the site with the world on for everyone,
+and the Oracle tower, which also serves the whole site at its own address (`docs/LIVE.md`),
+builds the same world at its nightly update (~04:20 UTC), once the self-test has passed on
+GitHub. The morning after, its address opens the world too; `?classic=1` works there as well.
 
 ## Open questions (assumed until Ortis answers)
 
@@ -226,7 +279,12 @@ switch flies to Radio or Une.
   scored text (already there) says when its music next plays.
 - The swipe is checked in headless Chrome with real touch events, not on a phone: how it feels
   under a thumb (the 64 px / 650 ms thresholds), Safari's own edge swipe and the Android back
-  gesture need the real-phone checklist (phase 5b).
+  gesture are the real-phone checklist above.
+- The classic shell is kept **one release**. Removing it (and `?classic=1`) is a later, separate
+  change, once the world has run live without a reason to go back.
+- The claude.ai preview build (`npm run preview`) inherits `"world": true` but routes by `#/`;
+  the world has not been proven on hash routes, and that build is refused before it gets there
+  anyway (more files than one publish takes — a known red, decided separately).
 - Not measured in the cloud: frame rate. The proposal's target (60 fps camera on a desktop,
   ≥ 45 on a phone) needs a real machine's profiler. In headless Chrome (software drawing) the
   world on Radio runs at ~39 fps against ~41 for the classic page; the costs that were cut are

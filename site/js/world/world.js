@@ -76,7 +76,9 @@ function district(d) {
   s.id = `w-${d.id}`;
   s.dataset.d = d.id;
   s.tabIndex = -1;
-  s.setAttribute('aria-labelledby', `w-${d.id}-h`);
+  // Named as a window, not after its page: the pages name their own sections (Ondes' « Ondes », Zone's
+  // « Playlists »), and two landmarks of one name leave a screen reader two of the same (axe landmark-unique).
+  s.setAttribute('aria-label', `Fenêtre ${d.title}`);
   const code = el('span', 'w-code', `${d.code} · ${d.title}`);
   code.setAttribute('aria-hidden', 'true');
   s.append(code);

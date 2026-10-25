@@ -1,6 +1,6 @@
 /**
- * The world shell's arithmetic (docs/WORLD.md, phase 1): the flag that keeps
- * the classic site untouched, the map every route lands on, and the camera's
+ * The world shell's arithmetic (docs/WORLD.md): the flag (the world by default
+ * since phase 5b, the classic shell behind ?classic=1), the map every route lands on, and the camera's
  * numbers. The browser half — the flight, the tags, the music playing
  * through it — is in scripts/site-smoke.mjs.
  */
@@ -22,7 +22,7 @@ function memoryStorage() {
   return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) };
 }
 
-test('the world is off unless config.json or the address asks for it', () => {
+test('the world is on only when config.json or the address asks for it', () => {
   assert.equal(worldWanted({}), false);
   assert.equal(worldWanted({ config: { world: false } }), false);
   assert.equal(worldWanted({ config: { world: 'yes' } }), false, 'only a real true turns it on');
@@ -33,23 +33,36 @@ test('the world is off unless config.json or the address asks for it', () => {
   assert.equal(worldChoice('?worlds=1'), null);
 });
 
-test('the site ships with the world off: the classic shell stays live until the switch-over phase', () => {
+test('the site ships with the world on since the switch-over (phase 5b); ?classic=1 still opens the classic shell', () => {
   const config = JSON.parse(fs.readFileSync(new URL('../site/config.json', import.meta.url), 'utf8'));
-  assert.equal(config.world, false);
-  assert.equal(worldWanted({ config }), false);
+  assert.equal(config.world, true);
+  assert.equal(worldWanted({ config }), true);
+  assert.equal(worldWanted({ config, search: '?classic=1' }), false);
+  assert.equal(worldWanted({ config, search: '?world=0' }), false);
 });
 
-test('?world=1 is remembered for the tab, ?world=0 and ?classic=1 forget it', () => {
+test('?classic=1 and ?world=1 are each remembered for the tab; a new tab starts again from config.json', () => {
+  const on = { world: true };
   const s = memoryStorage();
-  assert.equal(worldWanted({ search: '?world=1', storage: s }), true);
-  assert.equal(worldWanted({ search: '', storage: s }), true, 'the next page, its query dropped by a relative link');
-  assert.equal(worldWanted({ search: '?world=0', storage: s }), false);
-  assert.equal(worldWanted({ search: '', storage: s }), false);
-  worldWanted({ search: '?world=1', storage: s });
-  assert.equal(worldWanted({ search: '?classic=1', storage: s, config: { world: true } }), false, 'classic beats the config too');
-  assert.equal(worldWanted({ search: '', storage: s, config: { world: true } }), true);
+  assert.equal(worldWanted({ search: '', storage: s, config: on }), true, 'no choice yet: what the site ships');
+  assert.equal(worldWanted({ search: '?classic=1', storage: s, config: on }), false, 'classic beats the config');
+  assert.equal(worldWanted({ search: '', storage: s, config: on }), false, 'the next page, its query dropped by a relative link, stays classic');
+  assert.equal(worldWanted({ search: '?tower=x', storage: s, config: on }), false, 'another query does not undo it');
+  assert.equal(worldWanted({ search: '?world=1', storage: s, config: on }), true, '?world=1 brings the world back');
+  assert.equal(worldWanted({ search: '', storage: s, config: on }), true);
+  assert.equal(worldWanted({ search: '?world=0', storage: s, config: on }), false, '?world=0 is the same as ?classic=1');
+  assert.equal(worldWanted({ search: '', storage: s, config: on }), false);
+  assert.equal(worldWanted({ search: '', storage: memoryStorage(), config: on }), true, 'a new tab: the world again');
+  // A build that ships the world off (a fork, a rollback): ?world=1 is remembered the same way.
+  const off = memoryStorage();
+  assert.equal(worldWanted({ search: '?world=1', storage: off }), true);
+  assert.equal(worldWanted({ search: '', storage: off }), true);
+  assert.equal(worldWanted({ search: '?world=0', storage: off }), false);
+  assert.equal(worldWanted({ search: '', storage: off }), false);
   const broken = { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); }, removeItem() { throw new Error('blocked'); } };
-  assert.equal(worldWanted({ search: '?world=1', storage: broken }), true, 'blocked storage: the flag still holds for this page');
+  assert.equal(worldWanted({ search: '?classic=1', storage: broken, config: on }), false, 'blocked storage: the choice still holds for this page');
+  assert.equal(worldWanted({ search: '', storage: broken, config: on }), true, '…and only this page');
+  assert.equal(worldWanted({ search: '?world=1', storage: broken }), true);
   assert.equal(worldWanted({ search: '', storage: broken }), false);
 });
 

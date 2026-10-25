@@ -20,13 +20,18 @@
  *   - the built dist/ works under a repository sub-path on a cold deep link;
  *   - pointed at a real Radio Tower server (`?tower=`), the same front end
  *     shows the server's programme;
- *   - the world shell (docs/WORLD.md) stays off unless asked for, and with
- *     ?world=1 the camera flies to each route's district while the radio
- *     plays on, by tag, arrow key, minimap, switch and Back; each page opens
- *     in its district's window at 1:1, every route answers on a cold link,
- *     20 pans never cut the radio, and Tab follows the camera; on a phone
- *     (upright or on its side) a swipe goes to the other half and nothing
- *     that is not a swipe does.
+ *   - the world shell (docs/WORLD.md) is what the site ships since phase 5b:
+ *     a bare address opens it, and the camera flies to each route's district
+ *     while the radio plays on, by tag, arrow key, minimap, switch and Back;
+ *     each page opens in its district's window at 1:1, every route answers on
+ *     a cold link, 20 pans never cut the radio, and Tab follows the camera; on
+ *     a phone (upright or on its side) a swipe goes to the other half and
+ *     nothing that is not a swipe does, and every page fits and passes axe;
+ *     the built dist/ and a tower-mode visit (the live site's set-up) open it
+ *     too;
+ *   - the classic shell, kept one release behind ?classic=1 (remembered for
+ *     the tab): the checks on listeners A and B, the booth, the rooms and the
+ *     classic phone pass run on it.
  *
  * Usage: node scripts/site-smoke.mjs [towerUrl]
  */
@@ -130,7 +135,9 @@ try {
   const ctxA = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   const a = await ctxA.newPage();
   watch(a, 'A');
-  await a.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
+  // The classic shell, kept one release behind ?classic=1 since the world became the default (phase 5b):
+  // every check down to the world shell's section runs on it.
+  await a.goto(dev + 'radio?classic=1', { waitUntil: 'domcontentloaded' });
   await a.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
   const tabs = await a.$$eval('.tabs a', (els) => els.map((e) => e.textContent.trim()));
   check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Zone,Playlists,Atlas,Portfolio,Une,Articles,Lectures', tabs.join(', '));
@@ -371,7 +378,7 @@ try {
   const ctxB = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   const b = await ctxB.newPage();
   watch(b, 'B');
-  await b.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
+  await b.goto(dev + 'radio?classic=1', { waitUntil: 'domcontentloaded' });
   await b.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
   await b.click('#rTune');
   await b.waitForFunction(() => { const au = document.getElementById('audio'); return !au.paused && au.currentTime > 0.5; }, null, { timeout: 15000 }).catch(() => {});
@@ -417,7 +424,7 @@ try {
   /* --------------------------------------- the booth, over "GitHub" ------ */
   const booth = await ctxA.newPage();
   watch(booth, 'booth');
-  await booth.goto(dev + 'booth', { waitUntil: 'domcontentloaded' });
+  await booth.goto(dev + 'booth?classic=1', { waitUntil: 'domcontentloaded' });
   await booth.waitForSelector('#bTok', { timeout: 8000 });
   check('the booth is read-only until a token is saved', (await booth.$$('#bQueue li[data-movable="1"]')).length === 0);
   await booth.fill('#bTok', 'github_pat_selftest');
@@ -574,8 +581,8 @@ try {
   check('one track that will not load waits for the next; two in a row say the music is unreachable', /will not load/.test(outage.first) && /not reachable/.test(outage.second), outage.second);
 
   /* ------------------------------------- the world shell (docs/WORLD.md) -- */
-  // Phase 1: behind a flag. Off, the classic site above never loaded any of it.
-  check('world shell: off by default — no world, no world.css on the classic site', await a.evaluate(() => !document.querySelector('.w-root')
+  // The classic site above (?classic=1) never loaded any of it.
+  check('the classic shell (?classic=1): no world, no world.css', await a.evaluate(() => !document.querySelector('.w-root')
     && !document.documentElement.classList.contains('world-on') && ![...document.querySelectorAll('link[rel="stylesheet"]')].some((l) => l.href.includes('world.css'))));
   const wctx = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   const w = await wctx.newPage();
@@ -591,10 +598,11 @@ try {
       pressed: document.querySelector('.w-switch button[aria-pressed="true"]')?.textContent,
     };
   }, id);
-  await w.goto(dev + 'radio?world=1', { waitUntil: 'domcontentloaded' });
+  // A bare address, in a tab that never chose: what the site ships.
+  await w.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await w.waitForFunction(() => window.radioTower?.world?.current === 'radio' && window.radioTower.player?.onAir, null, { timeout: 10000 });
   const landed = { ...(await shot('radio')), tags: await w.$$eval('.w-tags .w-tag', (els) => els.length) };
-  check('world shell (?world=1): eleven tags, Radio current, the camera already there — no flight on a cold link', landed.tags === 11 && landed.current === 'radio'
+  check('world shell, the default (a bare address): eleven tags, Radio current, the camera already there — no flight on a cold link', landed.tags === 11 && landed.current === 'radio'
     && landed.centre < 30 && landed.inside && landed.filter === '' && landed.pressed === 'Zone' && !landed.echo, JSON.stringify(landed));
   // Phase 2: the page opens in its district's window, at 1:1 on screen (the box's zoom undoes the camera's scale).
   const hosting = () => w.evaluate(() => {
@@ -728,11 +736,15 @@ try {
   const after20 = { ...(await hosting()), ...(await w.evaluate(() => {
     const au = document.getElementById('audio');
     return { same: au === window.__worldAudio, paused: au.paused, d: au.currentTime - window.radioTower.player.livePosition(), muted: window.__worldMuted, path: location.pathname,
-      swaps: window.__worldSwaps };
+      swaps: window.__worldSwaps, sinceSwap: Math.round(performance.now() - window.__worldSwap) };
   })) };
+  // The last reading follows the same rule as each pan: paused only counts as a cut away from a track change. On 25/10
+  // it went red with every pan tuned and a drift of −0.47 s, which places the reading in the gap between a file's end
+  // and the clock's rollover (the file a little shorter than its listed length): the player waiting by design, not a cut.
   check('20 pans, half of them cut short: the radio never stops (same <audio>, never muted, playing at every pan but a track change, on the station\'s second)',
-    tunedThrough === 20 && after20.same && !after20.paused && after20.muted === 0 && Math.abs(after20.d) < 1.5,
-    `${tunedThrough}/20 tuned, ${after20.swaps} track change(s), drift ${after20.d.toFixed(2)}s`);
+    tunedThrough === 20 && after20.same && (!after20.paused || after20.sinceSwap < 1500) && after20.muted === 0 && Math.abs(after20.d) < 1.5,
+    `${tunedThrough}/20 tuned, ${after20.swaps} track change(s), drift ${after20.d.toFixed(2)}s, ${after20.paused ? `paused ${after20.sinceSwap} ms after a track change` : 'playing'}`
+      + `${after20.same ? '' : ', a new <audio>'}${after20.muted ? `, stopped ${after20.muted}×` : ''}`);
   check('…and one page is live at the end — Radio\'s, in its window; every page left behind is a door again', after20.path === '/radio' && after20.live.join() === 'radio'
     && after20.doors === 10 && after20.asleep === 0, JSON.stringify(after20));
 
@@ -762,8 +774,10 @@ try {
     ['portfolio/photos', 'portfolio'], ['playlists', 'playlists'], ['booth', 'booth'], ['echo', 'une'], ['echo/article-temoin', 'articles'],
     ['echo/lectures', 'lectures'], ['ecrits', 'lectures'], ['echo/archives', 'archives'], ['nulle-part', null]];
   const coldMiss = [];
+  // axe on each of them too: since phase 5b these are the pages everyone gets on a laptop.
+  const worldA11y = [];
   for (const [route, id] of coldRoutes) {
-    await w.goto(dev + route + '?world=1', { waitUntil: 'domcontentloaded' });
+    await w.goto(dev + route, { waitUntil: 'domcontentloaded' });
     await w.waitForFunction((i) => {
       const t = window.radioTower?.world;
       if (!t?.current || t.camera.moving) return false;
@@ -780,16 +794,15 @@ try {
     }, id);
     const ok = id ? r.current === id && !r.lost && r.centre < 30 : r.lost && /Rien ici/.test(await w.textContent('.w-lost'));
     if (!ok || r.pages !== 1 || r.text <= 20) coldMiss.push(`/${route} ${JSON.stringify(r)}`);
+    for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop /${route}: ${v}`);
   }
-  check(`every route answers on a cold link, in its district, its page the only one live (${coldRoutes.length} addresses; an unknown one opens over the map)`, coldMiss.length === 0,
+  check(`every route answers on a cold link with no query, in its district, its page the only one live (${coldRoutes.length} addresses; an unknown one opens over the map)`, coldMiss.length === 0,
     coldMiss.slice(0, 2).join(' | '));
 
-  const worldA11y = [];
-  for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop: ${v}`);
 
   // Phase 4: the Echo skin — the Gazette in its windows, its figures and ash on the paper, the torn seam,
   // the links that cross it, and Archives.
-  await w.goto(dev + 'echo?world=1', { waitUntil: 'domcontentloaded' });
+  await w.goto(dev + 'echo', { waitUntil: 'domcontentloaded' });
   await w.waitForFunction(() => window.radioTower?.world?.current === 'une' && !window.radioTower.world.camera.moving && window.radioTower.player.onAir
     && document.querySelector('#w-une [data-onair-title]')?.textContent.length > 1, null, { timeout: 10000 }).catch(() => {});
   await w.evaluate(() => {
@@ -878,7 +891,7 @@ try {
   const printOf = async (q) => {
     const ctx = await browser.newContext({ viewport: { width: 794, height: 1123 } });
     const p = await ctx.newPage();
-    watch(p, `print, ${q}`);
+    watch(p, `print, ${q || 'default'}`);
     await p.goto(dev + 'echo/article-temoin?' + q, { waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => document.querySelector('.echo-article .echo-body')?.textContent.trim().length > 50 && window.radioTower?.router?.current, null, { timeout: 10000 })
       .catch(() => {});
@@ -897,17 +910,17 @@ try {
     await ctx.close();
     return r;
   };
-  const printClassic = await printOf('world=0');
-  const printWorld = await printOf('world=1');
+  const printClassic = await printOf('classic=1');
+  const printWorld = await printOf('');
   check('R9\'s check: an article prints from the world as from the classic site — the same column, headline, body and notes laid out alike, the same pages, nothing of the world on paper',
     printWorld.world && !printClassic.world && printWorld.article === printClassic.article && printWorld.h1 === printClassic.h1 && printWorld.body === printClassic.body && printWorld.notes === printClassic.notes
     && printWorld.size === printClassic.size && printWorld.shown.length === 0 && printClassic.shown.length === 0 && printWorld.pages === printClassic.pages && printWorld.pages >= 1,
     JSON.stringify({ classic: printClassic, world: printWorld }));
 
-  await w.goto(dev + 'echo?world=1', { waitUntil: 'domcontentloaded' });
+  await w.goto(dev + 'echo', { waitUntil: 'domcontentloaded' });
   await settled('une');
   for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop, une: ${v}`);
-  await w.goto(dev + 'radio?world=1', { waitUntil: 'domcontentloaded' });
+  await w.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await settled('radio');
   for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop, radio: ${v}`);
 
@@ -951,17 +964,28 @@ try {
   check('…and remembered by this browser after a reload', kept.bg === 'rain' && kept.list === 'stack' && kept.stacked && !kept.bubbles && !kept.scanShown, JSON.stringify(kept));
   await w.evaluate(() => localStorage.removeItem('gt.world.screen'));
 
-  await w.goto(dev + 'radio?world=0', { waitUntil: 'domcontentloaded' });
+  // Phase 5b: the classic shell stays one release behind ?classic=1, for the rest of the tab (a relative link drops the query).
+  const shellNow = () => w.evaluate(() => ({ world: Boolean(document.querySelector('.w-root')) && window.radioTower.world !== null,
+    view: getComputedStyle(document.getElementById('view')).visibility, path: location.pathname }));
+  await w.goto(dev + 'radio?classic=1', { waitUntil: 'domcontentloaded' });
   await w.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
+  const classicAsked = await shellNow();
   await w.goto(dev + 'atlas', { waitUntil: 'domcontentloaded' });
   await w.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
-  check('?world=0 turns it off, and the next page stays classic', await w.evaluate(() => !document.querySelector('.w-root') && window.radioTower.world === null
-    && getComputedStyle(document.getElementById('view')).visibility === 'visible'));
+  const classicNext = await shellNow();
+  check('?classic=1 opens the classic shell, and the next page in the tab stays classic', !classicAsked.world && classicAsked.view === 'visible' && !classicNext.world
+    && classicNext.view === 'visible', JSON.stringify({ classicAsked, classicNext }));
+  await w.goto(dev + 'atlas?world=1', { waitUntil: 'domcontentloaded' });
+  await w.waitForFunction(() => window.radioTower?.world?.current === 'atlas', null, { timeout: 10000 }).catch(() => {});
+  await w.goto(dev + 'zone', { waitUntil: 'domcontentloaded' });
+  await w.waitForFunction(() => window.radioTower?.world?.current === 'zone', null, { timeout: 10000 }).catch(() => {});
+  const backOn = await shellNow();
+  check('…?world=1 brings the world back, for the rest of the tab too', backOn.world && backOn.path === '/zone', JSON.stringify(backOn));
   await wctx.close();
 
   const still = await (await browser.newContext({ viewport: { width: 1280, height: 860 }, reducedMotion: 'reduce' })).newPage();
   watch(still, 'world, reduced motion');
-  await still.goto(dev + 'radio?world=1', { waitUntil: 'domcontentloaded' });
+  await still.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await still.waitForFunction(() => window.radioTower?.world?.current === 'radio', null, { timeout: 10000 });
   await still.click('.w-tag[data-go="lectures"]');
   await still.waitForFunction(() => window.radioTower.world.current === 'lectures', null, { timeout: 8000 }).catch(() => {});
@@ -999,7 +1023,7 @@ try {
 
   const wm = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
   watch(wm, 'world, phone');
-  await wm.goto(dev + 'radio?world=1', { waitUntil: 'domcontentloaded' });
+  await wm.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await wm.waitForFunction(() => window.radioTower?.world?.current === 'radio', null, { timeout: 10000 });
   const strip = await wm.evaluate(() => {
     const nav = document.querySelector('.w-tags');
@@ -1103,13 +1127,13 @@ try {
   check('…and what is not a swipe stays put: a scroll (the page scrolls), a slow drag, a start at the screen\'s edge, a strip that scrolls sideways (it scrolls), a drag surface',
     unmoved.every((u) => u === null) && scrolledDown && stripMoved, JSON.stringify({ unmoved: unmoved.filter(Boolean), scrolledDown, stripMoved }));
   for (const v of (await axeRun(wm)) || []) worldA11y.push(`phone: ${v}`);
-  if (AXE) check('world shell: no accessibility violations above minor (desktop + phone)', worldA11y.length === 0, worldA11y.slice(0, 3).join(' | ') || 'names, roles, landmarks, contrast');
+  if (AXE) check('world shell: no accessibility violations above minor (desktop: every cold-link address, the Une, Radio, « Écran » open; phone)', worldA11y.length === 0, worldA11y.slice(0, 3).join(' | ') || 'names, roles, landmarks, contrast');
   await wm.context().close();
 
   // A phone on its side (844×390): still a phone — the header, the switch, the tags and « Écran » on one line, the frame the rest of the screen at 1:1.
   const wl = await (await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
   watch(wl, 'world, phone on its side');
-  await wl.goto(dev + 'radio?world=1', { waitUntil: 'domcontentloaded' });
+  await wl.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await wl.waitForFunction(() => window.radioTower?.world?.current === 'radio' && document.querySelector('#w-radio .w-box .onair'), null, { timeout: 10000 }).catch(() => {});
   await wl.evaluate(() => document.fonts.ready);
   const side = await wl.evaluate(() => {
@@ -1133,19 +1157,27 @@ try {
   await wl.context().close();
 
   /* ------------------------------------------------------------- phone -- */
+  // The classic shell's phone pass, kept one release: ?classic=1 once, then every cold load in this tab stays classic.
+  const PHONE_ROUTES = ['', 'radio', 'ondes', 'playlists', 'atlas', 'zone', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo/lectures', 'echo/lectures/voyages', 'echo',
+    'echo/article-temoin', 'echo/archives', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth'];
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const m = await phone.newPage();
   watch(m, 'phone');
+  await m.goto(dev + '?classic=1', { waitUntil: 'domcontentloaded' });
+  await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
   const overflow = [];
   const a11y = [];
-  for (const r of ['', 'radio', 'ondes', 'playlists', 'atlas', 'zone', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo/lectures', 'echo/lectures/voyages', 'echo', 'echo/article-temoin', 'echo/archives', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth']) {
+  const notClassic = [];
+  for (const r of PHONE_ROUTES) {
     await m.goto(dev + r, { waitUntil: 'domcontentloaded' });
     await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
     await m.waitForTimeout(700);
     const o = await m.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     if (o > 1) overflow.push(`/${r} ${o}px`);
+    if (await m.evaluate(() => Boolean(document.querySelector('.w-root') || window.radioTower.world))) notClassic.push(`/${r}`);
     for (const v of (await axeRun(m)) || []) a11y.push(`/${r}: ${v}`);
   }
+  check(`?classic=1 is remembered for the tab: ${PHONE_ROUTES.length} cold loads after it, every one the classic shell`, notClassic.length === 0, notClassic.join(', '));
   // Touch: a tap opens a half's menu, a second tap closes it, a tap outside closes it.
   await m.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
@@ -1182,6 +1214,34 @@ try {
   const refused = await m.evaluate(() => ({ playing: window.radioTower.player.playing, status: window.radioTower.player.status, label: document.getElementById('mbTune').getAttribute('aria-label') }));
   check('a re-join the phone refuses gives the Tune in button back instead of faking play', !refused.playing && refused.label === 'Tune in' && /tap Tune in/.test(refused.status), refused.status);
 
+  /* --------------------------------------------- the world on a phone, every page -- */
+  // What the site ships, on the same addresses, each a cold load in a tab that never chose: nothing wider than the screen —
+  // the document, or the page inside its window (a window scrolls on its own: a page too wide for it would hide its right
+  // edge there without widening the document) — and axe.
+  const wp = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
+  watch(wp, 'world, every page on a phone');
+  const wOverflow = [];
+  const wA11y = [];
+  for (const r of PHONE_ROUTES) {
+    await wp.goto(dev + r, { waitUntil: 'domcontentloaded' });
+    await wp.waitForFunction(() => {
+      const t = window.radioTower?.world;
+      return t?.current && !t.camera.moving && document.querySelector(`#w-${t.current} .w-box > .page`)?.textContent.trim().length > 20;
+    }, null, { timeout: 10000 }).catch(() => {});
+    await wp.waitForTimeout(700);
+    const o = await wp.evaluate(() => {
+      const t = window.radioTower.world;
+      const box = t && document.querySelector(`#w-${t.current} .w-box`);
+      return { at: t?.current || null, doc: document.documentElement.scrollWidth - document.documentElement.clientWidth, box: box ? box.scrollWidth - box.clientWidth : null };
+    });
+    if (!o.at || o.doc > 1 || o.box === null || o.box > 1) wOverflow.push(`/${r} ${JSON.stringify(o)}`);
+    for (const v of (await axeRun(wp)) || []) wA11y.push(`/${r}: ${v}`);
+  }
+  check(`the world on a 390 px phone: every page fits, the document and the page in its window (${PHONE_ROUTES.length} addresses)`, wOverflow.length === 0,
+    wOverflow.slice(0, 3).join(' | ') || 'every page fits');
+  if (AXE) check('…and none has an accessibility violation above minor (axe-core)', wA11y.length === 0, wA11y.slice(0, 3).join(' | ') || 'contrast, names, roles, headings');
+  await wp.context().close();
+
   /* -------------------------------------- dist/ under a repo sub-path ---- */
   await build({ base: '/radio-tower/', repo: 'ortis/radio-tower', quiet: true });
   const distServer = await createSiteServer({ dist: true, base: '/radio-tower/', fixtures });
@@ -1193,8 +1253,16 @@ try {
   const dh = await d.textContent('.reading h1').catch(() => '');
   check('the old /ecrits address still opens the text and moves to /echo/lectures', dh === 'Opal Orre' && d.url().endsWith('/radio-tower/echo/lectures/opal-orre'), d.url());
   const cfg = await d.evaluate(() => window.radioTower?.client?.config?.github);
-  check('the built site answers a cold deep link under /<repo>/', dh === 'Opal Orre', dh || 'no heading');
+  const dWorld = await d.evaluate(() => window.radioTower?.world?.current || null);
+  check('the built site answers a cold deep link under /<repo>/, in the world as shipped', dh === 'Opal Orre' && dWorld === 'lectures', `${dh || 'no heading'}, ${dWorld}`);
   check('…and knows which repository its booth writes to', cfg?.owner === 'ortis' && cfg?.repo === 'radio-tower');
+  const dc = await (await browser.newContext()).newPage();
+  watch(dc, 'dist, classic');
+  await dc.goto(`http://127.0.0.1:${distPort}/radio-tower/echo/lectures/opal-orre?classic=1`, { waitUntil: 'domcontentloaded' });
+  await dc.waitForSelector('.reading h1', { timeout: 10000 }).catch(() => {});
+  const dch = await dc.evaluate(() => ({ h1: document.querySelector('.reading h1')?.textContent, world: Boolean(window.radioTower?.world || document.querySelector('.w-root')) }));
+  check('…and so does its classic shell, under ?classic=1', dch.h1 === 'Opal Orre' && !dch.world, JSON.stringify(dch));
+  await dc.context().close();
   // The go-live checker (GO-LIVE §4) against the same build on a Pages-shaped
   // server with a stand-in GitHub API: nothing to fail on a site that works.
   const liveServer = await createSiteServer({ dist: true, base: '/radio-tower/', fixtures, fakeGithub: true });
@@ -1210,7 +1278,8 @@ try {
   if (towerUrl) {
     const t = await (await browser.newContext()).newPage();
     watch(t, 'tower');
-    await t.goto(`${dev}radio?tower=${encodeURIComponent(towerUrl)}`, { waitUntil: 'domcontentloaded' });
+    // The classic shell first (its checks use the banner), then the world — the live site's own set-up.
+    await t.goto(`${dev}radio?tower=${encodeURIComponent(towerUrl)}&classic=1`, { waitUntil: 'domcontentloaded' });
     await t.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 }).catch(() => {});
     // The self-test's fixture tracks are 7–15 s long, so a reading can straddle
     // a rollover. Read both sides back to back, and retry across a boundary.
@@ -1247,6 +1316,28 @@ try {
     const so = server.station?.origin;
     const wantZ = so || tz.cfg;
     check(`Zone on a tower shows ${so ? 'the tower\'s own origin, not config.json\'s' : 'config.json\'s origin (this tower names none)'}`, Boolean(wantZ) && tz.lat === wantZ.lat && tz.lon === wantZ.lon && tz.place === wantZ.place, `${tz.place} (${tz.lat}, ${tz.lon})`);
+
+    // The live site's set-up (config.json: tower mode, the world on): the world's Radio plays the tower's programme and
+    // its Ondes window reads the guide from the tower.
+    const tw = await (await browser.newContext()).newPage();
+    watch(tw, 'tower, world');
+    await tw.goto(`${dev}radio?tower=${encodeURIComponent(towerUrl)}`, { waitUntil: 'domcontentloaded' });
+    await tw.waitForFunction(() => window.radioTower?.world?.current === 'radio' && window.radioTower.player?.onAir, null, { timeout: 15000 }).catch(() => {});
+    let wShown, wServer;
+    for (let i = 0; i < 4; i++) {
+      await tw.evaluate(() => window.radioTower.player.refresh());
+      wShown = await tw.evaluate(() => ({ at: window.radioTower.world?.current, mode: window.radioTower.client.mode, id: window.radioTower.player.onAir?.id, ch: window.radioTower.client.channel }));
+      wServer = await (await fetch(`${towerUrl}/api/station${wShown.ch ? `?channel=${encodeURIComponent(wShown.ch)}` : ''}`)).json();
+      if (wShown.id === wServer.onAir?.id) break;
+      await tw.waitForTimeout(700);
+    }
+    check('the world in tower mode (the live site\'s set-up): Radio plays the tower\'s programme', wShown.at === 'radio' && wShown.mode === 'tower' && wShown.id === wServer.onAir?.id,
+      `${wServer.onAir?.title} ${JSON.stringify(wShown)}`);
+    await tw.click('.w-tag[data-go="ondes"]');
+    await tw.waitForSelector('#w-ondes #eGuide li .at', { timeout: 8000 }).catch(() => {});
+    const twOndes = await tw.evaluate(() => ({ path: location.pathname, next: document.querySelectorAll('#w-ondes #eNext li:not(.empty)').length, guide: document.querySelectorAll('#w-ondes #eGuide li .at').length }));
+    check('…and its Ondes window reads Up next and the next hours from the tower', twOndes.path === '/ondes' && twOndes.next >= 1 && twOndes.guide >= 5, JSON.stringify(twOndes));
+    await tw.context().close();
 
     // The booth on a tower (2026-10-13): the Desktop shortcut's #key unlocks
     // it without staying on the address bar; remembering is opt-in and per

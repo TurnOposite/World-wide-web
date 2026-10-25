@@ -3512,3 +3512,36 @@ timed with the events' own `timeStamp`.
 checklist (5b). **Revisit if** readers switch halves by accident while reading (raise `SWIPE.min` or `ratio`), or
 if a page adds a sideways gesture without a scroller or a `touch-action` of its own (it must declare one).
 
+
+
+## 2026-10-25 — The world shell, phase 5b: the switch-over — the world is the site, the classic shell one release behind `?classic=1`
+
+**Chosen:** `site/config.json` ships `"world": true`. The classic shell stays reachable for one release with
+`?classic=1` (or `?world=0`), and the choice is now **remembered for the tab**, the way `?world=1` already was:
+`flag.js` stores `'0'` as well as `'1'` in `sessionStorage`, and a stored choice beats `config.json`. A new tab
+opens the world again. Nothing else in the shell or the engine changes in this phase.
+**Because:** R9's plan for the last phase ("flip the flag and keep the old shell one release as `?classic=1`"),
+and Ortis's own condition on 2026-10-20: take the old site down but keep it. It is kept three ways: the two
+archive branches (`archive/site-v1-2026-10-20`, `archive/site-v2-echo-2026-10-20`), the classic shell in the
+code, and `?classic=1` to reach it. Before this phase `?classic=1` only *forgot* a `?world=1`; with the world as
+the default that would have shown the classic shell for one page, and the first relative link would have dropped
+the query and gone back to the world.
+**How the self-test follows:** the classic checks (listeners A and B, the booth, the rooms, the classic phone
+pass, the classic half of tower mode) enter with `?classic=1` once per tab and stay classic by the tab's memory,
+which is now itself checked (17 cold loads after it, every one classic). The world's checks moved to bare
+addresses — what ships — and gained what the switch-over needs: every page of the phone pass, in the world, fits
+a 390 px phone (the document *and* the page inside its window, which scrolls on its own and could hide an
+overflow) and passes axe; the built `dist/` under a sub-path opens the world on a cold deep link; and in tower
+mode (the live site's set-up) the world's Radio plays the tower's programme and its Ondes window reads the
+tower's guide; axe also runs on each of the 16 cold-link addresses on a laptop. The unit test « the site ships
+with the world off » became « ships with the world on », with the tab's memory spelled out both ways.
+**What those passes found, fixed in this phase:** (1) each district is a `<section>`, so a region landmark, and it
+was named after its page — the same name as a section *inside* that page (Ondes' « Ondes »; Zone's « Playlists »
+against the Playlists district): axe `landmark-unique`. Districts are now named as windows, « Fenêtre Ondes ».
+(2) The faint Booth tag was faded with `opacity: .75`, which fades its dark backing too; over Echo's paper its
+text fell below AA (axe `color-contrast`, serious, on an article page). It is now faint by its text colour
+(`--w-dim`, restored on hover and focus) and a dashed edge.
+**Not decided here:** when the classic shell goes (a later change, once the world has run live without a reason
+to go back); R9's Lighthouse bar (mobile performance ≥ 85), which needs a real Chrome — it is on the real-phone
+checklist in `docs/WORLD.md`, with the swipe under a thumb and iOS Safari's audio. **Revisit if** a reader needs
+the classic shell beyond one release (then it deserves a visible link, not a query).

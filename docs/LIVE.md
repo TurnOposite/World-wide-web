@@ -9,6 +9,7 @@ this one wins (`docs/README.md`).
 | **The station** | <https://129-151-227-129.sslip.io/> — an Oracle Cloud *Always Free* server in Marseille that streams the music and also serves the whole site itself |
 | **The music** | on the server, `/srv/radio/music` — sent from the laptop's `Radio Tower\music` by the library bot |
 | **The code** | GitHub `TurnOposite/World-wide-web`, `main`. The server pulls it every night at ~04:20 UTC and restarts only if it changed |
+| **The look** | the world (`docs/WORLD.md`): Zone and Echo on one plane, on both addresses. `?classic=1` opens the classic site instead, for the rest of that tab — kept one release |
 
 The website is set to *tower mode* (`site/config.json`): it plays what the
 server says is on air. If the server does not answer, the site falls back to
