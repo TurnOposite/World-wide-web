@@ -100,6 +100,15 @@ export class Camera {
     });
   }
 
+  /** Stand still at a given transform, no district in particular: the Atelier's view of the whole map. */
+  look(cam) {
+    cancelAnimationFrame(this._raf);
+    this.district = null;
+    this.cam = { ...cam };
+    this.paint();
+    this._settle();
+  }
+
   /** After a resize the same district needs a different transform. */
   refit() {
     if (this.district) this.fly(this.district, { instant: true });

@@ -136,6 +136,12 @@ ever fails.
 
 ## Updates
 
+**Not waiting for the night: `fire.cmd`** (since 2026-10-26, [`ATELIER.md`](./ATELIER.md)) —
+in the `radio-tower-live` folder, a double-click: it shows what goes live, asks you to type
+FIRE, pushes to GitHub, waits for the self-test and for Vercel, then runs the line above on
+the server over SSH and checks the tower serves the new commit. `.\fire.cmd --dry-run` first
+if you want to see the list without sending anything.
+
 Every night at ~04:20 UTC the server pulls `main` — and goes on air with it
 only if GitHub's self-test passed on that commit. A commit that does not come
 up is rolled back and set aside until a newer one arrives

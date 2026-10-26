@@ -34,9 +34,38 @@ export function frenchTypo(s) {
     .replace(/[  ]*»/g, `${NBSP}»`);
 }
 
-const inline = (s, fr) => esc(fr ? frenchTypo(s) : s)
+const prose = (s, fr) => esc(fr ? frenchTypo(s) : s)
   .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
   .replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+/**
+ * Where `[label](target)` may point: a ref to any page of the site, today's or
+ * the past's (`gt:Z-04`, `gt:v1/atlas` — built as go/…, which the site
+ * resolves with the map of the day: docs/ATELIER.md), a page of the site by
+ * its address (`atlas`), or the web (https). Anything else stays text.
+ */
+export function linkHref(target) {
+  const t = String(target).trim();
+  if (/^gt:[\w-]+(?:\/[\w-]+)*$/i.test(t)) return `go/${t.slice(3)}`;
+  if (/^https?:\/\/[^\s"<>]+$/.test(t)) return t;
+  if (/^[a-z][\w-]*(?:\/[\w-]+)*$/.test(t)) return t;
+  return null;
+}
+
+// The links first, so the French spacing never lands inside an address (« https : »).
+const inline = (s, fr) => {
+  let out = '';
+  let at = 0;
+  for (const m of s.matchAll(/\[([^\]]+)\]\(([^)\s]+)\)/g)) {
+    out += prose(s.slice(at, m.index), fr);
+    const href = linkHref(m[2]);
+    out += href
+      ? `<a href="${esc(href)}"${/^https?:/.test(href) ? ' target="_blank" rel="noopener"' : ''}>${prose(m[1], fr)}</a>`
+      : prose(m[0], fr);
+    at = m.index + m[0].length;
+  }
+  return out + prose(s.slice(at), fr);
+};
 
 /** Markdown subset → { html, notes, words }. */
 export function renderBody(body, { fr = true } = {}) {

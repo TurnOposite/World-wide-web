@@ -353,6 +353,22 @@ else
   info "site browser checks skipped (--no-browser, or playwright missing)"
 fi
 
+# ---------------------------------------------------------- 8. the Atelier --
+# The map as data (docs/ATELIER.md): site/data/layout.json must hold, and the
+# world, the versions of the past, the short links and the Atelier itself are
+# driven in a real browser — with the server above for an old page in tower mode.
+stage "Atelier"
+if OUT="$(node scripts/site-layout.mjs check 2>&1)"; then ok "$(tail -1 <<<"$OUT" | sed 's/^ *✓ *//')"; else bad "the map does not hold: $(grep -m1 '✗' <<<"$OUT" | sed 's/^ *✗ *//')"; fi
+if [[ $DO_BROWSER -eq 1 ]] && node -e "import('playwright').then(()=>process.exit(0)).catch(()=>process.exit(1))" 2>/dev/null; then
+  if node scripts/atelier-smoke.mjs "http://127.0.0.1:$PORT" 2>&1 | sed 's/^/  /'; then
+    ok "the map, the past, the short links and the Atelier work in a real browser"
+  else
+    bad "atelier smoke test failed"
+  fi
+else
+  info "atelier browser checks skipped (--no-browser, or playwright missing)"
+fi
+
 # ------------------------------------------------------------------ verdict --
 stage "Verdict"
 if [[ $FAILURES -eq 0 ]]; then

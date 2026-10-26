@@ -27,8 +27,13 @@
  * Phase 5: the phone. A swipe across the screen goes to the other half, as
  * the switch does; a phone on its side is a phone too, its header and tags
  * on one line.
+ *
+ * The Atelier (docs/ATELIER.md): the map is site/data/layout.json, applied
+ * to DISTRICTS before this mounts. The versions of the past stand in a band
+ * under both halves, each a window of its own; every door carries its
+ * short link (go/<code>); and what the Atelier moves, relayout() redraws.
  */
-import { DISTRICTS, FIGURES, PHONE_MEDIA, SHORT_MAX, byId, districtFor, frameFor, pageZoom, swipeHalf } from './layout.js';
+import { BASE_H, DISTRICTS, FIGURES, PHONE_MEDIA, SHORT_MAX, WORLD, byId, districtFor, frameFor, pageZoom, swipeHalf } from './layout.js';
 import { Camera } from './camera.js';
 import { mountTags } from './tags.js';
 import { mountMinimap } from './minimap.js';
@@ -57,22 +62,46 @@ function door(d) {
   const p = el('p', 'w-door');
   const a = d.route !== null ? el('a', '', `Ouvrir ${d.title} →`) : el('a', '', 'Les articles s’ouvrent depuis la Une →');
   a.href = d.route ?? 'echo';
-  p.append(a);
+  // The short link to give out (refs.js): it finds the page wherever the Atelier puts it.
+  const copy = el('button', 'w-copy', `⧉ go/${d.code}`);
+  copy.type = 'button';
+  copy.dataset.copy = d.code;
+  copy.setAttribute('aria-label', `Copier le lien court vers ${d.title} (go/${d.code})`);
+  p.append(a, copy);
   rest.append(p);
   return rest;
 }
 
-/** Echo's ground: the Gazette's silhouettes, in the gutters between the windows (layout.js FIGURES). */
+const meets = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+/**
+ * Echo's ground: the Gazette's silhouettes, in the gutters between the windows (layout.js FIGURES).
+ * A window the Atelier moved onto one hides it: they stand between windows, never over one.
+ */
 function figures() {
   ensureSprite();
   const g = el('div', 'w-figures');
   g.setAttribute('aria-hidden', 'true');
-  g.innerHTML = FIGURES.map((f) => `<svg class="w-fig" style="left:${f.x}px;top:${f.y}px;width:${f.w}px;height:${f.h}px" focusable="false"><use href="#s-${f.kind}"/></svg>`).join('');
+  g.innerHTML = FIGURES.map((f) => `<svg class="w-fig" data-k="${f.kind}" style="left:${f.x}px;top:${f.y}px;width:${f.w}px;height:${f.h}px" focusable="false"><use href="#s-${f.kind}"/></svg>`).join('');
   return g;
+}
+function hideCovered(g) {
+  for (const f of FIGURES) {
+    const svg = g.querySelector(`[data-k="${f.kind}"]`);
+    if (svg) svg.style.display = DISTRICTS.some((d) => meets(f, d)) ? 'none' : '';
+  }
+}
+
+/** The band under both halves where the versions of the past stand. Only drawn when one is on the map. */
+function strata() {
+  const s = el('div', 'w-strata');
+  s.setAttribute('aria-hidden', 'true');
+  s.append(el('span', 'w-strata-l', 'Archives · les versions passées du site'), el('span', 'w-strata-r', 'Archives · les versions passées du site'));
+  return s;
 }
 
 function district(d) {
-  const s = el('section', `w-district w-${d.half}-d`);
+  const s = el('section', `w-district w-${d.half}-d${d.era === 'past' ? ' w-past-d' : ''}${d.status === 'offline' ? ' w-off' : ''}`);
   s.id = `w-${d.id}`;
   s.dataset.d = d.id;
   s.tabIndex = -1;
@@ -139,7 +168,18 @@ export async function mountWorld({ router, site = {} }) {
   // The paper's torn edge, over a thin red rim (the silhouettes' own).
   seam.append(el('i', 'w-tear w-rim'), el('i', 'w-tear'));
   const sections = new Map(DISTRICTS.map((d) => [d.id, district(d)]));
-  plane.append(ground, seam, figures(), ...sections.values());
+  const figs = figures();
+  const band = strata();
+  plane.append(ground, seam, band, figs, ...sections.values());
+  // A door's short link: copied whole (this site's address + go/<code>), and the button says so for a moment.
+  plane.addEventListener('click', (e) => {
+    const b = e.target.closest?.('.w-copy');
+    if (!b) return;
+    const url = new URL(`go/${b.dataset.copy}`, document.baseURI).href;
+    const said = b.textContent;
+    const done = (ok) => { b.textContent = ok ? 'Lien copié ✓' : url; setTimeout(() => { b.textContent = said; }, 1800); };
+    (navigator.clipboard?.writeText(url) ?? Promise.reject()).then(() => done(true), () => done(false));
+  });
   viewport.append(plane);
   // overflow:clip where supported; otherwise undo the browser's own scroll to a focused link.
   viewport.addEventListener('scroll', () => { viewport.scrollLeft = 0; viewport.scrollTop = 0; });
@@ -331,9 +371,16 @@ export async function mountWorld({ router, site = {} }) {
       const f = frameFor(d, innerWidth, innerHeight, { phone: phone.matches });
       Object.assign(s.style, { left: `${d.x}px`, top: `${d.y}px`, width: `${f.w}px`, height: `${f.h}px` });
       s.style.setProperty('--rot', phone.matches ? '0deg' : `${d.rot}deg`);
+      s.classList.toggle('w-off', d.status === 'offline');
       const z = pageZoom(camera.target(d).s);
       s.querySelector('.w-box').style.zoom = z === 1 ? '' : String(z);
     }
+    // The world is as tall as its lowest window needs (model.js worldHeight): the past band, when there is one.
+    plane.style.height = `${WORLD.h}px`;
+    seam.style.height = `${WORLD.h}px`;
+    band.hidden = WORLD.h <= BASE_H;
+    Object.assign(band.style, { top: `${BASE_H}px`, height: `${WORLD.h - BASE_H}px` });
+    hideCovered(figs);
   }
   placeAll();
   // A phone on its side: the tag strip shares the header's line, between the switch and « Écran ».
@@ -379,9 +426,19 @@ export async function mountWorld({ router, site = {} }) {
     camera,
     bubbles,
     screen,
+    root,
+    plane,
+    sections,
     get ash() { return Boolean(stopAsh); },
     get current() { return current; },
     pick,
+    /** After the Atelier changed the map: every window, tag and the minimap where DISTRICTS now says. */
+    relayout() {
+      placeAll();
+      tags.placeAll();
+      minimap.update();
+      minimap.draw(camera.cam, current);
+    },
     /**
      * Called by the router's render with the route it matched: flies there
      * (instantly on the first landing) and hands back the box to mount the

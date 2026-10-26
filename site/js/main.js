@@ -13,7 +13,11 @@ import { VisualsPanel } from './ui/visuals.js';
 import { toast, esc } from './ui/util.js';
 import { initBanner, markHalf } from './ui/banner.js';
 import { ONDES_LABEL } from './labels.js';
-import { worldWanted } from './world/flag.js';
+import { atelierWanted, worldWanted } from './world/flag.js';
+import { DISTRICTS } from './world/layout.js';
+import { DRAFT_KEY, applyPages, mergeDraft, resolveLayout } from './world/model.js';
+import { resolveRef } from './refs.js';
+import { watchRefLinks } from './ui/reflinks.js';
 
 const $ = (id) => document.getElementById(id);
 const view = $('view');
@@ -61,6 +65,8 @@ markCanopy(settings.effective);
 const visuals = new VisualsPanel({ root: $('visualsPanel'), settings, openers: [$('mbVisuals')], theatre: () => theatre() });
 
 async function boot() {
+  const mapAsked = fetch(new URL('data/layout.json', document.baseURI), { cache: 'no-cache' })
+    .then((r) => (r.ok ? r.json() : null)).catch(() => null);
   let client;
   try {
     client = await connect({ base: document.baseURI });
@@ -110,20 +116,40 @@ async function boot() {
 
   document.querySelectorAll('[data-ondes-label]').forEach((el) => { el.textContent = ONDES_LABEL; });
 
+  // The world shell (docs/WORLD.md): on when config.world says so (it ships on), off for a tab
+  // that asked for ?classic=1. Off, the site is the classic one: of world/ it loads only the flag
+  // and the map's data (layout.js, model.js), which the short links and the past versions need.
+  let world = null;
+  let session = null;
+  try { session = sessionStorage; } catch { /* storage blocked: the flag lasts this page */ }
+  const wantWorld = worldWanted({ config: client.config, search: location.search, storage: session });
+
+  // The map (docs/ATELIER.md): site/data/layout.json — where each window stands, and the versions
+  // of the past, online or not. Without it the world keeps its designed map and there is no past.
+  // Asked for at the start of boot(), alongside the station.
+  const published = await mapAsked;
+  const atelierOn = wantWorld && atelierWanted({ search: location.search, storage: session });
+  let draft = null;
+  if (atelierOn) { try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch { draft = null; } }
+  const shown = draft ? mergeDraft(published, draft) : published;
+  // Every page, offline versions included, for the short links and the versions' own page.
+  const sitePages = resolveLayout(shown, { all: true }).pages;
+  // In the Atelier the offline versions are on the map too (greyed), so they can be put back online.
+  if (wantWorld) applyPages(resolveLayout(shown, { all: atelierOn }).pages);
+  const pagesNow = () => (atelierOn ? DISTRICTS : sitePages);
+
   const ctx = {
     client, player, stage, settings, visuals, toast, theatre,
     config: client.config,
     setScene: (fn) => { sceneFn = fn; },
     textTitle: (slug) => textTitles?.get(slug) || null,
+    get sitePages() { return pagesNow(); },
   };
 
+  // Links written as refs (gt:Z-04) get today's address as they enter the page.
+  watchRefLinks(document.body, pagesNow);
+
   let cleanup = null;
-  // The world shell (docs/WORLD.md): on when config.world says so (it ships on), off for a tab
-  // that asked for ?classic=1. Off, nothing under world/ but the flag is loaded and the site is the classic one.
-  let world = null;
-  let session = null;
-  try { session = sessionStorage; } catch { /* storage blocked: the flag lasts this page */ }
-  const wantWorld = worldWanted({ config: client.config, search: location.search, storage: session });
   const router = new Router({
     mode: client.config.router === 'hash' ? 'hash' : 'history',
     routes: [
@@ -142,9 +168,18 @@ async function boot() {
       { name: 'echo', pattern: /^echo(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/echo.js') },
       { name: 'portfolio', pattern: /^portfolio(?:\/(?<room>[\w-]+))?$/, load: () => import('./pages/portfolio.js') },
       { name: 'booth', pattern: /^booth$/, load: () => import('./pages/booth.js') },
+      // The versions of the past, each in its window (docs/ATELIER.md); the copy itself is at past/<id>/.
+      { name: 'version', pattern: /^versions\/(?<id>[a-z][a-z0-9-]*)$/, load: () => import('./pages/version.js') },
+      // Short links (refs.js): followed in render, before anything is drawn; the page only explains a dead one.
+      { name: 'go', pattern: /^go\/(?<ref>[\w/-]+)$/, load: () => import('./pages/go.js') },
       { name: 'missing', pattern: /.*/, load: () => import('./pages/missing.js') },
     ],
     render: async (page, match, { fromPop, isCurrent = () => true }) => {
+      if (match.name === 'go') {
+        const hit = resolveRef(match.params.ref, pagesNow());
+        if (hit?.kind === 'route') return router.go(hit.to, { replace: true });
+        if (hit?.kind === 'load' || hit?.kind === 'external') { location.replace(new URL(hit.to, document.baseURI).href); return; }
+      }
       try { cleanup?.(); } catch (e) { console.error(e); }
       cleanup = null;
       const echoRoute = ['echo', 'lectures', 'ecrits', 'archives'].includes(match.name);
@@ -184,6 +219,8 @@ async function boot() {
   });
   ctx.router = router;
   if (wantWorld) world = await (await import('./world/world.js')).mountWorld({ router, site });
+  // The map's editor, only for a tab that asked (?atelier=1); it never loads for anyone else.
+  const atelier = world && atelierOn ? await (await import('./world/atelier.js')).mountAtelier({ world, published, draft, toast }) : null;
   await router.start();
 
   // Keys: V visuals, F full screen, M tune in / mute. Never while typing.
@@ -196,7 +233,7 @@ async function boot() {
   });
 
   // For the e2e tests and for curious listeners with a console open.
-  globalThis.radioTower = { client, player, stage, settings, router, world };
+  globalThis.radioTower = { client, player, stage, settings, router, world, atelier };
 }
 
 boot();

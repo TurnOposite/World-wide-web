@@ -26,7 +26,10 @@
     "site:smoke": "node scripts/site-smoke.mjs",
     "preview": "node scripts/site-preview.mjs",
     "preview:smoke": "node scripts/preview-smoke.mjs",
-    "cloud:live": "node scripts/cloud-live-check.mjs"
+    "cloud:live": "node scripts/cloud-live-check.mjs",
+    "layout": "node scripts/site-layout.mjs",
+    "past": "node scripts/site-past.mjs",
+    "fire": "node scripts/fire.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

@@ -106,7 +106,12 @@ npm run healthcheck    # one-screen status of a running station
 npm run selftest       # the full build-test.sh
 npm run collections    # does collections/collection.json match the files on disk?
 
-npm run site           # the static site on :8090 (add -- --fixtures DIR for local audio)
+npm run layout         # the site's map: where each page's window stands, the past online or not (docs/ATELIER.md)
+npm run layout -- swap atlas zone   # …move, nudge, size, tilt, tag, online, offline, check
+npm run past -- snapshot v3 <ref>   # freeze a version of the site under past/
+npm run fire -- --dry-run           # publish now: GitHub → Vercel → the Oracle tower (fire.cmd; asks before sending)
+
+npm run site           # the static site on :8090 (add -- --fixtures DIR for local audio; ?atelier=1 to move pages)
 npm run site:build     # assemble dist/ (what GitHub Pages serves)
 npm run site:smoke     # drive the static site in a real browser (also stage 7 of the self-test)
 npm run cloud:check    # is site/station/library.json valid?

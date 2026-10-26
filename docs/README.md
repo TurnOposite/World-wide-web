@@ -22,6 +22,7 @@ would cost more than the tidiness is worth.
 | Where does it run right now, and how do I add music? | [`LIVE.md`](./LIVE.md) — Vercel + the Oracle server, **current since 2026-10-08** |
 | How did it go on GitHub Pages? (retired 2026-10-02) | [`GO-LIVE.md`](./GO-LIVE.md) — historical |
 | Is this still heading the right way? | [`PLANNING.md`](./PLANNING.md) |
+| How do I move pages around, put an old version online, link to a page, publish now? | [`ATELIER.md`](./ATELIER.md) — the map as data, the past, short links, `fire` (2026-10-26) |
 
 ## Current authorities
 
@@ -30,6 +31,7 @@ Where two documents overlap, this column says which one wins.
 | Subject | Authority | Superseded / historical |
 |---|---|---|
 | Identity, mark, colour, navigation, the Zone tab | **[`DESIGN-BRIEF.md`](./DESIGN-BRIEF.md)** | `IDENTITY-OPTIONS.md` is the menu that was chosen *from*. Do not edit it to match the outcome |
+| Where each window stands, the versions of the past, short links, publishing at once | **[`ATELIER.md`](./ATELIER.md)** | `WORLD.md`'s district table is the map *as designed*; `site/data/layout.json` is the map as arranged |
 | The redesign as one world (Zone ⇄ Echo, the camera, the tags), its phases and its flag | **[`WORLD.md`](./WORLD.md)** | Its last phase (5b, branch `claude/rework`) makes the world the default; until that branch is merged the classic shell is what is live, and after it the classic shell answers `?classic=1` for one release. `DESIGN-BRIEF.md` still rules the identity |
 | Deploying to the Pi | **[`../pi/README.md`](../pi/README.md)** (blank card) and [`DEPLOY.md`](./DEPLOY.md) | — |
 | Plugging the tower in anywhere — unknown Wi-Fi, your domain, keeping it live | **[`../pi/anywhere/README.md`](../pi/anywhere/README.md)** and [`../pi/anywhere/DOMAIN.md`](../pi/anywhere/DOMAIN.md) | `../scripts/setup-tunnel.sh named` (interactive login on the Pi) is the older route to a domain |

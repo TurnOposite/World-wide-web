@@ -602,7 +602,9 @@ try {
   await w.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await w.waitForFunction(() => window.radioTower?.world?.current === 'radio' && window.radioTower.player?.onAir, null, { timeout: 10000 });
   const landed = { ...(await shot('radio')), tags: await w.$$eval('.w-tags .w-tag', (els) => els.length) };
-  check('world shell, the default (a bare address): eleven tags, Radio current, the camera already there — no flight on a cold link', landed.tags === 11 && landed.current === 'radio'
+  // One tag per window on the map: the eleven of today and the versions of the past online (site/data/layout.json).
+  const mapTags = 11 + JSON.parse(fs.readFileSync(path.join(ROOT, 'site/data/layout.json'), 'utf8')).pages.filter((p) => p.era === 'past' && p.status === 'online').length;
+  check(`world shell, the default (a bare address): ${mapTags} tags, Radio current, the camera already there — no flight on a cold link`, landed.tags === mapTags && landed.current === 'radio'
     && landed.centre < 30 && landed.inside && landed.filter === '' && landed.pressed === 'Zone' && !landed.echo, JSON.stringify(landed));
   // Phase 2: the page opens in its district's window, at 1:1 on screen (the box's zoom undoes the camera's scale).
   const hosting = () => w.evaluate(() => {
@@ -618,8 +620,8 @@ try {
     };
   });
   const hosted = { ...(await hosting()), onair: await w.evaluate(() => Boolean(document.querySelector('#w-radio .w-box .onair'))) };
-  check('…the page opens in its district: Radio\'s window holds the on-air card at 1:1, ten doors elsewhere, <main> empty and inert', hosted.live.join() === 'radio'
-    && hosted.onair && hosted.doors === 10 && hosted.asleep === 0 && Math.abs(hosted.scale - 1) < 0.05 && hosted.main, JSON.stringify(hosted));
+  check(`…the page opens in its district: Radio's window holds the on-air card at 1:1, a door in each of the ${mapTags - 1} others, <main> empty and inert`, hosted.live.join() === 'radio'
+    && hosted.onair && hosted.doors === mapTags - 1 && hosted.asleep === 0 && Math.abs(hosted.scale - 1) < 0.05 && hosted.main, JSON.stringify(hosted));
 
   // Phase 3: the Zone skin — its own faces, clear glass over the visualiser, bubbles, the plane crisp at rest.
   const skin = await w.evaluate(async () => {
@@ -693,8 +695,10 @@ try {
   check('Back flies back to where the reader was', back.current === 'radio' && back.path === '/radio' && back.centre < 30, back.path);
 
   const atlasAt = await w.evaluate(() => {
-    const r = document.querySelector('.w-minimap').getBoundingClientRect();
-    return { x: r.left + r.width * (1330 / 5200), y: r.top + r.height * (1430 / 2600) };
+    const m = document.querySelector('.w-minimap');
+    const r = m.getBoundingClientRect();
+    // The world's height is the map's (taller with the past band): the minimap's own viewBox says it.
+    return { x: r.left + r.width * (1330 / 5200), y: r.top + r.height * (1430 / m.viewBox.baseVal.height) };
   });
   await w.mouse.click(atlasAt.x, atlasAt.y);
   await settled('atlas');
@@ -746,7 +750,7 @@ try {
     `${tunedThrough}/20 tuned, ${after20.swaps} track change(s), drift ${after20.d.toFixed(2)}s, ${after20.paused ? `paused ${after20.sinceSwap} ms after a track change` : 'playing'}`
       + `${after20.same ? '' : ', a new <audio>'}${after20.muted ? `, stopped ${after20.muted}×` : ''}`);
   check('…and one page is live at the end — Radio\'s, in its window; every page left behind is a door again', after20.path === '/radio' && after20.live.join() === 'radio'
-    && after20.doors === 10 && after20.asleep === 0, JSON.stringify(after20));
+    && after20.doors === mapTags - 1 && after20.asleep === 0, JSON.stringify(after20));
 
   // Tab follows the camera: past the live page's last control is the next district's door.
   await w.evaluate(() => {
@@ -1272,6 +1276,8 @@ try {
   const liveFails = live.filter((r) => r.level === 'FAIL');
   check('the go-live checker passes a working build, audio and queue included', liveFails.length === 0 && live.some((r) => /audio/.test(r.name) && r.level === 'PASS'),
     liveFails.map((r) => `${r.name}: ${r.detail}`).join(' | ') || `${live.filter((r) => r.level === 'PASS').length} pass, ${live.filter((r) => r.level === 'WARN').length} warn`);
+  // The page first, then its server: left open, its next control.json poll would hit a closed port.
+  await d.context().close();
   distServer.close();
 
   /* -------------------------------------------------- tower mode ----------- */

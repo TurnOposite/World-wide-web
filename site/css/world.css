@@ -311,3 +311,39 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
   .w-district::before,.w-corner,.w-tag>span,.w-opt::before,.w-box[aria-hidden="true"]{transition:none}
   .w-zone-d.here .w-in::after,[data-w-bg="rain"] .w-dark::after{animation:none}
 }
+
+/* ---- the map as data (docs/ATELIER.md): the past band, the archive's windows and tags, the doors' short links ---- */
+.w-strata{position:absolute;left:0;right:0;pointer-events:none;border-top:1px dashed rgba(196,161,96,.6);
+  background:linear-gradient(180deg,rgba(196,161,96,.12),transparent 260px)}
+.w-strata[hidden]{display:none}
+.w-strata>span{position:absolute;top:22px;font:400 14px/1 var(--w-mono);letter-spacing:.3em;text-transform:uppercase;color:var(--w-neon-c)}
+.w-strata-l{left:150px}
+.w-strata-r{left:2860px;color:var(--w-red)!important}
+/* A version of the past: a gold dashed edge and a stamp; the page inside is the old site, untouched. */
+.w-past-d::before{border-color:rgba(196,161,96,.6)}
+.w-past-d::after{content:"Archive";position:absolute;top:6px;right:30px;padding:4px 9px 3px;border:1px solid currentColor;
+  font:700 12px/1 var(--w-mono);letter-spacing:.3em;text-transform:uppercase;color:var(--w-neon-c);transform:rotate(2.5deg)}
+.w-echo-d.w-past-d::after{color:var(--w-red)}
+.w-zone-d.w-past-d .w-wt{background:var(--w-neon-c)}
+/* Offline: only the Atelier shows it, greyed, so it can be put back online. */
+.w-off{opacity:.42;filter:grayscale(1)}
+.w-past-d.w-off::after{content:"Hors ligne";color:var(--w-dim)}
+.w-tag-past>span{border-style:dashed;border-color:var(--w-neon-c)}
+.w-tag-past[data-half="echo"]>span{border-color:var(--w-red)}
+.w-tag.w-off>span{text-decoration:line-through;opacity:.6}
+.w-minimap .p{fill:rgba(196,161,96,.16)}
+.w-minimap .d.dp{stroke-dasharray:40 26}
+.w-minimap .d.off{stroke-opacity:.35}
+.w-copy{display:inline-block;margin-left:10px;padding:8px 11px;border:1px dashed var(--w-edge);background:none;color:var(--w-dim);cursor:pointer;
+  font:400 13px/1.2 var(--w-mono);letter-spacing:.06em;vertical-align:middle}
+.w-copy:hover,.w-copy:focus-visible{border-style:solid;border-color:var(--w-neon-a);color:var(--w-text)}
+.w-echo-d .w-copy{border-color:var(--w-mute);color:var(--w-mute)}
+.w-echo-d .w-copy:hover,.w-echo-d .w-copy:focus-visible{border-color:var(--w-red);color:var(--w-ink)}
+@media (max-width:760px),(max-height:500px){
+  .w-copy{margin:10px 0 0}
+  .w-past-d::after{top:-2px;right:8px;font-size:10px}
+}
+@media print{
+  .w-strata,.w-copy,.w-past-d::after{display:none!important}
+  .w-plane,.w-seam{height:auto!important}
+}

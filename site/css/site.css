@@ -787,3 +787,14 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .door-echo{border-color:#6b1d1d}.door-echo:hover{border-color:#c0392b}
 @media (max-width:640px){.doors{grid-template-columns:1fr}}
 .pl-profile{margin:22px 0 0}.pl-profile a{color:var(--signal)}
+
+/* A version of the past in its window (pages/version.js, docs/ATELIER.md): the old site, framed and silent. */
+.v-wrap{display:flex;flex-direction:column;gap:10px;min-height:72vh}
+.w-box>.page:has(.v-wrap){height:100%;padding-bottom:0}
+.w-box .v-wrap{height:100%;min-height:0}
+.v-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 18px}
+.v-meta,.v-links{margin:0;font-size:14px;color:var(--text-dim)}
+.v-links{display:flex;flex-wrap:wrap;gap:16px}
+.v-links a{color:var(--text)}
+.v-code,.v-short{font-family:var(--mono);letter-spacing:.08em}
+.v-frame{flex:1;width:100%;min-height:420px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg)}

@@ -3545,3 +3545,53 @@ text fell below AA (axe `color-contrast`, serious, on an article page). It is no
 to go back); R9's Lighthouse bar (mobile performance ≥ 85), which needs a real Chrome — it is on the real-phone
 checklist in `docs/WORLD.md`, with the swipe under a thumb and iOS Safari's audio. **Revisit if** a reader needs
 the classic shell beyond one release (then it deserves a visible link, not a query).
+
+
+
+## 2026-10-26 — The Atelier: the map as data, the past online, short links, and `fire`
+
+**Asked by Ortis:** a way to change the site's design at once by moving the page layout of every
+Globe Trotter page, current and past; an easy link system between them; one menu across them; an
+online/offline switch for the old ones; and a procedure that publishes immediately through GitHub and
+the Oracle tower. The whole of it is in `docs/ATELIER.md`.
+**Chosen, in five parts:**
+1. **The map is data.** `site/data/layout.json` says where each window and each tag stands; `layout.js`
+   keeps what a page *is* (code, title, half, route) and its designed place. `model.js` resolves the file
+   onto `DISTRICTS` **in place** at boot — every world module already reads that one array — so no module
+   learned about the file. A page the file forgets keeps its designed place; a bad entry is reported, never
+   fatal. Rejected: moving the numbers out of `layout.js` altogether (a broken fetch would leave the world
+   with no map) and letting the file rename a page or change its route (a hand edit could break an address).
+2. **The Atelier** edits that file in the site itself (`?atelier=1`, remembered for the tab): the real world,
+   moved as you drag, a private draft in `localStorage`, saved into the repository only through
+   `npm run site` on this machine (`PUT /__atelier/layout`, loopback only, refused with an error). Rejected:
+   committing from the browser with a GitHub token, as the booth can — a second token-holding page for a
+   change that `fire` publishes in one gesture anyway. `npm run layout` does the same edits from a terminal,
+   so an agent can « swap Atlas and Zone » in one line.
+3. **The past is frozen copies, not branches.** `past/<id>/` holds a commit's `site/` (1.5 MB for v1 and
+   v2, against 8 MB each whole): the station is never frozen (an old page plays today's radio, on today's
+   tower), files byte-identical to today's are filled in at build, and the heavy shared ones (portfolio,
+   press: 33 MB) are not copied at all — the build points the old data at today's copy (in tower mode
+   the tower's `/api/collections` already names them from the root, `/collections/…`). First build: 101 MB of
+   `dist/`; with that, 37 MB. Rejected: building the archive branches on Vercel (a shallow clone of one
+   branch), and Vercel rewrites for the shared files (the tower would need the same rules in Express).
+   **Offline = not built**: no window, no tag, no `/past/<id>/`, a short link that says so.
+4. **One menu over every version**: the bar `site/past/bar.js` is injected into each frozen shell and is
+   today's code reading today's map; inside the world (`/versions/<id>`, a frame) there is no bar — the
+   world's tags are around it — and the old page may not play (its `play()` rejects as « autoplay blocked »,
+   which every old player handles), so the world's mini-player stays the one radio.
+5. **Short links** (`site/js/refs.js`): `go/<code or id>[/<rest>]`, resolved when followed against that
+   day's map, with a cold shell for each so a shared link answers 200; `gt:` in a page's or an article's
+   link becomes today's address. Echo articles get `[text](target)` links — they had none — limited to a
+   ref, a site address or https.
+**And `fire`** (`scripts/fire.mjs`, `fire.cmd`): map checked → GitHub fetched, `main` must be behind HEAD
+(never forced, never merged for you) → unit tests → what goes live, and « type FIRE » → the map's commit,
+the push → GitHub's self-test → Vercel serving the commit (every build now stamps `config.json` with
+`commit`) → `ssh … sudo /usr/local/bin/radio-tower-update`, the tower's own nightly updater run early, so
+its CI check and its rollback still apply → the tower serving the commit and answering `/api/health`.
+The map's commit waits for FIRE: declining leaves the repository untouched. It never commits anything else.
+**Built on `claude/rework`** (the world), because « the page layout » only exists as positions in the
+world. Merging this branch therefore also merges the redesign — `fire` from this branch lists both.
+**Not decided here:** whether the Wix site should be online (it is offline in the file: Ortis's call);
+which versions to freeze next; rearranging sections *inside* a page (each page's own layout, not the map's).
+**Revisit if** an old version stops working against today's tower (its API is the old pages' only live
+dependency), or if `dist/` grows past what Vercel's free tier deploys quickly (each version adds ~1 MB).

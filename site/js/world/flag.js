@@ -20,6 +20,21 @@ export function worldChoice(search = '') {
 }
 
 /**
+ * The Atelier (docs/ATELIER.md) — the map's editor, on top of the world:
+ * `?atelier=1` turns it on for the tab, `?atelier=0` off, like the world's own
+ * choice. It edits a draft in this browser only; nobody else sees it until
+ * the map is saved into the repository and published.
+ */
+export function atelierWanted({ search = '', storage = null } = {}) {
+  const v = new URLSearchParams(search).get('atelier');
+  try {
+    if (v === '1' || v === '0') storage?.setItem('gt.atelier', v);
+  } catch { /* private mode: this page only */ }
+  if (v === '1' || v === '0') return v === '1';
+  try { return storage?.getItem('gt.atelier') === '1'; } catch { return false; }
+}
+
+/**
  * @param {object} o
  * @param {object} [o.config]   config.json
  * @param {string} [o.search]   location.search

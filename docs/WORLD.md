@@ -20,8 +20,15 @@ Since the switch-over (phase 5b) the world **is** the site: `config.json` ships 
 - `?world=1` asks for the world on a build that ships it off (a fork, a rollback), remembered
   the same way.
 
-With the flag off, `main.js` loads `world/flag.js` and nothing else from `world/`; the page
-is the classic one, and the site smoke test checks that no world and no `world.css` appear.
+With the flag off, `main.js` loads `world/flag.js` and nothing else from `world/` but the map's
+data (`layout.js`, `model.js` — since 2026-10-26, for the short links and the versions of the
+past: `ATELIER.md`); the page is the classic one, and the site smoke test checks that no world
+and no `world.css` appear.
+
+**Where the windows actually stand** is `site/data/layout.json` since 2026-10-26, edited in the
+Atelier (`?atelier=1`) or with `npm run layout`: the district table below is the map *as
+designed*. The versions of the past have windows of their own, in a band under both halves.
+See [`ATELIER.md`](./ATELIER.md).
 The classic checks of the smoke test (listeners A and B, the booth, the rooms, the classic
 phone pass) run under `?classic=1`; everything else runs on bare addresses — what ships.
 
@@ -158,6 +165,7 @@ phone pass) run under `?classic=1`; everything else runs on bare addresses — w
 | `site/js/world/world.js` | mounts all of it beside the classic shell; the router's `render` calls `world.show(match)` and mounts the page in the box it returns |
 | `site/css/world.css` | loaded only when the world is on; direction A « Velvet Grid » tokens, prefixed `--w-`; Zone's `@font-face` |
 | `site/fonts/ChakraPetch-*.woff2`, `IBMPlexMono-400.woff2` | Zone's faces (Latin subsets from Fontsource, OFL) |
+| `site/data/layout.json`, `site/js/world/model.js`, `site/js/world/atelier.js` | the map as arranged, its rules, its editor — [`ATELIER.md`](./ATELIER.md) |
 
 ## The map
 

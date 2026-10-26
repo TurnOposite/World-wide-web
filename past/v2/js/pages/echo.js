@@ -1,0 +1,95 @@
+/**
+ * /echo and /echo/<slug> — the online media room.
+ *
+ * Articles are built by scripts/site-echo.mjs into data/echo.json (body
+ * already typeset); this page only lays them out: an index of cards with a
+ * tag filter, and a reading page.
+ */
+import { esc } from '../ui/util.js';
+import { frame, ash } from '../ui/echo-front.js';
+
+export const title = 'Echo';
+
+let DATA = null;
+async function load() {
+  if (!DATA) DATA = await (await fetch(new URL('data/echo.json', document.baseURI))).json();
+  return DATA;
+}
+
+const dateFr = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+function card(a) {
+  return `<a class="echo-card" href="echo/${esc(a.slug)}" data-link data-tags="${esc(a.tags.join('|'))}">
+      ${a.hero ? `<img src="${esc(a.hero.src)}" alt="" loading="lazy">` : ''}
+      <span class="echo-kicker">${esc(a.tags[0] || 'Echo')}</span>
+      <b>${esc(a.title)}</b>
+      <span class="echo-dek">${esc(a.standfirst)}</span>
+      <span class="echo-meta">${esc(a.author)} · ${esc(dateFr(a.date))} · ${a.readingTime} min</span>
+    </a>`;
+}
+
+function lead(a) {
+  const media = a.video
+    ? `<video controls preload="none" playsinline muted${a.video.poster ? ` poster="${esc(a.video.poster)}"` : ''} src="${esc(a.video.src)}"></video>`
+    : '';
+  const pic = !a.video && a.hero ? `<a class="echo-lead-pic" href="echo/${esc(a.slug)}" data-link tabindex="-1" aria-hidden="true"><img src="${esc(a.hero.src)}" alt=""></a>` : '';
+  return `<article class="echo-lead echo-card" data-tags="${esc(a.tags.join('|'))}">
+      ${media || pic}
+      <div class="echo-lead-txt">
+        <p class="echo-kicker">${esc(a.tags[0] || 'Echo')}</p>
+        <h2><a href="echo/${esc(a.slug)}" data-link>${esc(a.title)}</a></h2>
+        <p class="echo-dek">${esc(a.standfirst)}</p>
+        <p class="echo-meta">${esc(a.author)} · ${esc(dateFr(a.date))} · ${a.readingTime} min</p>
+      </div>
+    </article>`;
+}
+
+export async function mount(root, ctx) {
+  const data = await load();
+  const slug = ctx.params.slug;
+  if (!slug) {
+    document.title = 'Echo';
+    const tags = [...new Set(data.articles.flatMap((a) => a.tags))].sort((x, y) => x.localeCompare(y, 'fr'));
+    const [first, ...rest] = data.articles;
+    root.innerHTML = frame(`
+        <div class="echo-filter" role="group" aria-label="Filtrer par thème">
+          <button type="button" class="chip" data-tag="" aria-pressed="true">Tout</button>
+          ${tags.map((t) => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="false">${esc(t)}</button>`).join('')}
+        </div>
+        ${first ? lead(first) : ''}
+        <div class="echo-grid" id="articles">${rest.map(card).join('')}</div>
+        <p class="echo-foot"><a href="echo/lectures" data-link>Lectures →</a><a href="radio" data-link>Zone · la radio en direct</a></p>`,
+    { current: 'echo', full: true });
+    root.firstElementChild.classList.add('echo-front');
+    const stopAsh = ash(root.querySelector('.echo-ash'));
+    const apply = (tag) => {
+      root.querySelectorAll('.echo-filter .chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tag === tag)));
+      root.querySelectorAll('.echo-card').forEach((c) => { c.hidden = Boolean(tag) && !c.dataset.tags.split('|').includes(tag); });
+    };
+    root.querySelector('.echo-filter').addEventListener('click', (e) => {
+      const b = e.target.closest('.chip');
+      if (b) apply(b.dataset.tag);
+    });
+    return stopAsh;
+  }
+  const a = data.articles.find((x) => x.slug === slug);
+  if (!a) {
+    root.innerHTML = frame(`<div class="echo-article"><h1>Introuvable</h1><p>Cet article n'existe pas (ou plus).</p><p><a class="back" href="echo" data-link>← Echo</a></p></div>`, { sides: 1 });
+    return ash(root.querySelector('.echo-ash'), { slow: true });
+  }
+  document.title = `${a.title} — Echo`;
+  root.innerHTML = frame(`<article class="reading echo-article" lang="${esc(a.lang)}">
+      <header class="echo-head">
+        <p class="echo-kicker">${esc(a.tags.join(' · '))}</p>
+        <h1>${esc(a.title)}</h1>
+        <p class="echo-standfirst">${esc(a.standfirst)}</p>
+        <p class="meta">Par ${esc(a.author)} · ${a.place ? `${esc(a.place)}, ` : ''}<time datetime="${esc(a.date)}">${esc(dateFr(a.date))}</time> · ${a.readingTime} min de lecture</p>
+      </header>
+      ${a.hero ? `<figure class="echo-hero"><img src="${esc(a.hero.src)}" alt="${esc(a.hero.alt)}"><figcaption>${esc(a.hero.caption)}${a.hero.credit ? ` <span class="credit">${esc(a.hero.credit)}</span>` : ''}</figcaption></figure>` : ''}
+      ${a.video ? `<figure class="echo-video"><video controls preload="none" playsinline src="${esc(a.video.src)}"${a.video.poster ? ` poster="${esc(a.video.poster)}"` : ''}></video>${a.video.caption ? `<figcaption>${esc(a.video.caption)}</figcaption>` : ''}</figure>` : ''}
+      <div class="body echo-body">${a.html}</div>
+      ${a.notes ? `<aside class="echo-notes"><h2>${esc(a.notes.title)}</h2><ol>${a.notes.items.map((i) => `<li>${i}</li>`).join('')}</ol></aside>` : ''}
+      <p class="echo-foot"><a class="back" href="echo" data-link>← Retour à Echo</a></p>
+    </article>`, { current: 'echo', sides: 2 });
+  return ash(root.querySelector('.echo-ash'), { slow: true });
+}

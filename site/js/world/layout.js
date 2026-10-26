@@ -7,7 +7,9 @@
  */
 import { ONDES_LABEL } from '../labels.js';
 
-export const WORLD = { w: 5200, h: 2600, seam: 2600 };
+/** The world as designed: Zone and Echo. A map with the past band under them is taller (model.js worldHeight sets h). */
+export const BASE_H = 2600;
+export const WORLD = { w: 5200, h: BASE_H, seam: 2600 };
 
 /** The camera never zooms out further than this: below it a window's text stops being text. */
 export const MIN_SCALE = 0.3;
@@ -18,6 +20,12 @@ export const MIN_SCALE = 0.3;
  * article's own address). `tag` places
  * the tag on a desktop: a % of the screen, from the left edge for Zone and
  * from the right edge for Echo, and a tilt in degrees.
+ *
+ * These are the places as designed. Where the windows actually stand is
+ * site/data/layout.json (docs/ATELIER.md): main.js reads it before the world
+ * is mounted and model.js refills this array in place — so every module
+ * that reads DISTRICTS sees the arranged map, and the versions of the past
+ * the file adds to it.
  */
 export const DISTRICTS = [
   { id: 'radio', code: 'Z-01', title: 'Radio', half: 'zone', x: 150, y: 170, w: 1040, h: 760, rot: -0.6, route: 'radio',
@@ -58,8 +66,13 @@ export const FIGURES = [
   { kind: 'statue', x: 4500, y: 2290, w: 150, h: 300 },
 ];
 
-const BY_ID = new Map(DISTRICTS.map((d) => [d.id, d]));
+/** The map as designed, untouched by layout.json: the Atelier's « as designed » and the tests' reference. */
+export const DESIGNED = Object.freeze(DISTRICTS.map((d) => Object.freeze({ ...d, tag: Object.freeze([...d.tag]) })));
+
+let BY_ID = new Map(DISTRICTS.map((d) => [d.id, d]));
 export const byId = (id) => BY_ID.get(id) || null;
+/** After DISTRICTS was refilled (model.js applyPages). */
+export function reindex() { BY_ID = new Map(DISTRICTS.map((d) => [d.id, d])); }
 
 /**
  * The district a matched route lives in (main.js's route names), or null to
@@ -73,6 +86,8 @@ export function districtFor(name, params = {}) {
     case 'echo': return params.slug ? 'articles' : 'une';
     case 'lectures': case 'ecrits': return 'lectures';
     case 'archives': return 'archives';
+    // A version of the past, in its own window — only while it is on the map (online, or in the Atelier).
+    case 'version': return BY_ID.has(params.id) ? params.id : null;
     default: return null;
   }
 }
@@ -101,8 +116,8 @@ export const phoneTop = (vh) => (vh <= SHORT_MAX ? SHORT_TOP : PHONE_TOP);
  * over Playlists: 730 apart), so two never overlap — a phone on its side is
  * wider than any phone upright.
  */
-const PHONE_MAX_W = 736;
-const PHONE_MAX_H = 700;
+export const PHONE_MAX_W = 736;
+export const PHONE_MAX_H = 700;
 
 /**
  * The size a district's frame takes on this screen. On a desktop it is the

@@ -1,0 +1,12 @@
+{
+  "_readme": "Where `fire` publishes (scripts/fire.mjs, docs/ATELIER.md). No secret here: the addresses are the ones docs/LIVE.md already gives, and `key` is only the path ssh is told to use — fire never opens the file. If the tower moves (a new IP after a reinstall), change tower.url, tower.ssh and site/config.json's tower together.",
+  "branch": "main",
+  "workflow": "self-test",
+  "site": "https://globe-trotter-ochre.vercel.app",
+  "tower": {
+    "url": "https://129-151-227-129.sslip.io",
+    "ssh": "ubuntu@129.151.227.129",
+    "key": "~/.ssh/radio-tower",
+    "update": "sudo /usr/local/bin/radio-tower-update"
+  }
+}
