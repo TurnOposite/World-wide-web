@@ -2944,6 +2944,7 @@ Echo side waits for his documents (DECISIONS 2026-11-01).
   after; it predates this change. **After:** run 1 found six checks still describing the old map (fixed
   above) and one « the radio plays on through the flight » red (paused at a track change, a fixture
   rollover; green in the next two runs, not touched here). Run 2: 449 unit, 43/43, **140/140 site**,
-  25/25 Atelier, « the tower is sound ». Run 3 on the final code (the playlists' two-row cap): see the commit.
+  25/25 Atelier, « the tower is sound ». Run 3 on the final code (the playlists' two-row cap): 449 unit,
+  43/43 browser, **140/140 site**, 25/25 Atelier, « the tower is sound ».
 - **For Ortis:** the merged page is called **Atlas** (assumed; one word to rename it « Zone »). Where the
   Portfolio goes on Echo's side is part of the Echo work. Not measurable here: a real phone.
