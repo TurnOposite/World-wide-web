@@ -105,12 +105,36 @@ try {
   check('sync meter reports a value', /-?\d/.test(syncMeter || ''), syncMeter);
 
   // Ride across a track boundary and confirm the player rolls over on its own.
-  const before = await page.textContent('#title');
-  const remaining = await page.evaluate(async () => (await (await fetch('/api/station')).json()).onAir.remaining);
+  // Compare slots, not titles: each cycle is its own shuffle, so the track
+  // that ends one cycle can open the next (1 boundary in 4 with the four
+  // fixtures — WORKLOG 2026-10-25, B7 phase 5b), and "Tower Light -> Tower
+  // Light" was a correct rollover read as a missed one. A rollover is proved
+  // by three things together: the tower is on a later slot than before; the
+  // <audio> streams that slot's track; and it plays at that slot's position,
+  // not at the end of the old file — which is what tells a stuck player
+  // apart from a real rollover when the same track plays twice.
+  const slot = () => page.evaluate(async () => {
+    const a = document.getElementById('audio');
+    const { onAir } = await (await fetch('/api/station', { cache: 'no-store' })).json();
+    const playingId = (a.currentSrc.match(/track\/([0-9a-f]{12})\//) || [])[1];
+    return { id: onAir.id, title: onAir.title, startsAt: onAir.startsAt, endsAt: onAir.endsAt, offset: onAir.offset, remaining: onAir.remaining, playingId, clientTime: a.currentTime };
+  });
+  const before = await slot();
+  const remaining = before.remaining;
   if (remaining < 20) {
     await page.waitForTimeout((remaining + 3) * 1000);
-    const after = await page.textContent('#title');
-    check('rolls over to the next track automatically', after !== before, `${before} -> ${after}`);
+    let after = await slot();
+    // The player re-joins at most ~1 s after the clock rolls over (it lets a
+    // file finish, then asks the tower): give it that, never more.
+    for (let i = 0; i < 3 && (after.playingId !== after.id || Math.abs(after.clientTime - after.offset) >= 2); i++) {
+      await page.waitForTimeout(700);
+      after = await slot();
+    }
+    const newSlot = after.startsAt >= before.endsAt;
+    const onIt = after.playingId === after.id;
+    const lag = Math.abs(after.clientTime - after.offset);
+    check('rolls over to the next track automatically', newSlot && onIt && lag < 2.0,
+      `${before.title} -> ${after.title} (slot ${newSlot ? 'new' : 'SAME'}, audio ${onIt ? 'on it' : `on ${after.playingId}`}, at ${after.clientTime.toFixed(1)}s vs tower ${after.offset.toFixed(1)}s)`);
     const stillPlaying = await page.evaluate(() => !document.getElementById('audio').paused);
     check('still playing after the rollover', stillPlaying);
   } else {
