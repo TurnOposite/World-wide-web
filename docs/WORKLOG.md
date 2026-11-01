@@ -2913,3 +2913,37 @@ Atom feed (`atomFeed`, written to `dist/echo/feed.xml` by `site-build.mjs`, link
 ## 2026-11-01 — the Atelier and the world go live
 
 `main` fast-forwarded 1610712 → **4509e99** (claude/rework + claude/atelier), on Ortis's go-ahead in a cloud session: the world shell is now the site (classic behind `?classic=1`) and the Atelier is at `?atelier=1`. Before: cloud self-test on 4509e99 green (448 unit, 43/43 browser, 138/138 site, 25/25 Atelier; browser stages need `TOWER_BROWSER_EXECUTABLE=/opt/pw-browsers/chromium` in the cloud) and GitHub's self-test on the branch green. After the push: GitHub's self-test on `main` passed, Vercel served the commit 255 s later (`config.json` `commit`); `/`, `/?atelier=1`, `/go/Z-04`, `/versions/v1`, `/past/v1`, `/data/layout.json` answer 200. The Oracle tower takes it on its nightly update (~04:20 UTC) unless Ortis runs `radio-tower-update` over SSH first; the tower needed no other change (nothing under `server/`, `public/` or `deploy/cloud/` moved). The real-phone checklist in `docs/WORLD.md` was not run before going live.
+
+## 2026-11-01 (evening) — Zone is part of the Atlas; the Portfolio leaves Zone's side; Playlists above the Atlas
+
+Ortis, from the Atelier's overview: « remove the portfolio from the zone side, merge the zone and the
+atlas, since they're one and the same, and have the playlist be above an atlas » — push it now; the
+Echo side waits for his documents (DECISIONS 2026-11-01).
+- **Changed:** the Atlas (`pages/atlas.js`) carries Zone's playlists above its map (the compact deck,
+  two rows of cards then a scroll, so the map stays a scroll away) and Zone's card under it (place,
+  coordinates, local time, where the position comes from); its tower point follows Zone's rule
+  (`resolveOrigin`: the tower's origin wins in tower mode, the point and card move when it changes) and
+  carries `data-lat`/`data-lon`. `/zone` is a second pattern of the Atlas's route; `pages/zone.js` keeps
+  the rules, no map. The map (`layout.js`, `layout.json`): Radio, Ondes; Playlists (260, 980) and the
+  Booth (1700, 1060); the Atlas (380, 1700, 1000 × 740) under Playlists — `npm run layout -- check`
+  holds and the world keeps its 2600 px floor. The Portfolio has no window: `districtFor('portfolio')`
+  is null on purpose, so `/portfolio…` opens over the world; the banner and Echo's rubriques list
+  neither Zone nor the Portfolio; Archives still links it. `refs.js` `RETIRED`: `go/Z-03` → Atlas,
+  `go/Z-05/<room>` → the Portfolio.
+- **Tests, moved not weakened:** the classic Zone checks now run on the Atlas (the point measured on
+  screen against the Atlas's own `pinPoint`, Zone's card, the deck above the map, `/zone` opens the
+  Atlas, the menu), the tower-mode origin check reads the Atlas's point; the world's tag and door counts
+  read the published map instead of a fixed 11; the minimap click aims at the Atlas where the map puts
+  it; the Atelier and `fire` tests move windows that exist (onto the Booth instead of the Portfolio);
+  the Zone map's unit test became one for the Atlas's tower point (Maputo on the world, Amsterdam in the
+  Europe inset) and Zone's card. New checks: Playlists above the Atlas, no Zone or Portfolio window, a
+  retired code still lands, Echo's rubriques.
+- **Self-test before** (untouched `main` 4509e99, cloud, `TOWER_BROWSER_EXECUTABLE=/opt/pw-browsers/chromium`):
+  448 unit, 43/43 browser, **137/138 site** — axe `color-contrast` (serious) on the Ondes tag's code over
+  Echo's paper on `/echo/article-temoin` — 25/25 Atelier. That red did not come back in the three runs
+  after; it predates this change. **After:** run 1 found six checks still describing the old map (fixed
+  above) and one « the radio plays on through the flight » red (paused at a track change, a fixture
+  rollover; green in the next two runs, not touched here). Run 2: 449 unit, 43/43, **140/140 site**,
+  25/25 Atelier, « the tower is sound ». Run 3 on the final code (the playlists' two-row cap): see the commit.
+- **For Ortis:** the merged page is called **Atlas** (assumed; one word to rename it « Zone »). Where the
+  Portfolio goes on Echo's side is part of the Echo work. Not measurable here: a real phone.

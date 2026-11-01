@@ -779,6 +779,8 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .zone-playlists .hint a{color:var(--signal)}
 /* The Atlas since it took Zone in (2026-11-01): the playlists above the map, Zone's card under it. */
 .atlas-playlists{margin:0 0 22px}
+/* Two rows of playlists, the rest a scroll away: above the map they must not push it off the window. */
+.atlas-playlists .sp-deck.compact .sp-list{max-height:92px}
 .atlas-origin{margin-top:16px;max-width:460px}
 
 /* ---------------------------------------------------------------- the two doors on the home page */
