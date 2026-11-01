@@ -803,3 +803,79 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .v-links a{color:var(--text)}
 .v-code,.v-short{font-family:var(--mono);letter-spacing:.08em}
 .v-frame{flex:1;width:100%;min-height:420px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg)}
+
+/* ---------------------------------------------------- the booth (2026-11-01) */
+/* The lights first, for everyone, wide: the visualiser's controls and the world's screen side by side, every
+   layer's hint written out. The music booth under them asks for the key and shows nothing else until it has one. */
+.booth-head{margin-bottom:14px}
+.booth-lights{margin-bottom:18px}
+.booth-lights .panel-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.booth-lights .panel-head .hint{margin-left:auto}
+.booth-lights-in{display:grid;grid-template-columns:minmax(0,3.2fr) minmax(220px,1fr);gap:8px 20px;align-items:start}
+.booth-lights-in:has(> .bl-screen[hidden]){grid-template-columns:1fr}
+.v-inline{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr);grid-template-areas:"follow follow follow" "look layers tune" "canopy layers row" ". layers .";
+  gap:4px 20px;align-items:start}
+.v-inline>.v-section{margin-top:10px}
+.v-inline>[data-sec="look"]{grid-area:look}
+.v-inline>[data-sec="canopy"]{grid-area:canopy}
+.v-inline>[data-sec="layers"]{grid-area:layers}
+.v-inline>[data-sec="tune"]{grid-area:tune}
+.v-inline>[data-sec="row"]{grid-area:row;margin-top:12px}
+.v-inline>.v-follow{grid-area:follow}
+.v-inline .v-layers{grid-template-columns:1fr;gap:0}
+.v-inline .v-layers label{display:flex;align-items:baseline;gap:8px;padding:2px 0;white-space:nowrap;overflow:hidden;min-width:0}
+.v-inline .v-layers label input,.v-inline .v-layers label .sw{align-self:center;flex:none}
+.v-inline .v-layers label small{flex:1 1 auto;min-width:0;font-size:11.5px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis}
+.v-inline .v-looks.v-two{grid-template-columns:1fr 1fr}
+.v-inline .v-slider{grid-template-columns:78px minmax(50px,1fr) 42px;gap:8px}
+.v-inline .v-slider input{min-width:0;width:100%}
+.bl-screen{border-left:1px solid var(--line);padding-left:18px}
+.bl-sub{margin:10px 0 0;font:600 11px/1 var(--font);letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint)}
+.v-screen .v-section{margin-top:8px}
+.v-screen .v-looks{grid-template-columns:repeat(3,1fr)}
+.v-screen .v-looks button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;padding:6px 8px}
+.v-screen .v-looks button small{display:none}
+.v-screen .v-looks button[aria-checked="true"]{border-color:var(--signal);color:var(--text);background:var(--signal-soft)}
+.booth-music{margin-top:6px}
+.booth-door .panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.booth-door .pill.ok{border-color:var(--signal);color:var(--signal)}
+.booth-door .plane{margin:12px 0}
+.booth-key{max-width:420px}
+.booth-desk{margin-top:18px}
+@media (max-width:759px){
+  .booth-lights-in{grid-template-columns:1fr}
+  .bl-screen{border-left:0;padding-left:0}
+  .v-inline{grid-template-columns:1fr;grid-template-areas:none}
+  .v-inline>[data-sec],.v-inline>.v-follow{grid-area:auto}
+  .booth-lights .panel-head .hint{margin-left:0}
+}
+
+/* ------------------------------------------- Ondes' crier (2026-11-01) */
+.ondes-head{display:flex;justify-content:space-between;align-items:center;gap:20px;max-width:none}
+.ondes-crier{flex:none;margin:0;width:min(220px,30%);background:#fff;padding:6px;transform:rotate(2deg);box-shadow:6px 6px 0 rgba(0,0,0,.35)}
+.ondes-crier img{display:block;width:100%;height:auto}
+
+/* ------------------------------------ Playlists: more in one go (2026-11-01) */
+/* The player keeps its place on the left while the cards scroll beside it; every card keeps room for a few
+   words that say what the playlist is for — empty until they are written in playlists.json. */
+.sp-deck:not(.compact){display:grid;grid-template-columns:minmax(260px,300px) minmax(0,1fr);gap:18px;align-items:start}
+.sp-deck:not(.compact) .sp-player{position:sticky;top:0}
+.sp-deck:not(.compact) .sp-list{margin:0;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:8px}
+.sp-deck:not(.compact) .sp-pick{padding:10px 12px;gap:3px}
+.sp-deck:not(.compact) .sp-pick b{font-size:14.5px}
+.sp-deck:not(.compact) .pl-profile{grid-column:1/-1;margin-top:6px}
+.pl-desc{display:block;min-height:2.5em;font-size:12.5px;line-height:1.25}
+.w-private .pl-desc:empty::before{content:"✎ a few words: playlists.json → vibe";color:var(--text-faint);font-style:italic;opacity:.7}
+@media (max-width:759px){
+  .sp-deck:not(.compact){grid-template-columns:1fr}
+  .sp-deck:not(.compact) .sp-player{position:static}
+}
+
+/* ------------------------------------------ Zone's Atlas: /zone (2026-11-01) */
+.broadcast{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr);gap:20px;align-items:center}
+.broadcast-card .zone-place{font-size:clamp(30px,4vw,44px)}
+.broadcast-card .zone-time b{font-size:18px}
+/* Maps grow with their width: in a window they stop at its height (world.js --w-room), so the page shows whole. */
+.w-box .broadcast-map svg.world-map{max-height:max(220px,calc(var(--w-room,100vh) - 200px))}
+.w-box .atlas .mapbox svg.world-map{max-height:max(240px,calc(var(--w-room,100vh) - 250px))}
+@media (max-width:759px){ .broadcast{grid-template-columns:1fr} }

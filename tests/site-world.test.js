@@ -10,8 +10,8 @@ import fs from 'node:fs';
 
 import { worldChoice, worldWanted } from '../site/js/world/flag.js';
 import {
-  WORLD, DISTRICTS, FIGURES, MIN_SCALE, PHONE_MAX, SHORT_MAX, PHONE_MEDIA, SWIPE, isPhone, phoneTop, swipeHalf,
-  byId, districtFor, frameFor, cameraFor, pageZoom, centreOf, flightMs, ease, pullBack, seamMix, nearest,
+  WORLD, DISTRICTS, FIGURES, MIN_SCALE, MAX_SCALE, FIT_MIN, PHONE_MAX, SHORT_MAX, PHONE_MEDIA, SWIPE, isPhone, phoneTop, swipeHalf,
+  byId, districtFor, frameFor, cameraFor, pageZoom, fitFactor, sideOf, centreOf, flightMs, ease, pullBack, seamMix, nearest,
 } from '../site/js/world/layout.js';
 import { byTag, pressOf, dateFr } from '../site/js/pages/archives.js';
 import { routes } from '../scripts/site-build.mjs';
@@ -66,14 +66,19 @@ test('?classic=1 and ?world=1 are each remembered for the tab; a new tab starts 
   assert.equal(worldWanted({ search: '', storage: broken }), false);
 });
 
-test('nine districts — Zone without Z-03 (in the Atlas now) and Z-05 (off Zone\'s side), Echo E-01…E-04 — each on its own half, none overlapping', () => {
-  assert.equal(DISTRICTS.length, 9);
-  // In the order a visitor meets them: the playlists stand above the Atlas (Ortis, 2026-11-01).
-  assert.deepEqual(DISTRICTS.map((d) => d.code), ['Z-01', 'Z-02', 'Z-06', 'Z-04', 'Z-07', 'E-01', 'E-02', 'E-03', 'E-04']);
-  assert.equal(new Set(DISTRICTS.map((d) => d.id)).size, 9);
-  assert.ok(byId('playlists').y + byId('playlists').h <= byId('atlas').y, 'Playlists above the Atlas');
-  assert.equal(byId('zone'), null, 'no Zone window: it is part of the Atlas');
+test('ten districts — two Atlases, Zone\'s (Z-03, where the tower broadcasts from) and Echo\'s (E-05, the map of the places), each on its own half, none overlapping', () => {
+  assert.equal(DISTRICTS.length, 10);
+  // In the order a visitor meets them (Ortis, 2026-11-01): Zone's five, then Echo's five.
+  assert.deepEqual(DISTRICTS.map((d) => d.code), ['Z-01', 'Z-02', 'Z-06', 'Z-03', 'Z-07', 'E-01', 'E-02', 'E-03', 'E-04', 'E-05']);
+  assert.equal(new Set(DISTRICTS.map((d) => d.id)).size, 10);
+  assert.equal(byId('zone').title, 'Atlas', 'Zone\'s Atlas is called Atlas');
+  assert.equal(byId('atlas').title, 'Atlas', '…and so is Echo\'s');
+  assert.equal(byId('zone').half, 'zone');
+  assert.equal(byId('atlas').half, 'echo', 'the map of the places stands on Echo\'s side');
   assert.equal(byId('portfolio'), null, 'no Portfolio window on Zone\'s side');
+  // What may scroll inside its window, and what shows whole (world.js fitPage).
+  // Ondes and Playlists by Ortis's word; the reading pages and Archives (a long list of press) because they are read.
+  assert.deepEqual(DISTRICTS.filter((d) => d.scroll).map((d) => d.id), ['ondes', 'playlists', 'articles', 'lectures', 'archives']);
   for (const d of DISTRICTS) {
     assert.ok(d.x >= 0 && d.y >= 0 && d.x + d.w <= WORLD.w && d.y + d.h <= WORLD.h, `${d.id} is inside the world`);
     if (d.half === 'zone') assert.ok(d.x + d.w <= WORLD.seam - 100, `${d.id} stays left of the seam`);
@@ -94,7 +99,7 @@ test('every route lands in a district, and every district with a page names a ro
   const served = new Set(['', ...routes([], [])]);
   for (const d of DISTRICTS) if (d.route !== null) assert.ok(served.has(d.route), `${d.id} → /${d.route}`);
   const expect = {
-    home: 'radio', radio: 'radio', ondes: 'ondes', zone: 'atlas', atlas: 'atlas',
+    home: 'radio', radio: 'radio', ondes: 'ondes', zone: 'zone', atlas: 'atlas',
     playlists: 'playlists', booth: 'booth', lectures: 'lectures', ecrits: 'lectures', archives: 'archives',
   };
   for (const [name, id] of Object.entries(expect)) assert.equal(districtFor(name, {}), id, name);
@@ -157,7 +162,7 @@ test('the camera centres a district in the free area and fits the whole frame', 
     for (const d of DISTRICTS) {
       const cam = cameraFor(d, vw, vh);
       const f = frameFor(d, vw, vh);
-      assert.ok(cam.s >= MIN_SCALE && cam.s <= 1, `${d.id} @${vw}: scale ${cam.s}`);
+      assert.ok(cam.s >= MIN_SCALE && cam.s <= MAX_SCALE, `${d.id} @${vw}: scale ${cam.s}`);
       // On a phone (upright or on its side) the frame is the screen, shown at 1:1; on a desktop it is the map's own size.
       if (isPhone(vw, vh)) assert.equal(cam.s, 1, `${d.id} @${vw}x${vh}: a phone shows its frame at 1:1`);
       else assert.deepEqual(f, { w: d.w, h: d.h });
@@ -172,8 +177,12 @@ test('the camera centres a district in the free area and fits the whole frame', 
         assert.ok(top >= 0 && bottom <= vh - 64, `${d.id} @${vw}x${vh} fits above the mini-player: ${top.toFixed(0)}…${bottom.toFixed(0)}`);
       }
       if (vw >= 1280) {
-        const side = Math.min(260, vw * 0.18);
+        const side = sideOf(vw);
         assert.ok(left >= side - 1 && right <= vw - side + 1, `${d.id} @${vw} leaves the tag columns clear`);
+        // The window fills the free area one way or the other (Ortis, 2026-11-01: « much wider and taller »):
+        // the camera scales it up past 1:1 on a big screen rather than leave it floating small.
+        const fill = Math.min((vw - 2 * side) / (d.w + 40), (vh - 70 - 68) / (d.h + 36));
+        assert.ok(Math.abs(cam.s - Math.min(MAX_SCALE, Math.max(MIN_SCALE, fill))) < 1e-9, `${d.id} @${vw}x${vh} fills the free area: ${cam.s} for ${fill}`);
       }
     }
   }
@@ -192,6 +201,12 @@ test('a page reads at 1:1: its zoom undoes the camera\'s scale, and a phone\'s f
     }
   }
   assert.equal(pageZoom(1), 1, 'no zoom where the camera does not scale');
+  assert.ok(Math.abs(pageZoom(2) * 2 - 1) < 1e-3, 'a window scaled up on a big screen still reads at 1:1');
+  // A page taller than its window is drawn smaller until it fits, never below FIT_MIN.
+  assert.equal(fitFactor(400, 500), 1, 'it fits: 1:1');
+  assert.equal(fitFactor(1000, 800), 0.8);
+  assert.equal(fitFactor(5000, 500), FIT_MIN, 'never smaller than readable');
+  assert.ok(Math.abs(fitFactor(900, 800, 0.9) - 0.8) < 1e-9, 'from the zoom tried');
   for (const [vw, vh] of [[360, 640], [390, 844], [430, 932], [760, 1024]]) {
     const rects = DISTRICTS.map((d) => ({ id: d.id, x: d.x, y: d.y, ...frameFor(d, vw, vh) }));
     for (const r of rects) assert.ok(r.w >= 240 && r.w <= vw && r.h >= 240, `${r.id} @${vw}x${vh}: ${r.w}×${r.h}`);
@@ -283,7 +298,8 @@ test('the seam: 0 in Zone, 1 in Echo, half-way on the line', () => {
 test('a click on the minimap picks the district under it', () => {
   for (const d of DISTRICTS) assert.equal(nearest(d.x + d.w / 2, d.y + d.h / 2).id, d.id);
   assert.equal(nearest(0, 0).id, 'radio');
-  assert.equal(nearest(WORLD.w, WORLD.h).id, 'archives');
+  assert.equal(nearest(0, WORLD.h).id, 'zone');
+  assert.equal(nearest(3790, WORLD.h).id, 'archives');
 });
 
 test('« Écran »: four settings, each default one of its own choices, anything unknown falls back', () => {

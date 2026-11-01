@@ -249,6 +249,18 @@ test('clear removes the override', async (t) => {
   assert.equal((await (await get('/api/queue')).json()).override, null);
 });
 
+test('POST /api/key says whether a key is the station key, and changes nothing', async () => {
+  assert.equal((await post('/api/key', {}, { 'x-station-key': KEY })).status, 200);
+  assert.deepEqual(await (await post('/api/key', {}, { 'x-station-key': KEY })).json(), { ok: true });
+  const wrong = await post('/api/key', {}, { 'x-station-key': 'not-the-key' });
+  assert.equal(wrong.status, 401);
+  assert.equal((await wrong.json()).error, 'bad_key');
+  assert.equal((await post('/api/key', {})).status, 401, 'no key at all');
+  const before = await (await get('/api/queue')).json();
+  await post('/api/key', {}, { 'x-station-key': KEY });
+  assert.deepEqual((await (await get('/api/queue')).json()).override ?? null, before.override ?? null, 'checking a key moves nothing');
+});
+
 test('the queue endpoints leak no filesystem paths', async (t) => {
   if (!hasFfmpeg) return t.skip('ffmpeg not available');
   const raw = await (await get('/api/queue')).text();

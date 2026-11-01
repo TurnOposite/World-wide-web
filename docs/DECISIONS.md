@@ -3627,3 +3627,53 @@ atlas » — and push it now.
 **Revisit when** the Echo work gives the Portfolio a place (a window on Echo's paper needs the rooms
 restyled for paper — they are written for Zone's night), or if Ortis renames the merged page.
 
+
+## 2026-11-01 (evening) — Windows show their page whole; two Atlases; the Booth's lights for everyone; the dev features go private
+
+**Asked by Ortis** looking at the live site (`2e71ed4`): no scrolling inside the windows — « each
+window linked to the menu should be self-contained in its entirety and fit in the screen » — so no
+« what's next » under Radio; Ondes without « — in your time zone. », with the « Demandez le
+programme ! » picture, may scroll but taller; Playlists much taller, with room on every card for a
+few words, and the intro « No internet? No problem! … »; no playlists on the Atlas; the map's Atlas to
+Echo's side, Zone keeping only « broadcasting from », both named Atlas; « Version 1 », « Écran » and
+the screen map private, with a preview of the public site in the private view; the Booth much bigger,
+the lights first and complete, then a music booth that asks for the station key and shows the queue and
+the Spontaneous Emissions only once the key is right. All windows wider and taller. Push it now.
+**Decided:**
+1. **A window fills the screen's free area** (`layout.js` `cameraFor`): the tag columns are narrower
+   (`sideOf`: 16 % of the width, 190–250 px), the margins above and below smaller, and the camera may
+   scale a window *up* to 2.4× on a big screen (`MAX_SCALE`) — its page is zoomed back (`pageZoom`), so
+   the text stays 1:1 and the page simply has more room. Windows are drawn at ~1.75:1, the shape of a
+   laptop's free area, so they fill it both ways; their size in world pixels only places them on the map.
+2. **A window shows its page whole** (`world.js` `fitPage`): a page taller than its window is drawn
+   smaller until it fits (`fitFactor`), never below `FIT_MIN` = 0.62, re-measured as the page grows
+   (a `ResizeObserver` on the page). Measured, not guessed. Pages give what grows with their width (a map,
+   the Une's lead picture) a cap from the window's height (`--w-room`), since shrinking cannot fit those.
+   A district marked `scroll` keeps 1:1 and scrolls: Ondes and Playlists (Ortis's exceptions), Articles,
+   Lectures and Archives (read, and too long to show whole at a readable size). The Booth fits its first part (`[data-fit-end]`: the lights) and leaves the
+   music booth a scroll below. A phone scrolls as before (its frame is the screen).
+3. **Two Atlases.** `zone` (Z-03, Zone's side, `/zone`, `pages/broadcast.js`): the tower's point on the
+   map and the card — where it broadcasts from, the time there; one day a playlist per place. `atlas`
+   (E-05, Echo's side, `/atlas`): the map of the places, postcards, projects and press, on paper.
+   `/atlas#<place>` and Archives' links keep working. `Z-04` is retired onto E-05 (`refs.js`), and the
+   build now writes a cold shell for every retired code too (`go/Z-04`, `go/Z-05` answer 200). Two pages
+   share a title, so `npm run layout` finds an id or a code before a title.
+4. **Public and private.** « Écran », the minimap, the versions of the past (windows, tags, the band)
+   show only in the Atelier (`?atelier=1`), which is the private view; the public map does not even
+   carry the past's windows. « Aperçu public » in the Atelier shows exactly what everyone sees (the draft
+   included) until « Revenir à l'Atelier ». The past's copies are still built at `past/<id>/` for the
+   Atelier to frame — unlisted, not secret: a static site can hide, not lock.
+5. **The Booth: lights first, for everyone.** Every visual setting in one place: the visualiser's looks,
+   Canopy, the nine layers (each with its hint), the tuning, full screen; and « Écran »'s four (ground,
+   bubbles, menu, scan lines — `screen.js` `screenControls`, the same choice as « Écran »'s). Kept in this
+   browser. Then the **music booth**: what it is, where changes go, and the key form — nothing else. The
+   desk (channel, queue, Spontaneous Emissions, broadcast look) is built only once the booth is open.
+6. **The tower checks the key before the desk opens:** `POST /api/key` (`x-station-key`) answers 200 or
+   the same 401 `bad_key` a write gets, from the same rate budget, and changes nothing. A typed key is
+   checked *before* it is remembered, so a refused key never reaches the browser's storage; a remembered
+   or `#key=` one is checked on arrival. An older tower without the route (404) is taken on trust — its
+   first write would tell. A GitHub token and a preview are as before (no key to check).
+7. **Radio** is the on-air card and the channels: what is next is Ondes', rearranging it the Booth's.
+**Revisit if** a page cannot fit above `FIT_MIN` on Ortis's own screen (then that page needs a denser
+layout, not a smaller zoom), or if the private view needs to be really private (that is a server's job:
+the Atelier is a mode, not an account).

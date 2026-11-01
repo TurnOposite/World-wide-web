@@ -20,6 +20,17 @@ export const SCREEN_OPTIONS = {
 
 export const SCREEN_DEFAULTS = { bg: 'grid', bub: 'few', list: 'scatter', scan: 'on' };
 
+/**
+ * The same settings in the Booth's Lights (Ortis, 2026-11-01: « centralise everything there and make it
+ * available to the public »). « Écran » itself became private; the Booth speaks Zone's English.
+ */
+export const SCREEN_EN = {
+  bg: { label: 'Background', choices: { grid: ['Grid', 'lines on the ground'], rain: ['Rain', 'slanted streaks'], void: ['Haze', 'nothing but the haze'] } },
+  bub: { label: 'Glass bubbles', choices: { few: ['A few'], many: ['Many'], none: ['None'] } },
+  list: { label: 'Menu', choices: { scatter: ['Scattered tags', 'the world in a heap'], stack: ['Stack', 'a pause menu down the left'] } },
+  scan: { label: 'Scan lines', choices: { on: ['On'], off: ['Off'] } },
+};
+
 /** Only known keys with known values survive; anything else falls back to the default. */
 export function normalScreen(raw) {
   const out = { ...SCREEN_DEFAULTS };
@@ -60,12 +71,14 @@ function el(tag, cls, text) {
  * @param {object} o
  * @param {HTMLElement} o.root     .w-root: carries data-w-bg, data-w-bub, data-w-list, data-w-scan
  * @param {(prefs: object) => void} [o.onChange]
- * @returns {{ button: HTMLButtonElement, panel: HTMLElement, prefs: object, open: (on: boolean) => void }}
+ * @returns {{ button: HTMLButtonElement, panel: HTMLElement, prefs: object, open: (on: boolean) => void,
+ *   set: (key: string, val: string) => void, subscribe: (fn: (prefs: object) => void) => () => void }}
  */
 export function mountScreen({ root, onChange = () => {} }) {
   let storage = null;
   try { storage = localStorage; } catch { /* blocked: the defaults, for this page */ }
   const prefs = readScreen(storage);
+  const listeners = new Set();
 
   const button = el('button', 'w-screen-btn');
   button.type = 'button';
@@ -103,11 +116,7 @@ export function mountScreen({ root, onChange = () => {} }) {
       b.dataset.val = val;
       b.append(el('span', '', name));
       if (small) b.append(el('small', '', small));
-      b.addEventListener('click', () => {
-        prefs[key] = val;
-        writeScreen(storage, prefs);
-        apply();
-      });
+      b.addEventListener('click', () => set(key, val));
       opts.append(b);
       radios.push(b);
     }
@@ -119,6 +128,14 @@ export function mountScreen({ root, onChange = () => {} }) {
     for (const k of Object.keys(SCREEN_DEFAULTS)) root.dataset[`w${k[0].toUpperCase()}${k.slice(1)}`] = prefs[k];
     for (const b of radios) b.setAttribute('aria-checked', String(prefs[b.dataset.set] === b.dataset.val));
     onChange({ ...prefs });
+    for (const fn of listeners) fn({ ...prefs });
+  }
+
+  function set(key, val) {
+    if (!SCREEN_OPTIONS[key]?.choices.some(([v]) => v === val)) return;
+    prefs[key] = val;
+    writeScreen(storage, prefs);
+    apply();
   }
 
   function open(on) {
@@ -143,5 +160,42 @@ export function mountScreen({ root, onChange = () => {} }) {
   });
 
   apply();
-  return { button, panel, prefs, open };
+  return { button, panel, prefs, open, set, subscribe: (fn) => { listeners.add(fn); return () => listeners.delete(fn); } };
+}
+
+/**
+ * The four settings as the Booth shows them: one radio group each, bound to the world's own (mountScreen's
+ * handle), so a choice here and one in « Écran » are the same choice. Returns the element and its cleanup.
+ */
+export function screenControls(screen) {
+  const box = el('div', 'v-screen');
+  const radios = [];
+  for (const [key, { choices }] of Object.entries(SCREEN_OPTIONS)) {
+    const en = SCREEN_EN[key];
+    const grp = el('div', 'v-section');
+    const p = el('span', 'eyebrow', en.label);
+    p.id = `bScreen-${key}`;
+    const opts = el('div', 'v-looks');
+    opts.setAttribute('role', 'radiogroup');
+    opts.setAttribute('aria-labelledby', p.id);
+    for (const [val] of choices) {
+      const [name, small] = en.choices[val];
+      const b = el('button', '');
+      b.type = 'button';
+      b.setAttribute('role', 'radio');
+      b.dataset.screen = key;
+      b.dataset.val = val;
+      b.append(el('span', '', name));
+      if (small) b.append(el('small', '', small));
+      b.addEventListener('click', () => screen.set(key, val));
+      opts.append(b);
+      radios.push(b);
+    }
+    grp.append(p, opts);
+    box.append(grp);
+  }
+  const paint = (prefs) => { for (const b of radios) b.setAttribute('aria-checked', String(prefs[b.dataset.screen] === b.dataset.val)); };
+  paint(screen.prefs);
+  const off = screen.subscribe(paint);
+  return { el: box, destroy: off };
 }

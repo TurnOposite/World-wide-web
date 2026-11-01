@@ -17,6 +17,14 @@ page layout » is where those windows stand. Four parts, one file between them.
 | **Short links** | one stable name per page, old or new: `go/Z-04`, `go/v1/atlas`, `gt:` in a link | `site/js/refs.js` |
 | **`fire`** | publish now: GitHub, then Vercel, then the Oracle tower — without waiting for the night | `fire.cmd`, `scripts/fire.mjs` |
 
+## Public and private (2026-11-01)
+
+The Atelier is also the site's **private view**: « Écran », the minimap and the versions of the past
+(their windows, their tags, the Archives band) show there and nowhere else — a visitor's world has none
+of them. **Aperçu public**, in the panel's tools, puts the panel away and shows the site exactly as
+everyone sees it (your draft included) until **Revenir à l'Atelier**. The past's copies are still built at
+`past/<id>/` for the private view to frame: unlisted, not locked — a static site can hide, not guard.
+
 ## Change the layout
 
 **In the browser.** `npm run site`, open <http://localhost:8090/?atelier=1>. The Atelier's
@@ -101,7 +109,7 @@ an id (`atlas`, `v1`). Any of them, any case:
 
 | Link | Leads to |
 |---|---|
-| `go/Z-04`, `go/atlas` | the Atlas, wherever its window is |
+| `go/E-05`, `go/atlas` (and the retired `go/Z-04`) | the Atlas of the places, wherever its window is · `go/Z-03`, `go/zone`: Zone's Atlas |
 | `go/E-02/<slug>` | an Echo article · `go/E-03/<slug>` a text in Lectures · `go/Z-05/photos` a Portfolio room (Z-05 is off the map since 2026-11-01; the link still lands) |
 | `go/P-01`, `go/v1` | Version 1 in its window |
 | `go/v1/atlas` | the v1 site's own Atlas, full screen |

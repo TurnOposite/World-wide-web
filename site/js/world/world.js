@@ -28,12 +28,19 @@
  * the switch does; a phone on its side is a phone too, its header and tags
  * on one line.
  *
+ * Public and private (Ortis, 2026-11-01): what is for building the site —
+ * « Écran », the minimap, the versions of the past and their band — shows
+ * only in the private view (the Atelier, ?atelier=1), which can switch to an
+ * « aperçu public » of exactly what everyone else sees (setPrivate). And every
+ * window shows its page whole: a page taller than its window is drawn smaller
+ * until it fits (fitPage), unless its district scrolls (layout.js `scroll`).
+ *
  * The Atelier (docs/ATELIER.md): the map is site/data/layout.json, applied
  * to DISTRICTS before this mounts. The versions of the past stand in a band
  * under both halves, each a window of its own; every door carries its
  * short link (go/<code>); and what the Atelier moves, relayout() redraws.
  */
-import { BASE_H, DISTRICTS, FIGURES, PHONE_MEDIA, SHORT_MAX, WORLD, byId, districtFor, frameFor, pageZoom, swipeHalf } from './layout.js';
+import { BASE_H, DISTRICTS, FIGURES, FIT_MIN, PHONE_MEDIA, SHORT_MAX, WORLD, byId, districtFor, fitFactor, frameFor, pageZoom, swipeHalf } from './layout.js';
 import { Camera } from './camera.js';
 import { mountTags } from './tags.js';
 import { mountMinimap } from './minimap.js';
@@ -107,7 +114,8 @@ function district(d) {
   s.tabIndex = -1;
   // Named as a window, not after its page: the pages name their own sections (Ondes' « Ondes », Zone's
   // « Playlists »), and two landmarks of one name leave a screen reader two of the same (axe landmark-unique).
-  s.setAttribute('aria-label', `Fenêtre ${d.title}`);
+  // …and by its code too: two windows may share a title (the two Atlases, 2026-11-01), never a code.
+  s.setAttribute('aria-label', `Fenêtre ${d.title} · ${d.code}`);
   const code = el('span', 'w-code', `${d.code} · ${d.title}`);
   code.setAttribute('aria-hidden', 'true');
   s.append(code);
@@ -137,7 +145,7 @@ function district(d) {
  * @param {import('../router.js').Router} o.router
  * @param {object} [o.site]  config.site
  */
-export async function mountWorld({ router, site = {} }) {
+export async function mountWorld({ router, site = {}, private: priv = false }) {
   const css = document.createElement('link');
   css.rel = 'stylesheet';
   css.href = new URL('../../css/world.css', import.meta.url).href;
@@ -147,6 +155,10 @@ export async function mountWorld({ router, site = {} }) {
   const html = document.documentElement;
   const root = el('div', 'w-root');
   root.id = 'world';
+  // The private view (the Atelier's tab): « Écran », the minimap and the past are shown; the public never sees them.
+  let isPrivate = Boolean(priv);
+  root.classList.toggle('w-private', isPrivate);
+  const shown = (d) => isPrivate || d.era !== 'past';
 
   const far = el('div', 'w-far');
   far.setAttribute('aria-hidden', 'true');
@@ -357,8 +369,9 @@ export async function mountWorld({ router, site = {} }) {
     const t = e.target;
     const free = t === document.body || t === html || (t instanceof Element && t.closest('.w-root') && !t.closest('.w-box'));
     if (!free || (t instanceof Element && t.closest('input, textarea, select, [contenteditable]'))) return;
-    const i = Math.max(0, DISTRICTS.findIndex((d) => d.id === current));
-    const next = DISTRICTS[(i + (e.key === 'ArrowRight' ? 1 : DISTRICTS.length - 1)) % DISTRICTS.length];
+    const walk = DISTRICTS.filter(shown);
+    const i = Math.max(0, walk.findIndex((d) => d.id === current));
+    const next = walk[(i + (e.key === 'ArrowRight' ? 1 : walk.length - 1)) % walk.length];
     e.preventDefault();
     pick(next.id, { replace: true });
   });
@@ -372,8 +385,7 @@ export async function mountWorld({ router, site = {} }) {
       Object.assign(s.style, { left: `${d.x}px`, top: `${d.y}px`, width: `${f.w}px`, height: `${f.h}px` });
       s.style.setProperty('--rot', phone.matches ? '0deg' : `${d.rot}deg`);
       s.classList.toggle('w-off', d.status === 'offline');
-      const z = pageZoom(camera.target(d).s);
-      s.querySelector('.w-box').style.zoom = z === 1 ? '' : String(z);
+      setZoom(s.querySelector('.w-box'), pageZoom(camera.target(d).s));
     }
     // The world is as tall as its lowest window needs (model.js worldHeight): the past band, when there is one.
     plane.style.height = `${WORLD.h}px`;
@@ -382,14 +394,76 @@ export async function mountWorld({ router, site = {} }) {
     Object.assign(band.style, { top: `${BASE_H}px`, height: `${WORLD.h - BASE_H}px` });
     hideCovered(figs);
   }
+  const FOCUSABLE = 'a[href], button, input, select, textarea, iframe, [tabindex]:not([tabindex="-1"])';
+  function setZoom(box, z) {
+    const v = Math.abs(z - 1) < 0.0005 ? '' : String(Number(z.toFixed(4)));
+    if (box.style.zoom !== v) box.style.zoom = v;
+  }
+
+  /**
+   * The live page, whole in its window: drawn at 1:1 if it fits, else smaller until it does
+   * (layout.js fitFactor, never below FIT_MIN). Phones scroll instead — their frame is the screen —
+   * and so do the districts marked `scroll`. Measured, not guessed: the page lays out again at each
+   * zoom tried (a narrower page wraps into more lines), so it settles in a few steps.
+   */
+  function fitPage() {
+    if (!live?.id) return;
+    const d = byId(live.id);
+    const box = live.box;
+    if (!d || !box.isConnected) return;
+    const base = pageZoom(camera.target(d).s);
+    let f = 1;
+    setZoom(box, base);
+    // The window's height, for a page to size what grows with its width (a map, a cover) to it: --w-room.
+    const room = `${box.clientHeight}px`;
+    if (box.style.getPropertyValue('--w-room') !== room) box.style.setProperty('--w-room', room);
+    // What has to show: the whole page, or down to the end of its first part ([data-fit-end] — the
+    // Booth's lights, with the music booth a scroll below them).
+    const need = () => {
+      const end = box.querySelector('[data-fit-end]');
+      if (!end) return [box.scrollHeight, box.clientHeight];
+      const b = box.getBoundingClientRect();
+      const k = b.height / (box.clientHeight || 1);
+      return [end.getBoundingClientRect().bottom - b.top + box.scrollTop * k, b.height];
+    };
+    if (!phone.matches && !d.scroll) {
+      for (let i = 0; i < 5; i++) {
+        const next = fitFactor(...need(), f);
+        if (Math.abs(next - f) < 0.004) break;
+        f = next;
+        setZoom(box, base * f);
+      }
+      // The last few pixels: a page that settled just over its window gets one small step more.
+      const [over, under] = need();
+      if (over > under && f > FIT_MIN) {
+        f = Math.max(FIT_MIN, f * (under / over) * 0.985);
+        setZoom(box, base * f);
+      }
+    }
+    box.dataset.fit = f.toFixed(3);
+    // Shown whole, the box has nothing to scroll (not even the pixel a rounding leaves); shown down to a part
+    // ([data-fit-end]), the rest is still a scroll away; a `scroll` district or a phone scrolls as ever.
+    const [shown, space] = need();
+    box.classList.toggle('w-fitted', !phone.matches && !d.scroll && !box.querySelector('[data-fit-end]') && shown <= space + 2);
+    // A box that still scrolls must be reachable by keyboard: when nothing in it takes focus, the box does.
+    const scrolls = !box.classList.contains('w-fitted') && box.scrollHeight > box.clientHeight;
+    if (scrolls && !box.querySelector(FOCUSABLE)) box.tabIndex = 0;
+    else box.removeAttribute('tabindex');
+  }
+  // The page grows after it mounts (data arriving, a cover loading, the booth unlocking): fit again, once a frame.
+  let fitQueued = 0;
+  const refit = () => { if (!fitQueued) fitQueued = requestAnimationFrame(() => { fitQueued = 0; fitPage(); }); };
+  const fitWatch = globalThis.ResizeObserver ? new ResizeObserver(refit) : null;
+
   placeAll();
-  // A phone on its side: the tag strip shares the header's line, between the switch and « Écran ».
+  // A phone on its side: the tag strip shares the header's line, between the switch and « Écran » (or the edge, when « Écran » is private).
   function fitStrip() {
     if (innerHeight > SHORT_MAX) return;
     root.style.setProperty('--w-strip-l', `${Math.round(sw.getBoundingClientRect().right + 8)}px`);
-    root.style.setProperty('--w-strip-r', `${Math.round(innerWidth - screen.button.getBoundingClientRect().left + 8)}px`);
+    const end = screen.button.offsetParent ? screen.button.getBoundingClientRect().left : innerWidth - 8;
+    root.style.setProperty('--w-strip-r', `${Math.round(innerWidth - end + 8)}px`);
   }
-  addEventListener('resize', () => { placeAll(); camera.refit(); fitStrip(); });
+  addEventListener('resize', () => { placeAll(); camera.refit(); fitStrip(); refit(); });
 
   // The one live page. The page the camera leaves sleeps in its frame (inert,
   // its players silenced) until the camera lands, then its frame is a door again.
@@ -405,6 +479,10 @@ export async function mountWorld({ router, site = {} }) {
     flight.then(() => {
       if (live?.id === id || box.firstElementChild !== asleep) return;
       box.replaceChildren(door(byId(id)));
+      // A door is drawn at 1:1, whatever its page was fitted to.
+      setZoom(box, pageZoom(camera.target(byId(id)).s));
+      box.classList.remove('w-fitted');
+      box.removeAttribute('tabindex');
       box.inert = false;
       box.removeAttribute('aria-hidden');
       box.scrollTop = 0;
@@ -438,7 +516,24 @@ export async function mountWorld({ router, site = {} }) {
       tags.placeAll();
       minimap.update();
       minimap.draw(camera.cam, current);
+      refit();
     },
+    /** The private view (the Atelier) or the public one — the Atelier's « aperçu public » switches to it and back. */
+    get private() { return isPrivate; },
+    setPrivate(on) {
+      isPrivate = Boolean(on);
+      root.classList.toggle('w-private', isPrivate);
+      fitStrip();
+      if (!isPrivate && byId(current)?.era === 'past') pick('radio');
+    },
+    /** Called by the router's render once a page has mounted in its box: watch it, and show it whole. */
+    mounted(box) {
+      if (live?.box !== box) return;
+      fitWatch?.disconnect();
+      if (box.firstElementChild) fitWatch?.observe(box.firstElementChild);
+      fitPage();
+    },
+    fitPage,
     /**
      * Called by the router's render with the route it matched: flies there
      * (instantly on the first landing) and hands back the box to mount the

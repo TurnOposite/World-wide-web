@@ -1,15 +1,15 @@
 /**
  * /radio — the station.
  *
- * On air (cover, title, progress, Tune in), the channels and the queue.
- * What just played and the programme for the next hours moved to /ondes
- * (pages/ondes.js, 2026-10-19). The full-page visualiser is the backdrop of
+ * On air (cover, title, progress, Tune in) and the channels. What just
+ * played and the programme for the next hours moved to /ondes (pages/ondes.js,
+ * 2026-10-19); the queue below the card went on 2026-11-01 (Ortis: a window
+ * shows its page whole, no scrolling inside) — what is next is Ondes', and
+ * rearranging it is the Booth's. The full-page visualiser is the backdrop of
  * this whole page; this module only tells it where the cover is.
  */
 import { esc, fmt, fmtSpan, coverSvg } from '../ui/util.js';
-import { QueueEditor } from '../ui/queue.js';
 import { ChannelDial } from '../ui/channels.js';
-import { ONDES_LABEL } from '../labels.js';
 
 export const title = 'Radio';
 
@@ -49,12 +49,7 @@ export function mount(root, ctx) {
         </div>
         <p class="status-line" id="rStatus">Playback starts where the tower is — you can't rewind a radio.</p>
       </div>
-    </section>
-
-    <section class="radio-grid">
-      <div class="panel" id="rQueue"></div>
-    </section>
-    <p class="radio-more"><a class="btn small" href="ondes" data-link>${ONDES_LABEL} — just played, and the next hours →</a></p>`;
+    </section>`;
 
   const $ = (id) => root.querySelector(`#${id}`);
   const cover = $('rCover');
@@ -160,11 +155,8 @@ export function mount(root, ctx) {
   player.addEventListener('status', onStatus);
   player.addEventListener('playing', onPlaying);
 
-  // Up next, Just played and the guide for the next hours live on /ondes.
-  const queue = new QueueEditor({ root: $('rQueue'), client, player, title: "What's next" });
+  // Up next, Just played and the guide for the next hours live on /ondes; the queue's editor in the Booth.
   const dial = new ChannelDial({ root: $('rChannels'), client, label: 'Channels' });
-  // A new channel means a new queue, right away.
-  const offCh = client.on?.('channel', () => { queue.refresh?.({ force: true }); });
 
   setPlaying(player.playing);
   paintStation();
@@ -172,9 +164,7 @@ export function mount(root, ctx) {
 
   return () => {
     document.body.classList.remove('on-radio');
-    offCh?.();
     dial.destroy();
-    queue.destroy();
     player.removeEventListener('station', paintStation);
     player.removeEventListener('tick', onTick);
     player.removeEventListener('drift', onDrift);

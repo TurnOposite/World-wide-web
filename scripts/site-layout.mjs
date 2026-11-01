@@ -29,7 +29,8 @@ export const LAYOUT = path.join(ROOT, 'site/data/layout.json');
 
 export function findPage(pages, name) {
   const n = String(name || '').toLowerCase();
-  const hit = pages.find((p) => p.id === n || String(p.code).toLowerCase() === n || String(p.title).toLowerCase() === n);
+  // An id or a code before a title: two pages may share one (Zone's Atlas and Echo's, since 2026-11-01).
+  const hit = pages.find((p) => p.id === n) || pages.find((p) => String(p.code).toLowerCase() === n) || pages.find((p) => String(p.title).toLowerCase() === n);
   if (!hit) throw new Error(`no page "${name}" — try one of: ${pages.map((p) => p.code).join(' ')}`);
   return hit;
 }

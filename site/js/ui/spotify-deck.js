@@ -31,7 +31,9 @@ export const embedUrl = (id) => `https://open.spotify.com/embed/playlist/${id}?u
 
 /**
  * The playlists worth showing, featured first, each once:
- * [{ id, title, url, vibe, years }].
+ * [{ id, title, url, vibe, years }]. `vibe` is the few words under a card's
+ * name that help a listener choose beyond its cryptic title (Ortis,
+ * 2026-11-01); `description` in playlists.json is read as the same thing.
  */
 export function deckList(data) {
   const seen = new Set();
@@ -41,7 +43,7 @@ export function deckList(data) {
     if (!id || seen.has(id)) return;
     seen.add(id);
     const keep = (v) => (typeof v === 'string' && v !== 'à compléter' ? v : '');
-    out.push({ id, title: String(p.title || 'Playlist'), url: `https://open.spotify.com/playlist/${id}`, vibe: keep(p.vibe), years: keep(p.years) });
+    out.push({ id, title: String(p.title || 'Playlist'), url: `https://open.spotify.com/playlist/${id}`, vibe: keep(p.description) || keep(p.vibe), years: keep(p.years) });
   };
   if (data?.featured) add(data.featured);
   for (const p of data?.playlists || []) add(p);
@@ -78,7 +80,7 @@ export async function mountDeck(root, { player = null, compact = false } = {}) {
       </div>
       <ul class="sp-list" role="list">${list.map((p, i) => `
         <li><button type="button" class="sp-pick" data-id="${esc(p.id)}" aria-pressed="${i === 0}">
-          ${p.years ? `<span class="pl-years">${esc(p.years)}</span>` : ''}<b>${esc(p.title)}</b>${p.vibe ? `<span class="pl-vibe">${esc(p.vibe)}</span>` : ''}
+          ${p.years ? `<span class="pl-years">${esc(p.years)}</span>` : ''}<b>${esc(p.title)}</b>${compact ? (p.vibe ? `<span class="pl-vibe">${esc(p.vibe)}</span>` : '') : `<span class="pl-vibe pl-desc">${esc(p.vibe)}</span>`}
         </button></li>`).join('')}</ul>
       ${/^https:\/\/open\.spotify\.com\/user\/[A-Za-z0-9]+$/.test(String(data.profile || '')) ? `<p class="pl-profile"><a href="${esc(data.profile)}" target="_blank" rel="noopener noreferrer">Tout le profil ZoNeKo sur Spotify ↗</a></p>` : ''}
     </section>`;

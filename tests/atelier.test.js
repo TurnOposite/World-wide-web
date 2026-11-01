@@ -84,10 +84,10 @@ test('resolveLayout: today’s pages keep what they are, the file says where; a 
 test('checkLayout: overlaps, phone frames, the world’s edge, sizes — errors; the wrong side, a tilt, a stray tag — warnings', () => {
   const pages = designed();
   assert.deepEqual(checkLayout(pages), [], 'the designed map is clean');
-  const atlas = pages.find((p) => p.id === 'atlas');
-  atlas.x = 1500; atlas.y = 1000; // onto the Booth
-  assert.ok(checkLayout(pages).some((i) => i.level === 'error' && i.id === 'atlas' && /on top of booth/.test(i.msg)));
-  atlas.x = 380; atlas.y = 1700;
+  const zone = pages.find((p) => p.id === 'zone');
+  zone.x = 1500; zone.y = 1000; // Zone's Atlas onto the Booth
+  assert.ok(checkLayout(pages).some((i) => i.level === 'error' && i.id === 'zone' && /on top of booth/.test(i.msg)));
+  zone.x = 380; zone.y = 1780;
   assert.deepEqual(checkLayout(pages), [], 'back in its place: clean again');
   // Clear of Ondes on a desktop (a 120 px gap), but on a phone each frame is up to 736 × 700 from its corner.
   const radio = pages.find((p) => p.id === 'radio');
@@ -99,7 +99,7 @@ test('checkLayout: overlaps, phone frames, the world’s edge, sizes — errors;
   small[0].w = 200;
   small[1].x = 5000;
   small[2].rot = 9;
-  small[7].x = 2000; // Une into Zone's night
+  small[7].x = 2000; // Echo's Atlas into Zone's night
   const issues = checkLayout(small);
   assert.ok(issues.some((i) => i.level === 'error' && /too small/.test(i.msg)));
   assert.ok(issues.some((i) => i.level === 'error' && /off the world/.test(i.msg)));
@@ -128,7 +128,7 @@ test('applyPages refills the one DISTRICTS array every world module reads, and t
     assert.ok(WORLD.h > BASE_H && WORLD.h >= byId('v1').y + byId('v1').h);
     assert.equal(districtFor('version', { id: 'v1' }), 'v1');
     assert.equal(districtFor('version', { id: 'wix' }), null, 'offline: no window, the page says so over the world');
-    assert.equal(districtFor('go', { ref: 'Z-04' }), null);
+    assert.equal(districtFor('go', { ref: 'E-05' }), null);
   } finally {
     applyPages(designed());
   }
@@ -154,9 +154,12 @@ test('the Atelier’s draft: the tab’s own choice, kept over the published map
 
 test('short links: codes, ids, articles, rooms, the past in its window or full screen, offline and unknown', () => {
   const pages = all();
-  assert.deepEqual(resolveRef('Z-04', pages), { kind: 'route', to: 'atlas', page: byIdIn(pages, 'atlas') });
-  assert.equal(resolveRef('gt:z-04', pages).to, 'atlas', 'gt: and any case');
+  assert.deepEqual(resolveRef('E-05', pages), { kind: 'route', to: 'atlas', page: byIdIn(pages, 'atlas') });
+  assert.equal(resolveRef('gt:e-05', pages).to, 'atlas', 'gt: and any case');
   assert.equal(resolveRef('atlas', pages).to, 'atlas');
+  // The map's Atlas was Z-04 until it moved to Echo (2026-11-01): a link handed out before still lands on it.
+  assert.deepEqual(resolveRef('Z-04', pages), { kind: 'route', to: 'atlas' });
+  assert.deepEqual(resolveRef('Z-03', pages), { kind: 'route', to: 'zone', page: byIdIn(pages, 'zone') }, 'Z-03 is Zone\'s Atlas again');
   assert.equal(resolveRef('E-02/article-temoin', pages).to, 'echo/article-temoin');
   assert.equal(resolveRef('E-02', pages).to, 'echo', 'Articles has no address of its own: the Une');
   assert.equal(resolveRef('E-03/voyages', pages).to, 'echo/lectures/voyages');
@@ -286,7 +289,7 @@ test('a snapshot freezes site/ at a commit, less the station and what is byte fo
 test('the build serves every window’s address and every short link cold, and says which commit it is', () => {
   const pages = resolveLayout(FILE).pages;
   const r = routes([], [], pages);
-  for (const want of ['versions/v1', 'versions/v2', 'go/Z-04', 'go/atlas', 'go/P-01', 'go/v1', 'radio', 'echo/archives']) assert.ok(r.includes(want), want);
+  for (const want of ['versions/v1', 'versions/v2', 'go/E-05', 'go/atlas', 'go/Z-03', 'go/zone', 'go/Z-04', 'go/Z-05', 'go/P-01', 'go/v1', 'radio', 'echo/archives']) assert.ok(r.includes(want), want);
   assert.ok(!r.includes('versions/wix') && !r.includes('go/P-03'), 'an offline version has no shell: it answers like any unknown address');
   assert.equal(new Set(r).size, r.length, 'no address twice');
   assert.equal(builtFrom({ VERCEL_GIT_COMMIT_SHA: 'abc' }), 'abc');
@@ -308,7 +311,7 @@ test('the Atelier saves only a sound map, one page per line, from this machine o
   Object.assign(broken.find((p) => p.id === 'booth'), { x: 500, y: 1800 });
   const [bad, why] = await saveLayout(stringifyLayout(layoutFile(broken)), file);
   assert.equal(bad, 422);
-  assert.match(why.error, /atlas: on top of booth/);
+  assert.match(why.error, /zone: on top of booth/);
   assert.equal((await saveLayout('{nope', file))[0], 400);
 
   const server = await createSiteServer({ layoutFile: file, quiet: true });
@@ -333,7 +336,8 @@ test('the Atelier saves only a sound map, one page per line, from this machine o
 
 test('npm run layout: move, nudge, size, tilt, tag, swap, online — one line each, on the map the file holds', () => {
   const pages = all();
-  assert.match(edit(pages, ['move', 'Z-04', '1200', '900']), /Z-04 Atlas → 1200, 900/);
+  assert.match(edit(pages, ['move', 'E-05', '1200', '900']), /E-05 Atlas → 1200, 900/);
+  assert.equal(findPage(pages, 'Z-03').id, 'zone', 'a code finds its page; the id « atlas » finds Echo\'s Atlas, not Zone\'s of the same title');
   assert.deepEqual([findPage(pages, 'atlas').x, findPage(pages, 'atlas').y], [1200, 900]);
   edit(pages, ['nudge', 'atlas', '+10', '-20']);
   assert.deepEqual([findPage(pages, 'atlas').x, findPage(pages, 'atlas').y], [1210, 880]);

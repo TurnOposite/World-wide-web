@@ -2950,3 +2950,33 @@ Echo side waits for his documents (DECISIONS 2026-11-01).
   Portfolio goes on Echo's side is part of the Echo work. Not measurable here: a real phone.
 
 - 2026-11-01 (cloud credit session, Ortis's request — built on `claude/fix-rollover-check`, which could not be pushed from there; applied to `main` from its patch by the session that published the Zone/Atlas change, after `071de7b`'s CI went red on exactly this check): **stage 6's « rolls over to the next track automatically » no longer reads a correct rollover as a missed one** (root cause: WORKLOG 2026-10-25, B7 phase 5b). Confirmed with the real `Station` over 2 000 cycles of the four fixtures: 24.6 % of cycle boundaries put the same track on both sides = 6.2 % of all track changes, so the title comparison went red ~1 run in 16. `scripts/browser-smoke.mjs` now compares slots: the tower is on a slot starting at or after the old one's end, the `<audio>` streams that slot's track id, and plays within 2 s of that slot's position (up to 3 re-reads 0.7 s apart for the player's by-design ~1 s join). Not weakened — proved on throwaway servers: 1-track library (every rollover a repeat), good player → old check FAIL « Carrier Wave -> Carrier Wave », new PASS (2.9 s vs 2.9 s); player with both rollover paths cut (`tick` and `ended`) → new FAIL on 1 track (« at 9.0s vs tower 5.3s ») and on 4 tracks (« audio on <old id> »). The product question stays Ortis's: should a small channel avoid the same piece twice at a cycle boundary?
+
+## 2026-11-01 (evening) — Whole windows, two Atlases, the Booth's lights, the private view (Claude, for Ortis, present)
+
+Ortis's remarks on the live site (`2e71ed4`), all in one change, pushed with `fire` (DECISIONS same date).
+- **World:** `cameraFor` gives windows the screen (narrower tag columns, smaller margins, up to 2.4×
+  on a big screen with the page zoomed back to 1:1); `fitPage` draws a page smaller until it shows
+  whole (≥ 0.62), `scroll` districts excepted; `--w-room` caps maps and the Une's picture. The map
+  (`layout.js`, `layout.json`): ten windows at ~1.75:1 — Zone: Radio, Ondes / Playlists, Booth /
+  Zone's Atlas; Echo: Une, Articles / Atlas, Lectures / Archives. Echo's figures moved into the new
+  gutters. Public: no « Écran », no minimap, no past (`main.js` leaves it off the map, `world.css`
+  hides it in a preview); private: all of it, and the Atelier's « Aperçu public ».
+- **Pages:** Radio without the queue and the Ondes link; Ondes' description cut, the crier picture
+  (`site/assets/demandez-le-programme.jpg`, Ortis's image); Playlists: the new intro, the player on the
+  left and the cards beside it, a description slot on every card (`vibe` in `playlists.json`, or
+  `description`; the private view marks the empty ones); Atlas (Echo, paper) without the playlists or
+  the tower; `pages/broadcast.js` for Zone's Atlas; the Booth rebuilt (lights, then the music booth
+  behind the key); the classic Gazette's rubriques list both Atlases.
+- **Tower:** `POST /api/key` (DECISIONS point 6), `TowerClient.checkKey()`; test in `queue-api.test.js`.
+- **Tests, moved to the new map, not weakened:** ten districts with their codes and which scroll; the
+  camera fills the free area (exact scale) and `fitFactor`; routes `zone`/`atlas`; retired codes land
+  and answer cold; the Atelier and `fire` tests move windows that exist; the deck is on Playlists only.
+- **Self-test before** (`2e71ed4`, cloud, `TOWER_BROWSER_EXECUTABLE` = the container's Chromium): 449 unit,
+  43/43 browser, 140/140 site, 25/25 Atelier. **After**, on the final code: **450 unit, 43/43 browser,
+  141/141 site, 26/26 Atelier, « the tower is sound »**. On the way, the runs found what the new checks were
+  for: two windows named alike for a screen reader (the two Atlases: windows are now « Fenêtre <title> ·
+  <code> »), a fitted box a pixel too tall to be unscrollable (it is now `overflow:hidden` once whole), and
+  Archives at 0.62 still scrolling (it is a `scroll` district now, read at 1:1). One « 20 pans » red in run 2
+  (19/20, a track change) did not come back in three runs.
+- **For Ortis:** fill the playlists' descriptions in `site/data/playlists.json` (`vibe`); the private view
+  marks the empty ones. The private view is a mode (`?atelier=1`), not a lock.

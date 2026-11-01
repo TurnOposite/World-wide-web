@@ -135,11 +135,14 @@ async function boot() {
   // Every page, offline versions included, for the short links and the versions' own page.
   const sitePages = resolveLayout(shown, { all: true }).pages;
   // In the Atelier the offline versions are on the map too (greyed), so they can be put back online.
-  if (wantWorld) applyPages(resolveLayout(shown, { all: atelierOn }).pages);
+  // The versions of the past are a private view (Ortis, 2026-11-01): the public map has no window and
+  // no tag for them; their copies stay at past/<id>/, unlisted, for the Atelier to frame.
+  if (wantWorld) applyPages(resolveLayout(shown, { all: atelierOn }).pages.filter((d) => atelierOn || d.era !== 'past'));
   const pagesNow = () => (atelierOn ? DISTRICTS : sitePages);
 
   const ctx = {
     client, player, stage, settings, visuals, toast, theatre,
+    get world() { return world; },
     config: client.config,
     setScene: (fn) => { sceneFn = fn; },
     textTitle: (slug) => textTitles?.get(slug) || null,
@@ -158,8 +161,9 @@ async function boot() {
       { name: 'radio', pattern: /^radio$/, load: () => import('./pages/radio.js') },
       { name: 'ondes', pattern: /^(?:ondes|echoes)$/, load: () => import('./pages/ondes.js') },
       { name: 'playlists', pattern: /^playlists$/, load: () => import('./pages/playlists.js') },
-      // /zone is the Atlas too: the Zone page became part of it on 2026-11-01 (pages/zone.js).
-      { name: 'atlas', pattern: /^(?:atlas|zone)$/, load: () => import('./pages/atlas.js') },
+      // Two Atlases (2026-11-01): Zone's says where the tower broadcasts from; Echo's is the map of the places.
+      { name: 'zone', pattern: /^zone$/, load: () => import('./pages/broadcast.js') },
+      { name: 'atlas', pattern: /^atlas$/, load: () => import('./pages/atlas.js') },
       { name: 'lectures', pattern: /^echo\/lectures(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
       // Old address of the reading section: kept alive, and moved to /echo/lectures by the page.
       { name: 'ecrits', pattern: /^ecrits(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
@@ -182,7 +186,8 @@ async function boot() {
       }
       try { cleanup?.(); } catch (e) { console.error(e); }
       cleanup = null;
-      const echoRoute = ['echo', 'lectures', 'ecrits', 'archives'].includes(match.name);
+      // In the world the map's Atlas stands on Echo's side (2026-11-01); the classic shell keeps it with Zone.
+      const echoRoute = ['echo', 'lectures', 'ecrits', 'archives'].includes(match.name) || (Boolean(world) && match.name === 'atlas');
       document.body.classList.toggle('on-echo', echoRoute);
       globalThis.__echoStage?.(echoRoute);
       // With the world on, the page opens in its district's window, not in <main>.
@@ -208,6 +213,8 @@ async function boot() {
       })) || null;
       if (!isCurrent()) { try { done?.(); } catch (e) { console.error(e); } return; }
       cleanup = done;
+      // The window shows its page whole (world.js fitPage), and keeps it whole as it grows.
+      if (place) world?.mounted(place.box);
       if (!fromPop) {
         if (place) place.focus();
         else {
@@ -218,7 +225,7 @@ async function boot() {
     },
   });
   ctx.router = router;
-  if (wantWorld) world = await (await import('./world/world.js')).mountWorld({ router, site });
+  if (wantWorld) world = await (await import('./world/world.js')).mountWorld({ router, site, private: atelierOn });
   // The map's editor, only for a tab that asked (?atelier=1); it never loads for anyone else.
   const atelier = world && atelierOn ? await (await import('./world/atelier.js')).mountAtelier({ world, published, draft, toast }) : null;
   await router.start();

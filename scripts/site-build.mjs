@@ -32,6 +32,7 @@ import { atomFeed, articleShell } from './site-echo.mjs';
 import { buildView } from './site-collections.mjs';
 import { assemble } from './site-past.mjs';
 import { resolveLayout } from '../site/js/world/model.js';
+import { RETIRED } from '../site/js/refs.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = path.join(ROOT, 'site');
@@ -70,6 +71,8 @@ export function routes(texts, echo = [], pages = []) {
   return [
     ...past.map((p) => `versions/${p.id}`),
     ...pages.flatMap((p) => [`go/${p.code}`, `go/${p.id}`]),
+    // A code whose window left or moved (refs.js RETIRED: Z-04, Z-05) was handed out: its link still answers cold.
+    ...[...RETIRED.keys()].map((c) => `go/${c.toUpperCase()}`).filter((r) => !pages.some((p) => `go/${p.code}` === r)),
     'radio', 'atlas', 'ecrits', 'portfolio', 'booth',
     'ondes', 'echoes', 'playlists',
     'zone',

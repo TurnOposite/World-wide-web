@@ -2,13 +2,14 @@
  * Short, stable names for every page, today's and the past's, so one page
  * can point at another without knowing where it lives (docs/ATELIER.md):
  *
- *   Z-04 · atlas          the Atlas, wherever its window is on the map
+ *   E-05 · atlas          the Atlas of the places, wherever its window is on the map
+ *   Z-03 · zone           Zone's Atlas: where the tower broadcasts from
  *   E-02/<slug>           an Echo article        E-03/<slug>  a text in Lectures
  *   Z-05/photos           a Portfolio room (Z-05 left the map: RETIRED)
  *   P-01 · v1             the v1 version, in its window on the world
  *   v1/atlas              the v1 site itself, at its own /atlas
  *
- * In a page or an article, `gt:Z-04` as a link's address becomes `go/Z-04`
+ * In a page or an article, `gt:E-05` as a link's address becomes `go/Z-04`
  * (linkTo); `/go/<ref>` is also the form to share. It is resolved when it is
  * followed, against the map of that day — so a link handed out before the
  * Atelier moved things, or before a version went offline, still lands, or
@@ -23,10 +24,11 @@ export const RENAMED = [
 
 /**
  * Codes whose window left the map, and the address they lead to now — a short link handed
- * out before keeps landing (2026-11-01: Zone became part of the Atlas, the Portfolio left Zone's side).
+ * out before keeps landing (2026-11-01: the Portfolio left Zone's side; that evening the map's
+ * Atlas, Z-04, moved to Echo as E-05, and Z-03 became Zone's Atlas again).
  */
 export const RETIRED = new Map([
-  ['z-03', 'atlas'],
+  ['z-04', 'atlas'],
   ['z-05', 'portfolio'],
 ]);
 

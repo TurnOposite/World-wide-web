@@ -121,7 +121,7 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
   linear-gradient(var(--w-e),var(--w-e)) 0 0/100% 1px no-repeat,linear-gradient(var(--w-e),var(--w-e)) 0 100%/100% 1px no-repeat,
   linear-gradient(var(--w-e),var(--w-e)) 0 0/1px 100% no-repeat,linear-gradient(var(--w-e),var(--w-e)) 100% 0/1px 100% no-repeat}
 .w-win:hover,.w-win:focus-within{--w-e:var(--w-neon-a)}
-.w-in{position:relative;box-sizing:border-box;height:100%;display:flex;flex-direction:column;padding:18px 22px 0;overflow:hidden;
+.w-in{position:relative;box-sizing:border-box;height:100%;display:flex;flex-direction:column;padding:14px 22px 0;overflow:hidden;
   background:linear-gradient(180deg,rgba(255,255,255,var(--w-gloss)) 0,rgba(255,255,255,0) 34%),var(--w-glass)}
 /* Clear glass, not frosted: a backdrop blur over the always-moving visualiser re-blurs every frame — measured
    at 18 fps against 39 without it (headless Chrome, 2026-10-22). The glass is thicker instead (74 %). */
@@ -129,14 +129,14 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
 .w-zone-d.here .w-in::after{content:"";position:absolute;top:0;bottom:0;left:0;width:45%;z-index:1;pointer-events:none;
   background:linear-gradient(105deg,transparent 0,rgba(255,255,255,.07) 50%,transparent 100%);transform:translateX(-100%);animation:w-sweep 9s ease-in-out infinite}
 @keyframes w-sweep{0%,70%{transform:translateX(-100%)}100%{transform:translateX(230%)}}
-.w-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-4px 0 14px}
+.w-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-4px 0 10px}
 .w-wt{display:inline-block;margin:0;transform:skewX(var(--w-slant));background:var(--w-neon-a);color:var(--w-night);
-  font:700 22px/1 var(--w-ui);letter-spacing:.14em;text-transform:uppercase;padding:9px 18px 8px}
+  font:700 19px/1 var(--w-ui);letter-spacing:.14em;text-transform:uppercase;padding:7px 16px 6px}
 .w-wt>span{display:inline-block;transform:skewX(calc(var(--w-slant) * -1))}
 .w-cd{font:400 13px/1 var(--w-mono);color:var(--w-dim);letter-spacing:.1em}
 /* The page's box: it scrolls inside the window; world.js gives it the zoom that keeps its text at 1:1. */
 .w-box{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--w-edge) transparent;
-  padding-bottom:22px;outline:none}
+  padding-bottom:16px;outline:none}
 .w-box>.page{padding:2px 2px 8px}
 /* The page the camera is leaving: asleep in its frame until the camera lands, then a door again. */
 .w-box[aria-hidden="true"]{opacity:.5;filter:saturate(.5);transition:opacity .3s,filter .3s}
@@ -206,7 +206,7 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
   color:var(--w-text);cursor:pointer;font:700 13px/1 var(--w-ui);letter-spacing:.16em;text-transform:uppercase}
 .w-screen-btn:hover,.w-screen-btn[aria-expanded="true"]{background:var(--w-neon-a);border-color:var(--w-neon-a);color:var(--w-night)}
 .w-screen-glyph{width:15px;height:11px;border:2px solid currentColor;border-radius:1px;box-shadow:inset 0 -3px 0 -1px currentColor}
-.w-screen{position:absolute;z-index:7;top:calc(max(12px,env(safe-area-inset-top,0px)) + 100px);right:max(16px,env(safe-area-inset-right,0px));
+.w-screen{position:absolute;z-index:9;top:calc(max(12px,env(safe-area-inset-top,0px)) + 100px);right:max(16px,env(safe-area-inset-right,0px));
   width:min(400px,calc(100vw - 32px));max-height:calc(100% - 200px);overflow:auto;background:rgba(10,12,20,.96);border:1px solid var(--w-edge);
   padding:0 0 16px;box-shadow:12px 12px 0 rgba(0,0,0,.35)}
 .w-screen header{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;
@@ -237,7 +237,7 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
 .w-tag{position:absolute;top:var(--tt);left:var(--tl,auto);right:var(--tr,auto);pointer-events:auto;cursor:pointer;
   border:0;padding:0;background:none;transform:rotate(var(--r,0deg))}
 .w-tag>span{display:inline-block;transform:skewX(var(--w-slant));padding:8px 15px 7px;font:700 14px/1 var(--w-ui);letter-spacing:.16em;
-  text-transform:uppercase;background:rgba(12,14,24,.92);color:var(--w-text);border:1px solid var(--w-edge);
+  text-transform:uppercase;background:#0c0e18;color:var(--w-text);border:1px solid var(--w-edge);
   transition:background .12s,color .12s,box-shadow .12s,transform .12s}
 .w-tag>span>i{display:inline-block;font-style:normal;transform:skewX(calc(var(--w-slant) * -1))}
 .w-tag[data-half="echo"]>span{background:var(--w-paper);color:var(--w-ink);border-color:var(--w-rule);font-family:var(--w-head);letter-spacing:.12em}
@@ -347,3 +347,44 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
   .w-strata,.w-copy,.w-past-d::after{display:none!important}
   .w-plane,.w-seam{height:auto!important}
 }
+
+/* ---- public and private (Ortis, 2026-11-01): what builds the site — « Écran », the minimap, the versions of
+   the past and their band — is the private view's (the Atelier, ?atelier=1) and nobody else's. ---- */
+.w-root:not(.w-private) .w-screen-btn,.w-root:not(.w-private) .w-screen,.w-root:not(.w-private) .w-minimap,
+.w-root:not(.w-private) .w-past-d,.w-root:not(.w-private) .w-tag-past,.w-root:not(.w-private) .w-strata{display:none!important}
+/* With the HUD's right side gone the switch would drift right of the middle: it is centred on the screen instead. */
+@media (min-width:761px) and (min-height:501px){
+  .w-switch{position:absolute;left:50%;top:max(12px,env(safe-area-inset-top,0px));margin:0;transform:translateX(-50%)}
+  .w-screen-btn{margin-left:auto}
+}
+/* A page shown whole in its window (world.js fitPage) has nothing left to scroll. */
+.w-box.w-fitted{overflow:hidden}
+
+/* ---- Echo's Atlas (2026-11-01): the map of the places on paper — ink land, red pins, the postcards as before ---- */
+.w-echo-d .atlas .mapbox{background:var(--w-paper-2);border:1px solid var(--w-rule);border-radius:0}
+.w-echo-d .map-land{fill:#d9d4c8;stroke:#a59d8f}
+.w-echo-d .atlas-grat line{stroke:#cfc9bc}
+.w-echo-d .atlas-grat line.eq{stroke:#b9b1a3}
+.w-echo-d .inset-bg{fill:#ebe7de}
+.w-echo-d .inset-edge{stroke:var(--w-mute)}
+.w-echo-d .inset-label{fill:var(--w-mute)}
+.w-echo-d .eu-lead rect,.w-echo-d .eu-lead path{stroke:var(--w-mute)}
+.w-echo-d .pin .dot{fill:var(--w-red)}
+.w-echo-d .pin .halo{stroke:var(--w-red)}
+.w-echo-d .pin.k-work .dot,.w-echo-d .pin.k-trip .dot{fill:var(--w-paper);stroke:var(--w-red)}
+.w-echo-d .pin text{fill:var(--w-ink);stroke:var(--w-paper-2)}
+.w-echo-d .pin.on .dot{fill:var(--w-ink)}
+.w-echo-d .map-legend{color:var(--w-mute)}
+.w-echo-d .map-legend .sw{background:var(--w-red)}
+.w-echo-d .atlas .page-head h1,.w-echo-d .page-head h1{font-family:var(--w-head);color:var(--w-ink)}
+.w-echo-d .page-head p{color:var(--w-mute)}
+.w-echo-d .ai-chip{border-color:var(--w-rule);color:var(--w-ink);border-radius:0;background:none}
+.w-echo-d .ai-chip b{color:var(--w-ink)}
+.w-echo-d .ai-chip span{color:var(--w-mute)}
+.w-echo-d .ai-chip[aria-pressed=true]{background:var(--w-ink);border-color:var(--w-ink)}
+.w-echo-d .ai-chip[aria-pressed=true] b,.w-echo-d .ai-chip[aria-pressed=true] span{color:var(--w-paper)}
+.w-echo-d .ai-chip.k-work b::after,.w-echo-d .ai-chip.k-trip b::after{border-color:var(--w-red)}
+.w-echo-d .page-head{text-shadow:none}
+/* The Une's lead picture grows with the column's width: in its window it stops at a share of the window's height
+   (world.js --w-room), so the front page shows whole at a readable size. */
+.w-echo-d .echo-lead img,.w-echo-d .echo-lead video{aspect-ratio:auto;height:min(calc(var(--w-room,100vh) * .42),calc((100cqw) * 9 / 16));max-height:calc(var(--w-room,100vh) * .42)}

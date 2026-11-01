@@ -13,6 +13,22 @@ export const WORLD = { w: 5200, h: BASE_H, seam: 2600 };
 
 /** The camera never zooms out further than this: below it a window's text stops being text. */
 export const MIN_SCALE = 0.3;
+/**
+ * …and never in further than this. Above 1 a window fills a big screen instead of floating small in it;
+ * its page is zoomed back (pageZoom), so the text is still 1:1 and the page simply has more room.
+ */
+export const MAX_SCALE = 2.4;
+/**
+ * A window shows its page whole (Ortis, 2026-11-01: « each window linked to the menu should be self-contained
+ * in its entirety and fit in the screen »): a page taller than its window is drawn smaller until it fits —
+ * never below this, where it would stop being readable; past it the window scrolls after all. A district
+ * marked `scroll` (Ondes, Playlists, the Booth, the reading pages) scrolls instead, at 1:1.
+ */
+export const FIT_MIN = 0.62;
+/** The room the camera leaves around a window on a desktop: the tag columns, the HUD, the mini-player. */
+export const sideOf = (vw) => clamp(vw * 0.16, 190, 250);
+export const TOP = 70;
+export const BOTTOM = 68;
 
 /**
  * x, y, w, h in world pixels. `route` is where the district's tag goes;
@@ -28,27 +44,33 @@ export const MIN_SCALE = 0.3;
  * the file adds to it.
  */
 export const DISTRICTS = [
-  { id: 'radio', code: 'Z-01', title: 'Radio', half: 'zone', x: 150, y: 170, w: 1040, h: 760, rot: -0.6, route: 'radio',
-    hosts: 'On air: the cover, the channels dial, the queue', tag: [3, 15, -4] },
-  { id: 'ondes', code: 'Z-02', title: ONDES_LABEL, half: 'zone', x: 1400, y: 300, w: 960, h: 640, rot: 0.8, route: 'ondes',
-    hosts: 'Just played, up next behind the lock fence, the next hours', tag: [11, 23, 3] },
-  // Ortis, 2026-11-01: the Zone page and the Atlas are one and the same, so Z-03 is part of the
-  // Atlas (Z-04); the Portfolio (Z-05) left Zone's side; the playlists stand above the Atlas.
-  // The codes stay (refs.js RETIRED): a short link handed out before keeps landing.
-  { id: 'playlists', code: 'Z-06', title: 'Playlists', half: 'zone', x: 260, y: 980, w: 1240, h: 560, rot: -0.4, route: 'playlists',
-    hosts: 'The featured playlist and every card', tag: [2, 33, -7] },
-  { id: 'atlas', code: 'Z-04', title: 'Atlas', half: 'zone', x: 380, y: 1700, w: 1000, h: 740, rot: -0.8, route: 'atlas',
-    hosts: 'Where the tower broadcasts from, the places, their postcards and press', tag: [8, 44, 5] },
-  { id: 'booth', code: 'Z-07', title: 'Booth', half: 'zone', x: 1700, y: 1060, w: 620, h: 420, rot: 1.4, route: 'booth',
-    hosts: 'The DJ booth, still behind its key', tag: [4, 55, -5], faint: true },
-  { id: 'une', code: 'E-01', title: 'Une', half: 'echo', x: 2820, y: 190, w: 1150, h: 980, rot: 0, route: 'echo',
-    hosts: 'La une : le titre, l’article de tête, ce qui passe à l’antenne', tag: [4, 18, 4] },
-  { id: 'articles', code: 'E-02', title: 'Articles', half: 'echo', x: 4080, y: 120, w: 900, h: 1100, rot: 0, route: null,
-    hosts: 'La page de lecture : titre, photo, texte, notes', tag: [12, 29, -3] },
-  { id: 'lectures', code: 'E-03', title: 'Lectures', half: 'echo', x: 2860, y: 1330, w: 900, h: 920, rot: 0, route: 'echo/lectures',
-    hosts: 'Les textes, et la musique qui les accompagne', tag: [3, 41, 6] },
-  { id: 'archives', code: 'E-04', title: 'Archives', half: 'echo', x: 4000, y: 1480, w: 980, h: 800, rot: 0, route: 'echo/archives',
-    hosts: 'La presse, les articles par thème, les collections, le fil', tag: [10, 53, -6] },
+  { id: 'radio', code: 'Z-01', title: 'Radio', half: 'zone', x: 60, y: 140, w: 1180, h: 650, rot: -0.6, route: 'radio',
+    hosts: 'On air: the cover, the channels dial', tag: [2, 15, -4] },
+  // Ortis, 2026-11-01 (evening): Ondes and Playlists may scroll inside their windows — the only Zone
+  // pages that do, with the Booth's music desk under its lights; every other window shows its page
+  // whole (world.js fitPage).
+  { id: 'ondes', code: 'Z-02', title: ONDES_LABEL, half: 'zone', x: 1320, y: 180, w: 1160, h: 670, rot: 0.8, route: 'ondes',
+    hosts: 'Just played, up next behind the lock fence, the next hours', tag: [4.5, 24, 3], scroll: true },
+  { id: 'playlists', code: 'Z-06', title: 'Playlists', half: 'zone', x: 60, y: 960, w: 1180, h: 670, rot: -0.4, route: 'playlists',
+    hosts: 'Every playlist, a few words each, playable here', tag: [1.5, 33, -7], scroll: true },
+  // Two Atlases (Ortis, 2026-11-01): Zone's says where the tower broadcasts from (one day, a playlist
+  // per place); Echo's is the map of the places, the work and the press. Z-03 is Zone's again; Z-04,
+  // the merged Atlas of that afternoon, is retired onto Echo's (refs.js RETIRED).
+  { id: 'zone', code: 'Z-03', title: 'Atlas', half: 'zone', x: 380, y: 1780, w: 1180, h: 650, rot: -0.8, route: 'zone',
+    hosts: 'Where the tower broadcasts from, and what time it is there', tag: [4, 42, 5] },
+  // The Booth: the lights first, for everyone, shown whole; the music desk a scroll under them, behind the key.
+  { id: 'booth', code: 'Z-07', title: 'Booth', half: 'zone', x: 1320, y: 1000, w: 1160, h: 670, rot: 1, route: 'booth',
+    hosts: 'The lights, for everyone; the music booth, behind its key', tag: [2, 51, -5] },
+  { id: 'une', code: 'E-01', title: 'Une', half: 'echo', x: 2760, y: 140, w: 1180, h: 680, rot: 0, route: 'echo',
+    hosts: 'La une : le titre, l’article de tête, ce qui passe à l’antenne', tag: [3, 18, 4] },
+  { id: 'articles', code: 'E-02', title: 'Articles', half: 'echo', x: 3990, y: 180, w: 1180, h: 680, rot: 0, route: null,
+    hosts: 'La page de lecture : titre, photo, texte, notes', tag: [5, 27, -3], scroll: true },
+  { id: 'lectures', code: 'E-03', title: 'Lectures', half: 'echo', x: 3990, y: 1000, w: 1180, h: 680, rot: 0, route: 'echo/lectures',
+    hosts: 'Les textes, et la musique qui les accompagne', tag: [4.5, 36, 6], scroll: true },
+  { id: 'archives', code: 'E-04', title: 'Archives', half: 'echo', x: 3200, y: 1760, w: 1180, h: 680, rot: 0, route: 'echo/archives',
+    hosts: 'La presse, les articles par thème, les collections, le fil', tag: [2.5, 45, -6], scroll: true },
+  { id: 'atlas', code: 'E-05', title: 'Atlas', half: 'echo', x: 2760, y: 960, w: 1180, h: 680, rot: 0, route: 'atlas',
+    hosts: 'Les villes où j’ai vécu, ce qui s’y est fait : projets, presse, cartes postales', tag: [2, 54, 3] },
 ];
 
 /**
@@ -57,12 +79,12 @@ export const DISTRICTS = [
  * Echo's windows, never over one. x, y, w, h in world pixels.
  */
 export const FIGURES = [
-  { kind: 'fist', x: 2660, y: 560, w: 104, h: 228 },
-  { kind: 'flag', x: 2650, y: 1190, w: 118, h: 258 },
-  { kind: 'horn', x: 3985, y: 1250, w: 182, h: 130 },
-  { kind: 'drum', x: 3800, y: 1600, w: 150, h: 250 },
-  { kind: 'crowd', x: 2900, y: 2330, w: 392, h: 236 },
-  { kind: 'statue', x: 4500, y: 2290, w: 150, h: 300 },
+  { kind: 'fist', x: 2640, y: 300, w: 104, h: 228 },
+  { kind: 'flag', x: 2635, y: 1000, w: 118, h: 258 },
+  { kind: 'horn', x: 4400, y: 865, w: 182, h: 130 },
+  { kind: 'drum', x: 2700, y: 1800, w: 150, h: 250 },
+  { kind: 'crowd', x: 2700, y: 2250, w: 392, h: 236 },
+  { kind: 'statue', x: 4600, y: 1900, w: 150, h: 300 },
 ];
 
 /** The map as designed, untouched by layout.json: the Atelier's « as designed » and the tests' reference. */
@@ -81,9 +103,7 @@ export function reindex() { BY_ID = new Map(DISTRICTS.map((d) => [d.id, d])); }
 export function districtFor(name, params = {}) {
   switch (name) {
     case 'home': case 'radio': return 'radio';
-    case 'ondes': case 'atlas': case 'playlists': case 'booth': return name;
-    // /zone is the Atlas's other address since the two pages became one (2026-11-01).
-    case 'zone': return 'atlas';
+    case 'ondes': case 'atlas': case 'playlists': case 'booth': case 'zone': return name;
     // Off the map until the Echo work gives it a place: it opens over the world, like a page with no window.
     case 'portfolio': return null;
     case 'echo': return params.slug ? 'articles' : 'une';
@@ -141,11 +161,11 @@ export function frameFor(d, vw, vh, { phone = isPhone(vw, vh), bottom = 64 } = {
  */
 export function cameraFor(d, vw, vh, { phone = isPhone(vw, vh), bottom = 64 } = {}) {
   if (phone) return { tx: (vw - frameFor(d, vw, vh, { phone, bottom }).w) / 2 - d.x, ty: phoneTop(vh) - d.y, s: 1 };
-  const side = Math.min(260, vw * 0.18);
-  const top = 96;
+  const side = sideOf(vw);
+  const top = TOP;
   const aw = Math.max(120, vw - 2 * side);
-  const ah = Math.max(120, vh - top - bottom);
-  const s = clamp(Math.min(aw / (d.w + 40), ah / (d.h + 60)), MIN_SCALE, 1);
+  const ah = Math.max(120, vh - top - Math.max(bottom, BOTTOM));
+  const s = clamp(Math.min(aw / (d.w + 40), ah / (d.h + 36)), MIN_SCALE, MAX_SCALE);
   return {
     tx: side + aw / 2 - (d.x + d.w / 2) * s,
     ty: top + ah / 2 - (d.y + d.h / 2) * s,
@@ -176,7 +196,13 @@ export function swipeHalf(half, { x0, dx, dy, ms, vw }) {
  * itself out in the frame's on-screen width, as it would in a window that
  * size. 1 needs no zoom at all ('' in the style).
  */
-export const pageZoom = (s) => (s >= 0.999 ? 1 : Number((1 / s).toFixed(4)));
+export const pageZoom = (s) => (Math.abs(s - 1) < 0.001 ? 1 : Number((1 / s).toFixed(4)));
+
+/**
+ * How much smaller than 1:1 a page must be drawn to show whole in its window: `inner` is the page's
+ * height at the zoom tried, `room` the window's. 1 when it fits; never below FIT_MIN.
+ */
+export const fitFactor = (inner, room, f = 1) => (inner <= room + 1 ? f : clamp(f * (room / inner), FIT_MIN, 1));
 
 /** The world point under the middle of the screen. */
 export const centreOf = (cam, vw, vh) => ({ x: (vw / 2 - cam.tx) / cam.s, y: (vh / 2 - cam.ty) / cam.s });

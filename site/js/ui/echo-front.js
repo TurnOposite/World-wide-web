@@ -51,7 +51,7 @@ const dateFr = (d = new Date()) => d.toLocaleDateString('fr-FR', { weekday: 'lon
 /** The Zone / Média navigation line at the top of the paper. */
 export function znav(current = 'echo') {
   const on = (k) => (current === k ? ' class="on" aria-current="page"' : '');
-  return `<nav class="echo-znav" aria-label="Rubriques"><span class="zl">Zone</span><a href="radio" data-link>Radio</a><a href="atlas" data-link>Atlas</a><span class="sep" aria-hidden="true"></span><span class="zl">Média</span><a href="echo" data-link${on('echo')}>Echo</a><a href="echo/lectures" data-link${on('lectures')}>Lectures</a><a href="echo/archives" data-link${on('archives')}>Archives</a></nav>`;
+  return `<nav class="echo-znav" aria-label="Rubriques"><span class="zl">Zone</span><a href="radio" data-link>Radio</a><a href="zone" data-link>Atlas</a><span class="sep" aria-hidden="true"></span><span class="zl">Média</span><a href="echo" data-link${on('echo')}>Echo</a><a href="echo/lectures" data-link${on('lectures')}>Lectures</a><a href="echo/archives" data-link${on('archives')}>Archives</a><a href="atlas" data-link>Atlas</a></nav>`;
 }
 
 /** Nameplate: the full masthead on the front page, a small link back on the others. */

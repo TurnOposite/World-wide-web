@@ -141,7 +141,8 @@ try {
   await a.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
   const tabs = await a.$$eval('.tabs a', (els) => els.map((e) => e.textContent.trim()));
   // Since 2026-11-01 Zone's half is Radio, Ondes, Playlists, Atlas: the Zone page is part of the Atlas, the Portfolio off Zone's side.
-  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Playlists,Atlas,Une,Articles,Lectures', tabs.join(', '));
+  // Two Atlases since 2026-11-01: Zone's (/zone) and the map of the places, among Echo's.
+  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Playlists,Atlas,Une,Articles,Lectures,Atlas', tabs.join(', '));
   check('…each under its own label', (await a.$$eval('.half-btn', (els) => els.map((e) => e.textContent.trim()))).join() === 'Zone,Echo');
   // The banner: two doors only; hover, focus, tap, Esc, outside tap.
   const open = () => a.$$eval('.half.open', (e) => e.map((x) => x.dataset.half).join());
@@ -243,13 +244,14 @@ try {
 
   /* ---------------------------------------------------- Ondes, its own page -- */
   // Ortis 2026-10-19: Up next, Just played and the next hours left /radio
-  // for /ondes. Radio keeps the card, the channels and the queue.
+  // for /ondes; 2026-11-01: the queue left too (the Booth rearranges it) — Radio is the card and the channels.
   const radioRest = await a.evaluate(() => ({
     lists: ['rNext', 'rRecent', 'rGuide', 'rTz'].filter((id) => document.getElementById(id)).concat(document.querySelector('#view .echoes, #view .guide') ? ['.echoes'] : []),
     queue: Boolean(document.querySelector('#rQueue .tracklist, #rQueue li')),
     link: Boolean(document.querySelector('#view a[href="ondes"]')),
   }));
-  check('Radio keeps the on-air card and the queue, and no longer carries Ondes (a link to it instead)', radioRest.lists.length === 0 && radioRest.queue && radioRest.link, radioRest.lists.join(', ') || 'card + queue + link');
+  check('Radio is the on-air card and the channels: no Ondes lists, no queue, nothing to scroll to', radioRest.lists.length === 0 && !radioRest.queue && !radioRest.link && Boolean(await a.$('#rTitle')),
+    radioRest.lists.join(', ') || JSON.stringify(radioRest));
   await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); });
   await tab(a, 'ondes');
   await a.waitForSelector('#eGuide li .at', { timeout: 8000 }).catch(() => {});
@@ -324,7 +326,8 @@ try {
   await pins[1].focus();
   const dossier = await a.textContent('#aDossier');
   check('Atlas: every place is a pin, and focusing one opens its dossier', pins.length >= 5 && /Paris/.test(dossier), `${pins.length} pins`);
-  check('Atlas: the tower\'s origin pulses on the map', Boolean(await a.$('.mapbox .tower-pin')));
+  // Two Atlases since 2026-11-01: this one is the map of the places; the tower's point is Zone's Atlas's (/zone).
+  check('Atlas (the map of the places): no tower point and no playlists on it', !(await a.$('.mapbox .tower-pin')) && !(await a.$('#view .sp-deck')));
   const places = await a.$$eval('.mapbox .pin', (ps) => ps.map((p) => p.getAttribute('aria-label')));
   // Geneva came off the map at Ortis's request (2026-10-13).
   check('Atlas: the cities lived in are on the map (Kuala Lumpur, Stockholm, Novo Hamburgo), Geneva is not',
@@ -341,14 +344,16 @@ try {
   check('Atlas: Novo Hamburgo\'s postcard unfolds to the newspaper columns, and they open', nh.picture && nh.clips >= 20 && nh.stations === 4 && nh.pdf,
     `${nh.clips} columns, ${nh.stations} metro stops, ${nh.first}`);
 
-  /* ------------------------------------------------ Zone, in the Atlas -- */
-  // DESIGN-BRIEF §2 / roadmap #21, and Ortis on 2026-11-01: Zone and the Atlas are one page. The
-  // tower's point sits where config.json says (measured on screen against the Atlas's own pinPoint:
-  // x = lon + 180, y = 90 − lat, or the Europe inset), Zone's card names it, the playlists stand
-  // above the map, and no listener point exists without a geo source.
+  /* ------------------------------------------------ Zone's Atlas: /zone -- */
+  // DESIGN-BRIEF §2 / roadmap #21, and Ortis on 2026-11-01 (evening): Zone's side keeps an Atlas of its own,
+  // where the tower broadcasts from. The tower's point sits where config.json says (measured on screen
+  // against the Atlas's own pinPoint: x = lon + 180, y = 90 − lat, or the Europe inset), the card names it,
+  // no listener point exists without a geo source, and no playlists stand on an Atlas any more.
+  await a.evaluate(() => window.radioTower.router.go('zone'));
+  await a.waitForFunction(() => location.pathname === '/zone' && document.querySelector('#view #zMap .tower-pin') && document.getElementById('aPlace'), null, { timeout: 8000 }).catch(() => {});
   const zone = await a.evaluate(async () => {
     const { pinPoint } = await import(new URL('js/pages/atlas.js', document.baseURI).href);
-    const svg = document.querySelector('#aMap svg.world-map');
+    const svg = document.querySelector('#zMap svg.world-map');
     const core = svg?.querySelector('.tower-pin .core');
     const o = window.radioTower.client.config.station?.origin;
     if (!svg || !core || !o) return { svg: Boolean(svg), core: Boolean(core), origin: o || null };
@@ -356,34 +361,27 @@ try {
     const s = svg.getBoundingClientRect();
     const c = core.getBoundingClientRect();
     const p = pinPoint(o);
-    const want = { x: s.left + ((p.x - vx) / vw) * s.width, y: s.top + ((p.y - vy) / vh) * s.height };
+    // The map keeps its proportions (meet): find the drawn box inside the element before measuring.
+    const k = Math.min(s.width / vw, s.height / vh);
+    const ox = s.left + (s.width - vw * k) / 2;
+    const oy = s.top + (s.height - vh * k) / 2;
+    const want = { x: ox + (p.x - vx) * k, y: oy + (p.y - vy) * k };
     const got = { x: c.left + c.width / 2, y: c.top + c.height / 2 };
-    const deck = document.getElementById('aDeck')?.getBoundingClientRect();
     return {
       svg: true, core: true, origin: o, off: Math.hypot(got.x - want.x, got.y - want.y), waves: svg.querySelectorAll('.tower-pin .wave').length,
-      place: document.getElementById('aPlace')?.textContent, coords: document.querySelector('#aOrigin .zone-coords')?.textContent,
-      above: Boolean(deck) && deck.height > 0 && deck.bottom <= s.top, listener: Boolean(document.querySelector('.zone-listener')),
-      playing: !document.getElementById('audio').paused, path: location.pathname,
+      place: document.getElementById('aPlace')?.textContent, coords: document.querySelector('#zOrigin .zone-coords')?.textContent,
+      pins: svg.querySelectorAll('.pin').length, deck: Boolean(document.querySelector('#view .sp-deck')), listener: Boolean(document.querySelector('.zone-listener')),
+      playing: !document.getElementById('audio').paused, path: location.pathname, title: document.querySelector('#view h1')?.textContent,
+      menu: [...document.querySelectorAll('.half-zone .half-menu a')].map((x) => x.getAttribute('href')),
+      echoMenu: [...document.querySelectorAll('.half-echo .half-menu a')].map((x) => x.getAttribute('href')),
     };
   });
-  check('Atlas (Zone is part of it): the tower\'s point lands on the configured lat/lon, and Zone\'s card names it', zone.off < 1.5 && zone.waves === 3 && zone.place === zone.origin?.place && zone.path === '/atlas',
+  check('Zone\'s Atlas (/zone): the tower\'s point lands on the configured lat/lon, and its card names it', zone.off < 1.5 && zone.waves === 3 && zone.place === zone.origin?.place && zone.path === '/zone' && zone.title === 'Atlas',
     zone.core ? `${zone.place} (${zone.origin.lat}, ${zone.origin.lon}) ${zone.off.toFixed(2)}px off, ${zone.coords}` : JSON.stringify(zone));
-  check('Atlas: the playlists stand above the map, no listener point without a geo source, and the music plays on', zone.core && zone.above && !zone.listener && zone.playing,
-    JSON.stringify({ above: zone.above, listener: zone.listener, playing: zone.playing }));
-  await a.waitForSelector('#aDeck .sp-pick', { timeout: 5000 }).catch(() => {});
-  const zdeck = await a.evaluate(() => ({
-    iframes: [...document.querySelectorAll('#view iframe')].map((f) => f.src), chips: document.querySelectorAll('#aDeck .sp-pick').length,
-    compact: Boolean(document.querySelector('#aDeck .sp-deck.compact')),
-  }));
-  check('Atlas: the playlists are there, in one Spotify player', zdeck.compact && zdeck.chips >= 60 && zdeck.iframes.length === 1 && zdeck.iframes[0].startsWith(SPOTIFY),
-    `${zdeck.chips} chips, ${zdeck.iframes.join()}`);
-  // Zone's old address is the same page, and Zone's menu lists neither Zone nor the Portfolio any more.
-  await a.evaluate(() => window.radioTower.router.go('zone'));
-  await a.waitForFunction(() => location.pathname === '/zone' && document.querySelector('#view #aMap .tower-pin') && document.getElementById('aPlace'), null, { timeout: 8000 }).catch(() => {});
-  const zoneAddr = await a.evaluate(() => ({ path: location.pathname, atlas: Boolean(document.querySelector('#view #aMap .tower-pin')), title: document.querySelector('#view h1')?.textContent,
-    menu: [...document.querySelectorAll('.half-zone .half-menu a')].map((x) => x.getAttribute('href')), playing: !document.getElementById('audio').paused }));
-  check('/zone opens the Atlas, and Zone\'s menu is Radio, Ondes, Playlists, Atlas', zoneAddr.path === '/zone' && zoneAddr.atlas && zoneAddr.title === 'Atlas'
-    && zoneAddr.menu.join() === 'radio,ondes,playlists,atlas' && zoneAddr.playing, JSON.stringify(zoneAddr));
+  check('…only the tower: no places, no playlists, no listener point without a geo source, and the music plays on', zone.core && zone.pins === 0 && !zone.deck && !zone.listener && zone.playing,
+    JSON.stringify({ pins: zone.pins, deck: zone.deck, listener: zone.listener, playing: zone.playing }));
+  check('the menus: Zone\'s is Radio, Ondes, Playlists and its Atlas; Echo\'s ends with the map\'s Atlas', zone.menu?.join() === 'radio,ondes,playlists,zone' && zone.echoMenu?.at(-1) === 'atlas',
+    JSON.stringify({ zone: zone.menu, echo: zone.echoMenu }));
 
   /* --------------------------------------------------------- listener B -- */
   const ctxB = await browser.newContext({ viewport: { width: 1280, height: 860 } });
@@ -520,8 +518,9 @@ try {
     && archC.onEcho && archC.canvases.length === 0 && archC.veils.length === 0 && archC.running === false, JSON.stringify(archC));
 
   // The Portfolio left Zone's side (2026-11-01): Echo's rubriques no longer offer it; Archives' own link still opens it.
+  // That evening the Atlas became two: Zone's (/zone) beside Radio, the map's (/atlas) among Echo's.
   const rubriques = await a.$$eval('.echo-znav a', (as) => as.map((x) => x.getAttribute('href')));
-  check('Echo\'s rubriques: Zone is Radio and the Atlas, the Portfolio off Zone\'s side', rubriques.join() === 'radio,atlas,echo,echo/lectures,echo/archives', rubriques.join());
+  check('Echo\'s rubriques: Zone is Radio and its Atlas, Média ends with the map\'s Atlas, the Portfolio off Zone\'s side', rubriques.join() === 'radio,zone,echo,echo/lectures,echo/archives,atlas', rubriques.join());
   await a.click('#view a.echo-go[href="portfolio"]');
   await a.waitForSelector('.room .book', { timeout: 8000 });
   const books = (await a.$$('.room .book')).length;
@@ -616,9 +615,9 @@ try {
   await w.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await w.waitForFunction(() => window.radioTower?.world?.current === 'radio' && window.radioTower.player?.onAir, null, { timeout: 10000 });
   const landed = { ...(await shot('radio')), tags: await w.$$eval('.w-tags .w-tag', (els) => els.length) };
-  // One tag per window on the map: the eleven of today and the versions of the past online (site/data/layout.json).
-  // Today's pages and the versions online, as the published map lists them (nine of today's since 2026-11-01).
-  const mapTags = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/data/layout.json'), 'utf8')).pages.filter((p) => p.era !== 'past' || p.status === 'online').length;
+  // One tag per window on the public map: today's pages as the published map lists them (ten since the evening of
+  // 2026-11-01). The versions of the past are the private view's (the Atelier): no tag, no window here.
+  const mapTags = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/data/layout.json'), 'utf8')).pages.filter((p) => p.era !== 'past').length;
   check(`world shell, the default (a bare address): ${mapTags} tags, Radio current, the camera already there — no flight on a cold link`, landed.tags === mapTags && landed.current === 'radio'
     && landed.centre < 30 && landed.inside && landed.filter === '' && landed.pressed === 'Zone' && !landed.echo, JSON.stringify(landed));
   // Phase 2: the page opens in its district's window, at 1:1 on screen (the box's zoom undoes the camera's scale).
@@ -631,12 +630,14 @@ try {
       live: live.map((b) => b.closest('.w-district').dataset.d), doors: boxes.filter((b) => b.querySelector(':scope > .w-rest')).length,
       asleep: boxes.filter((b) => b.inert || b.getAttribute('aria-hidden')).length,
       text: page ? page.textContent.trim().length : 0, scale: page ? page.getBoundingClientRect().width / page.offsetWidth : 0,
+      whole: live[0] ? live[0].scrollHeight <= live[0].clientHeight + 2 : false,
       main: v.children.length === 0 && v.inert && getComputedStyle(v).visibility === 'hidden',
     };
   });
   const hosted = { ...(await hosting()), onair: await w.evaluate(() => Boolean(document.querySelector('#w-radio .w-box .onair'))) };
-  check(`…the page opens in its district: Radio's window holds the on-air card at 1:1, a door in each of the ${mapTags - 1} others, <main> empty and inert`, hosted.live.join() === 'radio'
-    && hosted.onair && hosted.doors === mapTags - 1 && hosted.asleep === 0 && Math.abs(hosted.scale - 1) < 0.05 && hosted.main, JSON.stringify(hosted));
+  // Since 2026-11-01 a window shows its page whole: at 1:1 when it fits, drawn smaller when it does not — never below 0.62.
+  check(`…the page opens in its district: Radio's window holds the whole on-air card, nothing to scroll (1:1, or smaller to fit, ≥ 0.62), a door in each of the ${mapTags - 1} others, <main> empty and inert`, hosted.live.join() === 'radio'
+    && hosted.onair && hosted.doors === mapTags - 1 && hosted.asleep === 0 && hosted.scale >= 0.61 && hosted.scale <= 1.01 && hosted.whole && hosted.main, JSON.stringify(hosted));
 
   // Phase 3: the Zone skin — its own faces, clear glass over the visualiser, bubbles, the plane crisp at rest.
   const skin = await w.evaluate(async () => {
@@ -709,7 +710,15 @@ try {
   const back = await shot('radio');
   check('Back flies back to where the reader was', back.current === 'radio' && back.path === '/radio' && back.centre < 30, back.path);
 
-  const atlasAt = await w.evaluate(async () => {
+  // The minimap and « Écran » are the private view's since 2026-11-01: none in the public world, both in the Atelier's tab.
+  const publicHud = await w.evaluate(() => ({ minimap: getComputedStyle(document.querySelector('.w-minimap')).display, screen: getComputedStyle(document.querySelector('.w-screen-btn')).display,
+    past: document.querySelectorAll('.w-past-d, .w-tag-past').length, band: !document.querySelector('.w-strata') || getComputedStyle(document.querySelector('.w-strata')).display === 'none' }));
+  check('the public world has no minimap, no « Écran », no versions of the past', publicHud.minimap === 'none' && publicHud.screen === 'none' && publicHud.past === 0 && publicHud.band, JSON.stringify(publicHud));
+  const pv = await wctx.newPage();
+  watch(pv, 'private');
+  await pv.goto(dev + 'radio?atelier=1', { waitUntil: 'domcontentloaded' });
+  await pv.waitForFunction(() => window.radioTower?.world?.current === 'radio' && !window.radioTower.world.camera.moving, null, { timeout: 10000 }).catch(() => {});
+  const atlasAt = await pv.evaluate(async () => {
     const m = document.querySelector('.w-minimap');
     const r = m.getBoundingClientRect();
     // Where the Atlas stands on the map as published (it moved under Playlists on 2026-11-01).
@@ -718,13 +727,14 @@ try {
     // The world's height is the map's (taller with the past band): the minimap's own viewBox says it.
     return { x: r.left + r.width * ((d.x + d.w / 2) / WORLD.w), y: r.top + r.height * ((d.y + d.h / 2) / m.viewBox.baseVal.height) };
   });
-  await w.mouse.click(atlasAt.x, atlasAt.y);
-  await settled('atlas');
-  const viaMap = await shot('atlas');
+  await pv.mouse.click(atlasAt.x, atlasAt.y);
+  await pv.waitForFunction(() => window.radioTower?.world?.current === 'atlas' && !window.radioTower.world.camera.moving, null, { timeout: 8000 }).catch(() => {});
+  const viaMap = await pv.evaluate(() => ({ path: location.pathname, current: window.radioTower.world.current }));
+  await pv.close();
   await w.click('.w-switch button:nth-of-type(2)');
   await settled('une');
   const viaSwitch = await shot('une');
-  check('the minimap and the Zone ⇄ Echo switch fly there too', viaMap.path === '/atlas' && viaMap.current === 'atlas' && viaSwitch.path === '/echo' && viaSwitch.pressed === 'Echo',
+  check('the minimap (in the private view) and the Zone ⇄ Echo switch fly there too', viaMap.path === '/atlas' && viaMap.current === 'atlas' && viaSwitch.path === '/echo' && viaSwitch.pressed === 'Echo',
     `${viaMap.path}, ${viaSwitch.path}`);
 
   // The radio through 20 pans — quick ones that cut flights short and slow ones that land — never cut.
@@ -792,8 +802,8 @@ try {
     JSON.stringify(opened));
 
   // Every route answers on a cold link, already in its district (no flight), the page live in its window.
-  // Since 2026-11-01 /zone is the Atlas, and the Portfolio has no window: it opens over the world, like a page off the map.
-  const coldRoutes = [['', 'radio'], ['radio', 'radio'], ['ondes', 'ondes'], ['echoes', 'ondes'], ['zone', 'atlas'], ['atlas', 'atlas'], ['portfolio', null, /Portfolio/],
+  // Since 2026-11-01 /zone is Zone's Atlas and /atlas Echo's, and the Portfolio has no window: it opens over the world, like a page off the map.
+  const coldRoutes = [['', 'radio'], ['radio', 'radio'], ['ondes', 'ondes'], ['echoes', 'ondes'], ['zone', 'zone'], ['atlas', 'atlas'], ['portfolio', null, /Portfolio/],
     ['portfolio/photos', null, /Portfolio/], ['playlists', 'playlists'], ['booth', 'booth'], ['echo', 'une'], ['echo/article-temoin', 'articles'],
     ['echo/lectures', 'lectures'], ['ecrits', 'lectures'], ['echo/archives', 'archives'], ['nulle-part', null]];
   const coldMiss = [];
@@ -949,22 +959,40 @@ try {
   await settled('radio');
   for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop, radio: ${v}`);
 
-  // « Écran »: the screen menu — four radio groups, arrows stay inside it, the choices apply at once and are remembered.
-  await w.click('.w-screen-btn');
-  const opened3 = await w.evaluate(() => {
+  // « Écran »: the screen menu — private since 2026-11-01 (the Atelier's tab). Four radio groups, arrows stay inside it.
+  const pe = await wctx.newPage();
+  watch(pe, 'private, Écran');
+  await pe.goto(dev + 'radio?atelier=1', { waitUntil: 'domcontentloaded' });
+  await pe.waitForFunction(() => window.radioTower?.world?.current === 'radio' && !window.radioTower.world.camera.moving && window.radioTower.atelier, null, { timeout: 10000 }).catch(() => {});
+  await pe.click('.w-screen-btn');
+  const opened3 = await pe.evaluate(() => {
     const p = document.getElementById('wScreen');
     return { shown: !p.hidden && p.getBoundingClientRect().height > 100, expanded: document.querySelector('.w-screen-btn').getAttribute('aria-expanded'),
       groups: p.querySelectorAll('[role="radiogroup"]').length, radios: p.querySelectorAll('[role="radio"]').length,
       focus: document.activeElement?.dataset.val || null, checked: document.activeElement?.getAttribute('aria-checked') };
   });
-  await w.keyboard.press('ArrowRight');
-  await w.keyboard.press('ArrowDown');
-  const arrows = await w.evaluate(() => ({ focus: document.activeElement?.dataset.val, current: window.radioTower.world.current, path: location.pathname }));
-  for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop, Écran: ${v}`);
-  check('« Écran » opens from the HUD: 4 groups, 10 choices, focus on the current one; ← → ↑ ↓ move inside it and never walk the map',
+  await pe.keyboard.press('ArrowRight');
+  await pe.keyboard.press('ArrowDown');
+  const arrows = await pe.evaluate(() => ({ focus: document.activeElement?.dataset.val, current: window.radioTower.world.current, path: location.pathname }));
+  check('« Écran » opens from the private view\'s HUD: 4 groups, 10 choices, focus on the current one; ← → ↑ ↓ move inside it and never walk the map',
     opened3.shown && opened3.expanded === 'true' && opened3.groups === 4 && opened3.radios === 10 && opened3.focus === 'grid' && opened3.checked === 'true'
     && arrows.focus === 'void' && arrows.current === 'radio' && arrows.path === '/radio', JSON.stringify({ opened3, arrows }));
-  for (const [set, val] of [['bg', 'rain'], ['list', 'stack'], ['bub', 'none'], ['scan', 'off']]) await w.click(`.w-opt[data-set="${set}"][data-val="${val}"]`);
+  await pe.keyboard.press('Escape');
+  const closed = await pe.evaluate(() => ({ hidden: document.getElementById('wScreen').hidden, focus: document.activeElement?.classList.contains('w-screen-btn') }));
+  await pe.close();
+
+  // The same four settings are everyone's in the Booth's Lights (2026-11-01): each applies at once and is remembered.
+  await w.goto(dev + 'booth', { waitUntil: 'domcontentloaded' });
+  await settled('booth');
+  await w.waitForSelector('#w-booth .v-screen [data-screen]', { timeout: 8000 }).catch(() => {});
+  const lights = await w.evaluate(() => ({
+    groups: document.querySelectorAll('#w-booth .v-screen [role="radiogroup"]').length, radios: document.querySelectorAll('#w-booth .v-screen [role="radio"]').length,
+    layers: document.querySelectorAll('#w-booth #bVisuals [data-layer]').length, looks: document.querySelectorAll('#w-booth #bVisuals [data-look]').length,
+    sliders: document.querySelectorAll('#w-booth #bVisuals input[type=range]').length, first: document.querySelector('#w-booth .page > section')?.classList.contains('booth-lights'),
+  }));
+  check('the Booth\'s Lights come first and carry every visual setting: the looks, the nine layers, the tuning and the screen\'s four (10 choices)',
+    lights.first && lights.groups === 4 && lights.radios === 10 && lights.layers >= 9 && lights.looks >= 6 && lights.sliders >= 5, JSON.stringify(lights));
+  for (const [set, val] of [['bg', 'rain'], ['list', 'stack'], ['bub', 'none'], ['scan', 'off']]) await w.click(`#w-booth .v-screen [data-screen="${set}"][data-val="${val}"]`);
   const screened = () => w.evaluate(() => {
     const root = document.querySelector('.w-root');
     const tags = [...document.querySelectorAll('.w-tag')].map((b) => b.getBoundingClientRect());
@@ -975,19 +1003,20 @@ try {
       stacked: Math.max(...xs) - Math.min(...xs) <= 24 && Math.max(...tags.map((r) => r.right)) < 300 && tags.every((r, i) => i === 0 || r.top > tags[i - 1].top),
       bubbles: window.radioTower.world.bubbles.running, scanShown: getComputedStyle(document.querySelector('.w-scan')).display !== 'none',
       checked: [...document.querySelectorAll('.w-opt[aria-checked="true"]')].map((b) => b.dataset.val).join(),
+      booth: [...document.querySelectorAll('#w-booth .v-screen [aria-checked="true"]')].map((b) => b.dataset.val).join(),
     };
   });
   const chosen = await screened();
-  await w.keyboard.press('Escape');
-  const closed = await w.evaluate(() => ({ hidden: document.getElementById('wScreen').hidden, focus: document.activeElement?.classList.contains('w-screen-btn') }));
-  check('…Pluie, Pile, no bubbles, no scan lines: each applies at once (rain falls, the tags stack down the left, the bubbles stop); Esc closes it back onto its button',
+  check('…Rain, Stack, no bubbles, no scan lines from the Booth: each applies at once (rain falls, the tags stack down the left, the bubbles stop), the same choice « Écran » holds; Esc closed « Écran » back onto its button',
     chosen.bg === 'rain' && chosen.rain === 'w-rain' && chosen.list === 'stack' && chosen.stacked && chosen.bub === 'none' && !chosen.bubbles && chosen.scan === 'off'
-    && !chosen.scanShown && chosen.checked === 'rain,none,stack,off' && closed.hidden && closed.focus, JSON.stringify({ chosen, closed }));
+    && !chosen.scanShown && chosen.checked === 'rain,none,stack,off' && chosen.booth === 'rain,none,stack,off' && closed.hidden && closed.focus, JSON.stringify({ chosen, closed }));
   await w.reload({ waitUntil: 'domcontentloaded' });
-  await settled('radio');
+  await settled('booth');
   const kept = await screened();
   check('…and remembered by this browser after a reload', kept.bg === 'rain' && kept.list === 'stack' && kept.stacked && !kept.bubbles && !kept.scanShown, JSON.stringify(kept));
   await w.evaluate(() => localStorage.removeItem('gt.world.screen'));
+  await w.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
+  await settled('radio');
 
   // Phase 5b: the classic shell stays one release behind ?classic=1, for the rest of the tab (a relative link drops the query).
   const shellNow = () => w.evaluate(() => ({ world: Boolean(document.querySelector('.w-root')) && window.radioTower.world !== null,
@@ -1060,13 +1089,10 @@ try {
   const flewTo = await wm.evaluate(() => ({ path: location.pathname, here: document.querySelector('.w-tag[aria-current="true"]')?.dataset.go }));
   check('world shell on a phone: the tags are one strip that scrolls, nothing overflows, a tap flies', strip.rows === 1 && strip.scrolls && strip.overflow <= 1
     && strip.minimap === 'none' && flewTo.path === '/echo' && flewTo.here === 'une', JSON.stringify({ ...strip, ...flewTo }));
-  const phoneSkin = await wm.evaluate(() => {
-    const btn = document.querySelector('.w-screen-btn').getBoundingClientRect();
-    return { btnIn: btn.left >= 0 && btn.right <= innerWidth && btn.width >= 32, glass: getComputedStyle(document.querySelector('#w-radio .w-win')).backdropFilter,
-      bubbles: window.radioTower.world.bubbles.list.length, name: document.querySelector('.w-screen-btn').textContent.trim() };
-  });
-  check('…the Zone skin on a phone: « Écran » fits the header as an icon (its name still read out), clear glass, half the bubbles', phoneSkin.btnIn
-    && phoneSkin.name === 'Écran' && phoneSkin.glass === 'none' && phoneSkin.bubbles === 5, JSON.stringify(phoneSkin));
+  const phoneSkin = await wm.evaluate(() => ({ screen: getComputedStyle(document.querySelector('.w-screen-btn')).display, glass: getComputedStyle(document.querySelector('#w-radio .w-win')).backdropFilter,
+    bubbles: window.radioTower.world.bubbles.list.length }));
+  check('…the Zone skin on a phone: no « Écran » in the public header (the Booth\'s Lights have its settings), clear glass, half the bubbles', phoneSkin.screen === 'none'
+    && phoneSkin.glass === 'none' && phoneSkin.bubbles === 5, JSON.stringify(phoneSkin));
   await wm.waitForFunction(() => document.querySelector('#w-une .w-box > .page')?.textContent.trim().length > 20, null, { timeout: 8000 }).catch(() => {});
   const phoneFrame = await wm.evaluate(() => {
     const s = document.getElementById('w-une').getBoundingClientRect();
@@ -1152,10 +1178,10 @@ try {
   check('…and what is not a swipe stays put: a scroll (the page scrolls), a slow drag, a start at the screen\'s edge, a strip that scrolls sideways (it scrolls), a drag surface',
     unmoved.every((u) => u === null) && scrolledDown && stripMoved, JSON.stringify({ unmoved: unmoved.filter(Boolean), scrolledDown, stripMoved }));
   for (const v of (await axeRun(wm)) || []) worldA11y.push(`phone: ${v}`);
-  if (AXE) check('world shell: no accessibility violations above minor (desktop: every cold-link address, the Une, Radio, « Écran » open; phone)', worldA11y.length === 0, worldA11y.slice(0, 3).join(' | ') || 'names, roles, landmarks, contrast');
+  if (AXE) check('world shell: no accessibility violations above minor (desktop: every cold-link address, the Une, Radio; phone)', worldA11y.length === 0, worldA11y.slice(0, 3).join(' | ') || 'names, roles, landmarks, contrast');
   await wm.context().close();
 
-  // A phone on its side (844×390): still a phone — the header, the switch, the tags and « Écran » on one line, the frame the rest of the screen at 1:1.
+  // A phone on its side (844×390): still a phone — the header, the switch and the tags on one line, the frame the rest of the screen at 1:1.
   const wl = await (await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
   watch(wl, 'world, phone on its side');
   await wl.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
@@ -1163,17 +1189,17 @@ try {
   await wl.evaluate(() => document.fonts.ready);
   const side = await wl.evaluate(() => {
     const r = (q) => document.querySelector(q).getBoundingClientRect();
-    const [brand, sw, tags, scr, frame, mb] = ['.w-brand', '.w-switch', '.w-tags', '.w-screen-btn', '#w-radio', '#minibar'].map(r);
+    const [brand, sw, tags, frame, mb] = ['.w-brand', '.w-switch', '.w-tags', '#w-radio', '#minibar'].map(r);
     const box = document.querySelector('#w-radio .w-box');
     const page = box.querySelector(':scope > .page');
     return {
-      line: [brand, sw, tags, scr].every((b) => b.top < 20 && b.bottom <= 60), apart: brand.right <= sw.left && sw.right <= tags.left && tags.right <= scr.left,
+      line: [brand, sw, tags].every((b) => b.top < 20 && b.bottom <= 60), apart: brand.right <= sw.left && sw.right <= tags.left && tags.right <= innerWidth,
       under: frame.top >= tags.bottom, above: frame.bottom <= mb.top + 2, inside: frame.left >= 0 && frame.right <= innerWidth,
       zoom: box.style.zoom, scale: page ? page.getBoundingClientRect().width / page.offsetWidth : 0,
       minimap: getComputedStyle(document.querySelector('.w-minimap')).display, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     };
   });
-  check('phone on its side (844×390): brand, switch, tags and « Écran » share one line; the frame fills the rest at 1:1, above the mini-player; nothing overflows',
+  check('phone on its side (844×390): brand, switch and tags share one line («  Écran » is private); the frame fills the rest at 1:1, above the mini-player; nothing overflows',
     side.line && side.apart && side.under && side.above && side.inside && side.zoom === '' && Math.abs(side.scale - 1) < 0.02 && side.minimap === 'none' && side.overflow <= 1,
     JSON.stringify(side));
   await swipe(wl, 600, 220, 300, 225);
@@ -1331,13 +1357,13 @@ try {
     }));
     check('…and its Ondes page reads Up next and the next hours from the tower', tEcho.next >= 1 && tEcho.guide >= 5, tEcho.empty || `${tEcho.next} next, ${tEcho.guide} in the guide`);
 
-    // Zone on a tower (in the Atlas since 2026-11-01): the tower's own origin (STATION_LAT/LON/PLACE,
+    // Zone on a tower (Zone's Atlas, /zone, since the evening of 2026-11-01): the tower's own origin (STATION_LAT/LON/PLACE,
     // set by build-test.sh) wins over config.json's; a tower that names none leaves config.json's in place.
-    await tab(t, 'atlas');
-    await t.waitForFunction(() => document.querySelector('#aMap .tower-pin') && document.getElementById('aPlace')
+    await t.evaluate(() => window.radioTower.router.go('zone'));
+    await t.waitForFunction(() => document.querySelector('#zMap .tower-pin') && document.getElementById('aPlace')
       && (window.radioTower.client.mode !== 'tower' || document.getElementById('aSource')?.textContent.includes('tower')), null, { timeout: 5000 }).catch(() => {});
     const tz = await t.evaluate(() => {
-      const g = document.querySelector('#aMap .tower-pin');
+      const g = document.querySelector('#zMap .tower-pin');
       return { lat: Number(g?.dataset.lat), lon: Number(g?.dataset.lon), place: document.getElementById('aPlace')?.textContent, cfg: window.radioTower.client.config.station?.origin };
     });
     const so = server.station?.origin;
@@ -1382,7 +1408,9 @@ try {
     await bk.goto(`${boothAt}#key=selftest-key`, { waitUntil: 'domcontentloaded' });
     await bk.waitForSelector('#bAuth .qstate.ok', { timeout: 10000 }).catch(() => {});
     const arrived = await authOf();
-    check('the shortcut\'s #key unlocks the booth on a tower, and is gone from the address bar', arrived.unlocked === true && !arrived.url.includes('#'), arrived.url.replace(dev, '/'));
+    const opened = await bk.evaluate(() => ({ queue: Boolean(document.querySelector('#bDesk:not([hidden]) #bQueue')), moods: document.querySelectorAll('#bMoods [data-mood]').length }));
+    check('the shortcut\'s #key unlocks the booth on a tower — the tower said yes, so the queue and the moods show — and is gone from the address bar', arrived.unlocked === true && !arrived.url.includes('#')
+      && opened.queue && opened.moods >= 1, `${arrived.url.replace(dev, '/')} ${JSON.stringify(opened)}`);
     check('…without being remembered unless asked', arrived.stored === null && /for this visit/.test(arrived.text));
     await bk.click('#bKeep');
     await bk.goto(boothAt, { waitUntil: 'domcontentloaded' });
@@ -1402,6 +1430,8 @@ try {
     await bad.fill('#bKey', 'not-the-station-key');
     await bad.check('#bKeyKeep');
     await bad.click('#bKeyForm button[type=submit]');
+    // Since 2026-11-01 the booth asks the tower (POST /api/key) before it keeps a key or opens the desk.
+    await bad.waitForSelector('#bAuth .qstate.bad', { timeout: 8000 }).catch(() => {});
     const refused = await bad.evaluate(async () => {
       const c = window.radioTower.client;
       const keptBefore = Boolean(localStorage.getItem('radiotower.stationKeys'));
@@ -1410,7 +1440,10 @@ try {
       await new Promise((r) => setTimeout(r, 150));
       return { keptBefore, err, unlocked: c.canWrite, stored: localStorage.getItem('radiotower.stationKeys'), text: document.querySelector('#bAuth')?.textContent || '' };
     });
-    check('a key the tower refuses is forgotten, not replayed: the booth asks again', refused.keptBefore && /refused/.test(refused.err) && refused.unlocked === false && refused.stored === null && /refused/.test(refused.text), refused.err);
+    const desk = await bad.evaluate(() => ({ queue: document.querySelectorAll('#bQueue, #bMoods [data-mood]').length, open: !document.getElementById('bDesk').hidden }));
+    check('a key the tower refuses never opens the desk and is never kept, not even with « Remember » ticked: the booth asks again',
+      !refused.keptBefore && /refused/.test(refused.err) && refused.unlocked === false && refused.stored === null && /refused/.test(refused.text) && desk.queue === 0 && !desk.open,
+      JSON.stringify({ ...refused, ...desk }));
     await keyCtx.close();
   }
 

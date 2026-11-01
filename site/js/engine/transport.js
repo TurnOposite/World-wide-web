@@ -339,6 +339,31 @@ class TowerClient extends Emitter {
     return out;
   }
 
+  /**
+   * Is the key in hand the station key? 'ok', 'refused' (forgotten and locked, as a refused write is),
+   * 'busy' (too many wrong tries from here: wait), 'disabled' (the tower has no key, so no booth) or
+   * 'unknown' (an older tower without /api/key, or no network — the first write will tell).
+   */
+  async checkKey() {
+    if (!this.key) return 'refused';
+    let res;
+    try {
+      res = await fetch(`${this.origin}/api/key`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-station-key': this.key }, body: '{}' });
+    } catch { return 'unknown'; }
+    if (res.ok) return 'ok';
+    const out = await res.json().catch(() => ({}));
+    if (res.status === 401 && out.error === 'bad_key') {
+      if (this.remembered) stationKeyStore.set(this.origin, null);
+      this.key = null;
+      this.refused = true;
+      this.emit('control', { doc: null, status: 'locked' });
+      return 'refused';
+    }
+    if (res.status === 429) return 'busy';
+    if (res.status === 503) return 'disabled';
+    return 'unknown';
+  }
+
   reorder(req) { return this._post('/api/queue/reorder', this.channel ? { ...req, channel: this.channel } : req); }
   clear() { return this._post('/api/queue/clear', this.channel ? { channel: this.channel } : {}); }
   async setLook(look) { this._look = look; this.emit('control', { doc: { look }, status: 'local' }); return { ok: true }; }

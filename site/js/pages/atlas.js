@@ -18,17 +18,16 @@
  * No listener point: a static site has no server-side geo-IP, and the brief
  * forbids guessing ("never guess a location").
  *
- * Since 2026-11-01 this is also the Zone page (/zone answers with it): Ortis
- * found the two « one and the same ». From Zone it took the playlists, which
- * stand above the map (ui/spotify-deck.js, compact), and the card saying where
- * the tower broadcasts from and what time it is there. The tower's point
- * follows Zone's rule (pages/zone.js resolveOrigin): in tower mode the tower's
- * own position wins over config.json's, and the point moves when it changes.
+ * Two Atlases since the evening of 2026-11-01 (Ortis): this one, the map of
+ * the places, the work and the press — the academic and professional side —
+ * stands on Echo's side of the world, without the playlists it held that
+ * afternoon; Zone's Atlas (pages/broadcast.js, /zone) says where the tower
+ * broadcasts from, and will one day carry a playlist per place. This module
+ * still draws the map for both (mapSvg, towerSvg, originCardHtml).
  */
 import { esc } from '../ui/util.js';
 import { postcardSvg } from '../ui/postcards.js';
-import { mountDeck } from '../ui/spotify-deck.js';
-import { coords, localTime, resolveOrigin } from './zone.js';
+import { coords } from './zone.js';
 
 export const title = 'Atlas';
 
@@ -207,65 +206,23 @@ export function wirePins(svgRoot, places, on) {
   });
 }
 
-export async function mount(root, ctx) {
-  const { player, client, config } = ctx;
+export async function mount(root) {
   root.innerHTML = `<div class="page-head"><h1>Atlas</h1>
-      <p>Where the signal comes from, and where it happened: the tower’s point, the cities I have lived in, what was made there.</p></div>
-    <section class="zone-playlists atlas-playlists" aria-labelledby="aPlH">
-      <h2 id="aPlH">Playlists</h2>
-      <p class="hint">Les playlists du profil ZoNeKo, à écouter ici : choisissez-en une, elle passe dans le lecteur Spotify. <a href="playlists" data-link>Toutes en grand</a></p>
-      <div id="aDeck"></div>
-    </section>
+      <p>Where it happened: the cities I have lived in, and what was made there — the studies, the work, the press.</p></div>
     <div class="atlas">
       <div class="mapbox" id="aMap"><p class="empty">…</p>
         <article class="postcard" id="aDossier" aria-live="polite" hidden></article></div>
       <nav class="atlas-index" id="aIndex" aria-label="Places"></nav>
-    </div>
-    <section class="zone-card panel atlas-origin" id="aOrigin" aria-live="polite"></section>`;
-  // The deck loads beside the map, not after it.
-  const deck = mountDeck(root.querySelector('#aDeck'), { player, compact: true });
+    </div>`;
   const { world, places } = await load();
-  const originNow = () => resolveOrigin(player?.data?.station, config, { mode: client?.mode });
-  let origin = originNow();
   const box = root.querySelector('#aMap');
   const card = root.querySelector('#aDossier');
   const index = root.querySelector('#aIndex');
-  const originBox = root.querySelector('#aOrigin');
 
   box.querySelector('.empty').remove();
-  box.insertAdjacentHTML('afterbegin', mapSvg(world, places, origin) +
-    `<div class="map-legend"><span><i class="sw"></i> a place: hover it for its postcard</span><span id="aLgTower"${origin ? '' : ' hidden'}><i class="sw ring"></i> the tower broadcasts from <span>${esc(origin?.place || '')}</span></span><span>Europe enlarged ×${INSET.s} · Natural Earth 1:110m</span></div>`);
+  box.insertAdjacentHTML('afterbegin', mapSvg(world, places, null) +
+    `<div class="map-legend"><span><i class="sw"></i> a place: hover it for its postcard</span><span>Europe enlarged ×${INSET.s} · Natural Earth 1:110m</span></div>`);
   const svg = box.querySelector('svg');
-
-  const paintTime = () => {
-    const el = originBox.querySelector('#aTime');
-    if (!el || !origin) return;
-    const t = localTime(client?.now?.() ?? Date.now(), origin.timeZone);
-    el.hidden = !t;
-    if (t) el.querySelector('b').textContent = `${t.time}${t.offset ? ` · ${t.offset}` : ''}`;
-  };
-  // The tower's answer can come after the page, or change: the point, the legend and the card follow it.
-  let originKey = '';
-  const paintOrigin = () => {
-    const next = originNow();
-    const k = JSON.stringify(next);
-    if (k === originKey) return;
-    originKey = k;
-    origin = next;
-    svg.querySelector('.tower-pin')?.remove();
-    const g = towerSvg(origin);
-    const firstPin = svg.querySelector('.pin');
-    if (g && firstPin) firstPin.insertAdjacentHTML('beforebegin', g);
-    else if (g) svg.insertAdjacentHTML('beforeend', g);
-    const legend = box.querySelector('#aLgTower');
-    legend.hidden = !origin;
-    legend.querySelector('span').textContent = origin?.place || '';
-    originBox.innerHTML = originCardHtml(origin);
-    paintTime();
-  };
-  paintOrigin();
-  player?.addEventListener?.('station', paintOrigin);
-  const tick = setInterval(paintTime, 15_000);
 
   index.innerHTML = places.map((p, i) => `<button type="button" class="ai-chip k-${esc(p.kind || 'lived')}" data-i="${i}"><b>${esc(p.city)}</b>${p.years ? `<span>${esc(p.years)}</span>` : ''}</button>`).join('');
 
@@ -405,11 +362,7 @@ export async function mount(root, ctx) {
   const k = places.findIndex((p) => p.slug && p.slug === deep);
   if (k >= 0) { pinned = true; show(k, { open: true }); }
 
-  const stopDeck = await deck;
   return () => {
     cleanups.forEach((f) => f());
-    player?.removeEventListener?.('station', paintOrigin);
-    clearInterval(tick);
-    stopDeck?.();
   };
 }

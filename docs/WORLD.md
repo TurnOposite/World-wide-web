@@ -172,20 +172,21 @@ phone pass) run under `?classic=1`; everything else runs on bare addresses — w
 | District | Code | Route | Half |
 |---|---|---|---|
 | Radio | Z-01 | `/radio` (and the home) | Zone |
-| Ondes | Z-02 | `/ondes` | Zone |
-| Playlists | Z-06 | `/playlists` — above the Atlas | Zone |
-| Atlas | Z-04 | `/atlas`, and `/zone` since the Zone page became part of it | Zone |
-| Booth | Z-07 | `/booth` (faint tag, still key-gated) | Zone |
+| Ondes | Z-02 | `/ondes` — scrolls inside its window | Zone |
+| Playlists | Z-06 | `/playlists` — scrolls inside its window | Zone |
+| Atlas (Zone's) | Z-03 | `/zone` — where the tower broadcasts from | Zone |
+| Booth | Z-07 | `/booth` — the lights, then the music booth behind its key | Zone |
 | Une | E-01 | `/echo` | Echo |
-| Articles | E-02 | `/echo/<slug>` (its tag moves only the camera) | Echo |
-| Lectures | E-03 | `/echo/lectures…`, `/ecrits…` | Echo |
-| Archives | E-04 | `/echo/archives` | Echo |
+| Articles | E-02 | `/echo/<slug>` (its tag moves only the camera) — scrolls | Echo |
+| Atlas (Echo's) | E-05 | `/atlas` — the map of the places, the work, the press | Echo |
+| Lectures | E-03 | `/echo/lectures…`, `/ecrits…` — scrolls | Echo |
+| Archives | E-04 | `/echo/archives` — scrolls (a long list of press) | Echo |
 
-**Since 2026-11-01** (Ortis): Zone (Z-03) and the Atlas were « one and the same », so the Atlas is
-both — the playlists on top, the map with the tower's point, Zone's card under it — and `/zone`
-opens it. The Portfolio (Z-05) left Zone's side: it has no window until the Echo work gives it one,
-so `/portfolio…` opens over the world (Archives still links it). Both codes stay as short links
-(`refs.js` `RETIRED`: `go/Z-03` → the Atlas, `go/Z-05/photos` → the Portfolio's photos).
+**Since the evening of 2026-11-01** (Ortis, DECISIONS same date): every window fills the screen's free
+area and shows its page whole (`world.js` `fitPage`, never below 0.62 of 1:1) unless it scrolls (the
+table says which); there are two Atlases; « Écran », the minimap and the versions of the past are the
+private view's (the Atelier), whose « Aperçu public » shows the site as everyone sees it. `Z-04` (the
+merged Atlas of that afternoon) is retired onto E-05; `Z-05` (the Portfolio) onto `/portfolio`.
 
 A tag with a route goes through the router — a real address, Back and Forward work, a cold
 link lands with the camera already there and no flight. ← → walk the districts in map order

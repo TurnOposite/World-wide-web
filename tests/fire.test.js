@@ -100,7 +100,7 @@ const opts = (o = {}) => ({ ...parseArgs([]), ...o });
 test('fire publishes: the map committed after FIRE, pushed, CI waited for, Vercel and the tower checked', async () => {
   const s = scratch();
   try {
-    moveAtlas(s.work, 420);
+    moveAtlas(s.work, 2780);
     fs.writeFileSync(path.join(s.work, 'notes.txt'), 'not for the site');
     const f = fakes(s.work);
     const out = await fire(opts(), f.deps, CFG);
@@ -122,7 +122,7 @@ test('fire publishes: the map committed after FIRE, pushed, CI waited for, Verce
 test('saying anything but FIRE sends nothing and leaves the repository as it was', async () => {
   const s = scratch();
   try {
-    moveAtlas(s.work, 420);
+    moveAtlas(s.work, 2780);
     const before = sh(s.work, 'rev-parse', 'HEAD');
     const f = fakes(s.work, { answer: 'fire' });
     await assert.rejects(fire(opts(), f.deps, CFG), /not fired — nothing was sent/);
@@ -136,7 +136,7 @@ test('saying anything but FIRE sends nothing and leaves the repository as it was
 test('a dry run says what would happen and does none of it', async () => {
   const s = scratch();
   try {
-    moveAtlas(s.work, 420);
+    moveAtlas(s.work, 2780);
     const before = sh(s.work, 'rev-parse', 'HEAD');
     const f = fakes(s.work);
     assert.deepEqual(await fire(opts({ dryRun: true }), f.deps, CFG), { ok: true, dryRun: true });
@@ -159,7 +159,7 @@ test('GitHub ahead of this copy: fire stops — it never forces, never merges fo
     sh(other, 'commit', '-qm', 'elsewhere');
     sh(other, 'push', '-q', 'origin', 'main');
     const theirs = sh(other, 'rev-parse', 'HEAD');
-    moveAtlas(s.work, 420);
+    moveAtlas(s.work, 2780);
     const f = fakes(s.work);
     await assert.rejects(fire(opts({ yes: true }), f.deps, CFG), /has commits this copy does not[\s\S]*Nothing is ever forced/);
     assert.equal(sh(s.origin, 'rev-parse', 'main'), theirs, 'GitHub untouched');
@@ -170,9 +170,9 @@ test('GitHub ahead of this copy: fire stops — it never forces, never merges fo
 test('a map with an error is never published', async () => {
   const s = scratch();
   try {
-    moveAtlas(s.work, 1700); // under the Booth: two phone frames would cover each other
+    moveAtlas(s.work, 3900); // on top of Lectures: two windows would cover each other
     const f = fakes(s.work);
-    await assert.rejects(fire(opts({ yes: true }), f.deps, CFG), /the map has errors[\s\S]*atlas: too close to booth for a phone/);
+    await assert.rejects(fire(opts({ yes: true }), f.deps, CFG), /the map has errors[\s\S]*lectures: on top of atlas/);
     assert.equal(f.calls.tests, 0);
   } finally { s.done(); }
 });
@@ -180,7 +180,7 @@ test('a map with an error is never published', async () => {
 test('CI red: Vercel and the tower are left alone, and fire says so', async () => {
   const s = scratch();
   try {
-    moveAtlas(s.work, 420);
+    moveAtlas(s.work, 2780);
     const f = fakes(s.work, { ci: ['pending', 'failure'] });
     await assert.rejects(fire(opts({ yes: true }), f.deps, CFG), /self-test failed on [0-9a-f]{7}: Vercel does not deploy it and the tower refuses it/);
     assert.equal(f.calls.site, 0);
@@ -191,17 +191,17 @@ test('CI red: Vercel and the tower are left alone, and fire says so', async () =
 test('--no-tower stops at Vercel; no key, or the updater failing, stops at the tower with the site already live', async () => {
   const s = scratch();
   try {
-    moveAtlas(s.work, 420);
+    moveAtlas(s.work, 2780);
     const a = fakes(s.work);
     await fire(opts({ yes: true, tower: false }), a.deps, CFG);
     assert.equal(a.calls.ssh.length, 0);
     assert.match(a.said(), /skipped \(--no-tower\)/);
 
-    moveAtlas(s.work, 410);
+    moveAtlas(s.work, 2770);
     const b = fakes(s.work, { keyExists: false });
     await assert.rejects(fire(opts({ yes: true }), b.deps, CFG), /no SSH key at \/keys\/radio-tower[\s\S]*The site is live/);
 
-    moveAtlas(s.work, 400);
+    moveAtlas(s.work, 2750);
     const c = fakes(s.work, { sshExit: 255 });
     await assert.rejects(fire(opts({ yes: true }), c.deps, CFG), /updater did not finish \(exit 255\)/);
   } finally { s.done(); }

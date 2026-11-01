@@ -1,7 +1,17 @@
 /**
- * /booth — the DJ booth. Changes what is playing, never what the station is.
+ * /booth — the lights, and the DJ booth. Changes what is playing, never what the station is.
  *
- * Three levers, all bounded by the station's own rules:
+ * Ortis, 2026-11-01: the lights come first, for everyone, every effect in
+ * one place — the visualiser that moves with the sound (looks, the Canopy,
+ * the nine layers, the tuning) and the world's own screen (the ground's grid
+ * or rain, the glass bubbles, the menu's shape, the scan lines, which were
+ * « Écran »'s and are now private there). They are a listener's own and kept
+ * in this browser.
+ *
+ * Under them, the music booth: it says what it is and asks for the station
+ * key, and nothing else. Only a key the station accepts (a tower checks it:
+ * POST /api/key) opens the desk — the queue, the Spontaneous Emissions, the
+ * broadcast look:
  *   1. rearrange what's next (the queue editor — a permutation, beyond the fence);
  *   2. a Spontaneous Emission — "play this mood now" — which is the same
  *      permutation, chosen by dj/moods.json instead of by hand;
@@ -9,15 +19,17 @@
  *      their own.
  *
  * Where the change is saved depends on the station: the GitHub repo (static
- * site), this browser only (a preview), or a Radio Tower server (station key).
+ * site, a token instead of a key), this browser only (a preview, open to all),
+ * or a Radio Tower server (station key).
  */
 import { esc } from '../ui/util.js';
 import { QueueEditor } from '../ui/queue.js';
 import { resolveMood, planEmission } from '../ui/moods.js';
 import { LOOKS } from '../viz/settings.js';
 import { ChannelDial } from '../ui/channels.js';
+import { VisualsPanel } from '../ui/visuals.js';
 
-export const title = 'DJ booth';
+export const title = 'Booth';
 
 export async function mount(root, ctx) {
   const { client, player, settings, toast } = ctx;
@@ -28,46 +40,69 @@ export async function mount(root, ctx) {
       : 'Shared preview, <b>view-only for you</b>: the person who shared it can change the queue.',
     github: `Changes are committed to <b>${esc(gh.owner)}/${esc(gh.repo)}</b> (<code>${esc(gh.controlPath || 'site/station/control.json')}</code>). Every listener picks them up within a minute or two.`,
     local: 'Preview mode: changes are kept <b>in this browser only</b> — open two tabs to see two listeners agree. Nobody else hears them.',
-    static: 'This copy of the site has no repository configured, so the booth is read-only. Try it in preview mode, or publish the site from GitHub.',
-    tower: `Connected to a Radio Tower server at <b>${esc(client.origin || '')}</b>. Changes need its station key.`,
+    static: 'This copy of the site has no repository configured, so the music booth is closed. Try it in preview mode, or publish the site from GitHub.',
+    tower: 'Connected to the Radio Tower. The music booth opens with its station key.',
   }[client.planeKind] || '');
 
   root.innerHTML = `
-    <div class="page-head"><h1>DJ booth</h1>
-      <p>Rearrange what's next, fire a mood, set the lights. What's on air and the next few minutes never move: every listener stays on the same second.</p></div>
-    <section class="channels" id="bChannels" aria-label="Which channel you are editing" hidden></section>
-    <div class="booth">
-      <div>
-        <div class="panel" id="bQueue"></div>
-        <div class="panel" style="margin-top:18px">
-          <div class="panel-head"><h2>Spontaneous Emissions</h2></div>
-          <p class="queue-note">Pick a mood, or type one. The movable part of the queue is reordered so the best matches come first — nothing is added or removed.</p>
-          <div class="moods" id="bMoods"></div>
-          <form class="field" id="bFree" autocomplete="off"><label for="bFreeIn">Your own words</label>
-            <div style="display:flex;gap:8px"><input id="bFreeIn" placeholder="e.g. night drive, zelda, rainy" style="flex:1"><button class="btn" type="submit">Emit</button></div></form>
-          <p class="qstate" id="bMoodState" aria-live="polite"></p>
+    <div class="page-head booth-head"><h1>Booth</h1>
+      <p>The lights are yours — every effect in one place, kept in this browser. The music booth is under them.</p></div>
+    <section class="panel booth-lights" aria-labelledby="bLightsH" data-fit-end>
+      <div class="panel-head"><h2 id="bLightsH">Lights</h2><span class="hint"><span class="kbd">V</span> the same lights from any page · <span class="kbd">F</span> full screen</span>
+        <button class="btn small" type="button" id="bToMusic">Music booth ↓</button></div>
+      <div class="booth-lights-in">
+        <div class="v-inline" id="bVisuals"></div>
+        <div class="bl-screen" id="bScreen" hidden>
+          <p class="bl-sub">The screen around the windows</p>
         </div>
       </div>
-      <div>
-        <div class="panel">
-          <h2>Where changes go</h2>
-          <div class="plane" id="bPlane"><span>${planeText()}</span></div>
-          <div id="bAuth"></div>
-        </div>
-        <div class="panel" style="margin-top:18px">
-          <h2>Broadcast look</h2>
-          <p class="queue-note">The visuals everyone sees — unless a listener picked their own in the Visuals panel.</p>
-          <div class="v-looks" id="bLooks"></div>
-          <div class="v-row"><button class="btn small" type="button" id="bSendMine">Send my current visuals</button><button class="btn small" type="button" id="bClearLook">No broadcast look</button></div>
-          <p class="qstate" id="bLookState" aria-live="polite"></p>
-        </div>
+    </section>
+    <section class="booth-music" aria-labelledby="bMusicH">
+      <div class="panel booth-door">
+        <div class="panel-head"><h2 id="bMusicH">Music booth</h2><span class="pill" id="bLockState">locked</span></div>
+        <p class="queue-note">Where the DJ rearranges what plays next and fires Spontaneous Emissions. What's on air and the next few minutes never move: every listener stays on the same second.</p>
+        <div class="plane" id="bPlane"><span>${planeText()}</span></div>
+        <div id="bAuth"></div>
       </div>
-    </div>`;
+      <div class="booth-desk" id="bDesk" hidden></div>
+    </section>`;
   const $ = (id) => root.querySelector(`#${id}`);
+  $('bToMusic').addEventListener('click', () => { $('bMusicH').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('bKey')?.focus({ preventScroll: true }); });
 
-  // ---- where changes go / auth
+  // ---- the lights: the visualiser's panel, laid out in the page, and the world's screen
+  const lights = new VisualsPanel({ root: $('bVisuals'), settings, theatre: ctx.theatre, inline: true });
+  let screenCtl = null;
+  const screen = ctx.world?.screen;
+  if (screen) {
+    const { screenControls } = await import('../world/screen.js');
+    screenCtl = screenControls(screen);
+    $('bScreen').append(screenCtl.el);
+    $('bScreen').hidden = false;
+  }
+
+  // ---- the music booth: closed until the station takes the key
+  let desk = null;
+  let checking = false;
+  let note = '';
+  const open = () => client.canWrite && !checking;
+
+  /** Ask the tower whether the key in hand is the station key; anything but a clear no keeps it. */
+  const verify = async () => {
+    if (client.planeKind !== 'tower' || !client.canWrite || !client.checkKey) return;
+    checking = true;
+    paint();
+    const verdict = await client.checkKey();
+    checking = false;
+    note = {
+      busy: 'Too many wrong keys from here — wait half a minute.',
+      disabled: 'This tower has no station key set, so its queue cannot be changed.',
+    }[verdict] || '';
+    if (verdict === 'busy' || verdict === 'disabled') client.setToken(null);
+  };
+
   const paintAuth = () => {
     const a = $('bAuth');
+    if (checking) { a.innerHTML = '<p class="qstate">Checking the key with the station…</p>'; return; }
     if (client.planeKind === 'github') {
       const has = client.canWrite;
       a.innerHTML = has
@@ -76,100 +111,148 @@ export async function mount(root, ctx) {
              <input id="bTok" type="password" spellcheck="false" autocomplete="off" placeholder="github_pat_…">
              <button class="btn small primary" type="submit">Save in this browser</button></form>
            <p class="hint">Create one at github.com → Settings → Developer settings → Fine-grained tokens. It never leaves this browser except to talk to api.github.com. <a href="?control=local" data-external>Or try the booth in preview mode.</a></p>`;
-      a.querySelector('#bForget')?.addEventListener('click', () => { client.setToken(null); paintAuth(); queue.refresh({ force: true }); });
+      a.querySelector('#bForget')?.addEventListener('click', () => { client.setToken(null); paint(); });
       a.querySelector('#bTokForm')?.addEventListener('submit', (e) => {
         e.preventDefault();
         const v = a.querySelector('#bTok').value.trim();
         if (!v) return;
         client.setToken(v);
         a.querySelector('#bTok').value = '';
-        paintAuth();
-        queue.refresh({ force: true });
+        paint();
         toast('Token saved in this browser.');
       });
     } else if (client.planeKind === 'tower') {
       // Remembering is opt-in, per station, and Lock always forgets (DECISIONS, 2026-10-13).
       a.innerHTML = !client.canWrite
-        ? `${client.refused ? '<p class="qstate bad">The station refused that key.</p>' : ''}
-           <form class="field" id="bKeyForm"><label for="bKey">Station key</label><input id="bKey" type="password" autocomplete="off" spellcheck="false">
+        ? `${client.refused ? '<p class="qstate bad">The station refused that key.</p>' : ''}${note ? `<p class="qstate bad">${esc(note)}</p>` : ''}
+           <form class="field booth-key" id="bKeyForm"><label for="bKey">Station key</label><input id="bKey" type="password" autocomplete="off" spellcheck="false">
              <label class="v-follow"><input type="checkbox" id="bKeyKeep"> Remember on this computer</label>
              <button class="btn small primary" type="submit">Unlock</button></form>
            <p class="hint">Remembered, the key stays in this browser for this station until you lock the booth. Only on a computer that is yours.</p>`
         : client.remembered
           ? '<p class="qstate ok">Unlocked — remembered on this computer.</p><button class="btn small" type="button" id="bLock">Lock and forget</button>'
           : '<p class="qstate ok">Unlocked for this visit.</p><div class="v-row"><button class="btn small" type="button" id="bKeep">Remember on this computer</button><button class="btn small" type="button" id="bLock">Lock</button></div>';
-      a.querySelector('#bLock')?.addEventListener('click', () => { client.setToken(null); paintAuth(); queue.refresh({ force: true }); });
-      a.querySelector('#bKeep')?.addEventListener('click', () => { client.setToken(client.key, { remember: true }); paintAuth(); toast('Remembered on this computer.'); });
-      a.querySelector('#bKeyForm')?.addEventListener('submit', (e) => {
+      a.querySelector('#bLock')?.addEventListener('click', () => { client.setToken(null); note = ''; paint(); });
+      a.querySelector('#bKeep')?.addEventListener('click', () => { client.setToken(client.key, { remember: true }); paint(); toast('Remembered on this computer.'); });
+      a.querySelector('#bKeyForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const v = a.querySelector('#bKey').value.trim();
+        const keep = a.querySelector('#bKeyKeep').checked;
         a.querySelector('#bKey').value = '';
-        if (v) { client.setToken(v, { remember: a.querySelector('#bKeyKeep').checked || undefined }); paintAuth(); queue.refresh({ force: true }); }
+        if (!v) return;
+        // Checked before it is kept: a key the station refuses never reaches this browser's storage.
+        client.setToken(v);
+        await verify();
+        if (keep && client.canWrite) client.setToken(v, { remember: true });
+        paint();
       });
     } else if (client.planeKind === 'static') {
       a.innerHTML = '<p class="hint"><a class="btn small" href="?control=local" data-external>Open the booth in preview mode</a></p>';
     } else a.innerHTML = '';
   };
 
-  const queue = new QueueEditor({ root: $('bQueue'), client, player, title: 'Queue' });
-  // The booth edits the channel you are tuned to; turn the dial to edit another.
-  const dial = new ChannelDial({ root: $('bChannels'), client, label: 'Editing channel' });
-  const offCh = client.on?.('channel', () => queue.refresh({ force: true }));
-  paintAuth();
+  /** The desk: the channel, the queue, the moods and the broadcast look — built only once the booth is open. */
+  function buildDesk() {
+    const d = $('bDesk');
+    d.innerHTML = `
+      <section class="channels" id="bChannels" aria-label="Which channel you are editing" hidden></section>
+      <div class="booth">
+        <div class="panel" id="bQueue"></div>
+        <div>
+          <div class="panel">
+            <div class="panel-head"><h2>Spontaneous Emissions</h2></div>
+            <p class="queue-note">Pick a mood, or type one. The movable part of the queue is reordered so the best matches come first — nothing is added or removed.</p>
+            <div class="moods" id="bMoods"></div>
+            <form class="field" id="bFree" autocomplete="off"><label for="bFreeIn">Your own words</label>
+              <div style="display:flex;gap:8px"><input id="bFreeIn" placeholder="e.g. night drive, zelda, rainy" style="flex:1"><button class="btn" type="submit">Emit</button></div></form>
+            <p class="qstate" id="bMoodState" aria-live="polite"></p>
+          </div>
+          <div class="panel" style="margin-top:18px">
+            <h2>Broadcast look</h2>
+            <p class="queue-note">The visuals everyone sees — unless a listener picked their own in the Lights.</p>
+            <div class="v-looks" id="bLooks"></div>
+            <div class="v-row"><button class="btn small" type="button" id="bSendMine">Send my current lights</button><button class="btn small" type="button" id="bClearLook">No broadcast look</button></div>
+            <p class="qstate" id="bLookState" aria-live="polite"></p>
+          </div>
+        </div>
+      </div>`;
+    const queue = new QueueEditor({ root: $('bQueue'), client, player, title: 'Queue' });
+    // The booth edits the channel you are tuned to; turn the dial to edit another.
+    const dial = new ChannelDial({ root: $('bChannels'), client, label: 'Editing channel' });
+    const offCh = client.on?.('channel', () => queue.refresh({ force: true }));
 
-  // ---- moods
-  let vocab = null;
-  try { vocab = await (await fetch(new URL('station/moods.json', document.baseURI))).json(); } catch { vocab = null; }
-  const moodState = (t, tone = '') => { const s = $('bMoodState'); s.textContent = t; s.className = `qstate ${tone}`; };
-  const emit = async (input) => {
-    if (!client.canWrite) { moodState(client.planeKind === 'github' ? 'Save a token first.' : 'The booth is locked.', 'bad'); return; }
-    try {
-      const mood = resolveMood(input, vocab);
-      const q = await client.get('/api/queue');
-      const plan = planEmission(q.slots || [], mood);
-      if (!plan.ok) { moodState(plan.detail, 'bad'); return; }
-      if (!plan.matched) { moodState(`Nothing in the movable part of the queue matches “${mood.name}”. Try another mood in a few minutes.`, 'bad'); return; }
-      if (!plan.changed) { moodState(`The queue already leads with “${mood.name}”.`, 'ok'); return; }
-      const ok = await queue.apply({ cycleIndex: plan.cycleIndex, startWithin: plan.startWithin, ids: plan.ids }, { by: 'emission', note: `mood: ${mood.name}` });
-      if (!ok) { moodState(`Not emitted: ${queue.msg.text}`, 'bad'); return; }
-      moodState(`Emitted “${mood.name}” — ${plan.matched} matching track${plan.matched === 1 ? '' : 's'} brought forward.`, 'ok');
-    } catch (err) {
-      moodState(err.message, 'bad');
+    // ---- moods
+    const moodState = (t, tone = '') => { const s = $('bMoodState'); if (s) { s.textContent = t; s.className = `qstate ${tone}`; } };
+    const emit = async (input) => {
+      if (!client.canWrite) { moodState(client.planeKind === 'github' ? 'Save a token first.' : 'The booth is locked.', 'bad'); return; }
+      try {
+        const mood = resolveMood(input, vocab);
+        const q = await client.get('/api/queue');
+        const plan = planEmission(q.slots || [], mood);
+        if (!plan.ok) { moodState(plan.detail, 'bad'); return; }
+        if (!plan.matched) { moodState(`Nothing in the movable part of the queue matches “${mood.name}”. Try another mood in a few minutes.`, 'bad'); return; }
+        if (!plan.changed) { moodState(`The queue already leads with “${mood.name}”.`, 'ok'); return; }
+        const ok = await queue.apply({ cycleIndex: plan.cycleIndex, startWithin: plan.startWithin, ids: plan.ids }, { by: 'emission', note: `mood: ${mood.name}` });
+        if (!ok) { moodState(`Not emitted: ${queue.msg.text}`, 'bad'); return; }
+        moodState(`Emitted “${mood.name}” — ${plan.matched} matching track${plan.matched === 1 ? '' : 's'} brought forward.`, 'ok');
+      } catch (err) {
+        moodState(err.message, 'bad');
+      }
+    };
+    if (vocab) {
+      $('bMoods').innerHTML = Object.entries(vocab.moods).map(([name, m]) =>
+        `<button type="button" data-mood="${esc(name)}" title="${esc(m.why || '')}">${esc(name)}</button>`).join('');
+      $('bMoods').addEventListener('click', (e) => { const b = e.target.closest('[data-mood]'); if (b) emit(b.dataset.mood); });
+      $('bFree').addEventListener('submit', (e) => { e.preventDefault(); const v = $('bFreeIn').value.trim(); if (v) emit(v); });
+    } else {
+      $('bMoods').innerHTML = '<p class="empty">moods.json did not load</p>';
     }
-  };
-  if (vocab) {
-    $('bMoods').innerHTML = Object.entries(vocab.moods).map(([name, m]) =>
-      `<button type="button" data-mood="${esc(name)}" title="${esc(m.why || '')}">${esc(name)}</button>`).join('');
-    $('bMoods').addEventListener('click', (e) => { const b = e.target.closest('[data-mood]'); if (b) emit(b.dataset.mood); });
-    $('bFree').addEventListener('submit', (e) => { e.preventDefault(); const v = $('bFreeIn').value.trim(); if (v) emit(v); });
-  } else {
-    $('bMoods').innerHTML = '<p class="empty">moods.json did not load</p>';
+
+    // ---- broadcast look
+    const lookState = (t, tone = '') => { const s = $('bLookState'); if (s) { s.textContent = t; s.className = `qstate ${tone}`; } };
+    const paintLooks = () => {
+      const cur = client.look?.look;
+      const l = $('bLooks');
+      if (l) l.innerHTML = Object.entries(LOOKS).map(([k, x]) => `<button type="button" data-look="${k}" aria-pressed="${cur === k}">${x.label}</button>`).join('');
+    };
+    const sendLook = async (look) => {
+      if (!client.canWrite) { lookState(client.planeKind === 'github' ? 'Save a token first.' : 'The booth is locked.', 'bad'); return; }
+      lookState('saving…');
+      try {
+        await client.setLook(look);
+        lookState(look ? `Broadcasting “${LOOKS[look.look]?.label || 'custom'}”.` : 'No broadcast look — listeners see their own.', 'ok');
+        paintLooks();
+      } catch (err) { lookState(err.message, 'bad'); }
+    };
+    paintLooks();
+    $('bLooks').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-look]');
+      if (!b) return;
+      const L = LOOKS[b.dataset.look];
+      sendLook({ look: b.dataset.look, layers: Object.fromEntries(Object.keys(settings.effective.layers).map((id) => [id, L.layers.includes(id)])), intensity: L.intensity });
+    });
+    $('bSendMine').addEventListener('click', () => sendLook({ ...settings.effective }));
+    $('bClearLook').addEventListener('click', () => sendLook(null));
+    d.hidden = false;
+    return { queue, paintLooks, destroy: () => { queue.destroy(); dial.destroy(); offCh?.(); d.replaceChildren(); d.hidden = true; } };
   }
 
-  // ---- broadcast look
-  const lookState = (t, tone = '') => { const s = $('bLookState'); s.textContent = t; s.className = `qstate ${tone}`; };
-  const paintLooks = () => {
-    const cur = client.look?.look;
-    $('bLooks').innerHTML = Object.entries(LOOKS).map(([k, l]) => `<button type="button" data-look="${k}" aria-pressed="${cur === k}">${l.label}</button>`).join('');
-  };
-  const sendLook = async (look) => {
-    if (!client.canWrite) { lookState(client.planeKind === 'github' ? 'Save a token first.' : 'The booth is locked.', 'bad'); return; }
-    lookState('saving…');
-    try {
-      await client.setLook(look);
-      lookState(look ? `Broadcasting “${LOOKS[look.look]?.label || 'custom'}”.` : 'No broadcast look — listeners see their own.', 'ok');
-      paintLooks();
-    } catch (err) { lookState(err.message, 'bad'); }
-  };
-  paintLooks();
-  $('bLooks').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-look]');
-    if (!b) return;
-    const L = LOOKS[b.dataset.look];
-    sendLook({ look: b.dataset.look, layers: Object.fromEntries(Object.keys(settings.effective.layers).map((id) => [id, L.layers.includes(id)])), intensity: L.intensity });
-  });
-  $('bSendMine').addEventListener('click', () => sendLook({ ...settings.effective }));
-  $('bClearLook').addEventListener('click', () => sendLook(null));
+  function paint() {
+    paintAuth();
+    const isOpen = open();
+    $('bLockState').textContent = isOpen ? 'open' : 'locked';
+    $('bLockState').classList.toggle('ok', isOpen);
+    if (isOpen && !desk) desk = buildDesk();
+    else if (!isOpen && desk) { desk.destroy(); desk = null; }
+  }
+
+  let vocab = null;
+  try { vocab = await (await fetch(new URL('station/moods.json', document.baseURI))).json(); } catch { vocab = null; }
+
+  // A key brought by this browser (remembered) or by the Desktop shortcut (#key=) is checked like a typed one.
+  paint();
+  if (client.planeKind === 'tower' && client.canWrite) { await verify(); paint(); }
+
   // The preview's shared database can arrive after the booth has drawn.
   let shownPlane = `${client.planeKind}:${client.canWrite}`;
   const repaintPlane = () => {
@@ -177,16 +260,16 @@ export async function mount(root, ctx) {
     if (now === shownPlane) return;
     shownPlane = now;
     $('bPlane').innerHTML = `<span>${planeText()}</span>`;
-    paintAuth();
+    paint();
   };
   const off = client.on?.('control', (e) => {
-    paintLooks();
+    desk?.paintLooks();
     // The tower refused the key: canWrite may read as it did at mount, so
     // repaintPlane would see nothing to do. Ask for the key again.
-    if (e?.status === 'locked') { shownPlane = `${client.planeKind}:${client.canWrite}`; paintAuth(); queue.refresh({ force: true }); return; }
+    if (e?.status === 'locked') { shownPlane = `${client.planeKind}:${client.canWrite}`; if (!checking) paint(); return; }
     repaintPlane();
   });
   const offPlane = client.plane?.onChange?.(repaintPlane);
 
-  return () => { queue.destroy(); dial.destroy(); offCh?.(); off?.(); offPlane?.(); };
+  return () => { desk?.destroy(); lights.destroy(); screenCtl?.destroy(); off?.(); offPlane?.(); };
 }

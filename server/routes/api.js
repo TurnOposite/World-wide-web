@@ -265,6 +265,15 @@ export function apiRouter(ctx) {
     return true;
   }
 
+  // Is this the station key? The website's booth asks before it opens the music desk (Ortis,
+  // 2026-11-01: the queue shows « only when the key is inserted correctly »). Changes nothing; a wrong
+  // key costs from the same budget as a wrong key on a write, so it is no cheaper way to guess.
+  router.post('/key', express.json(), (req, res) => {
+    if (!requireKey(req, res)) return;
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true });
+  });
+
   router.get('/queue', (req, res) => {
     res.set('Cache-Control', 'no-store');
     const { st, extra } = pick(req.query.channel);

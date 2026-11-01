@@ -271,12 +271,16 @@ test('Playlists (Zone): playlists.json is well formed, and every playlist plays 
   const deck = fs.readFileSync(new URL('../site/js/ui/spotify-deck.js', import.meta.url), 'utf8');
   assert.equal((deck.match(/<iframe/g) || []).length, 1, 'one Spotify player');
   assert.doesNotMatch(deck.match(/<iframe[^>]*>/)[0], /loading=/, 'a lazy frame never loaded here: the player stayed blank on 85c46c1');
-  // The Atlas carries the deck since it took the Zone page in (2026-11-01): the playlists above its map.
-  for (const page of ['playlists', 'atlas']) {
+  // The Playlists page carries the deck; the Atlas does not any more (Ortis, 2026-11-01 evening: « remove the playlist part from there »).
+  for (const page of ['playlists', 'atlas', 'broadcast']) {
     const src = fs.readFileSync(new URL(`../site/js/pages/${page}.js`, import.meta.url), 'utf8');
     assert.equal((src.match(/<iframe/g) || []).length, 0, `${page}: no frame of its own, only the deck's`);
-    assert.match(src, /mountDeck\(/, `${page} carries the deck`);
+    if (page === 'playlists') assert.match(src, /mountDeck\(/, 'Playlists carries the deck');
+    else assert.doesNotMatch(src, /mountDeck|spotify-deck/, `${page}: no playlists on an Atlas`);
   }
+  // Every card keeps room for a few words that help a listener choose (2026-11-01), written or not yet.
+  assert.match(deck, /pl-desc/);
+  assert.equal(data.intro, 'No internet? No problem! Download one of my Spotify playlists and listen on the go!');
   const { playlistId, embedUrl, deckList } = await import('../site/js/ui/spotify-deck.js');
   assert.equal(playlistId('https://open.spotify.com/playlist/0XeQKa4xS4I74EsGKl8GpI'), '0XeQKa4xS4I74EsGKl8GpI');
   assert.equal(playlistId(data.featured.embed), '0XeQKa4xS4I74EsGKl8GpI');

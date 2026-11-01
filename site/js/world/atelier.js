@@ -10,6 +10,11 @@
  * dans le dépôt » when the site is served by `npm run site` (scripts/site-serve.mjs
  * writes site/data/layout.json), or the downloaded layout.json put there by
  * hand — then `fire` publishes it.
+ *
+ * The Atelier is also the private view (Ortis, 2026-11-01): « Écran », the
+ * minimap and the versions of the past show here and nowhere else. « Aperçu
+ * public » puts the panel away and shows the site exactly as everyone else
+ * sees it — the draft included — until « Revenir à l'Atelier ».
  */
 import { DISTRICTS, WORLD, byId } from './layout.js';
 import { DRAFT_KEY, MIN_H, MIN_W, applyPages, checkLayout, layoutFile, resolveLayout, stringifyLayout, worldHeight } from './model.js';
@@ -68,7 +73,8 @@ export async function mountAtelier({ world, published, draft, toast }) {
   overBtn.setAttribute('aria-pressed', 'false');
   const undoBtn = button('↶ Annuler', 'at-btn', () => step(undo, redo));
   const redoBtn = button('↷ Rétablir', 'at-btn', () => step(redo, undo));
-  tools.append(overBtn, undoBtn, redoBtn);
+  const publicBtn = button('Aperçu public', 'at-btn at-public-btn', () => preview(true), 'Aperçu public : le site tel que tout le monde le voit');
+  tools.append(overBtn, undoBtn, redoBtn, publicBtn);
   const problems = el('ul', 'at-problems');
   const list = el('div', 'at-list');
   const insp = el('section', 'at-insp');
@@ -84,6 +90,21 @@ export async function mountAtelier({ world, published, draft, toast }) {
   );
   panel.append(head, state, tools, problems, list, insp, foot);
   world.root.append(panel);
+
+  // ---- « Aperçu public »: the site as the public sees it, the draft included, with one way back ----
+  const back = el('div', 'at-public');
+  back.hidden = true;
+  back.setAttribute('role', 'status');
+  back.append(el('span', '', 'Aperçu public — le site tel que tout le monde le voit'), button('Revenir à l’Atelier', 'at-btn at-primary', () => preview(false)));
+  world.root.append(back);
+  function preview(on) {
+    if (on && over) setOver(false);
+    world.setPrivate(!on);
+    panel.hidden = on;
+    back.hidden = !on;
+    world.root.classList.toggle('at-previewing', on);
+    if (on) back.querySelector('button').focus(); else publicBtn.focus();
+  }
 
   // ---- grips: the windows as handles, over the whole map ----
   const grips = el('div', 'at-grips');
@@ -394,5 +415,5 @@ export async function mountAtelier({ world, published, draft, toast }) {
   drawState();
   probe();
   if (draft) toast('Atelier : le brouillon de votre dernière visite est repris.', 4500);
-  return { panel, setOver, select, get over() { return over; } };
+  return { panel, setOver, select, preview, get over() { return over; } };
 }

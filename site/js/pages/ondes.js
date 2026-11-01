@@ -26,9 +26,10 @@ export function mount(root, ctx) {
   const { player, client } = ctx;
   const tzName = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time';
   root.innerHTML = `
-    <div class="page-head">
-      <h1>${ONDES_LABEL}</h1>
-      <p>What just played, what comes next, and the programme for the next hours — in your time zone.</p>
+    <div class="page-head ondes-head">
+      <div><h1>${ONDES_LABEL}</h1>
+      <p>What just played, what comes next, and the programme for the next hours.</p></div>
+      <figure class="ondes-crier"><img src="assets/demandez-le-programme.jpg" alt="A penguin in a newsboy cap holding up a paper: « Demandez le programme ! »" width="300" height="227" decoding="async"></figure>
     </div>
 
     <p class="ondes-now" id="eNow" aria-live="polite">

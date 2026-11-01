@@ -2,7 +2,8 @@
 /**
  * The map as data, driven in a real browser (docs/ATELIER.md) — the Atelier
  * stage of the self-test. What it proves, each a check that can fail:
- *   - the world reads site/data/layout.json: the versions of the past online
+ *   - the public world carries none of the past (2026-11-01: a private view's);
+ *   - the private view (?atelier=1) reads site/data/layout.json: the versions of the past online
  *     have a window and a tag, an offline one has neither;
  *   - a version opens in its window, framed, silent and bar-less, while the
  *     radio plays on through the flight there and back;
@@ -98,13 +99,26 @@ try {
     tags: [...document.querySelectorAll('.w-tag')].map((b) => b.dataset.go),
     past: [...document.querySelectorAll('.w-tag-past')].map((b) => b.dataset.go),
     plane: parseFloat(document.querySelector('.w-plane').style.height),
-    band: !document.querySelector('.w-strata').hidden,
-    mini: document.querySelector('.w-minimap').viewBox.baseVal.height,
+    band: !document.querySelector('.w-strata').hidden && getComputedStyle(document.querySelector('.w-strata')).display !== 'none',
     atelier: Boolean(document.querySelector('.at-panel')) || [...document.querySelectorAll('link')].some((l) => l.href.includes('atelier.css')),
   }));
-  check('the world reads the map: Version 1 and 2 have a tag and a window under both halves; Wix (offline) has neither',
-    map.past.join() === 'v1,v2' && !map.tags.includes('wix') && map.plane > 2600 && map.band && map.mini === map.plane, JSON.stringify(map));
+  // The versions of the past are the private view's since 2026-11-01: a visitor's world has no tag, no window, no band for them.
+  check('the public world carries none of the past: no tag, no window, no band', map.past.length === 0 && !map.tags.some((t) => /^(v1|v2|wix)$/.test(t))
+    && map.plane === 2600 && !map.band, JSON.stringify(map));
   check('nobody who did not ask loads the Atelier', !map.atelier);
+
+  // ---- the private view: the Atelier's tab
+  await w.goto(dev + 'radio?atelier=1', { waitUntil: 'domcontentloaded' });
+  await w.waitForFunction(() => window.radioTower?.atelier && window.radioTower.world?.current && !window.radioTower.world.camera.moving, null, { timeout: 15000 }).catch(() => {});
+  const priv = await w.evaluate(() => ({
+    past: [...document.querySelectorAll('.w-tag-past')].map((b) => b.dataset.go),
+    wix: document.querySelector('.w-tag[data-go="wix"]')?.classList.contains('w-off') ?? null,
+    plane: parseFloat(document.querySelector('.w-plane').style.height),
+    band: !document.querySelector('.w-strata').hidden,
+    mini: document.querySelector('.w-minimap').viewBox.baseVal.height,
+  }));
+  check('the private view reads the map: Version 1 and 2 have a tag and a window under both halves; Wix (offline) only greyed',
+    priv.past.join() === 'v1,v2,wix' && priv.wix === true && priv.plane > 2600 && priv.band && priv.mini === priv.plane, JSON.stringify(priv));
 
   // ---- a version in its window, the radio playing through
   if (!(await w.evaluate(() => window.radioTower.player.playing))) await w.click('#mbTune');
@@ -137,8 +151,9 @@ try {
   check('…and its own tune-in plays nothing: the world’s mini-player stays the one radio', second.old && second.ours, JSON.stringify(second));
   const a11yWindow = await axeRun(w);
   check('no accessibility violations above minor with a version open in its window (and the doors’ short links)', a11yWindow.length === 0, a11yWindow.slice(0, 3).join(' | '));
-  await w.click('.w-tag[data-go="atlas"]');
-  await settled('atlas');
+  // Radio's tag: in the private view the Atelier's panel stands over Echo's tags, on the right.
+  await w.click('.w-tag[data-go="radio"]');
+  await settled('radio');
   const left = await w.evaluate(() => ({ frame: Boolean(document.querySelector('#w-v1 .v-frame')), playing: window.radioTower.player.playing && !document.getElementById('audio').paused }));
   check('leaving it: the frame is gone (nothing of the old site keeps running) and the radio played on through both flights', !left.frame && framed.playing && left.playing, JSON.stringify(left));
 
@@ -186,7 +201,7 @@ try {
   const v2atlas = await go('v2/atlas');
   const off = await go('wix');
   const none = await go('nulle-part');
-  check('short links: go/Z-04 is the Atlas, go/E-02/<slug> an article, go/v2/atlas the v2 site’s own Atlas',
+  check('short links: go/Z-04 (retired onto Echo’s Atlas) is the Atlas, go/E-02/<slug> an article, go/v2/atlas the v2 site’s own Atlas',
     z04.path === '/atlas' && z04.here === 'atlas' && art.path === '/echo/article-temoin' && art.here === 'articles' && v2atlas.path === '/past/v2/atlas' && v2atlas.past === 'v2',
     JSON.stringify({ z04, art, v2atlas }));
   check('…an offline version and an unknown ref each say why, over the world', /Wix est hors ligne/.test(off.said || '') && /ne mène nulle part/.test(none.said || ''), `${off.said} | ${none.said}`);
@@ -194,7 +209,7 @@ try {
   await ready();
   const rewritten = await w.evaluate(async () => {
     const a = document.createElement('a');
-    a.href = 'gt:Z-03';
+    a.href = 'gt:Z-04';
     a.id = 'refTest';
     a.textContent = 'la Zone';
     document.querySelector('#w-radio .w-box .page').append(a);
@@ -203,8 +218,8 @@ try {
   });
   await w.click('#refTest');
   await settled('atlas');
-  // Z-03 (Zone) became part of the Atlas on 2026-11-01: a link handed out before still lands, on the Atlas.
-  check('a gt: link gets today’s address as it enters the page, and the router takes the click — a retired code too', rewritten.href === 'atlas' && rewritten.ref === 'Z-03'
+  // Z-04, the merged Atlas of 2026-11-01's afternoon, moved to Echo's side that evening: a link handed out before still lands, on the map's Atlas.
+  check('a gt: link gets today’s address as it enters the page, and the router takes the click — a retired code too', rewritten.href === 'atlas' && rewritten.ref === 'Z-04'
     && await w.evaluate(() => location.pathname === '/atlas' && window.radioTower.world.current === 'atlas'), JSON.stringify(rewritten));
 
   // ---- the Atelier
@@ -218,7 +233,7 @@ try {
     state: document.querySelector('.at-state').textContent,
   }));
   check('the Atelier lists every page, today’s and the past’s, an online/offline switch on each version, the page in view chosen',
-    opened.rows === 12 && opened.switches.join() === 'En ligne,En ligne,Hors ligne' && opened.wix && opened.picked === 'Z-04' && /Identique/.test(opened.state), JSON.stringify(opened));
+    opened.rows === 13 && opened.switches.join() === 'En ligne,En ligne,Hors ligne' && opened.wix && opened.picked === 'E-05' && /Identique/.test(opened.state), JSON.stringify(opened));
   const a11yPanel = await axeRun(at, '.at-panel');
   check('the Atelier’s panel passes axe', a11yPanel.length === 0, a11yPanel.slice(0, 3).join(' | '));
   await at.click('.at-tools button:first-child');
@@ -227,7 +242,8 @@ try {
     const r = document.querySelector('.at-grip[data-id="atlas"]').getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 3, s: window.radioTower.world.camera.cam.s, all: [...document.querySelectorAll('.at-grip')].every((g) => { const b = g.getBoundingClientRect(); return b.right <= innerWidth && b.bottom <= innerHeight && b.left >= 0; }) };
   });
-  const dx = Math.round(1320 * grip.s);
+  // Echo's Atlas dragged 1320 px left lands on the Booth, on Zone's side.
+  const dx = -Math.round(1320 * grip.s);
   await at.mouse.move(grip.x, grip.y);
   await at.mouse.down();
   await at.mouse.move(grip.x + dx / 2, grip.y, { steps: 4 });
@@ -239,12 +255,12 @@ try {
     draft: JSON.parse(localStorage.getItem('gt.atelier.draft') || 'null')?.pages.find((p) => p.id === 'atlas')?.x,
     save: document.querySelector('.at-primary')?.disabled,
   }));
-  check('the whole map fits the screen; dragging Atlas moves its window at once, flags it too close to the Booth for a phone, keeps the draft, and will not save it',
-    grip.all && Math.abs(dragged.left - 1700) <= 20 && dragged.problems.some((p) => /Atlas — too close to booth for a phone/.test(p)) && dragged.draft === dragged.left && dragged.save === true,
+  check('the whole map fits the screen; dragging Atlas moves its window at once, flags it on top of the Booth, keeps the draft, and will not save it',
+    grip.all && Math.abs(dragged.left - 1440) <= 20 && dragged.problems.some((p) => /Booth — on top of atlas/.test(p)) && dragged.draft === dragged.left && dragged.save === true,
     JSON.stringify({ ...dragged, s: grip.s }));
   await at.click('text=↶ Annuler');
   const undone = await at.evaluate(() => ({ left: document.getElementById('w-atlas').style.left, problems: document.querySelectorAll('.at-prob').length, draft: localStorage.getItem('gt.atelier.draft') }));
-  check('↶ puts it back, and the draft goes with it', undone.left === '380px' && undone.problems === 0 && undone.draft === null, JSON.stringify(undone));
+  check('↶ puts it back, and the draft goes with it', undone.left === '2760px' && undone.problems === 0 && undone.draft === null, JSON.stringify(undone));
   await at.click('.at-status[aria-label^="Version 2"]');
   const switched = await at.evaluate(() => ({ win: document.getElementById('w-v2').classList.contains('w-off'), tag: document.querySelector('.w-tag[data-go="v2"]').classList.contains('w-off'), label: document.querySelector('.at-status[aria-label^="Version 2"]').textContent }));
   check('a version switched off greys at once in the Atelier (window and tag)', switched.win && switched.tag && switched.label === 'Hors ligne', JSON.stringify(switched));
@@ -260,7 +276,8 @@ try {
     && /Enregistré dans/.test(save.toast) && /Identique/.test(save.state), JSON.stringify({ ...save, v2: saved.status }));
   await w.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await ready();
-  check('…and a visitor reloading gets the saved map: Version 2 has no tag any more', await w.evaluate(() => !document.querySelector('.w-tag[data-go="v2"]') && Boolean(document.querySelector('.w-tag[data-go="v1"]'))));
+  check('…and a reload gets the saved map: Version 2 offline (greyed in the private view), Version 1 on', await w.evaluate(() => document.querySelector('.w-tag[data-go="v2"]')?.classList.contains('w-off')
+    && !document.querySelector('.w-tag[data-go="v1"]')?.classList.contains('w-off')));
   fs.writeFileSync(layoutFile, MAP);
 
   // ---- the built site, under a repository sub-path
@@ -280,23 +297,23 @@ try {
   });
   check('dist/ under /radio-tower/: a cold deep link into v1 boots under its own base, the bar knows the sub-path, its portfolio images reach today’s copy',
     lib.base.endsWith('/radio-tower/past/v1/') && lib.bar === '/radio-tower/versions/v1' && lib.ok && /\/radio-tower\/collections\//.test(lib.url || ''), JSON.stringify(lib));
-  await d.goto(sub + 'go/P-02', { waitUntil: 'domcontentloaded' });
+  await d.goto(sub + 'go/P-02?atelier=1', { waitUntil: 'domcontentloaded' });
   await d.waitForFunction(() => window.radioTower?.world?.current === 'v2' && document.querySelector('#w-v2 .v-frame'), null, { timeout: 15000 }).catch(() => {});
-  check('…a short link answers cold and opens Version 2 in its window', await d.evaluate(() => location.pathname === '/radio-tower/versions/v2' && Boolean(document.querySelector('#w-v2 .v-frame'))));
+  check('…a short link answers cold and, in the private view, opens Version 2 in its window', await d.evaluate(() => location.pathname === '/radio-tower/versions/v2' && Boolean(document.querySelector('#w-v2 .v-frame'))));
   await d.close();
   distServer.close();
 
   // ---- a phone
   const p = await (await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage();
   watch(p, 'phone');
-  await p.goto(dev + 'versions/v2', { waitUntil: 'domcontentloaded' });
+  await p.goto(dev + 'versions/v2?atelier=1', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.radioTower?.world?.current === 'v2' && !window.radioTower.world.camera.moving, null, { timeout: 15000 }).catch(() => {});
   const phone = await p.evaluate(() => {
     const f = document.querySelector('#w-v2 .v-frame')?.getBoundingClientRect();
     return { overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth, frame: f && f.left >= 0 && f.right <= innerWidth + 1 && f.height > 200,
       strip: [...document.querySelectorAll('.w-tags .w-tag')].some((b) => b.dataset.go === 'v2') };
   });
-  check('a 390 px phone: the version’s window fits the screen, its tag is in the strip, nothing overflows', phone.frame && phone.strip && phone.overflow <= 1, JSON.stringify(phone));
+  check('a 390 px phone, private view: the version’s window fits the screen, its tag is in the strip, nothing overflows', phone.frame && phone.strip && phone.overflow <= 1, JSON.stringify(phone));
 
   check('no page errors anywhere (world, the old site on its own, the Atelier, dist, phone)', errors.length === 0, errors.slice(0, 3).join(' | '));
 } catch (err) {

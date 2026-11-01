@@ -65,3 +65,10 @@
 @media (max-width:760px),(max-height:500px){
   .at-panel{top:auto;left:8px;right:8px;width:auto;height:min(56vh,460px);bottom:calc(var(--mb-h) + 8px)}
 }
+
+/* « Aperçu public » (2026-11-01): the panel put away, the site as everyone sees it, one way back. */
+.at-public{position:absolute;z-index:8;left:50%;bottom:calc(var(--mb-h) + 14px);transform:translateX(-50%);display:flex;align-items:center;gap:14px;
+  padding:9px 10px 9px 16px;background:rgba(10,12,20,.96);border:1px dashed var(--w-neon-c);color:var(--w-text);font:600 13px/1.2 var(--w-ui);
+  letter-spacing:.04em;box-shadow:8px 8px 0 rgba(0,0,0,.35)}
+.at-public[hidden]{display:none}
+.at-public-btn{border-style:dashed}
