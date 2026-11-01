@@ -10,7 +10,7 @@
  *   npm run layout -- nudge Z-04 +100 -50  # move it by so much
  *   npm run layout -- size atlas 700 720   # width, height
  *   npm run layout -- tilt atlas 2         # degrees
- *   npm run layout -- swap atlas zone      # two windows trade places
+ *   npm run layout -- swap atlas playlists # two windows trade places
  *   npm run layout -- tag atlas 8 44 5     # the menu tag: % from the side, % from the top, tilt
  *   npm run layout -- online v1            # a version of the past, on the site…
  *   npm run layout -- offline v1           # …or not

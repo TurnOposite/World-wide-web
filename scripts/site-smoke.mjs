@@ -140,7 +140,8 @@ try {
   await a.goto(dev + 'radio?classic=1', { waitUntil: 'domcontentloaded' });
   await a.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
   const tabs = await a.$$eval('.tabs a', (els) => els.map((e) => e.textContent.trim()));
-  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Zone,Playlists,Atlas,Portfolio,Une,Articles,Lectures', tabs.join(', '));
+  // Since 2026-11-01 Zone's half is Radio, Ondes, Playlists, Atlas: the Zone page is part of the Atlas, the Portfolio off Zone's side.
+  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Playlists,Atlas,Une,Articles,Lectures', tabs.join(', '));
   check('…each under its own label', (await a.$$eval('.half-btn', (els) => els.map((e) => e.textContent.trim()))).join() === 'Zone,Echo');
   // The banner: two doors only; hover, focus, tap, Esc, outside tap.
   const open = () => a.$$eval('.half.open', (e) => e.map((x) => x.dataset.half).join());
@@ -340,39 +341,49 @@ try {
   check('Atlas: Novo Hamburgo\'s postcard unfolds to the newspaper columns, and they open', nh.picture && nh.clips >= 20 && nh.stations === 4 && nh.pdf,
     `${nh.clips} columns, ${nh.stations} metro stops, ${nh.first}`);
 
-  /* ---------------------------------------------------------------- Zone -- */
-  // DESIGN-BRIEF §2 / roadmap #21: the green point sits where config.json
-  // says (x = lon + 180, y = 90 − lat on the world's viewBox, measured on
-  // screen), and no listener point exists without a geo source.
-  await tab(a, 'zone');
-  await a.waitForSelector('#zMap svg.zone-map .zone-origin', { timeout: 5000 }).catch(() => {});
-  const zone = await a.evaluate(() => {
-    const svg = document.querySelector('#zMap svg.zone-map');
-    const core = svg?.querySelector('.zone-origin .zo-core');
+  /* ------------------------------------------------ Zone, in the Atlas -- */
+  // DESIGN-BRIEF §2 / roadmap #21, and Ortis on 2026-11-01: Zone and the Atlas are one page. The
+  // tower's point sits where config.json says (measured on screen against the Atlas's own pinPoint:
+  // x = lon + 180, y = 90 − lat, or the Europe inset), Zone's card names it, the playlists stand
+  // above the map, and no listener point exists without a geo source.
+  const zone = await a.evaluate(async () => {
+    const { pinPoint } = await import(new URL('js/pages/atlas.js', document.baseURI).href);
+    const svg = document.querySelector('#aMap svg.world-map');
+    const core = svg?.querySelector('.tower-pin .core');
     const o = window.radioTower.client.config.station?.origin;
     if (!svg || !core || !o) return { svg: Boolean(svg), core: Boolean(core), origin: o || null };
     const [vx, vy, vw, vh] = svg.getAttribute('viewBox').split(/\s+/).map(Number);
     const s = svg.getBoundingClientRect();
     const c = core.getBoundingClientRect();
-    const want = { x: s.left + ((o.lon + 180 - vx) / vw) * s.width, y: s.top + ((90 - o.lat - vy) / vh) * s.height };
+    const p = pinPoint(o);
+    const want = { x: s.left + ((p.x - vx) / vw) * s.width, y: s.top + ((p.y - vy) / vh) * s.height };
     const got = { x: c.left + c.width / 2, y: c.top + c.height / 2 };
+    const deck = document.getElementById('aDeck')?.getBoundingClientRect();
     return {
-      svg: true, core: true, origin: o, land: svg.querySelectorAll('.zone-land path').length,
-      off: Math.hypot(got.x - want.x, got.y - want.y), waves: svg.querySelectorAll('.zone-origin .zw').length,
-      place: document.getElementById('zPlace')?.textContent, listener: Boolean(svg.querySelector('.zone-listener')),
+      svg: true, core: true, origin: o, off: Math.hypot(got.x - want.x, got.y - want.y), waves: svg.querySelectorAll('.tower-pin .wave').length,
+      place: document.getElementById('aPlace')?.textContent, coords: document.querySelector('#aOrigin .zone-coords')?.textContent,
+      above: Boolean(deck) && deck.height > 0 && deck.bottom <= s.top, listener: Boolean(document.querySelector('.zone-listener')),
       playing: !document.getElementById('audio').paused, path: location.pathname,
     };
   });
-  check('Zone: the world map renders, and the tower\'s green point lands on the configured lat/lon', zone.land > 50 && zone.off < 1.5 && zone.waves === 3 && zone.place === zone.origin?.place && zone.path === '/zone',
-    zone.core ? `${zone.place} (${zone.origin.lat}, ${zone.origin.lon}) ${zone.off.toFixed(2)}px off, ${zone.land} land paths` : JSON.stringify(zone));
-  check('Zone: no listener point without a geo source, and the music plays on', zone.core && !zone.listener && zone.playing);
-  await a.waitForSelector('#zDeck .sp-pick', { timeout: 5000 }).catch(() => {});
+  check('Atlas (Zone is part of it): the tower\'s point lands on the configured lat/lon, and Zone\'s card names it', zone.off < 1.5 && zone.waves === 3 && zone.place === zone.origin?.place && zone.path === '/atlas',
+    zone.core ? `${zone.place} (${zone.origin.lat}, ${zone.origin.lon}) ${zone.off.toFixed(2)}px off, ${zone.coords}` : JSON.stringify(zone));
+  check('Atlas: the playlists stand above the map, no listener point without a geo source, and the music plays on', zone.core && zone.above && !zone.listener && zone.playing,
+    JSON.stringify({ above: zone.above, listener: zone.listener, playing: zone.playing }));
+  await a.waitForSelector('#aDeck .sp-pick', { timeout: 5000 }).catch(() => {});
   const zdeck = await a.evaluate(() => ({
-    iframes: [...document.querySelectorAll('#view iframe')].map((f) => f.src), chips: document.querySelectorAll('#zDeck .sp-pick').length,
-    compact: Boolean(document.querySelector('#zDeck .sp-deck.compact')),
+    iframes: [...document.querySelectorAll('#view iframe')].map((f) => f.src), chips: document.querySelectorAll('#aDeck .sp-pick').length,
+    compact: Boolean(document.querySelector('#aDeck .sp-deck.compact')),
   }));
-  check('Zone: the playlists are there too, in one Spotify player', zdeck.compact && zdeck.chips >= 60 && zdeck.iframes.length === 1 && zdeck.iframes[0].startsWith(SPOTIFY),
+  check('Atlas: the playlists are there, in one Spotify player', zdeck.compact && zdeck.chips >= 60 && zdeck.iframes.length === 1 && zdeck.iframes[0].startsWith(SPOTIFY),
     `${zdeck.chips} chips, ${zdeck.iframes.join()}`);
+  // Zone's old address is the same page, and Zone's menu lists neither Zone nor the Portfolio any more.
+  await a.evaluate(() => window.radioTower.router.go('zone'));
+  await a.waitForFunction(() => location.pathname === '/zone' && document.querySelector('#view #aMap .tower-pin') && document.getElementById('aPlace'), null, { timeout: 8000 }).catch(() => {});
+  const zoneAddr = await a.evaluate(() => ({ path: location.pathname, atlas: Boolean(document.querySelector('#view #aMap .tower-pin')), title: document.querySelector('#view h1')?.textContent,
+    menu: [...document.querySelectorAll('.half-zone .half-menu a')].map((x) => x.getAttribute('href')), playing: !document.getElementById('audio').paused }));
+  check('/zone opens the Atlas, and Zone\'s menu is Radio, Ondes, Playlists, Atlas', zoneAddr.path === '/zone' && zoneAddr.atlas && zoneAddr.title === 'Atlas'
+    && zoneAddr.menu.join() === 'radio,ondes,playlists,atlas' && zoneAddr.playing, JSON.stringify(zoneAddr));
 
   /* --------------------------------------------------------- listener B -- */
   const ctxB = await browser.newContext({ viewport: { width: 1280, height: 860 } });
@@ -508,7 +519,10 @@ try {
     archC.path === '/echo/archives' && archC.press >= 26 && archC.tags >= 1 && archC.feed && archC.on === 'echo/archives' && archC.paper === 'rgb(245, 244, 241)'
     && archC.onEcho && archC.canvases.length === 0 && archC.veils.length === 0 && archC.running === false, JSON.stringify(archC));
 
-  await a.click('.echo-znav a[href="portfolio"]');
+  // The Portfolio left Zone's side (2026-11-01): Echo's rubriques no longer offer it; Archives' own link still opens it.
+  const rubriques = await a.$$eval('.echo-znav a', (as) => as.map((x) => x.getAttribute('href')));
+  check('Echo\'s rubriques: Zone is Radio and the Atlas, the Portfolio off Zone\'s side', rubriques.join() === 'radio,atlas,echo,echo/lectures,echo/archives', rubriques.join());
+  await a.click('#view a.echo-go[href="portfolio"]');
   await a.waitForSelector('.room .book', { timeout: 8000 });
   const books = (await a.$$('.room .book')).length;
   check('Portfolio: the library puts every book on a shelf', books >= 20, `${books} spines`);
@@ -603,7 +617,8 @@ try {
   await w.waitForFunction(() => window.radioTower?.world?.current === 'radio' && window.radioTower.player?.onAir, null, { timeout: 10000 });
   const landed = { ...(await shot('radio')), tags: await w.$$eval('.w-tags .w-tag', (els) => els.length) };
   // One tag per window on the map: the eleven of today and the versions of the past online (site/data/layout.json).
-  const mapTags = 11 + JSON.parse(fs.readFileSync(path.join(ROOT, 'site/data/layout.json'), 'utf8')).pages.filter((p) => p.era === 'past' && p.status === 'online').length;
+  // Today's pages and the versions online, as the published map lists them (nine of today's since 2026-11-01).
+  const mapTags = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/data/layout.json'), 'utf8')).pages.filter((p) => p.era !== 'past' || p.status === 'online').length;
   check(`world shell, the default (a bare address): ${mapTags} tags, Radio current, the camera already there — no flight on a cold link`, landed.tags === mapTags && landed.current === 'radio'
     && landed.centre < 30 && landed.inside && landed.filter === '' && landed.pressed === 'Zone' && !landed.echo, JSON.stringify(landed));
   // Phase 2: the page opens in its district's window, at 1:1 on screen (the box's zoom undoes the camera's scale).
@@ -694,11 +709,14 @@ try {
   const back = await shot('radio');
   check('Back flies back to where the reader was', back.current === 'radio' && back.path === '/radio' && back.centre < 30, back.path);
 
-  const atlasAt = await w.evaluate(() => {
+  const atlasAt = await w.evaluate(async () => {
     const m = document.querySelector('.w-minimap');
     const r = m.getBoundingClientRect();
+    // Where the Atlas stands on the map as published (it moved under Playlists on 2026-11-01).
+    const { byId, WORLD } = await import(new URL('js/world/layout.js', document.baseURI).href);
+    const d = byId('atlas');
     // The world's height is the map's (taller with the past band): the minimap's own viewBox says it.
-    return { x: r.left + r.width * (1330 / 5200), y: r.top + r.height * (1430 / m.viewBox.baseVal.height) };
+    return { x: r.left + r.width * ((d.x + d.w / 2) / WORLD.w), y: r.top + r.height * ((d.y + d.h / 2) / m.viewBox.baseVal.height) };
   });
   await w.mouse.click(atlasAt.x, atlasAt.y);
   await settled('atlas');
@@ -724,8 +742,8 @@ try {
     window.__worldSwaps = 0;
     for (const ev of ['ended', 'emptied', 'loadstart']) au.addEventListener(ev, () => { window.__worldSwap = performance.now(); window.__worldSwaps += ev === 'loadstart' ? 1 : 0; });
   });
-  const pans = ['ondes', 'zone', 'atlas', 'une', 'articles', 'lectures', 'portfolio', 'playlists', 'radio', 'archives',
-    'booth', 'une', 'radio', 'lectures', 'atlas', 'ondes', 'une', 'zone', 'articles', 'radio'];
+  const pans = ['ondes', 'playlists', 'atlas', 'une', 'articles', 'lectures', 'booth', 'playlists', 'radio', 'archives',
+    'booth', 'une', 'radio', 'lectures', 'atlas', 'ondes', 'une', 'playlists', 'articles', 'radio'];
   let tunedThrough = 0;
   for (const [i, id] of pans.entries()) {
     await w.click(`.w-tag[data-go="${id}"]`);
@@ -774,13 +792,14 @@ try {
     JSON.stringify(opened));
 
   // Every route answers on a cold link, already in its district (no flight), the page live in its window.
-  const coldRoutes = [['', 'radio'], ['radio', 'radio'], ['ondes', 'ondes'], ['echoes', 'ondes'], ['zone', 'zone'], ['atlas', 'atlas'], ['portfolio', 'portfolio'],
-    ['portfolio/photos', 'portfolio'], ['playlists', 'playlists'], ['booth', 'booth'], ['echo', 'une'], ['echo/article-temoin', 'articles'],
+  // Since 2026-11-01 /zone is the Atlas, and the Portfolio has no window: it opens over the world, like a page off the map.
+  const coldRoutes = [['', 'radio'], ['radio', 'radio'], ['ondes', 'ondes'], ['echoes', 'ondes'], ['zone', 'atlas'], ['atlas', 'atlas'], ['portfolio', null, /Portfolio/],
+    ['portfolio/photos', null, /Portfolio/], ['playlists', 'playlists'], ['booth', 'booth'], ['echo', 'une'], ['echo/article-temoin', 'articles'],
     ['echo/lectures', 'lectures'], ['ecrits', 'lectures'], ['echo/archives', 'archives'], ['nulle-part', null]];
   const coldMiss = [];
   // axe on each of them too: since phase 5b these are the pages everyone gets on a laptop.
   const worldA11y = [];
-  for (const [route, id] of coldRoutes) {
+  for (const [route, id, says = /Rien ici/] of coldRoutes) {
     await w.goto(dev + route, { waitUntil: 'domcontentloaded' });
     await w.waitForFunction((i) => {
       const t = window.radioTower?.world;
@@ -796,7 +815,7 @@ try {
       return { current: t.current, pages, lost: !lost.hidden, centre: s ? Math.abs(s.left + s.width / 2 - innerWidth / 2) : 0,
         text: (i ? document.querySelector(`#w-${i} .w-box > .page`) : lost.querySelector('.page'))?.textContent.trim().length || 0 };
     }, id);
-    const ok = id ? r.current === id && !r.lost && r.centre < 30 : r.lost && /Rien ici/.test(await w.textContent('.w-lost'));
+    const ok = id ? r.current === id && !r.lost && r.centre < 30 : r.lost && says.test(await w.textContent('.w-lost'));
     if (!ok || r.pages !== 1 || r.text <= 20) coldMiss.push(`/${route} ${JSON.stringify(r)}`);
     for (const v of (await axeRun(w)) || []) worldA11y.push(`desktop /${route}: ${v}`);
   }
@@ -882,13 +901,15 @@ try {
     arch.path === '/echo/archives' && arch.current === 'archives' && arch.centre < 30 && arch.want >= 26 && arch.press === arch.want && arch.tags >= 1 && arch.atlas
     && arch.feed && arch.portfolio && arch.bare, JSON.stringify(arch));
   await w.click('#w-archives .w-box a[href="portfolio"]');
-  await settled('portfolio');
-  const toPortfolio = { ...(await shot('portfolio')), ...(await w.evaluate(() => {
+  await w.waitForFunction(() => location.pathname === '/portfolio' && document.querySelector('.w-lost:not([hidden]) .w-box > .page .room-tabs'), null, { timeout: 8000 }).catch(() => {});
+  const toPortfolio = await w.evaluate(() => {
     const au = document.getElementById('audio');
-    return { same: au === window.__worldAudio, paused: au.paused, live: Boolean(document.querySelector('#w-portfolio .w-box > .page')) };
-  })) };
-  check('…and « Ouvrir le Portfolio » crosses back to Zone\'s collections, the radio still playing', toPortfolio.path === '/portfolio' && toPortfolio.current === 'portfolio'
-    && toPortfolio.centre < 30 && toPortfolio.live && toPortfolio.same && !toPortfolio.paused, JSON.stringify(toPortfolio));
+    return { path: location.pathname, current: window.radioTower.world.current, same: au === window.__worldAudio, paused: au.paused,
+      over: Boolean(document.querySelector('.w-lost:not([hidden]) .w-box > .page .room-tabs')), window: Boolean(document.getElementById('w-portfolio')) };
+  });
+  // The Portfolio left Zone's side on 2026-11-01 and has no window until the Echo work gives it one: it opens over the world.
+  check('…and « Ouvrir le Portfolio » opens it over the world (no window on Zone\'s side any more), the radio still playing', toPortfolio.path === '/portfolio'
+    && toPortfolio.current === 'archives' && toPortfolio.over && !toPortfolio.window && toPortfolio.same && !toPortfolio.paused, JSON.stringify(toPortfolio));
 
   // R9's own check for this phase: an article prints from the world as it does from the classic site. Measured at the
   // paper's width (A4 at 96 dpi), then printed to PDF.
@@ -982,7 +1003,7 @@ try {
   await w.goto(dev + 'atlas?world=1', { waitUntil: 'domcontentloaded' });
   await w.waitForFunction(() => window.radioTower?.world?.current === 'atlas', null, { timeout: 10000 }).catch(() => {});
   await w.goto(dev + 'zone', { waitUntil: 'domcontentloaded' });
-  await w.waitForFunction(() => window.radioTower?.world?.current === 'zone', null, { timeout: 10000 }).catch(() => {});
+  await w.waitForFunction(() => window.radioTower?.world?.current === 'atlas', null, { timeout: 10000 }).catch(() => {});
   const backOn = await shellNow();
   check('…?world=1 brings the world back, for the rest of the tab too', backOn.world && backOn.path === '/zone', JSON.stringify(backOn));
   await wctx.close();
@@ -1310,14 +1331,14 @@ try {
     }));
     check('…and its Ondes page reads Up next and the next hours from the tower', tEcho.next >= 1 && tEcho.guide >= 5, tEcho.empty || `${tEcho.next} next, ${tEcho.guide} in the guide`);
 
-    // Zone on a tower: the tower's own origin (STATION_LAT/LON/PLACE, set by
-    // build-test.sh) wins over config.json's; a tower that names none leaves
-    // config.json's in place.
-    await tab(t, 'zone');
-    await t.waitForSelector('#zMap .zone-origin', { timeout: 5000 }).catch(() => {});
+    // Zone on a tower (in the Atlas since 2026-11-01): the tower's own origin (STATION_LAT/LON/PLACE,
+    // set by build-test.sh) wins over config.json's; a tower that names none leaves config.json's in place.
+    await tab(t, 'atlas');
+    await t.waitForFunction(() => document.querySelector('#aMap .tower-pin') && document.getElementById('aPlace')
+      && (window.radioTower.client.mode !== 'tower' || document.getElementById('aSource')?.textContent.includes('tower')), null, { timeout: 5000 }).catch(() => {});
     const tz = await t.evaluate(() => {
-      const g = document.querySelector('#zMap .zone-origin');
-      return { lat: Number(g?.dataset.lat), lon: Number(g?.dataset.lon), place: document.getElementById('zPlace')?.textContent, cfg: window.radioTower.client.config.station?.origin };
+      const g = document.querySelector('#aMap .tower-pin');
+      return { lat: Number(g?.dataset.lat), lon: Number(g?.dataset.lon), place: document.getElementById('aPlace')?.textContent, cfg: window.radioTower.client.config.station?.origin };
     });
     const so = server.station?.origin;
     const wantZ = so || tz.cfg;

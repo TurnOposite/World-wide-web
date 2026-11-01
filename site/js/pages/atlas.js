@@ -17,9 +17,18 @@
  *
  * No listener point: a static site has no server-side geo-IP, and the brief
  * forbids guessing ("never guess a location").
+ *
+ * Since 2026-11-01 this is also the Zone page (/zone answers with it): Ortis
+ * found the two « one and the same ». From Zone it took the playlists, which
+ * stand above the map (ui/spotify-deck.js, compact), and the card saying where
+ * the tower broadcasts from and what time it is there. The tower's point
+ * follows Zone's rule (pages/zone.js resolveOrigin): in tower mode the tower's
+ * own position wins over config.json's, and the point moves when it changes.
  */
 import { esc } from '../ui/util.js';
 import { postcardSvg } from '../ui/postcards.js';
+import { mountDeck } from '../ui/spotify-deck.js';
+import { coords, localTime, resolveOrigin } from './zone.js';
 
 export const title = 'Atlas';
 
@@ -89,18 +98,33 @@ export function mapSvg(world, places, origin, { compact = false, view = null } =
       <circle class="hit" cx="${x}" cy="${y}" r="3.4"/></g>`;
   }).join('');
 
-  let tower = '';
-  if (origin && Number.isFinite(origin.lat) && Number.isFinite(origin.lon)) {
-    const { x, y } = pinPoint(origin);
-    tower = `<g class="tower-pin" role="img" aria-label="Radio Tower broadcasts from ${esc(origin.place || '')}">
-      <circle class="wave" cx="${x}" cy="${y}" r="3"/><circle class="wave" cx="${x}" cy="${y}" r="3"/><circle class="wave" cx="${x}" cy="${y}" r="3"/>
-      <circle class="core" cx="${x}" cy="${y}" r=".8"/></g>`;
-  }
   return `<svg class="world-map" viewBox="${vx} ${vy} ${vw} ${vh}" role="group" aria-label="World map of the places where life and work happened">
     <defs><g id="${id}-land">${world.paths.map((d) => `<path d="${d}"/>`).join('')}</g></defs>
     <g class="atlas-grat">${grid.join('')}</g>
     <use href="#${id}-land" class="map-land"/>
-    ${inset}${tower}${pins}</svg>`;
+    ${inset}${towerSvg(origin)}${pins}</svg>`;
+}
+
+/** The tower's point, pulsing with the logo's waves — in the Europe inset when it is in Europe, like any pin. */
+export function towerSvg(origin) {
+  if (!origin || !Number.isFinite(origin.lat) || !Number.isFinite(origin.lon)) return '';
+  const { x, y } = pinPoint(origin);
+  return `<g class="tower-pin" data-lat="${origin.lat}" data-lon="${origin.lon}" role="img" aria-label="Radio Tower broadcasts from ${esc(origin.place || coords(origin))}">
+      <circle class="wave" cx="${x}" cy="${y}" r="3"/><circle class="wave" cx="${x}" cy="${y}" r="3"/><circle class="wave" cx="${x}" cy="${y}" r="3"/>
+      <circle class="core" cx="${x}" cy="${y}" r=".8"/></g>`;
+}
+
+/** Zone's card: the tower's place, its coordinates, the time there — or, with no position, that there is none. */
+export function originCardHtml(o) {
+  if (!o) {
+    return `<h2>Origin</h2><p class="zone-place">Not set</p>
+      <p class="hint">Neither the tower nor the site says where it is, so the map shows no point rather than a guess.</p>`;
+  }
+  return `<h2>Broadcasting from</h2>
+    <p class="zone-place" id="aPlace">${esc(o.place || 'Somewhere')}</p>
+    <p class="zone-coords">${esc(coords(o))}</p>
+    <p class="zone-time" id="aTime" hidden>Local time <b></b></p>
+    <p class="hint" id="aSource">${o.source === 'tower' ? 'Position given by the tower itself.' : 'Position from the site’s settings.'}</p>`;
 }
 
 /** A dossier link is a path on this site or an https URL — never javascript: or data:. */
@@ -184,23 +208,64 @@ export function wirePins(svgRoot, places, on) {
 }
 
 export async function mount(root, ctx) {
+  const { player, client, config } = ctx;
   root.innerHTML = `<div class="page-head"><h1>Atlas</h1>
-      <p>Where it happened: the cities I have lived in, what was made there, and where the tower is broadcasting from right now.</p></div>
+      <p>Where the signal comes from, and where it happened: the tower’s point, the cities I have lived in, what was made there.</p></div>
+    <section class="zone-playlists atlas-playlists" aria-labelledby="aPlH">
+      <h2 id="aPlH">Playlists</h2>
+      <p class="hint">Les playlists du profil ZoNeKo, à écouter ici : choisissez-en une, elle passe dans le lecteur Spotify. <a href="playlists" data-link>Toutes en grand</a></p>
+      <div id="aDeck"></div>
+    </section>
     <div class="atlas">
       <div class="mapbox" id="aMap"><p class="empty">…</p>
         <article class="postcard" id="aDossier" aria-live="polite" hidden></article></div>
       <nav class="atlas-index" id="aIndex" aria-label="Places"></nav>
-    </div>`;
+    </div>
+    <section class="zone-card panel atlas-origin" id="aOrigin" aria-live="polite"></section>`;
+  // The deck loads beside the map, not after it.
+  const deck = mountDeck(root.querySelector('#aDeck'), { player, compact: true });
   const { world, places } = await load();
-  const origin = ctx.config.station?.origin;
+  const originNow = () => resolveOrigin(player?.data?.station, config, { mode: client?.mode });
+  let origin = originNow();
   const box = root.querySelector('#aMap');
   const card = root.querySelector('#aDossier');
   const index = root.querySelector('#aIndex');
+  const originBox = root.querySelector('#aOrigin');
 
   box.querySelector('.empty').remove();
   box.insertAdjacentHTML('afterbegin', mapSvg(world, places, origin) +
-    `<div class="map-legend"><span><i class="sw"></i> a place: hover it for its postcard</span>${origin ? `<span><i class="sw ring"></i> the tower broadcasts from ${esc(origin.place || '')}</span>` : ''}<span>Europe enlarged ×${INSET.s} · Natural Earth 1:110m</span></div>`);
+    `<div class="map-legend"><span><i class="sw"></i> a place: hover it for its postcard</span><span id="aLgTower"${origin ? '' : ' hidden'}><i class="sw ring"></i> the tower broadcasts from <span>${esc(origin?.place || '')}</span></span><span>Europe enlarged ×${INSET.s} · Natural Earth 1:110m</span></div>`);
   const svg = box.querySelector('svg');
+
+  const paintTime = () => {
+    const el = originBox.querySelector('#aTime');
+    if (!el || !origin) return;
+    const t = localTime(client?.now?.() ?? Date.now(), origin.timeZone);
+    el.hidden = !t;
+    if (t) el.querySelector('b').textContent = `${t.time}${t.offset ? ` · ${t.offset}` : ''}`;
+  };
+  // The tower's answer can come after the page, or change: the point, the legend and the card follow it.
+  let originKey = '';
+  const paintOrigin = () => {
+    const next = originNow();
+    const k = JSON.stringify(next);
+    if (k === originKey) return;
+    originKey = k;
+    origin = next;
+    svg.querySelector('.tower-pin')?.remove();
+    const g = towerSvg(origin);
+    const firstPin = svg.querySelector('.pin');
+    if (g && firstPin) firstPin.insertAdjacentHTML('beforebegin', g);
+    else if (g) svg.insertAdjacentHTML('beforeend', g);
+    const legend = box.querySelector('#aLgTower');
+    legend.hidden = !origin;
+    legend.querySelector('span').textContent = origin?.place || '';
+    originBox.innerHTML = originCardHtml(origin);
+    paintTime();
+  };
+  paintOrigin();
+  player?.addEventListener?.('station', paintOrigin);
+  const tick = setInterval(paintTime, 15_000);
 
   index.innerHTML = places.map((p, i) => `<button type="button" class="ai-chip k-${esc(p.kind || 'lived')}" data-i="${i}"><b>${esc(p.city)}</b>${p.years ? `<span>${esc(p.years)}</span>` : ''}</button>`).join('');
 
@@ -340,5 +405,11 @@ export async function mount(root, ctx) {
   const k = places.findIndex((p) => p.slug && p.slug === deep);
   if (k >= 0) { pinned = true; show(k, { open: true }); }
 
-  return () => cleanups.forEach((f) => f());
+  const stopDeck = await deck;
+  return () => {
+    cleanups.forEach((f) => f());
+    player?.removeEventListener?.('station', paintOrigin);
+    clearInterval(tick);
+    stopDeck?.();
+  };
 }

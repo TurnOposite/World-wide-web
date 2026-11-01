@@ -85,9 +85,9 @@ test('checkLayout: overlaps, phone frames, the world’s edge, sizes — errors;
   const pages = designed();
   assert.deepEqual(checkLayout(pages), [], 'the designed map is clean');
   const atlas = pages.find((p) => p.id === 'atlas');
-  atlas.x = 1500; // onto Portfolio
-  assert.ok(checkLayout(pages).some((i) => i.level === 'error' && i.id === 'atlas' && /on top of portfolio/.test(i.msg)));
-  atlas.x = 1010;
+  atlas.x = 1500; atlas.y = 1000; // onto the Booth
+  assert.ok(checkLayout(pages).some((i) => i.level === 'error' && i.id === 'atlas' && /on top of booth/.test(i.msg)));
+  atlas.x = 380; atlas.y = 1700;
   assert.deepEqual(checkLayout(pages), [], 'back in its place: clean again');
   // Clear of Ondes on a desktop (a 120 px gap), but on a phone each frame is up to 736 × 700 from its corner.
   const radio = pages.find((p) => p.id === 'radio');
@@ -110,13 +110,13 @@ test('checkLayout: overlaps, phone frames, the world’s edge, sizes — errors;
 
 test('the file round-trips: what the Atelier writes is what the site reads back', () => {
   const pages = all();
-  pages.find((p) => p.id === 'zone').x = 130.04;
+  pages.find((p) => p.id === 'atlas').x = 130.04;
   const text = stringifyLayout(layoutFile(pages, { updatedAt: 'T' }));
   assert.equal(text.split('\n').filter((l) => l.startsWith('    {"id":')).length, pages.length, 'one line per page');
   const back = resolveLayout(JSON.parse(text), { all: true }).pages;
   assert.deepEqual(back.map((p) => [p.id, p.x, p.y, p.w, p.h, p.rot, p.tag.join(), p.status]), pages.map((p) => [p.id, Math.round(p.x * 10) / 10, p.y, p.w, p.h, p.rot, p.tag.join(), p.status]));
-  const zoneLine = JSON.parse(text).pages.find((p) => p.id === 'zone');
-  assert.deepEqual(Object.keys(zoneLine), ['id', 'x', 'y', 'w', 'h', 'rot', 'tag'], 'a page of today: its place only');
+  const atlasLine = JSON.parse(text).pages.find((p) => p.id === 'atlas');
+  assert.deepEqual(Object.keys(atlasLine), ['id', 'x', 'y', 'w', 'h', 'rot', 'tag'], 'a page of today: its place only');
 });
 
 test('applyPages refills the one DISTRICTS array every world module reads, and the world grows for the past band', () => {
@@ -305,10 +305,10 @@ test('the Atelier saves only a sound map, one page per line, from this machine o
   assert.equal(body.pages, pages.length);
   assert.equal(resolveLayout(JSON.parse(fs.readFileSync(file, 'utf8')), { all: true }).pages.find((p) => p.id === 'wix').status, 'online');
   const broken = all();
-  broken.find((p) => p.id === 'atlas').x = 1700;
+  Object.assign(broken.find((p) => p.id === 'booth'), { x: 500, y: 1800 });
   const [bad, why] = await saveLayout(stringifyLayout(layoutFile(broken)), file);
   assert.equal(bad, 422);
-  assert.match(why.error, /atlas: on top of portfolio/);
+  assert.match(why.error, /atlas: on top of booth/);
   assert.equal((await saveLayout('{nope', file))[0], 400);
 
   const server = await createSiteServer({ layoutFile: file, quiet: true });
@@ -341,9 +341,9 @@ test('npm run layout: move, nudge, size, tilt, tag, swap, online — one line ea
   edit(pages, ['tilt', 'atlas', '2']);
   edit(pages, ['tag', 'atlas', '9', '45', '-2']);
   assert.deepEqual([findPage(pages, 'atlas').w, findPage(pages, 'atlas').h, findPage(pages, 'atlas').rot, findPage(pages, 'atlas').tag], [700, 720, 2, [9, 45, -2]]);
-  const [z, a] = [{ ...findPage(pages, 'zone') }, { ...findPage(pages, 'atlas') }];
-  edit(pages, ['swap', 'atlas', 'zone']);
-  assert.deepEqual([findPage(pages, 'zone').x, findPage(pages, 'atlas').x], [a.x, z.x]);
+  const [z, a] = [{ ...findPage(pages, 'playlists') }, { ...findPage(pages, 'atlas') }];
+  edit(pages, ['swap', 'atlas', 'playlists']);
+  assert.deepEqual([findPage(pages, 'playlists').x, findPage(pages, 'atlas').x], [a.x, z.x]);
   assert.match(edit(pages, ['offline', 'v1']), /offline/);
   assert.equal(findPage(pages, 'P-01').status, 'offline');
   assert.match(table(pages), /P-01\s+Version 1.*OFFLINE/);

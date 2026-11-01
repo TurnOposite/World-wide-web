@@ -3595,3 +3595,35 @@ world. Merging this branch therefore also merges the redesign — `fire` from th
 which versions to freeze next; rearranging sections *inside* a page (each page's own layout, not the map's).
 **Revisit if** an old version stops working against today's tower (its API is the old pages' only live
 dependency), or if `dist/` grows past what Vercel's free tier deploys quickly (each version adds ~1 MB).
+
+## 2026-11-01 — Zone is part of the Atlas; the Portfolio leaves Zone's side; the playlists stand above the Atlas
+
+**Asked by Ortis** after seeing the map in the Atelier: « remove the portfolio from the zone side,
+merge the zone and the atlas, since they're one and the same, and have the playlist be above the
+atlas » — and push it now.
+**Decided:**
+1. **One page, two addresses.** The Atlas (`pages/atlas.js`) takes Zone's playlists (the compact
+   Spotify deck, now *above* the map) and Zone's card (where the tower broadcasts from, its
+   coordinates, the time there). Its tower point follows Zone's rule — in tower mode the tower's own
+   position wins over `config.json`'s, and the point moves when the tower's answer comes or changes
+   (`resolveOrigin`); before, the Atlas read `config.json` only. `/zone` is a second pattern of the
+   Atlas's route, like `/echoes` for Ondes. `pages/zone.js` keeps the rules (origin, local time, the
+   listener's flag) and no longer draws a map of its own.
+2. **The page is called Atlas.** It keeps the Atlas's deep links (`atlas#novo-hamburgo`), its press
+   for Archives and its short link `Z-04`; and « Zone » keeps one meaning on the site — the radio's
+   half. Assumed, not asked: a one-word rename (`title` in `layout.js`, the `<h1>` in `atlas.js`) if
+   Ortis wants « Zone » on it instead.
+3. **The map:** Radio and Ondes on top, Playlists under them, the Atlas under Playlists (1000 × 740),
+   the Booth beside Playlists. Laid out inside the map's own rules (no window within 20 px of another,
+   phone frames clear, the lowest window 160 px above the world's floor so the past band does not move).
+4. **The Portfolio has no window for now.** It is not Zone's, and where it goes on Echo's side is
+   part of the Echo work that waits for Ortis's documents. Meanwhile `/portfolio…` opens over the
+   world (the window a page off the map gets), Archives' « Ouvrir le Portfolio » still leads there,
+   and the banner and Echo's rubriques no longer list it. This is the one route `districtFor` leaves
+   off the map on purpose; the unit test says so.
+5. **Codes are names, so they stay.** `Z-03` and `Z-05` are retired, not reused: `refs.js` `RETIRED`
+   sends `go/Z-03` to the Atlas and `go/Z-05/<room>` to the Portfolio, so a link handed out before
+   still lands.
+**Revisit when** the Echo work gives the Portfolio a place (a window on Echo's paper needs the rooms
+restyled for paper — they are written for Zone's night), or if Ortis renames the merged page.
+

@@ -32,16 +32,15 @@ export const DISTRICTS = [
     hosts: 'On air: the cover, the channels dial, the queue', tag: [3, 15, -4] },
   { id: 'ondes', code: 'Z-02', title: ONDES_LABEL, half: 'zone', x: 1400, y: 300, w: 960, h: 640, rot: 0.8, route: 'ondes',
     hosts: 'Just played, up next behind the lock fence, the next hours', tag: [11, 23, 3] },
-  { id: 'zone', code: 'Z-03', title: 'Zone', half: 'zone', x: 110, y: 1150, w: 800, h: 620, rot: 0.5, route: 'zone',
-    hosts: 'Where the tower broadcasts from: the map, the local time', tag: [2, 33, -7] },
-  { id: 'atlas', code: 'Z-04', title: 'Atlas', half: 'zone', x: 1010, y: 1080, w: 640, h: 700, rot: -1.2, route: 'atlas',
-    hosts: 'Postcards, the Europe inset, the press', tag: [8, 44, 5] },
-  { id: 'portfolio', code: 'Z-05', title: 'Portfolio', half: 'zone', x: 1760, y: 1180, w: 700, h: 560, rot: 0.9, route: 'portfolio',
-    hosts: 'Three doors: Library, Photos, Crates', tag: [3, 55, -2] },
-  { id: 'playlists', code: 'Z-06', title: 'Playlists', half: 'zone', x: 260, y: 1880, w: 1240, h: 560, rot: -0.4, route: 'playlists',
-    hosts: 'The featured playlist and every card', tag: [10, 65, 6] },
-  { id: 'booth', code: 'Z-07', title: 'Booth', half: 'zone', x: 1700, y: 1960, w: 620, h: 420, rot: 1.4, route: 'booth',
-    hosts: 'The DJ booth, still behind its key', tag: [4, 76, -5], faint: true },
+  // Ortis, 2026-11-01: the Zone page and the Atlas are one and the same, so Z-03 is part of the
+  // Atlas (Z-04); the Portfolio (Z-05) left Zone's side; the playlists stand above the Atlas.
+  // The codes stay (refs.js RETIRED): a short link handed out before keeps landing.
+  { id: 'playlists', code: 'Z-06', title: 'Playlists', half: 'zone', x: 260, y: 980, w: 1240, h: 560, rot: -0.4, route: 'playlists',
+    hosts: 'The featured playlist and every card', tag: [2, 33, -7] },
+  { id: 'atlas', code: 'Z-04', title: 'Atlas', half: 'zone', x: 380, y: 1700, w: 1000, h: 740, rot: -0.8, route: 'atlas',
+    hosts: 'Where the tower broadcasts from, the places, their postcards and press', tag: [8, 44, 5] },
+  { id: 'booth', code: 'Z-07', title: 'Booth', half: 'zone', x: 1700, y: 1060, w: 620, h: 420, rot: 1.4, route: 'booth',
+    hosts: 'The DJ booth, still behind its key', tag: [4, 55, -5], faint: true },
   { id: 'une', code: 'E-01', title: 'Une', half: 'echo', x: 2820, y: 190, w: 1150, h: 980, rot: 0, route: 'echo',
     hosts: 'La une : le titre, l’article de tête, ce qui passe à l’antenne', tag: [4, 18, 4] },
   { id: 'articles', code: 'E-02', title: 'Articles', half: 'echo', x: 4080, y: 120, w: 900, h: 1100, rot: 0, route: null,
@@ -82,7 +81,11 @@ export function reindex() { BY_ID = new Map(DISTRICTS.map((d) => [d.id, d])); }
 export function districtFor(name, params = {}) {
   switch (name) {
     case 'home': case 'radio': return 'radio';
-    case 'ondes': case 'zone': case 'atlas': case 'portfolio': case 'playlists': case 'booth': return name;
+    case 'ondes': case 'atlas': case 'playlists': case 'booth': return name;
+    // /zone is the Atlas's other address since the two pages became one (2026-11-01).
+    case 'zone': return 'atlas';
+    // Off the map until the Echo work gives it a place: it opens over the world, like a page with no window.
+    case 'portfolio': return null;
     case 'echo': return params.slug ? 'articles' : 'une';
     case 'lectures': case 'ecrits': return 'lectures';
     case 'archives': return 'archives';
@@ -111,10 +114,10 @@ const PHONE_TOP = 116;
 const SHORT_TOP = 64;
 export const phoneTop = (vh) => (vh <= SHORT_MAX ? SHORT_TOP : PHONE_TOP);
 /**
- * A phone frame is never wider than the map's tightest gap side by side
- * (Atlas → Portfolio: 750 apart), nor taller than its tightest stack (Zone
- * over Playlists: 730 apart), so two never overlap — a phone on its side is
- * wider than any phone upright.
+ * A phone frame is never wider than the map's tightest gap side by side, nor
+ * taller than its tightest stack (Atlas under Playlists: 720 apart), so two
+ * never overlap — a phone on its side is wider than any phone upright.
+ * tests/site-world.test.js measures it on the map as published.
  */
 export const PHONE_MAX_W = 736;
 export const PHONE_MAX_H = 700;

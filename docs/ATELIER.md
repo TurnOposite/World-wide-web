@@ -42,7 +42,7 @@ What you change is a **draft in this browser**: nobody else sees it. Then:
 
 ```powershell
 npm run layout                          # the map: code, page, place, size, tilt, online
-npm run layout -- swap atlas zone       # two windows trade places
+npm run layout -- swap atlas playlists  # two windows trade places
 npm run layout -- move Z-04 1200 900    # x, y in world pixels (the world is 5200 wide; Zone left of 2600)
 npm run layout -- nudge atlas +100 -50
 npm run layout -- size atlas 700 720
@@ -102,7 +102,7 @@ an id (`atlas`, `v1`). Any of them, any case:
 | Link | Leads to |
 |---|---|
 | `go/Z-04`, `go/atlas` | the Atlas, wherever its window is |
-| `go/E-02/<slug>` | an Echo article · `go/E-03/<slug>` a text in Lectures · `go/Z-05/photos` a Portfolio room |
+| `go/E-02/<slug>` | an Echo article · `go/E-03/<slug>` a text in Lectures · `go/Z-05/photos` a Portfolio room (Z-05 is off the map since 2026-11-01; the link still lands) |
 | `go/P-01`, `go/v1` | Version 1 in its window |
 | `go/v1/atlas` | the v1 site's own Atlas, full screen |
 

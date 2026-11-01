@@ -68,7 +68,7 @@ phone pass) run under `?classic=1`; everything else runs on bare addresses — w
   hide what the glass shows.
 - **Pages keep their code.** The classic pages take their colours, radii and faces from
   `site.css`'s tokens; inside a Zone window those tokens are re-pointed (`.w-zone-d .w-box`), so
-  Radio, Ondes, Zone, Atlas, Portfolio, Playlists and the Booth wear the skin without a line of
+  Radio, Ondes, Playlists, the Atlas and the Booth wear the skin without a line of
   page code changing. Panels stay nearly opaque: the glass shows the visualiser around the text,
   never under it.
 - **Faces.** Chakra Petch (400, 600, 700) for Zone's UI, IBM Plex Mono (400) for codes and data,
@@ -146,7 +146,7 @@ phone pass) run under `?classic=1`; everything else runs on bare addresses — w
   is what it lacks, so the brand, the switch, the tags and « Écran » share one line (`fitStrip`
   measures the room between the switch and « Écran »), and the frame starts under it
   (`SHORT_TOP`, 64 px) and ends above the mini-player, at 1:1. A phone frame is never wider than
-  736 px — the map's tightest gap side by side (Atlas → Portfolio) — and is centred, so on a wide
+  736 px — narrower than the map's tightest gap side by side — and is centred, so on a wide
   phone on its side the neighbours stay apart and a little of the visualiser shows at the sides.
 
 ## Files
@@ -173,15 +173,19 @@ phone pass) run under `?classic=1`; everything else runs on bare addresses — w
 |---|---|---|---|
 | Radio | Z-01 | `/radio` (and the home) | Zone |
 | Ondes | Z-02 | `/ondes` | Zone |
-| Zone | Z-03 | `/zone` | Zone |
-| Atlas | Z-04 | `/atlas` | Zone |
-| Portfolio | Z-05 | `/portfolio…` | Zone |
-| Playlists | Z-06 | `/playlists` | Zone |
+| Playlists | Z-06 | `/playlists` — above the Atlas | Zone |
+| Atlas | Z-04 | `/atlas`, and `/zone` since the Zone page became part of it | Zone |
 | Booth | Z-07 | `/booth` (faint tag, still key-gated) | Zone |
 | Une | E-01 | `/echo` | Echo |
 | Articles | E-02 | `/echo/<slug>` (its tag moves only the camera) | Echo |
 | Lectures | E-03 | `/echo/lectures…`, `/ecrits…` | Echo |
 | Archives | E-04 | `/echo/archives` | Echo |
+
+**Since 2026-11-01** (Ortis): Zone (Z-03) and the Atlas were « one and the same », so the Atlas is
+both — the playlists on top, the map with the tower's point, Zone's card under it — and `/zone`
+opens it. The Portfolio (Z-05) left Zone's side: it has no window until the Echo work gives it one,
+so `/portfolio…` opens over the world (Archives still links it). Both codes stay as short links
+(`refs.js` `RETIRED`: `go/Z-03` → the Atlas, `go/Z-05/photos` → the Portfolio's photos).
 
 A tag with a route goes through the router — a real address, Back and Forward work, a cold
 link lands with the camera already there and no flight. ← → walk the districts in map order

@@ -107,7 +107,7 @@ npm run selftest       # the full build-test.sh
 npm run collections    # does collections/collection.json match the files on disk?
 
 npm run layout         # the site's map: where each page's window stands, the past online or not (docs/ATELIER.md)
-npm run layout -- swap atlas zone   # …move, nudge, size, tilt, tag, online, offline, check
+npm run layout -- swap atlas playlists   # …move, nudge, size, tilt, tag, online, offline, check
 npm run past -- snapshot v3 <ref>   # freeze a version of the site under past/
 npm run fire -- --dry-run           # publish now: GitHub → Vercel → the Oracle tower (fire.cmd; asks before sending)
 

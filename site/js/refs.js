@@ -4,7 +4,7 @@
  *
  *   Z-04 · atlas          the Atlas, wherever its window is on the map
  *   E-02/<slug>           an Echo article        E-03/<slug>  a text in Lectures
- *   Z-05/photos           a Portfolio room
+ *   Z-05/photos           a Portfolio room (Z-05 left the map: RETIRED)
  *   P-01 · v1             the v1 version, in its window on the world
  *   v1/atlas              the v1 site itself, at its own /atlas
  *
@@ -20,6 +20,15 @@ export const RENAMED = [
   ['echoes', 'ondes'],
   ['ecrits', 'echo/lectures'],
 ];
+
+/**
+ * Codes whose window left the map, and the address they lead to now — a short link handed
+ * out before keeps landing (2026-11-01: Zone became part of the Atlas, the Portfolio left Zone's side).
+ */
+export const RETIRED = new Map([
+  ['z-03', 'atlas'],
+  ['z-05', 'portfolio'],
+]);
 
 const SAFE = /^[\w-]+(?:\/[\w-]+)*$/;
 
@@ -53,6 +62,8 @@ export function resolveRef(ref, pages) {
   const [head, ...restParts] = r.split('/');
   const rest = restParts.join('/');
   const page = find(pages, head);
+  const retired = page ? null : RETIRED.get(head.toLowerCase());
+  if (retired) return { kind: 'route', to: rest ? `${retired}/${rest}` : retired };
   // Not a page's name: an address of the site (go/ecrits/voyages) passes through; anything else is no ref.
   if (!page) return HEADS.has(head) ? { kind: 'route', to: r } : null;
   if (page.era === 'past') {

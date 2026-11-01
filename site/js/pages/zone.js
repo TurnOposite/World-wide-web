@@ -1,35 +1,22 @@
 /**
- * /zone — where the tower is broadcasting from (docs/DESIGN-BRIEF.md §2,
- * roadmap #21).
- *
- * One minimal world map and one point: green, with the logo's sideways arcs
- * leaving it slowly. Not the Atlas — no places, no postcards — only the
- * signal's origin, its name, and the time it is there.
+ * Where the tower is broadcasting from (docs/DESIGN-BRIEF.md §2, roadmap
+ * #21): the rules, not a page. Until 2026-11-01 this was the /zone page — one
+ * minimal map and one green point. Ortis then found Zone and the Atlas « one
+ * and the same », so the Atlas (pages/atlas.js) draws the point, the card and
+ * the playlists, and /zone opens it. What stays here is which point to draw
+ * and how to tell its time; the Atlas imports it.
  *
  * The origin is configuration. A tower that names one (STATION_LAT / LON /
  * PLACE in its env, surfaced in /api/station → station.origin) wins; else
  * the site's own config.json → station.origin. Neither → no point, and the
  * page says so rather than guessing.
  *
- * Same map as the Atlas (site/data/world.json, Natural Earth 1:110m) on the
- * same linear projection x = lon + 180, y = 90 − lat. No map library, no
- * tiles, no third-party call. The Atlas module is not imported: it pulls the
- * postcards (~26 KB) with it, and the projection is one line.
- *
- * The listener's blue point (roadmap #22) is built but off. It renders only
- * when config.json → zone.listener is true AND the tower's /api/station
- * carries a coarse, server-side geo-IP position in `listener`. Nothing serves
- * one today, so it does not render. Never the browser Geolocation API, never
- * a guess.
- *
- * Under the map, the Spotify deck in its compact form (ui/spotify-deck.js):
- * the ZoNeKo playlists, playable in one Spotify player (Arthur, 2026-10-20).
+ * The listener's blue point (roadmap #22) is a rule without a drawing since
+ * the merge: it may only exist when config.json → zone.listener is true AND
+ * the tower's /api/station carries a coarse, server-side geo-IP position in
+ * `listener`. Nothing serves one today. Never the browser Geolocation API,
+ * never a guess.
  */
-import { esc } from '../ui/util.js';
-import { mountDeck } from '../ui/spotify-deck.js';
-
-export const title = 'Zone';
-
 export const project = (lat, lon) => ({ x: lon + 180, y: 90 - lat });
 
 /** A position worth drawing: finite, on the globe. */
@@ -79,103 +66,4 @@ export function localTime(ms, timeZone) {
   } catch {
     return null;
   }
-}
-
-// The logo's arcs (index.html #mark: inner arc from (±4, ∓4.5), radius 7),
-// at map scale, centred on the point so `transform-box: fill-box` scales
-// each pair around it.
-const ARC = { a: 1.6, b: 1.8, r: 2.8 };
-const arcs = (x, y) => {
-  const { a, b, r } = ARC;
-  return `<path d="M${x + a} ${y - b}A${r} ${r} 0 0 1 ${x + a} ${y + b}M${x - a} ${y + b}A${r} ${r} 0 0 1 ${x - a} ${y - b}"/>`;
-};
-
-/** The map, as a string: land, the equator, and the points that exist. */
-export function zoneSvg(world, origin, { listener = null } = {}) {
-  const [vx, vy, vw, vh] = world.viewBox;
-  const r = (n) => Math.round(n * 100) / 100;
-  let guides = '';
-  let tower = '';
-  if (origin) {
-    const { x, y } = project(origin.lat, origin.lon);
-    guides = `<line x1="${vx}" y1="${r(y)}" x2="${vx + vw}" y2="${r(y)}"/><line x1="${r(x)}" y1="${vy}" x2="${r(x)}" y2="${vy + vh}"/>`;
-    const label = origin.place ? `<text class="zo-label" x="${r(x + 6)}" y="${r(y + 1.6)}"${x > vx + vw - 60 ? ` text-anchor="end" dx="-10"` : ''}>${esc(origin.place)}</text>` : '';
-    tower = `<g class="zone-origin" data-lat="${origin.lat}" data-lon="${origin.lon}" role="img" aria-label="The tower broadcasts from ${esc(origin.place || coords(origin))}">
-      <g class="zw">${arcs(r(x), r(y))}</g><g class="zw">${arcs(r(x), r(y))}</g><g class="zw">${arcs(r(x), r(y))}</g>
-      <circle class="zo-halo" cx="${r(x)}" cy="${r(y)}" r="2.6"/><circle class="zo-core" cx="${r(x)}" cy="${r(y)}" r="1.35"/>${label}</g>`;
-  }
-  let you = '';
-  if (listener) {
-    const { x, y } = project(listener.lat, listener.lon);
-    you = `<g class="zone-listener" role="img" aria-label="You are listening from around ${esc(listener.place || coords(listener))}"><circle cx="${r(x)}" cy="${r(y)}" r="1.1"/></g>`;
-  }
-  return `<svg class="zone-map" viewBox="${vx} ${vy} ${vw} ${vh}" role="group" aria-label="World map: where Radio Tower broadcasts from">
-    <g class="zone-guides" aria-hidden="true"><line class="eq" x1="${vx}" y1="90" x2="${vx + vw}" y2="90"/>${guides}</g>
-    <g class="zone-land" aria-hidden="true">${world.paths.map((d) => `<path d="${d}"/>`).join('')}</g>
-    ${tower}${you}</svg>`;
-}
-
-let WORLD = null;
-
-export async function mount(root, ctx) {
-  const { player, client, config } = ctx;
-  root.innerHTML = `<div class="page-head"><h1>Zone</h1>
-      <p>Where the signal comes from. One tower, one point on the map; everyone tuned in hears it from here.</p></div>
-    <section class="zone">
-      <div class="zone-mapbox" id="zMap"><p class="empty">…</p></div>
-      <div class="zone-card panel" id="zCard" aria-live="polite"></div>
-    </section>
-    <section class="zone-playlists" aria-labelledby="zPlH">
-      <h2 id="zPlH">Playlists</h2>
-      <p class="hint">Les playlists du profil ZoNeKo, à écouter ici : choisissez-en une, elle passe dans le lecteur Spotify. <a href="playlists">Toutes en grand</a></p>
-      <div id="zDeck"></div>
-    </section>`;
-  // The deck loads beside the map, not after it.
-  const deck = mountDeck(root.querySelector('#zDeck'), { player, compact: true });
-  if (!WORLD) WORLD = await (await fetch(new URL('data/world.json', document.baseURI))).json();
-  const box = root.querySelector('#zMap');
-  const card = root.querySelector('#zCard');
-
-  let key = '';
-  let origin = null;
-  const paintTime = () => {
-    const el = card.querySelector('#zTime');
-    if (!el || !origin) return;
-    const t = localTime(client.now?.() ?? Date.now(), origin.timeZone);
-    el.hidden = !t;
-    if (t) el.querySelector('b').textContent = `${t.time}${t.offset ? ` · ${t.offset}` : ''}`;
-  };
-
-  const paint = () => {
-    const body = player.data;
-    const next = resolveOrigin(body?.station, config, { mode: client.mode });
-    const listener = resolveListener(body, config);
-    const k = JSON.stringify([next, listener]);
-    if (k === key) return;
-    key = k;
-    origin = next;
-    box.innerHTML = zoneSvg(WORLD, origin, { listener });
-    if (!origin) {
-      card.innerHTML = `<h2>Origin</h2><p class="zone-place">Not set</p>
-        <p class="hint">Neither the tower nor the site says where it is, so the map shows no point rather than a guess.</p>`;
-      return;
-    }
-    card.innerHTML = `<h2>Broadcasting from</h2>
-      <p class="zone-place" id="zPlace">${esc(origin.place || 'Somewhere')}</p>
-      <p class="zone-coords">${esc(coords(origin))}</p>
-      <p class="zone-time" id="zTime" hidden>Local time <b></b></p>
-      <p class="hint" id="zSource">${origin.source === 'tower' ? 'Position given by the tower itself.' : 'Position from the site’s settings.'}</p>
-      ${listener ? `<p class="zone-you"><i aria-hidden="true"></i> you, roughly${listener.place ? `: ${esc(listener.place)}` : ''}</p>` : ''}`;
-    paintTime();
-  };
-
-  paint();
-  player.addEventListener('station', paint);
-  const tick = setInterval(paintTime, 15_000);
-  const stopDeck = await deck;
-  return () => {
-    player.removeEventListener('station', paint);
-    clearInterval(tick);
-    stopDeck();
-  };
 }

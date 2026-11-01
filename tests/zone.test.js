@@ -1,5 +1,5 @@
 /**
- * The Zone tab (docs/DESIGN-BRIEF.md §2, roadmap #21/#22): the broadcast
+ * Zone's rules (docs/DESIGN-BRIEF.md §2, roadmap #21/#22; drawn by the Atlas since 2026-11-01): the broadcast
  * origin is configuration (env on a tower, config.json on the site), the
  * point lands where the projection says, and a listener point never appears
  * without a server-side geo source behind a flag.
@@ -11,11 +11,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { originFromEnv, validTimeZone } from '../server/lib/origin.js';
-import { project, isPoint, resolveOrigin, resolveListener, coords, localTime, zoneSvg } from '../site/js/pages/zone.js';
-import { project as atlasProject } from '../site/js/pages/atlas.js';
+import { project, isPoint, resolveOrigin, resolveListener, coords, localTime } from '../site/js/pages/zone.js';
+import { project as atlasProject, pinPoint, towerSvg, originCardHtml, VIEW } from '../site/js/pages/atlas.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const WORLD = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/data/world.json'), 'utf8'));
 const CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/config.json'), 'utf8'));
 
 test('STATION_LAT / LON / PLACE / TZ become the origin; anything half-set or off the globe is no origin', () => {
@@ -59,21 +58,35 @@ test('the site\'s configured origin is a real point (and is still Maputo — see
   assert.equal(o.place, 'Maputo');
 });
 
-test('the map draws the origin at the projected x/y, inside the world\'s viewBox', () => {
+test('the Atlas draws the origin at the projected x/y (Zone\'s rule since the two pages became one), inside its view', () => {
   const origin = { lat: -25.97, lon: 32.58, place: 'Maputo' };
-  const svg = zoneSvg(WORLD, origin);
-  const core = /<circle class="zo-core" cx="([\d.-]+)" cy="([\d.-]+)"/.exec(svg);
+  const svg = towerSvg(origin);
+  const core = /<circle class="core" cx="([\d.-]+)" cy="([\d.-]+)"/.exec(svg);
   assert.ok(core, 'a core point');
-  assert.equal(Number(core[1]), 212.58);
-  assert.equal(Number(core[2]), 115.97);
-  const [vx, vy, vw, vh] = WORLD.viewBox;
+  assert.ok(Math.abs(Number(core[1]) - 212.58) < 1e-9 && Math.abs(Number(core[2]) - 115.97) < 1e-9, core.slice(1).join());
+  const [vx, vy, vw, vh] = VIEW;
   assert.ok(core[1] >= vx && core[1] <= vx + vw && core[2] >= vy && core[2] <= vy + vh);
-  assert.equal((svg.match(/class="zw"/g) || []).length, 3, 'three arcs leave the point');
-  assert.equal((svg.match(/<path d=/g) || []).length, WORLD.paths.length + 3, 'every land path, plus one path per wave');
-  assert.match(svg, />Maputo<\/text>/);
-  assert.doesNotMatch(svg, /zone-listener/);
-  assert.doesNotMatch(zoneSvg(WORLD, null), /zone-origin/, 'no origin, no point');
-  assert.doesNotMatch(zoneSvg(WORLD, { ...origin, place: '<img onerror=x>' }), /<img/, 'the place name is escaped');
+  assert.equal((svg.match(/class="wave"/g) || []).length, 3, 'three waves leave the point');
+  assert.match(svg, /data-lat="-25.97" data-lon="32.58"/);
+  assert.match(svg, /broadcasts from Maputo"/);
+  assert.equal(towerSvg(null), '', 'no origin, no point');
+  assert.doesNotMatch(towerSvg({ ...origin, place: '<img onerror=x>' }), /<img/, 'the place name is escaped');
+  // Amsterdam is in Europe: the point is drawn in the magnified inset, where the Europe pins are.
+  const ams = { lat: 52.37, lon: 4.9, place: 'Amsterdam' };
+  const at = pinPoint(ams);
+  assert.ok(at.inset);
+  assert.match(towerSvg(ams), new RegExp(`class="core" cx="${at.x}" cy="${at.y}"`));
+});
+
+test('Zone\'s card, in the Atlas: the place, its coordinates, where the position comes from — or plainly none', () => {
+  const html = originCardHtml({ lat: -25.97, lon: 32.58, place: 'Maputo', timeZone: 'Africa/Maputo', source: 'tower' });
+  assert.match(html, /<p class="zone-place" id="aPlace">Maputo<\/p>/);
+  assert.match(html, /25\.97° S, 32\.58° E/);
+  assert.match(html, /id="aTime" hidden/, 'the time fills in once the page runs');
+  assert.match(html, /given by the tower itself/);
+  assert.match(originCardHtml({ lat: 1, lon: 1, place: '', source: 'config' }), /Somewhere[\s\S]*site’s settings/);
+  assert.doesNotMatch(originCardHtml({ lat: 1, lon: 1, place: '<b>x</b>', source: 'config' }), /<b>x/, 'escaped');
+  assert.match(originCardHtml(null), /Not set[\s\S]*rather than a guess/);
 });
 
 test('the listener point needs the flag AND a server-side position — never one without the other', () => {
@@ -83,7 +96,6 @@ test('the listener point needs the flag AND a server-side position — never one
   assert.equal(resolveListener({ listener: { lat: null, lon: 2 } }, { zone: { listener: true } }), null);
   assert.deepEqual(resolveListener(body, { zone: { listener: true } }), { lat: 48.85, lon: 2.35, place: 'Paris' });
   assert.equal(CONFIG.zone?.listener, undefined, 'the site ships with the flag off');
-  assert.match(zoneSvg(WORLD, null, { listener: { lat: 48.85, lon: 2.35, place: 'Paris' } }), /<circle cx="182.35" cy="41.15"/);
 });
 
 test('the origin reads as coordinates and as its own local time', () => {

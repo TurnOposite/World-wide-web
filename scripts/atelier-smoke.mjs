@@ -202,9 +202,10 @@ try {
     return { href: a.getAttribute('href'), ref: a.dataset.ref };
   });
   await w.click('#refTest');
-  await settled('zone');
-  check('a gt: link gets today’s address as it enters the page, and the router takes the click', rewritten.href === 'zone' && rewritten.ref === 'Z-03'
-    && await w.evaluate(() => location.pathname === '/zone' && window.radioTower.world.current === 'zone'), JSON.stringify(rewritten));
+  await settled('atlas');
+  // Z-03 (Zone) became part of the Atlas on 2026-11-01: a link handed out before still lands, on the Atlas.
+  check('a gt: link gets today’s address as it enters the page, and the router takes the click — a retired code too', rewritten.href === 'atlas' && rewritten.ref === 'Z-03'
+    && await w.evaluate(() => location.pathname === '/atlas' && window.radioTower.world.current === 'atlas'), JSON.stringify(rewritten));
 
   // ---- the Atelier
   const at = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
@@ -217,7 +218,7 @@ try {
     state: document.querySelector('.at-state').textContent,
   }));
   check('the Atelier lists every page, today’s and the past’s, an online/offline switch on each version, the page in view chosen',
-    opened.rows === 14 && opened.switches.join() === 'En ligne,En ligne,Hors ligne' && opened.wix && opened.picked === 'Z-04' && /Identique/.test(opened.state), JSON.stringify(opened));
+    opened.rows === 12 && opened.switches.join() === 'En ligne,En ligne,Hors ligne' && opened.wix && opened.picked === 'Z-04' && /Identique/.test(opened.state), JSON.stringify(opened));
   const a11yPanel = await axeRun(at, '.at-panel');
   check('the Atelier’s panel passes axe', a11yPanel.length === 0, a11yPanel.slice(0, 3).join(' | '));
   await at.click('.at-tools button:first-child');
@@ -226,7 +227,7 @@ try {
     const r = document.querySelector('.at-grip[data-id="atlas"]').getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 3, s: window.radioTower.world.camera.cam.s, all: [...document.querySelectorAll('.at-grip')].every((g) => { const b = g.getBoundingClientRect(); return b.right <= innerWidth && b.bottom <= innerHeight && b.left >= 0; }) };
   });
-  const dx = Math.round(500 * grip.s);
+  const dx = Math.round(1320 * grip.s);
   await at.mouse.move(grip.x, grip.y);
   await at.mouse.down();
   await at.mouse.move(grip.x + dx / 2, grip.y, { steps: 4 });
@@ -238,12 +239,12 @@ try {
     draft: JSON.parse(localStorage.getItem('gt.atelier.draft') || 'null')?.pages.find((p) => p.id === 'atlas')?.x,
     save: document.querySelector('.at-primary')?.disabled,
   }));
-  check('the whole map fits the screen; dragging Atlas moves its window at once, flags it on top of Portfolio, keeps the draft, and will not save it',
-    grip.all && Math.abs(dragged.left - 1510) <= 20 && dragged.problems.some((p) => /Atlas — on top of portfolio/.test(p)) && dragged.draft === dragged.left && dragged.save === true,
+  check('the whole map fits the screen; dragging Atlas moves its window at once, flags it too close to the Booth for a phone, keeps the draft, and will not save it',
+    grip.all && Math.abs(dragged.left - 1700) <= 20 && dragged.problems.some((p) => /Atlas — too close to booth for a phone/.test(p)) && dragged.draft === dragged.left && dragged.save === true,
     JSON.stringify({ ...dragged, s: grip.s }));
   await at.click('text=↶ Annuler');
   const undone = await at.evaluate(() => ({ left: document.getElementById('w-atlas').style.left, problems: document.querySelectorAll('.at-prob').length, draft: localStorage.getItem('gt.atelier.draft') }));
-  check('↶ puts it back, and the draft goes with it', undone.left === '1010px' && undone.problems === 0 && undone.draft === null, JSON.stringify(undone));
+  check('↶ puts it back, and the draft goes with it', undone.left === '380px' && undone.problems === 0 && undone.draft === null, JSON.stringify(undone));
   await at.click('.at-status[aria-label^="Version 2"]');
   const switched = await at.evaluate(() => ({ win: document.getElementById('w-v2').classList.contains('w-off'), tag: document.querySelector('.w-tag[data-go="v2"]').classList.contains('w-off'), label: document.querySelector('.at-status[aria-label^="Version 2"]').textContent }));
   check('a version switched off greys at once in the Atelier (window and tag)', switched.win && switched.tag && switched.label === 'Hors ligne', JSON.stringify(switched));

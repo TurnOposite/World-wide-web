@@ -66,10 +66,14 @@ test('?classic=1 and ?world=1 are each remembered for the tab; a new tab starts 
   assert.equal(worldWanted({ search: '', storage: broken }), false);
 });
 
-test('eleven districts, coded Z-01…Z-07 and E-01…E-04, each on its own half, none overlapping', () => {
-  assert.equal(DISTRICTS.length, 11);
-  assert.deepEqual(DISTRICTS.map((d) => d.code), ['Z-01', 'Z-02', 'Z-03', 'Z-04', 'Z-05', 'Z-06', 'Z-07', 'E-01', 'E-02', 'E-03', 'E-04']);
-  assert.equal(new Set(DISTRICTS.map((d) => d.id)).size, 11);
+test('nine districts — Zone without Z-03 (in the Atlas now) and Z-05 (off Zone\'s side), Echo E-01…E-04 — each on its own half, none overlapping', () => {
+  assert.equal(DISTRICTS.length, 9);
+  // In the order a visitor meets them: the playlists stand above the Atlas (Ortis, 2026-11-01).
+  assert.deepEqual(DISTRICTS.map((d) => d.code), ['Z-01', 'Z-02', 'Z-06', 'Z-04', 'Z-07', 'E-01', 'E-02', 'E-03', 'E-04']);
+  assert.equal(new Set(DISTRICTS.map((d) => d.id)).size, 9);
+  assert.ok(byId('playlists').y + byId('playlists').h <= byId('atlas').y, 'Playlists above the Atlas');
+  assert.equal(byId('zone'), null, 'no Zone window: it is part of the Atlas');
+  assert.equal(byId('portfolio'), null, 'no Portfolio window on Zone\'s side');
   for (const d of DISTRICTS) {
     assert.ok(d.x >= 0 && d.y >= 0 && d.x + d.w <= WORLD.w && d.y + d.h <= WORLD.h, `${d.id} is inside the world`);
     if (d.half === 'zone') assert.ok(d.x + d.w <= WORLD.seam - 100, `${d.id} stays left of the seam`);
@@ -90,17 +94,19 @@ test('every route lands in a district, and every district with a page names a ro
   const served = new Set(['', ...routes([], [])]);
   for (const d of DISTRICTS) if (d.route !== null) assert.ok(served.has(d.route), `${d.id} → /${d.route}`);
   const expect = {
-    home: 'radio', radio: 'radio', ondes: 'ondes', zone: 'zone', atlas: 'atlas', portfolio: 'portfolio',
+    home: 'radio', radio: 'radio', ondes: 'ondes', zone: 'atlas', atlas: 'atlas',
     playlists: 'playlists', booth: 'booth', lectures: 'lectures', ecrits: 'lectures', archives: 'archives',
   };
   for (const [name, id] of Object.entries(expect)) assert.equal(districtFor(name, {}), id, name);
   assert.equal(districtFor('echo', {}), 'une');
   assert.equal(districtFor('echo', { slug: 'article-temoin' }), 'articles', 'an article opens on the reading desk');
   assert.equal(districtFor('missing', {}), null, 'a page that does not exist leaves the camera where it is');
-  // Every route name main.js declares is mapped (a new route must be placed on the map).
-  for (const name of ['home', 'radio', 'ondes', 'playlists', 'atlas', 'lectures', 'zone', 'ecrits', 'archives', 'echo', 'portfolio', 'booth']) {
+  // Every route name main.js declares is mapped (a new route must be placed on the map)…
+  for (const name of ['home', 'radio', 'ondes', 'playlists', 'atlas', 'lectures', 'zone', 'ecrits', 'archives', 'echo', 'booth']) {
     assert.ok(districtFor(name, {}), name);
   }
+  // …but one, on purpose: the Portfolio left Zone's side on 2026-11-01 and waits for the Echo work to get a place.
+  assert.equal(districtFor('portfolio', {}), null, 'the Portfolio opens over the world, off the map');
   // Since phase 4 only Articles has no address of its own: it is reached through an article's.
   assert.deepEqual(DISTRICTS.filter((d) => d.route === null).map((d) => d.id), ['articles']);
   assert.equal(byId('archives').route, 'echo/archives');

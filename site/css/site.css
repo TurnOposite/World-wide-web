@@ -777,6 +777,9 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .zone-playlists{margin-top:28px}
 .zone-playlists h2{font:600 clamp(20px,2.4vw,24px)/1.2 var(--serif);color:var(--text)}
 .zone-playlists .hint a{color:var(--signal)}
+/* The Atlas since it took Zone in (2026-11-01): the playlists above the map, Zone's card under it. */
+.atlas-playlists{margin:0 0 22px}
+.atlas-origin{margin-top:16px;max-width:460px}
 
 /* ---------------------------------------------------------------- the two doors on the home page */
 .doors{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 18px}

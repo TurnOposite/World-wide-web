@@ -158,10 +158,10 @@ async function boot() {
       { name: 'radio', pattern: /^radio$/, load: () => import('./pages/radio.js') },
       { name: 'ondes', pattern: /^(?:ondes|echoes)$/, load: () => import('./pages/ondes.js') },
       { name: 'playlists', pattern: /^playlists$/, load: () => import('./pages/playlists.js') },
-      { name: 'atlas', pattern: /^atlas$/, load: () => import('./pages/atlas.js') },
+      // /zone is the Atlas too: the Zone page became part of it on 2026-11-01 (pages/zone.js).
+      { name: 'atlas', pattern: /^(?:atlas|zone)$/, load: () => import('./pages/atlas.js') },
       { name: 'lectures', pattern: /^echo\/lectures(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
       // Old address of the reading section: kept alive, and moved to /echo/lectures by the page.
-      { name: 'zone', pattern: /^zone$/, load: () => import('./pages/zone.js') },
       { name: 'ecrits', pattern: /^ecrits(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
       // Before 'echo', whose /echo/<slug> would read it as an article (site-echo.mjs refuses the slug).
       { name: 'archives', pattern: /^echo\/archives$/, load: () => import('./pages/archives.js') },

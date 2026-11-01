@@ -188,7 +188,8 @@ try {
   check('without the database the booth says changes stay in this browser', /in this browser only/.test(await n.textContent('#bPlane')));
 
   /* --------------------------------------------------------- the rooms --- */
-  await a.click('.tabs a[href="portfolio"]');
+  // The Portfolio left the banner with Zone's side (2026-11-01); its address still opens it.
+  await a.evaluate(() => window.radioTower.router.go('portfolio'));
   await a.waitForSelector('.room .book', { timeout: 8000 });
   const roomHash = await a.evaluate(() => location.hash);
   await a.click('a[data-maps]').catch(() => {});
