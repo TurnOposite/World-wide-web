@@ -2980,3 +2980,8 @@ Ortis's remarks on the live site (`2e71ed4`), all in one change, pushed with `fi
   (19/20, a track change) did not come back in three runs.
 - **For Ortis:** fill the playlists' descriptions in `site/data/playlists.json` (`vibe`); the private view
   marks the empty ones. The private view is a mode (`?atelier=1`), not a lock.
+- **CI on `a517a74`: 140/141 site** — axe `color-contrast` on the Zone « Radio » tag over Echo (`/echo/archives`),
+  the family of red seen now and then before (the Ondes tag, 2026-11-01). Cause, reproduced (2 of 8 cold loads
+  with the pointer resting on the tag, as the smoke leaves it after its 20 pans): the tag's hover swapped its
+  colours over 120 ms, and half-way its text and face measured 1.76:1. The colours now change at once (the lift
+  still eases); 0 of 16 after. A product fix, the check untouched.

@@ -238,7 +238,9 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
   border:0;padding:0;background:none;transform:rotate(var(--r,0deg))}
 .w-tag>span{display:inline-block;transform:skewX(var(--w-slant));padding:8px 15px 7px;font:700 14px/1 var(--w-ui);letter-spacing:.16em;
   text-transform:uppercase;background:#0c0e18;color:var(--w-text);border:1px solid var(--w-edge);
-  transition:background .12s,color .12s,box-shadow .12s,transform .12s}
+  transition:box-shadow .12s,transform .12s}
+/* The colours change at once, not over 120 ms: half-way between night and neon a tag's text and face are too alike
+   to read (axe caught it at 1.76:1 under a resting pointer, 2026-11-02). The lift still eases. */
 .w-tag>span>i{display:inline-block;font-style:normal;transform:skewX(calc(var(--w-slant) * -1))}
 .w-tag[data-half="echo"]>span{background:var(--w-paper);color:var(--w-ink);border-color:var(--w-rule);font-family:var(--w-head);letter-spacing:.12em}
 .w-tag:hover>span,.w-tag:focus-visible>span{background:var(--w-neon-a);color:var(--w-night);box-shadow:5px 5px 0 var(--w-neon-b);transform:skewX(var(--w-slant)) scale(1.08)}
