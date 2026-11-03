@@ -670,6 +670,12 @@ try {
     await a.waitForFunction(() => [...document.querySelectorAll('dialog.mirror-book .mb-book, dialog.mirror-book .mb-cover, dialog.mirror-book .mb-leaf')]
       .every((el) => !el.getAnimations().some((x) => x.playState === 'running')), null, { timeout: 4000 }).catch(() => {});
     const edgeBox = await a.locator('dialog.mirror-book .mb-corner').boundingBox();
+    // what the pointer will meet there, for a red run's report
+    mirror.under = await a.evaluate(([x, y]) => {
+      const chain = (e) => { const out = []; for (let n = e; n && out.length < 4; n = n.parentElement) out.push(n.tagName.toLowerCase() + (n.className && typeof n.className === 'string' ? '.' + n.className.trim().split(/\s+/).join('.') : '')); return out.join(' < '); };
+      return { at: [Math.round(x), Math.round(y)], hit: chain(document.elementFromPoint(x, y)), open: [...document.querySelectorAll('dialog[open]')].map((d) => d.className),
+        path: location.pathname, vp: [innerWidth, innerHeight], book: (() => { const r = document.querySelector('dialog.mirror-book .mb-book').getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); })() };
+    }, [edgeBox.x + edgeBox.width / 2, edgeBox.y + edgeBox.height / 2]);
     await a.mouse.move(edgeBox.x - 60, edgeBox.y - 60);
     await a.mouse.move(edgeBox.x + edgeBox.width / 2, edgeBox.y + edgeBox.height / 2, { steps: 3 });
     await a.waitForTimeout(500);
@@ -691,7 +697,7 @@ try {
   check('the Livre miroir lifts like the others and opens on the introduction, one sentence to a paragraph, with nothing that says the page turns',
     mirror.onTop && mirror.open && mirror.paras === 5 && mirror.first === 'Quelques projets' && mirror.hash === '#miroir' && mirror.inert && mirror.quiet, JSON.stringify(mirror));
   check('…the right-hand page lifts under the pointer, its bottom corner most; a click turns it, and under it the pond of the six texts',
-    mirror.lift?.by === 'corner' && mirror.lift.curl > 30 && mirror.lift.m13 !== 0 && mirror.turned && mirror.poolOpen && mirror.stones === 6 && mirror.water && mirror.wide, JSON.stringify({ lift: mirror.lift, turned: mirror.turned, stones: mirror.stones, water: mirror.water, wide: mirror.wide }));
+    mirror.lift?.by === 'corner' && mirror.lift.curl > 30 && mirror.lift.m13 !== 0 && mirror.turned && mirror.poolOpen && mirror.stones === 6 && mirror.water && mirror.wide, JSON.stringify({ lift: mirror.lift, turned: mirror.turned, stones: mirror.stones, water: mirror.water, wide: mirror.wide, under: mirror.under }));
   // A stone opens its text: the book closes behind it, the text is a reading page of Echo, back to the book.
   if (mirror.turned) {
     await a.click('dialog.mirror-book .mb-pond a.stone[href="echo/lectures/voyages"]', { force: true });
