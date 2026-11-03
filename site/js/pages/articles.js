@@ -75,7 +75,6 @@ async function index(root) {
   root.innerHTML = frame(`<section class="echo-articles">
       <p class="echo-kicker">Articles</p>
       <h1>Articles</h1>
-      <p class="echo-standfirst">Les reportages d’Echo, puis la presse : chaque épisode, chaque chronique, sous le nom de sa série.</p>
       ${articles.length ? `<div class="echo-grid">${articles.map(card).join('')}</div>` : ''}
       ${groups.map(groupHtml).join('')}
       <p class="echo-foot"><a class="back" href="echo" data-link>← Retour à la une</a><a href="echo/feed.xml" type="application/atom+xml">Le fil Atom</a></p>

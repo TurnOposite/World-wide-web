@@ -309,10 +309,29 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
   zoneBtn.addEventListener('click', () => pick('radio'));
   echoBtn.addEventListener('click', () => pick('une'));
 
-  // Tab into a district that is off camera: the camera follows the focus.
+  // A click on a window beside the open one — its edge shows on screen, the plane being one board — opens
+  // that window's page, as its tag does (Ortis, 2026-11-03). Until then the click only focused the window and
+  // the camera followed the focus: it landed on the window's door, which asked to open what was in view.
+  // The door's own link and its short-link button keep their jobs.
+  let aimed = null;
+  plane.addEventListener('pointerdown', (e) => {
+    const s = e.target.closest?.('.w-district');
+    aimed = s && s.dataset.d !== current && (e.pointerType !== 'mouse' || e.button === 0) ? s.dataset.d : null;
+  }, true);
+  plane.addEventListener('click', (e) => {
+    const id = aimed;
+    aimed = null;
+    const s = e.target.closest?.('.w-district');
+    if (!id || s?.dataset.d !== id || e.defaultPrevented) return;
+    if (e.target.closest('.w-door a[href], .w-copy')) return;
+    e.preventDefault();
+    pick(id);
+  });
+
+  // Tab into a district that is off camera: the camera follows the focus. (A click is handled above.)
   plane.addEventListener('focusin', (e) => {
     const s = e.target.closest?.('.w-district');
-    if (s && s.dataset.d !== current) arrive(byId(s.dataset.d));
+    if (s && s.dataset.d !== current && s.dataset.d !== aimed) arrive(byId(s.dataset.d));
   });
 
   // Phone: a swipe across the screen goes to the other half — Radio or the Une, as the switch does.

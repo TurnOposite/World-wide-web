@@ -895,6 +895,33 @@ try {
   const back = await shot('radio');
   check('Back flies back to where the reader was', back.current === 'radio' && back.path === '/radio' && back.centre < 30, back.path);
 
+  // The plane is one board: beside Radio, the edge of Ondes shows. A click on it (not on its door's link) opens
+  // Ondes itself, as its tag does — not the door that asks to open what is already in view (Ortis, 2026-11-03).
+  const beside = await w.evaluate(() => {
+    const win = document.getElementById('w-ondes');
+    const r = win.getBoundingClientRect();
+    for (let x = Math.min(innerWidth, r.right) - 12; x > Math.max(0, r.left); x -= 14) {
+      for (let y = Math.max(80, r.top + 40); y < Math.min(innerHeight - 90, r.bottom); y += 23) {
+        const hit = document.elementFromPoint(x, y);
+        if (hit && win.contains(hit) && !hit.closest('.w-door a, .w-copy, .w-tag')) return { x, y, seen: true };
+      }
+    }
+    return { seen: false };
+  });
+  if (beside.seen) {
+    await w.mouse.click(beside.x, beside.y);
+    await settled('ondes');
+    await w.waitForFunction(() => document.querySelector('#w-ondes .w-box > .page'), null, { timeout: 8000 }).catch(() => {});
+  }
+  const besideOpen = { ...beside, ...(await shot('ondes')), ...(await w.evaluate(() => ({
+    page: Boolean(document.querySelector('#w-ondes .w-box > .page')), door: Boolean(document.querySelector('#w-ondes .w-rest')),
+    radioDoor: Boolean(document.querySelector('#w-radio .w-rest')) || Boolean(document.querySelector('#w-radio .w-box[inert]')),
+  }))) };
+  check('a click on the window beside the open one opens its page, as its tag does — not its door',
+    besideOpen.seen && besideOpen.path === '/ondes' && besideOpen.current === 'ondes' && besideOpen.centre < 30 && besideOpen.page && !besideOpen.door && besideOpen.radioDoor, JSON.stringify(besideOpen));
+  await w.goBack({ waitUntil: 'domcontentloaded' });
+  await settled('radio');
+
   // The minimap and « Écran » are the private view's since 2026-11-01: none in the public world, both in the Atelier's tab.
   const publicHud = await w.evaluate(() => ({ minimap: getComputedStyle(document.querySelector('.w-minimap')).display, screen: getComputedStyle(document.querySelector('.w-screen-btn')).display,
     past: document.querySelectorAll('.w-past-d, .w-tag-past').length, band: !document.querySelector('.w-strata') || getComputedStyle(document.querySelector('.w-strata')).display === 'none' }));

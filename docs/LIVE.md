@@ -15,6 +15,27 @@ The website is set to *tower mode* (`site/config.json`): it plays what the
 server says is on air. If the server does not answer, the site falls back to
 the 28 tracks on Wix and keeps playing rather than going silent.
 
+## If the server dies (written 2026-11-03)
+
+What the Oracle server does today, and what each part becomes without it:
+
+| The server's job | Without it |
+|---|---|
+| The radio: the daily programme, one clock for every listener, the music files (`/srv/radio/music`) | The site waits up to 6 s for `/api/health`, then plays the **in-browser station**: the 28 tracks hosted on Wix (`site/station/library.json`), the same second for everyone, but a plain loop — not the daily programme, not your library |
+| The Booth's music desk (queue, moods), behind the key | Read-only: the Vercel build has no repository to write `control.json` to. The Lights still work |
+| The Archive's shelves and map table in tower mode (`/api/collections`) | Read from the site's own `data/collections.json` instead — nothing lost |
+| The library bot's `publish` (new songs) | Fails: there is nowhere to send them. The songs stay in `Radio Tower\music` |
+| The second address, `129-151-227-129.sslip.io` | Gone. The Vercel address keeps working: pages, Echo, Atlas, Archive, all on Vercel |
+
+Nothing is lost for good: the code is on GitHub, the music is on the laptop (its only other copy — worth a backup),
+the key is in `Radio Tower\library\tower.json`. A new server is `deploy/cloud/README.md` (an hour, mostly
+waiting), then the bot's `publish` to send the music back; if its address changes, change `site/config.json`
+(`tower.url`, `tower.allowed`) and `deploy/fire.json` together.
+
+**The one real risk on the free tier:** Oracle stops *Always Free* servers it judges idle over 7 days (CPU,
+network and memory all low). A radio that streams is rarely idle, but a quiet week could trip it; the e-mail
+warns a week ahead, and a stopped server can simply be started again from the console.
+
 ## Add music
 
 The music stays in `Radio Tower\music\`; the bot runs from this copy

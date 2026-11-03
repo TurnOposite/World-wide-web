@@ -3077,3 +3077,14 @@ Ortis's request in one change (DECISIONS, same date, « Lectures into the Livre 
   browser hit-tests the 3D page as one piece. The lift and the turn are now read from where the pointer is on the
   page's own box (bottom-right 16 % → corner, outer 8 % → edge); the edge button stays for a keyboard. Proved here with
   the page's children made unhittable: lifts at the corner, turns. 455 unit, site smoke 144/144.
+
+## 2026-11-03 (night) — A click on the window beside opens it; Articles without its line; if the server dies (Claude, for Ortis)
+
+- **The board:** beside the open window the next one shows; a click on it only focused it, and the camera followed
+  the focus to its door (« Ouvrir Ondes → » with Ondes in view). `world.js`: a pointer press on a window that is not
+  the open one, then its click, opens that window's page through the router, as its tag does; the door's link and
+  short-link button keep their jobs; Tab still only moves the camera. New smoke check: from Radio, a click on the edge
+  of Ondes opens `/ondes`, its page and not its door.
+- **Articles:** the line under the title (« Les reportages d'Echo, puis la presse… ») is gone, at Ortis's word.
+- **`docs/LIVE.md`:** a new section — what the Oracle server does and what the site becomes without it.
+- **Self-test:** 455 unit; site smoke 145/145 (Chromium's headless shell).
