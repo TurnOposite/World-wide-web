@@ -566,7 +566,8 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
   .masthead,.sitefoot,.minibar,.visuals,.toast,.skip,.scanlines,#viz,canvas,.echo-article .back,.echo-filter{display:none!important}
   .echo-article{max-width:none;padding:0;margin:0}
   .echo-hero img{border-radius:0;max-height:9cm;width:auto;max-width:100%}
-  .echo-body .pull,.echo-hero,.echo-notes{break-inside:avoid}
+  .echo-body .pull,.echo-hero,.echo-notes,.echo-body .echo-fig{break-inside:avoid}
+  .echo-body .echo-fig img{max-height:9cm;width:auto;max-width:100%}
   .echo-body h2{break-after:avoid}
   .echo-body a[href^="http"]::after,.echo-notes a[href^="http"]::after{content:" (" attr(href) ")";font-size:.85em;word-break:break-all}
 }
@@ -682,6 +683,10 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .echo-hero img,.echo-video video{width:100%;height:auto;display:block;border-radius:0}
 .echo-hero figcaption,.echo-video figcaption{font:13px/1.5 "Libre Caslon Text",Georgia,serif;color:var(--mute);margin-top:8px}
 .echo-hero .credit{font-variant:small-caps;letter-spacing:.06em}
+/* a picture inside the text (site-echo.mjs `![alt](src "caption")`): the hero's rules, at the text's width */
+.echo-body .echo-fig{margin:1.8em 0;border-bottom:1px solid var(--ink);padding-bottom:12px}
+.echo-body .echo-fig img{width:100%;height:auto;display:block;border-radius:0}
+.echo-body .echo-fig figcaption{font:13px/1.5 "Libre Caslon Text",Georgia,serif;color:var(--mute);margin-top:8px}
 .echo-col .reading .body{font:18px/1.75 "Libre Caslon Text",Georgia,serif;color:var(--ink);margin:0;max-width:66ch}
 .echo-col .reading .body h2{font:700 24px/1.2 "Old Standard TT",Georgia,serif;color:var(--ink);margin:1.6em 0 .6em}
 .echo-col .reading .body em{color:var(--ink)}

@@ -206,6 +206,14 @@ test('Echo articles take links: a ref, an address of the site, the web — nothi
   assert.ok(!/https\s:/.test(html), 'the French spacing never lands inside an address');
 });
 
+test('Echo articles take a picture in the text: a site path or https, with its caption; anything else stays text', () => {
+  const { html } = renderBody('Avant.\n\n![Une banderole verte](assets/echo/x.jpg "« Arrête », 17 octobre")\n\nAprès.');
+  assert.match(html, /<figure class="echo-fig"><img src="assets\/echo\/x\.jpg" alt="Une banderole verte" loading="lazy"><figcaption>«.Arrête.», 17 octobre<\/figcaption><\/figure>/);
+  assert.match(html, /<p>Avant\.<\/p>[\s\S]*<figure[\s\S]*<p>Après\.<\/p>/);
+  const bad = renderBody('![x](javascript:alert(1))').html;
+  assert.ok(!/<img/.test(bad), 'no script address ever becomes a picture');
+});
+
 test('a version of the past: its shell, its config (today’s tower), its routes, its data pointed at today’s heavy files', () => {
   const shell = pastShell('<head><base href="/"></head>', { id: 'v1', base: '/radio-tower/' });
   assert.match(shell, /<base href="\/radio-tower\/past\/v1\/">/);

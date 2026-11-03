@@ -17,6 +17,7 @@
  */
 import { esc } from '../../ui/util.js';
 import { coverArt } from '../../ui/covers.js';
+import { MIRROR, mirrorBook, mirrorHtml, openMirror } from '../../ui/mirror-book.js';
 
 const TEMPLATE = `<div class="room-head">
     <h2 id="libTitle">The Library</h2>
@@ -24,12 +25,12 @@ const TEMPLATE = `<div class="room-head">
     <div class="chips" id="courseChips" role="group" aria-label="Filter by class"></div>
   </div>
 
-  <section class="thesis-card" id="thesisCard" hidden aria-labelledby="thesisTitle"></section>
-
   <section class="bookcase" id="bookcase" aria-label="Bookshelf">
     <p class="empty-room" id="shelfEmpty">…</p>
   </section>
-  <p class="hint">Hover a spine and the book lifts off the shelf. Click it to open the reading desk. Every essay can be read in the browser or downloaded as a PDF.</p>
+  <p class="hint">Hover a spine and the book lifts off the shelf. Click it to open the reading desk. Every essay can be read in the browser or downloaded as a PDF — and the Livre miroir opens on a pond with the texts at the bottom of it.</p>
+
+  <section class="thesis-card" id="thesisCard" hidden aria-labelledby="thesisTitle"></section>
 
   <section class="maproom" id="maps" aria-labelledby="mapsTitle" hidden>
     <div class="panel-head"><h3 id="mapsTitle">The map room</h3></div>
@@ -128,6 +129,14 @@ export async function mount(root, ctx) {
     return { h, t, d, turn, color: `hsl(${hh} ${sat}% ${ll}%)`, deep: `hsl(${hh} ${sat}% ${Math.max(8, ll - 12)}%)`, ink: `hsl(${hh} 30% 90%)` };
   }
 
+  /**
+   * How a cover is laid out (2026-11-03, « the front covers stylized »): a gilt frame with corner
+   * fleurons, a band across the top in a darker cloth, or a paper label pasted on — one per book,
+   * stable for its id, so a shelf reads as a real run of editions rather than one template.
+   */
+  const BINDINGS = ['cv-framed', 'cv-band', 'cv-label'];
+  const binding = (b) => (b.featured ? 'cv-framed' : BINDINGS[(hash(b.id) >> 11) % BINDINGS.length]);
+
   function bookHtml(b, shelfId, { lean = false, faceOut = false } = {}) {
     const v = volume(b, shelfId);
     const featured = b.featured;
@@ -138,9 +147,9 @@ export async function mount(root, ctx) {
       `<button type="button" class="book${featured ? ' thesis' : ''}${faceOut ? ' face-out' : ''}" data-id="${esc(b.id)}" data-dept="${chipKey(b, shelfId)}" style="${style}" aria-label="${esc(b.title)} — ${esc(b.course)}, ${esc(b.kind)}">` +
       `<span class="b3d" aria-hidden="true">` +
       `<span class="bf spine"><span class="book-title">${esc(b.title)}</span><span class="book-course">${esc(b.course)}</span></span>` +
-      `<span class="bf bcover"><span class="cv-title">${esc(b.title)}</span><span class="cv-art">${coverArt(b.id, b.kind, { ink, acc })}</span><span class="cv-meta">${esc(b.course)}</span></span>` +
+      `<span class="bf bcover ${binding(b)}"><span class="cv-title">${esc(b.title)}</span><span class="cv-art">${coverArt(b.id, b.kind, { ink, acc })}</span><span class="cv-meta">${esc(b.course)}</span></span>` +
       `<span class="bf top"></span>` +
-      `</span></button>`
+      `</span><span class="slot" aria-hidden="true"></span></button>`
     );
   }
 
@@ -172,6 +181,13 @@ export async function mount(root, ctx) {
         // The thesis stands face-out at the end of its shelf, the way a shop
         // shows the book it is proudest of; everything else is spine-out.
         const faceOut = [];
+        // The Livre miroir (2026-11-03) stands on the top shelf on its own, before the thesis.
+        const mirror = ri === 0 ? mirrorHtml() : '';
+        if (mirror) {
+          BOOKS.set(MIRROR, mirrorBook);
+          depth = Math.max(depth, mirrorBook.d);
+          tallest = Math.max(tallest, mirrorBook.h);
+        }
         const spines = group
           .map((shelf, gi) => {
             const books = [...shelf.books].sort((a, b) => a.course.localeCompare(b.course) || a.title.localeCompare(b.title));
@@ -198,26 +214,77 @@ export async function mount(root, ctx) {
           `<div class="shelf" style="z-index:${rows.length - ri}">` +
           `<div class="shelf-3d">` +
           `<div class="case-back" aria-hidden="true"></div><div class="case-side" aria-hidden="true"></div>` +
-          `<div class="shelf-row"><span class="bookend" aria-hidden="true"></span>${spines}<span class="bookend" aria-hidden="true"></span>${faceOut.join('')}</div>` +
-          `<div class="board-top" aria-hidden="true"></div><div class="board-front"><p class="shelf-label">${label}</p></div>` +
+          `<div class="shelf-row"><span class="bookend" aria-hidden="true"></span>${spines}<span class="bookend" aria-hidden="true"></span>${mirror}${faceOut.join('')}</div>` +
+          `<div class="board-top" aria-hidden="true"></div><div class="board-front"><p class="shelf-label" data-label="${ri}">${label}</p></div>` +
           `</div></div>`
         );
       })
       .join('');
     el.bookcase.style.setProperty('--dmax', `${depth}px`);
     el.bookcase.style.setProperty('--hmax', `${tallest}px`);
+    rebalance(rows);
+  }
+
+  /**
+   * A shelf holds what fits on it (2026-11-03): in a narrower window the long McGill run used to run off
+   * the case's edge. The books that do not fit move up to the top shelf, beside the Livre miroir, and the
+   * top shelf's label says whose they are. Phones scroll their shelves sideways instead (rooms.css).
+   */
+  function rebalance(rows) {
+    if (rows.length < 2 || window.matchMedia('(max-width: 760px)').matches) return;
+    const shelves = [...el.bookcase.querySelectorAll('.shelf-row')];
+    const top = shelves[0];
+    const anchor = top.querySelector('.book.mirror') || top.querySelector('.book.face-out');
+    // The face-out thesis pushes itself right with margin-left:auto: count its box, not the free space it takes.
+    const used = (row) => [...row.children].reduce((sum, c) => {
+      const cs = getComputedStyle(c);
+      const left = c.classList.contains('face-out') ? 0 : parseFloat(cs.marginLeft);
+      return sum + c.offsetWidth + left + parseFloat(cs.marginRight);
+    }, 0);
+    const room = (row) => row.clientWidth - parseFloat(getComputedStyle(row).paddingLeft) - parseFloat(getComputedStyle(row).paddingRight) - 6;
+    const moved = new Map();
+    let insertAt = null;
+    for (let i = shelves.length - 1; i >= 1; i--) {
+      const row = shelves[i];
+      while (used(row) > room(row)) {
+        const books = [...row.querySelectorAll('.book:not(.face-out)')];
+        const last = books[books.length - 1];
+        if (!last || books.length < 4) break;
+        const w = last.offsetWidth + 6;
+        if (used(top) + w > room(top)) break;
+        if (!insertAt) {
+          // the moved run gets its own bookend, so the Livre miroir still stands apart
+          insertAt = Object.assign(document.createElement('span'), { className: 'bookend' });
+          insertAt.setAttribute('aria-hidden', 'true');
+          top.insertBefore(insertAt, anchor);
+        }
+        top.insertBefore(last, insertAt);
+        insertAt = last;
+        last.style.removeProperty('--lean');
+        const shelfLabel = rows[i].map((s) => s.label.split(' · ')[0].split(' ')[0]).join(' · ');
+        moved.set(shelfLabel, (moved.get(shelfLabel) || 0) + 1);
+      }
+      // The new last book of the run leans on the bookend again.
+      const run = [...row.querySelectorAll('.book:not(.face-out)')];
+      run.forEach((b, k) => { if (k === run.length - 1 && run.length > 2) b.style.setProperty('--lean', '3.5deg'); });
+    }
+    if (moved.size) {
+      const label = el.bookcase.querySelector('[data-label="0"]');
+      label.insertAdjacentHTML('beforeend', [...moved.keys()].map((k) => `<span aria-hidden="true"> · </span>${esc(k)} (suite)`).join(''));
+    }
   }
 
   function renderChips() {
     const depts = new Map();
     for (const b of BOOKS.values()) {
+      if (b.mirror) continue;
       const d = chipKey(b, b.shelfId);
       depts.set(d, (depts.get(d) || 0) + 1);
     }
     const order = ['IFP', 'UCPH', 'LACS', 'POLI', 'INTD', 'HISP', 'HIST', 'SOCI'];
     const keys = [...depts.keys()].sort((a, b) => order.indexOf(a) - order.indexOf(b));
     el.chips.innerHTML =
-      `<button type="button" class="chip" data-dept="" aria-pressed="true">All <span class="count">${BOOKS.size}</span></button>` +
+      `<button type="button" class="chip" data-dept="" aria-pressed="true">All <span class="count">${[...BOOKS.values()].filter((b) => !b.mirror).length}</span></button>` +
       keys.map((k) => `<button type="button" class="chip" data-dept="${k}" aria-pressed="false">${k} <span class="count">${depts.get(k)}</span></button>`).join('');
     el.chips.addEventListener('click', (e) => {
       const chip = e.target.closest('.chip');
@@ -311,7 +378,8 @@ export async function mount(root, ctx) {
       const btn = e.target.closest('.book');
       if (!btn) return;
       hidePeek();
-      openDesk(btn.dataset.id);
+      if (btn.dataset.id === MIRROR) openMirror(btn);
+      else openDesk(btn.dataset.id);
     });
     on(window, 'scroll', hidePeek, { passive: true });
 
@@ -524,7 +592,8 @@ export async function mount(root, ctx) {
       const essays = [...BOOKS.values()].filter((b) => b.file).length;
       el.status.textContent = `${essays} works on the shelves · ${uni.maps.layers.length} maps`;
       const m = location.hash.match(/^#book=(.+)$/);
-      if (m) openDesk(decodeURIComponent(m[1]));
+      if (location.hash === '#miroir') openMirror(el.bookcase.querySelector('.book.mirror'));
+      else if (m) openDesk(decodeURIComponent(m[1]));
       else if (location.hash === '#maps') el.maps.scrollIntoView();
     } catch (err) {
       el.bookcase.innerHTML = '<p class="empty-room">Could not load the shelves.</p>';
@@ -533,5 +602,6 @@ export async function mount(root, ctx) {
     }
   })();
 
+  cleanups.push(() => openMirror.close?.());
   return () => cleanups.forEach((f) => f());
 }

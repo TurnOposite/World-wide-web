@@ -66,19 +66,22 @@ test('?classic=1 and ?world=1 are each remembered for the tab; a new tab starts 
   assert.equal(worldWanted({ search: '', storage: broken }), false);
 });
 
-test('ten districts — two Atlases, Zone\'s (Z-03, where the tower broadcasts from) and Echo\'s (E-05, the map of the places), each on its own half, none overlapping', () => {
-  assert.equal(DISTRICTS.length, 10);
-  // In the order a visitor meets them (Ortis, 2026-11-01): Zone's five, then Echo's five.
-  assert.deepEqual(DISTRICTS.map((d) => d.code), ['Z-01', 'Z-02', 'Z-06', 'Z-03', 'Z-07', 'E-01', 'E-02', 'E-03', 'E-04', 'E-05']);
-  assert.equal(new Set(DISTRICTS.map((d) => d.id)).size, 10);
+test('eleven districts — two Atlases, Zone\'s (Z-03, where the tower broadcasts from) and Echo\'s (E-05, the map of the places), the Bibliothèque on Echo, each on its own half, none overlapping', () => {
+  assert.equal(DISTRICTS.length, 11);
+  // In the order a visitor meets them (Ortis, 2026-11-01): Zone's five, then Echo's six (the Bibliothèque since 11-03).
+  assert.deepEqual(DISTRICTS.map((d) => d.code), ['Z-01', 'Z-02', 'Z-06', 'Z-03', 'Z-07', 'E-01', 'E-02', 'E-03', 'E-04', 'E-05', 'E-06']);
+  assert.equal(new Set(DISTRICTS.map((d) => d.id)).size, 11);
   assert.equal(byId('zone').title, 'Atlas', 'Zone\'s Atlas is called Atlas');
   assert.equal(byId('atlas').title, 'Atlas', '…and so is Echo\'s');
   assert.equal(byId('zone').half, 'zone');
   assert.equal(byId('atlas').half, 'echo', 'the map of the places stands on Echo\'s side');
-  assert.equal(byId('portfolio'), null, 'no Portfolio window on Zone\'s side');
+  // The bookshelf left Zone's side on 11-01 and has its window on Echo's since 11-03 (Ortis: « it got removed completely »).
+  assert.equal(byId('portfolio').half, 'echo', 'the Portfolio\'s window, the Bibliothèque, stands on Echo\'s side');
+  assert.equal(byId('portfolio').title, 'Bibliothèque');
   // What may scroll inside its window, and what shows whole (world.js fitPage).
   // Ondes and Playlists by Ortis's word; the reading pages and Archives (a long list of press) because they are read.
-  assert.deepEqual(DISTRICTS.filter((d) => d.scroll).map((d) => d.id), ['ondes', 'playlists', 'articles', 'lectures', 'archives']);
+  // The Bibliothèque scrolls too: the bookcase, then the thesis and the map room under it.
+  assert.deepEqual(DISTRICTS.filter((d) => d.scroll).map((d) => d.id), ['ondes', 'playlists', 'articles', 'lectures', 'archives', 'portfolio']);
   for (const d of DISTRICTS) {
     assert.ok(d.x >= 0 && d.y >= 0 && d.x + d.w <= WORLD.w && d.y + d.h <= WORLD.h, `${d.id} is inside the world`);
     if (d.half === 'zone') assert.ok(d.x + d.w <= WORLD.seam - 100, `${d.id} stays left of the seam`);
@@ -100,18 +103,18 @@ test('every route lands in a district, and every district with a page names a ro
   for (const d of DISTRICTS) if (d.route !== null) assert.ok(served.has(d.route), `${d.id} → /${d.route}`);
   const expect = {
     home: 'radio', radio: 'radio', ondes: 'ondes', zone: 'zone', atlas: 'atlas',
-    playlists: 'playlists', booth: 'booth', lectures: 'lectures', ecrits: 'lectures', archives: 'archives',
+    playlists: 'playlists', booth: 'booth', lectures: 'lectures', ecrits: 'lectures', archives: 'archives', portfolio: 'portfolio',
   };
   for (const [name, id] of Object.entries(expect)) assert.equal(districtFor(name, {}), id, name);
   assert.equal(districtFor('echo', {}), 'une');
   assert.equal(districtFor('echo', { slug: 'article-temoin' }), 'articles', 'an article opens on the reading desk');
   assert.equal(districtFor('missing', {}), null, 'a page that does not exist leaves the camera where it is');
   // Every route name main.js declares is mapped (a new route must be placed on the map)…
-  for (const name of ['home', 'radio', 'ondes', 'playlists', 'atlas', 'lectures', 'zone', 'ecrits', 'archives', 'echo', 'booth']) {
+  for (const name of ['home', 'radio', 'ondes', 'playlists', 'atlas', 'lectures', 'zone', 'ecrits', 'archives', 'echo', 'booth', 'portfolio']) {
     assert.ok(districtFor(name, {}), name);
   }
-  // …but one, on purpose: the Portfolio left Zone's side on 2026-11-01 and waits for the Echo work to get a place.
-  assert.equal(districtFor('portfolio', {}), null, 'the Portfolio opens over the world, off the map');
+  // Every room of the Portfolio opens in its window, not only the Bibliothèque.
+  assert.equal(districtFor('portfolio', { room: 'photos' }), 'portfolio');
   // Since phase 4 only Articles has no address of its own: it is reached through an article's.
   assert.deepEqual(DISTRICTS.filter((d) => d.route === null).map((d) => d.id), ['articles']);
   assert.equal(byId('archives').route, 'echo/archives');

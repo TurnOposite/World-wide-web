@@ -3677,3 +3677,34 @@ the Spontaneous Emissions only once the key is right. All windows wider and tall
 **Revisit if** a page cannot fit above `FIT_MIN` on Ortis's own screen (then that page needs a denser
 layout, not a smaller zoom), or if the private view needs to be really private (that is a server's job:
 the Atelier is a mode, not an account).
+
+## 2026-11-03 — The bookshelf comes back on Echo, as the Bibliothèque (E-06)
+
+**Context.** Ortis: the bookshelf with all his projects « got removed: it was on the radio zone side so i asked
+for it to go to echo but it got removed completely » (on 11-01 the Portfolio left Zone's side and was given no
+window — `districtFor('portfolio')` was null on purpose, waiting for « the Echo work »).
+**Decided.**
+1. The Portfolio has a window again, on Echo: `portfolio`, code **E-06**, titled **Bibliothèque**, route
+   `portfolio`, a `scroll` district (the bookcase, then the thesis and the map room). Every room of the
+   Portfolio opens in it. Archives moves to the bottom-left of Echo (2760, 1760), the Bibliothèque takes the
+   bottom-right (3990, 1760); the drum keeps the left gutter, narrower, and the crowd and the statue stand in the
+   band under the bottom row. The past's tags (P-02, P-03) move down one step to leave E-06 its place.
+   Echo's menus list it after the map's Atlas (the classic banner and the Gazette's rubriques).
+2. In the world the Portfolio is dressed in the Gazette's paper (`.w-echo-d .pf` in rooms.css); the bookcase,
+   being furniture, keeps its wood. The classic shell keeps the dark rooms.
+3. The bookcase is the most elaborate one (10-13: one case, the top shelf with the thesis face-out), with three
+   changes asked for: the books that do not fit their shelf move up to the top one, labelled « (suite) »; the
+   pull-out animation is staged (slide out, then turn the cover, neighbours lean into the gap, a dark slot left
+   behind); the covers come in three bindings (gilt frame with fleurons, a band across the head, a pasted label).
+4. **The Livre miroir**: a silvered book on the top shelf, before the thesis. It lifts like the others; clicked,
+   it opens (the cover swings round the spine) on the pond of the old Écrits page (`ui/pond.js`, unused since
+   10-19) laid across the two open pages, an irregular puddle, the six texts on stones at the bottom of it, each a
+   link to its text in Lectures. `#miroir` opens it directly. It is a `<dialog>` on `<body>`, not inside the
+   window, so it opens at the reader's scale over the world.
+**Revisit if** a phone finds the one-page book too small for six stones (then two pages to swipe between).
+
+## 2026-11-03 — Echo articles may carry a picture in the text, and a focus point for the lead's crop
+
+The first real article (« Don’t shoot the pianist », Zoneko & Sol) ends on a photograph and opens on a portrait
+one. `site-echo.mjs` takes `![alt](src "caption")` alone in its block as a figure (a site path to an image, or
+https; anything else stays text), and `hero_focus: 50% 58%` sets where the Une's 16:9 crop of the hero falls.

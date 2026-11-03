@@ -17,7 +17,8 @@
  * readers and plain clicks never depend on the water. Without WebGL, or with
  * reduced motion, the floor is shown still and clear.
  *
- * createPond(host, items) → { destroy() }. items: [{ href, title, meta, scored }]
+ * createPond(host, items, { reducedMotion, spots }) → { destroy() }. items: [{ href, title, meta, scored }];
+ * spots: { landscape: [[fx, fy]…], portrait? } — where the stones lie, as fractions of the pond.
  */
 
 const GRID = 4;          // CSS px per simulation cell
@@ -75,9 +76,10 @@ function rng(seed) {
 }
 
 /** Where the stones lie, as fractions of the pond: scattered, never in a grid. */
-function layout(n, w, h) {
+function layout(n, w, h, given = null) {
   const portrait = w < 620;
-  const spots = portrait
+  // A host may say where its stones lie (the Livre miroir keeps them off the book's gutter).
+  const spots = given ? (portrait ? given.portrait || given.landscape : given.landscape) : portrait
     ? [[0.3, 0.13], [0.7, 0.27], [0.32, 0.43], [0.7, 0.58], [0.3, 0.74], [0.68, 0.88]]
     : [[0.17, 0.3], [0.45, 0.2], [0.78, 0.3], [0.25, 0.73], [0.55, 0.62], [0.83, 0.74]];
   const r = rng(7);
@@ -273,7 +275,7 @@ function makeGl(canvas) {
   }
 }
 
-export function createPond(host, items, { reducedMotion = false } = {}) {
+export function createPond(host, items, { reducedMotion = false, spots = null } = {}) {
   host.classList.add('pond');
   host.innerHTML = `<canvas class="pond-water" aria-hidden="true"></canvas>
     <div class="pond-links">${items.map((it, i) => `<a class="text-card stone" href="${it.href}" data-link data-i="${i}">
@@ -297,7 +299,7 @@ export function createPond(host, items, { reducedMotion = false } = {}) {
     W = Math.max(200, Math.round(r.width));
     H = Math.max(200, Math.round(r.height));
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    stones = layout(items.length, W, H);
+    stones = layout(items.length, W, H, spots);
     links.forEach((a, i) => {
       const s = stones[i];
       a.style.left = `${s.x - s.w / 2}px`;

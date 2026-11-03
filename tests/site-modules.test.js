@@ -185,12 +185,14 @@ test('Echo: the Atom feed, per-article link previews and the import script', asy
   assert.ok(!/<(?:p|h2)>/.test(feed.replace(/<content[\s\S]*?<\/content>/g, '')), 'markup only appears escaped inside <content>');
 
   const shell = shellFor(fs.readFileSync(path.join(ROOT, 'site/index.html'), 'utf8'), { base: '/site/', siteUrl: 'https://example.org/site' });
-  const out = articleShell(shell, articles[0], { root });
+  // The témoin is the fixture (an SVG hero); since 2026-11-03 a real article stands before it.
+  const temoin = articles.find((a) => a.slug === 'article-temoin');
+  const out = articleShell(shell, temoin, { root });
   assert.match(out, /<title>Article témoin[^<]* — Echo<\/title>/);
   assert.match(out, /og:type" content="article"/);
   assert.match(out, /og:url" content="https:\/\/example\.org\/site\/echo\/article-temoin"/);
   assert.match(out, /og:image" content="https:\/\/example\.org\/site\/assets\/share-card\.jpg"/, 'an SVG hero never replaces the share card');
-  const withPhoto = articleShell(shell, { ...articles[0], hero: { ...articles[0].hero, src: 'assets/echo/a.jpg' } }, { root });
+  const withPhoto = articleShell(shell, { ...temoin, hero: { ...temoin.hero, src: 'assets/echo/a.jpg' } }, { root });
   assert.match(withPhoto, /og:image" content="https:\/\/example\.org\/site\/assets\/echo\/a\.jpg"/);
 
   assert.equal(slugify('L’été à Paris : « fin »'), 'l-ete-a-paris-fin');

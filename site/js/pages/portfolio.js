@@ -12,6 +12,8 @@ const ROOMS = {
 
 export async function mount(root, ctx) {
   const room = ROOMS[ctx.params.room] ? ctx.params.room : 'library';
+  // In the world the Portfolio is Echo's Bibliothèque (E-06, 2026-11-03): rooms.css dresses it in the Gazette's paper there.
+  root.classList.add('pf');
   root.innerHTML = `<div class="page-head"><h1>Portfolio</h1>
       <p>Les travaux — essais, mémoire et cartes de réseaux —, les photos de route, et les bacs de disques d'où la tour tire sa musique.</p></div>
     <nav class="room-tabs" aria-label="Rooms">${Object.entries(ROOMS).map(([k, r]) =>
@@ -19,5 +21,6 @@ export async function mount(root, ctx) {
     <div class="room" id="room"></div>`;
   document.title = `${ROOMS[room].label} — Portfolio`;
   const mod = await ROOMS[room].load();
-  return mod.mount(root.querySelector('#room'), ctx);
+  const stop = await mod.mount(root.querySelector('#room'), ctx);
+  return () => { root.classList.remove('pf'); stop?.(); };
 }

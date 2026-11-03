@@ -233,7 +233,8 @@ try {
     state: document.querySelector('.at-state').textContent,
   }));
   check('the Atelier lists every page, today’s and the past’s, an online/offline switch on each version, the page in view chosen',
-    opened.rows === 13 && opened.switches.join() === 'En ligne,En ligne,Hors ligne' && opened.wix && opened.picked === 'E-05' && /Identique/.test(opened.state), JSON.stringify(opened));
+    // 11 pages of today (the Bibliothèque, E-06, since 2026-11-03) + 3 of the past
+    opened.rows === 14 && opened.switches.join() === 'En ligne,En ligne,Hors ligne' && opened.wix && opened.picked === 'E-05' && /Identique/.test(opened.state), JSON.stringify(opened));
   const a11yPanel = await axeRun(at, '.at-panel');
   check('the Atelier’s panel passes axe', a11yPanel.length === 0, a11yPanel.slice(0, 3).join(' | '));
   await at.click('.at-tools button:first-child');

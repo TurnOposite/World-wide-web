@@ -85,6 +85,16 @@ export function renderBody(body, { fr = true } = {}) {
       continue;
     }
     if (notes && /^[-*]\s+/.test(b)) { for (const l of b.split('\n')) notes.items.push(inline(l.replace(/^[-*]\s+/, ''), fr)); continue; }
+    // A picture inside the text (2026-11-03, the first real article ends on one): `![alt](src "caption")`,
+    // alone in its block. Only a site path or an https address is taken as a source.
+    const fig = b.match(/^!\[([^\]]*)\]\(([^)\s"]+)(?:\s+"([^"]*)")?\)$/);
+    if (fig) {
+      const src = /^https:\/\/[^\s"<>]+$/.test(fig[2]) || /^[\w][\w./-]*\.(?:jpe?g|png|webp|svg|gif)$/i.test(fig[2]) ? fig[2] : null;
+      if (src) {
+        html.push(`<figure class="echo-fig"><img src="${esc(src)}" alt="${esc(fig[1])}" loading="lazy">${fig[3] ? `<figcaption>${inline(fig[3], fr)}</figcaption>` : ''}</figure>`);
+        continue;
+      }
+    }
     if (h && b.startsWith('##')) { html.push(`<h2>${inline(h[1], fr)}</h2>`); const rest = b.split('\n').slice(1).join('\n').trim(); if (rest) html.push(`<p>${inline(rest, fr)}</p>`); words += rest.split(/\s+/).filter(Boolean).length; continue; }
     if (b.startsWith('>')) {
       const q = b.split('\n').map((l) => l.replace(/^>\s?/, '')).join(' ');
@@ -122,7 +132,7 @@ export function parseArticle(file, text) {
     lang,
     draft: /^(true|yes|1)$/i.test(meta.draft || ''),
     video: meta.video ? { src: meta.video, poster: meta.video_poster || '', caption: t(meta.video_caption || '') } : null,
-    hero: meta.hero ? { src: meta.hero, alt: meta.hero_alt || '', caption: t(meta.hero_caption || ''), credit: meta.hero_credit || '' } : null,
+    hero: meta.hero ? { src: meta.hero, alt: meta.hero_alt || '', caption: t(meta.hero_caption || ''), credit: meta.hero_credit || '', ...(/^\d{1,3}% \d{1,3}%$/.test(meta.hero_focus || '') ? { focus: meta.hero_focus } : {}) } : null,
     readingTime: Math.max(1, Math.ceil(words / 220)),
     html,
     notes: notes ? { title: notes.title, items: notes.items } : null,

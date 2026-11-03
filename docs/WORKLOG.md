@@ -2999,3 +2999,28 @@ Ortis's remarks on the live site (`2e71ed4`), all in one change, pushed with `fi
   changed and 2 errors, so it could not be saved. The Atelier now says when a draft predates the published map,
   with « Revenir au publié » beside it. (3) The local `npm run site` had stopped with a restart of the Claude app;
   restarted in its own window.
+
+## 2026-11-03 (night) — The Bibliothèque on Echo, the Livre miroir, the first real article à la une (Claude, for Ortis)
+
+Ortis, for tonight: the bookshelf back, on Echo, in its most elaborate version (upper shelf with the thesis and
+what does not fit below, a better pull-out animation, stylised covers) plus a « Livre miroir » that opens on the
+interactive pond with his texts; and his article à la une, grammar and sense fixed and nothing else, the statue
+photo as cover, the green banner at the end, signed Zoneko & Sol (DECISIONS, same date, both entries).
+- **Map:** `portfolio` (E-06 « Bibliothèque ») in `layout.js` and `layout.json`; Archives to (2760, 1760);
+  figures moved; P-02/P-03 tags 64→72, 75→81. `npm run layout -- check` holds.
+- **Library:** `rooms/library.js` (bookcase first, `rebalance`, bindings, slot), `ui/mirror-book.js` (new),
+  `ui/pond.js` (`spots` option), `rooms.css` (paper skin, staged transitions with `translate`/`rotate`, covers,
+  the open book). `portfolio.js` marks its root `.pf`. `main.js`: the Portfolio is an Echo route in the world.
+- **Echo:** `echo/articles/2026-11-03-dont-shoot-the-pianist.md`, `site/assets/echo/republique-17-octobre.jpg`
+  (1400 px) and `tu-es-flic-arrete.jpg` (1600 px); figures and `hero_focus` in `site-echo.mjs` / `echo.js`;
+  `.echo-fig` in site.css (print too).
+- **Tests moved, not weakened:** eleven districts with E-06 on Echo and scrolling, `districtFor('portfolio')`;
+  the témoin found by slug in the feed test and clicked by its own card in the smoke (a real article now leads);
+  the menus and rubriques end with the Bibliothèque; « Ouvrir le Portfolio » now flies to its window; cold
+  `/portfolio` and `/portfolio/photos` land in it. **New:** a picture in an article's text (unit); the Livre
+  miroir lifts, opens on the pond with six stones, Esc closes it (smoke — with `bringToFront`, since listener
+  B's page, opened later, otherwise leaves this one drawing no frames).
+- **Self-test before** (`8b5cb71`, cloud, the container's Chromium): 451 unit (4 skipped). **After:** 452 unit,
+  43/43 browser, site smoke 131/131 alone and 142/142 in the full run, Atelier 26/26 (its page count 13 → 14, the
+  Bibliothèque). One later full run had one red, « Canopy maps the music live on the radio page » (the classic
+  Radio page, untouched here), green again in the next run. Not measurable here: a real phone's touch on the pond.

@@ -20,7 +20,7 @@ const dateFr = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('fr-FR',
 
 function card(a) {
   return `<a class="echo-card" href="echo/${esc(a.slug)}" data-link data-tags="${esc(a.tags.join('|'))}">
-      ${a.hero ? `<img src="${esc(a.hero.src)}" alt="" loading="lazy">` : ''}
+      ${a.hero ? `<img src="${esc(a.hero.src)}" alt="" loading="lazy"${a.hero.focus ? ` style="object-position:${esc(a.hero.focus)}"` : ''}>` : ''}
       <span class="echo-kicker">${esc(a.tags[0] || 'Echo')}</span>
       <b>${esc(a.title)}</b>
       <span class="echo-dek">${esc(a.standfirst)}</span>
@@ -32,7 +32,7 @@ function lead(a) {
   const media = a.video
     ? `<video controls preload="none" playsinline muted${a.video.poster ? ` poster="${esc(a.video.poster)}"` : ''} src="${esc(a.video.src)}"></video>`
     : '';
-  const pic = !a.video && a.hero ? `<a class="echo-lead-pic" href="echo/${esc(a.slug)}" data-link tabindex="-1" aria-hidden="true"><img src="${esc(a.hero.src)}" alt=""></a>` : '';
+  const pic = !a.video && a.hero ? `<a class="echo-lead-pic" href="echo/${esc(a.slug)}" data-link tabindex="-1" aria-hidden="true"><img src="${esc(a.hero.src)}" alt=""${a.hero.focus ? ` style="object-position:${esc(a.hero.focus)}"` : ''}></a>` : '';
   return `<article class="echo-lead echo-card" data-tags="${esc(a.tags.join('|'))}">
       ${media || pic}
       <div class="echo-lead-txt">

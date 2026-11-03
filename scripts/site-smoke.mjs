@@ -142,7 +142,8 @@ try {
   const tabs = await a.$$eval('.tabs a', (els) => els.map((e) => e.textContent.trim()));
   // Since 2026-11-01 Zone's half is Radio, Ondes, Playlists, Atlas: the Zone page is part of the Atlas, the Portfolio off Zone's side.
   // Two Atlases since 2026-11-01: Zone's (/zone) and the map of the places, among Echo's.
-  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Playlists,Atlas,Une,Articles,Lectures,Atlas', tabs.join(', '));
+  // The Bibliothèque (the Portfolio) among Echo's since 2026-11-03.
+  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Playlists,Atlas,Une,Articles,Lectures,Atlas,Bibliothèque', tabs.join(', '));
   check('…each under its own label', (await a.$$eval('.half-btn', (els) => els.map((e) => e.textContent.trim()))).join() === 'Zone,Echo');
   // The banner: two doors only; hover, focus, tap, Esc, outside tap.
   const open = () => a.$$eval('.half.open', (e) => e.map((x) => x.dataset.half).join());
@@ -380,7 +381,8 @@ try {
     zone.core ? `${zone.place} (${zone.origin.lat}, ${zone.origin.lon}) ${zone.off.toFixed(2)}px off, ${zone.coords}` : JSON.stringify(zone));
   check('…only the tower: no places, no playlists, no listener point without a geo source, and the music plays on', zone.core && zone.pins === 0 && !zone.deck && !zone.listener && zone.playing,
     JSON.stringify({ pins: zone.pins, deck: zone.deck, listener: zone.listener, playing: zone.playing }));
-  check('the menus: Zone\'s is Radio, Ondes, Playlists and its Atlas; Echo\'s ends with the map\'s Atlas', zone.menu?.join() === 'radio,ondes,playlists,zone' && zone.echoMenu?.at(-1) === 'atlas',
+  // Since 2026-11-03 the Bibliothèque follows the map's Atlas in Echo's menu.
+  check('the menus: Zone\'s is Radio, Ondes, Playlists and its Atlas; Echo\'s ends with the map\'s Atlas, then the Bibliothèque', zone.menu?.join() === 'radio,ondes,playlists,zone' && zone.echoMenu?.slice(-2).join() === 'atlas,portfolio',
     JSON.stringify({ zone: zone.menu, echo: zone.echoMenu }));
 
   /* --------------------------------------------------------- listener B -- */
@@ -501,7 +503,8 @@ try {
     return w('.echo-znav', 'Bottom') === '1px' && w('.echo-mast', 'Bottom') === '1px' && w('.echo-lead-txt', 'Top') === '1px' && w('.echo-foot', 'Top') === '1px'
       && getComputedStyle(document.querySelector('.echo-col')).backgroundColor === 'rgb(245, 244, 241)';
   }));
-  await a.click('.echo-card');
+  // The témoin is the article that carries every element (pull quote, notes); since 2026-11-03 a real article leads the Une.
+  await a.click('.echo-card[href="echo/article-temoin"]');
   await a.waitForSelector('.echo-article .echo-body .pull', { timeout: 5000 });
   const art = await echoClean();
   check('Echo article page: no Zone visualiser, no overlay, nameplate links back to /echo', art.canvases.length === 0 && art.veils.length === 0 && art.running === false && await a.$('.echo-mast-small a.echo-name[href="echo"]') !== null, JSON.stringify(art));
@@ -517,16 +520,42 @@ try {
     archC.path === '/echo/archives' && archC.press >= 26 && archC.tags >= 1 && archC.feed && archC.on === 'echo/archives' && archC.paper === 'rgb(245, 244, 241)'
     && archC.onEcho && archC.canvases.length === 0 && archC.veils.length === 0 && archC.running === false, JSON.stringify(archC));
 
-  // The Portfolio left Zone's side (2026-11-01): Echo's rubriques no longer offer it; Archives' own link still opens it.
-  // That evening the Atlas became two: Zone's (/zone) beside Radio, the map's (/atlas) among Echo's.
+  // The Portfolio left Zone's side (2026-11-01) and came back on Echo's as the Bibliothèque (2026-11-03): the last rubrique.
+  // The Atlas is two since 11-01: Zone's (/zone) beside Radio, the map's (/atlas) among Echo's.
   const rubriques = await a.$$eval('.echo-znav a', (as) => as.map((x) => x.getAttribute('href')));
-  check('Echo\'s rubriques: Zone is Radio and its Atlas, Média ends with the map\'s Atlas, the Portfolio off Zone\'s side', rubriques.join() === 'radio,zone,echo,echo/lectures,echo/archives,atlas', rubriques.join());
+  check('Echo\'s rubriques: Zone is Radio and its Atlas, Média ends with the map\'s Atlas and the Bibliothèque', rubriques.join() === 'radio,zone,echo,echo/lectures,echo/archives,atlas,portfolio', rubriques.join());
   await a.click('#view a.echo-go[href="portfolio"]');
   await a.waitForSelector('.room .book', { timeout: 8000 });
   const books = (await a.$$('.room .book')).length;
   check('Portfolio: the library puts every book on a shelf', books >= 20, `${books} spines`);
   const covers = await a.$$eval('.room .book', (bs) => bs.filter((b) => b.querySelector('.bcover .cv-art svg') && b.querySelector('.spine')).length);
   check('Portfolio: every book is a volume with a cover drawn for it, the thesis face-out', covers === books && Boolean(await a.$('.room .book.thesis.face-out')), `${covers}/${books} covers`);
+  // The Livre miroir (2026-11-03): on the top shelf, pulled out under the pointer like the others; clicked, it opens on
+  // the pond with the six texts at the bottom of it, each stone a link to its text; Esc closes it and the shelf is back.
+  const mirrorBtn = await a.$('.room .shelf:first-child .book.mirror');
+  let mirror = { onTop: Boolean(mirrorBtn) };
+  if (mirrorBtn) {
+    // Listener B's page opened since: put this one back in front, or it draws no frames and no transition runs.
+    await a.bringToFront();
+    await mirrorBtn.hover();
+    await a.waitForFunction(() => /^0px -1\d/.test(getComputedStyle(document.querySelector('.room .book.mirror .b3d')).translate), null, { timeout: 3000 }).catch(() => {});
+    mirror.lift = await a.evaluate(() => getComputedStyle(document.querySelector('.room .book.mirror .b3d')).translate);
+    await mirrorBtn.click();
+    await a.waitForFunction(() => document.querySelectorAll('dialog.mirror-book[open].is-ready .mb-pond a.stone[href^="echo/lectures/"]').length === 6, null, { timeout: 8000 }).catch(() => {});
+    mirror = { ...mirror, ...(await a.evaluate(() => {
+      const d = document.querySelector('dialog.mirror-book');
+      const pond = d?.querySelector('.mb-pond');
+      const r = pond?.getBoundingClientRect();
+      return { open: Boolean(d?.open), stones: pond?.querySelectorAll('a.stone[href^="echo/lectures/"]').length || 0, water: Boolean(pond?.querySelector('canvas.pond-water')),
+        hash: location.hash, wide: r ? r.width > 300 && r.height > 200 : false };
+    })) };
+    await a.keyboard.press('Escape');
+    // the dialog's close event (which takes #miroir off the address) comes a task after the dialog shuts
+    await a.waitForFunction(() => !document.querySelector('dialog.mirror-book')?.open && location.hash === '', null, { timeout: 3000 }).catch(() => {});
+    mirror.closed = await a.evaluate(() => !document.querySelector('dialog.mirror-book')?.open && location.hash === '');
+  }
+  check('Portfolio: the Livre miroir lifts like the others and opens on the pond of the six texts, Esc closes it',
+    mirror.onTop && /\d/.test(mirror.lift || '') && mirror.lift !== '0px' && mirror.open && mirror.stones === 6 && mirror.water && mirror.wide && mirror.hash === '#miroir' && mirror.closed, JSON.stringify(mirror));
   // "#maps" under <base href="/"> resolves to the site root: the router must keep the reader here.
   const roomPath = await a.evaluate(() => location.pathname);
   await a.click('a[data-maps]').catch(() => {});
@@ -802,9 +831,9 @@ try {
     JSON.stringify(opened));
 
   // Every route answers on a cold link, already in its district (no flight), the page live in its window.
-  // Since 2026-11-01 /zone is Zone's Atlas and /atlas Echo's, and the Portfolio has no window: it opens over the world, like a page off the map.
-  const coldRoutes = [['', 'radio'], ['radio', 'radio'], ['ondes', 'ondes'], ['echoes', 'ondes'], ['zone', 'zone'], ['atlas', 'atlas'], ['portfolio', null, /Portfolio/],
-    ['portfolio/photos', null, /Portfolio/], ['playlists', 'playlists'], ['booth', 'booth'], ['echo', 'une'], ['echo/article-temoin', 'articles'],
+  // Since 2026-11-01 /zone is Zone's Atlas and /atlas Echo's; since 11-03 the Portfolio is Echo's Bibliothèque again, every room in its window.
+  const coldRoutes = [['', 'radio'], ['radio', 'radio'], ['ondes', 'ondes'], ['echoes', 'ondes'], ['zone', 'zone'], ['atlas', 'atlas'], ['portfolio', 'portfolio'],
+    ['portfolio/photos', 'portfolio'], ['playlists', 'playlists'], ['booth', 'booth'], ['echo', 'une'], ['echo/article-temoin', 'articles'],
     ['echo/lectures', 'lectures'], ['ecrits', 'lectures'], ['echo/archives', 'archives'], ['nulle-part', null]];
   const coldMiss = [];
   // axe on each of them too: since phase 5b these are the pages everyone gets on a laptop.
@@ -911,15 +940,18 @@ try {
     arch.path === '/echo/archives' && arch.current === 'archives' && arch.centre < 30 && arch.want >= 26 && arch.press === arch.want && arch.tags >= 1 && arch.atlas
     && arch.feed && arch.portfolio && arch.bare, JSON.stringify(arch));
   await w.click('#w-archives .w-box a[href="portfolio"]');
-  await w.waitForFunction(() => location.pathname === '/portfolio' && document.querySelector('.w-lost:not([hidden]) .w-box > .page .room-tabs'), null, { timeout: 8000 }).catch(() => {});
+  await w.waitForFunction(() => location.pathname === '/portfolio' && window.radioTower.world.current === 'portfolio' && !window.radioTower.world.camera.moving
+    && document.querySelector('#w-portfolio .w-box > .page .room .book.mirror'), null, { timeout: 10000 }).catch(() => {});
   const toPortfolio = await w.evaluate(() => {
     const au = document.getElementById('audio');
+    const win = document.getElementById('w-portfolio');
     return { path: location.pathname, current: window.radioTower.world.current, same: au === window.__worldAudio, paused: au.paused,
-      over: Boolean(document.querySelector('.w-lost:not([hidden]) .w-box > .page .room-tabs')), window: Boolean(document.getElementById('w-portfolio')) };
+      half: win?.closest('.w-district')?.dataset.half || win?.dataset.half || null, books: win?.querySelectorAll('.room .book').length || 0,
+      lost: !document.querySelector('.w-lost')?.hidden, echo: document.body.classList.contains('on-echo') };
   });
-  // The Portfolio left Zone's side on 2026-11-01 and has no window until the Echo work gives it one: it opens over the world.
-  check('…and « Ouvrir le Portfolio » opens it over the world (no window on Zone\'s side any more), the radio still playing', toPortfolio.path === '/portfolio'
-    && toPortfolio.current === 'archives' && toPortfolio.over && !toPortfolio.window && toPortfolio.same && !toPortfolio.paused, JSON.stringify(toPortfolio));
+  // The Portfolio left Zone's side on 2026-11-01 and came back on Echo's as the Bibliothèque (E-06) on 11-03.
+  check('…and « Ouvrir le Portfolio » flies to the Bibliothèque, its window on Echo, the shelves in it, the radio still playing', toPortfolio.path === '/portfolio'
+    && toPortfolio.current === 'portfolio' && toPortfolio.books >= 20 && !toPortfolio.lost && toPortfolio.echo && toPortfolio.same && !toPortfolio.paused, JSON.stringify(toPortfolio));
 
   // R9's own check for this phase: an article prints from the world as it does from the classic site. Measured at the
   // paper's width (A4 at 96 dpi), then printed to PDF.

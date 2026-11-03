@@ -187,7 +187,7 @@ async function boot() {
       try { cleanup?.(); } catch (e) { console.error(e); }
       cleanup = null;
       // In the world the map's Atlas stands on Echo's side (2026-11-01); the classic shell keeps it with Zone.
-      const echoRoute = ['echo', 'lectures', 'ecrits', 'archives'].includes(match.name) || (Boolean(world) && match.name === 'atlas');
+      const echoRoute = ['echo', 'lectures', 'ecrits', 'archives'].includes(match.name) || (Boolean(world) && ['atlas', 'portfolio'].includes(match.name));
       document.body.classList.toggle('on-echo', echoRoute);
       globalThis.__echoStage?.(echoRoute);
       // With the world on, the page opens in its district's window, not in <main>.
