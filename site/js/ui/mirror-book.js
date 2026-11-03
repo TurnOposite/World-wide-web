@@ -140,18 +140,31 @@ function build(intro) {
     </div>`;
   document.body.append(dialog);
   const leaf = dialog.querySelector('.mb-leaf');
+  const recto = leaf.querySelector('.mb-recto');
+  const live = () => dialog.classList.contains('is-ready') && !dialog.classList.contains('is-turning') && !dialog.classList.contains('is-turned');
+  // Where on the page the pointer is: its bottom corner, its outer edge, or neither. Read from the page's own
+  // box rather than from the zones laid over it: some browsers hit-test a 3D page as one piece, never its children.
+  const zone = (e) => {
+    if (!e.target.closest?.('.mb-leaf')) return null;
+    const r = recto.getBoundingClientRect();
+    const fx = (e.clientX - r.left) / r.width;
+    const fy = (e.clientY - r.top) / r.height;
+    if (fx < 0 || fx > 1.02 || fy < 0 || fy > 1.02) return null;
+    if (fx >= 0.84 && fy >= 0.84) return 'corner';
+    return fx >= 0.92 ? 'edge' : null;
+  };
   // The lift: the outer edge a little, the bottom corner more (rooms.css). Only a mouse can hover;
   // a keyboard lifts the edge by focusing it. A touch turns the page at once.
-  const lift = (k) => (e) => { if (e.pointerType === 'mouse' && !dialog.classList.contains('is-turned')) leaf.dataset.lift = k; };
-  const drop = (e) => { if (!e.relatedTarget?.closest?.('.mb-edge, .mb-corner')) delete leaf.dataset.lift; };
-  for (const [sel, k] of [['.mb-edge', 'edge'], ['.mb-corner', 'corner']]) {
-    const z = leaf.querySelector(sel);
-    z.addEventListener('pointerenter', lift(k));
-    z.addEventListener('pointerleave', drop);
-  }
+  dialog.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse' || !live()) return;
+    const k = zone(e);
+    if (k) leaf.dataset.lift = k;
+    else delete leaf.dataset.lift;
+  });
+  leaf.addEventListener('pointerleave', () => { delete leaf.dataset.lift; });
   dialog.addEventListener('click', (e) => {
     if (e.target === dialog || e.target.closest('.mb-close')) { dialog.close(); return; }
-    if (e.target.closest('.mb-edge, .mb-corner')) { turn(); return; }
+    if (live() && (e.target.closest('.mb-edge, .mb-corner') || zone(e))) { turn(); return; }
     // A stone opens its text: the router takes the link; the book closes behind it.
     if (e.target.closest('a.stone')) setTimeout(() => dialog.open && dialog.close(), 0);
   });

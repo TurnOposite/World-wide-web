@@ -3072,3 +3072,8 @@ Ortis's request in one change (DECISIONS, same date, « Lectures into the Livre 
   now ready 820 ms after the book starts to open (a product fix: the edge never answers on a book still moving), the
   smoke waits for the book to stand still before aiming, and the verso never takes the pointer. Site smoke 144/144 in
   Chromium's headless shell.
+- **CI on `a776431`: still 152/155**, and the smoke's new report said why: on the runner's Chromium (Playwright
+  1.56's own) the point at the corner hits `.mb-recto` itself, never the edge and corner zones laid inside it — that
+  browser hit-tests the 3D page as one piece. The lift and the turn are now read from where the pointer is on the
+  page's own box (bottom-right 16 % → corner, outer 8 % → edge); the edge button stays for a keyboard. Proved here with
+  the page's children made unhittable: lifts at the corner, turns. 455 unit, site smoke 144/144.
