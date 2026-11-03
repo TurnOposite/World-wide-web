@@ -261,13 +261,22 @@ test('Echo front page: side silhouettes are drawn in SVG, both sides, no externa
 
 test('Playlists (Zone): playlists.json is well formed, and every playlist plays in the one Spotify player', async () => {
   const data = JSON.parse(fs.readFileSync(new URL('../site/data/playlists.json', import.meta.url), 'utf8'));
-  assert.ok(data.playlists.length >= 60);
+  assert.ok(data.playlists.length >= 50);
+  // Taken off the site by Ortis (2026-11-03): two he named, the soundtracks one, and four more.
+  for (const gone of ['Alouette FM', 'Catpiss inspo', '🔀Sound🔊Tracks🛤️', 'the one that must be made', 'EMERGENCY NEW YORK PLAYLIST', 'PCBTOS', 'chilly in da billy']) {
+    assert.ok(!data.playlists.some((p) => p.title === gone), `${gone} stays off`);
+  }
+  // Most saved first (2026-11-03): the order of the file is the order of the cards.
+  for (let i = 1; i < data.playlists.length; i++) assert.ok(data.playlists[i - 1].saves >= data.playlists[i].saves, `${data.playlists[i].title} is in saves order`);
   assert.equal(new Set(data.playlists.map((p) => p.url)).size, data.playlists.length, 'no duplicate playlist');
   assert.match(data.profile, /^https:\/\/open\.spotify\.com\/user\/[a-z0-9]+$/);
   assert.match(data.featured.embed, /^https:\/\/open\.spotify\.com\/embed\/playlist\/[A-Za-z0-9]+/);
   for (const p of data.playlists) {
     for (const k of ['title', 'url', 'vibe', 'years']) assert.equal(typeof p[k], 'string', k);
     assert.match(p.url, /^https:\/\/open\.spotify\.com\/playlist\/[A-Za-z0-9]+$/);
+    assert.equal(typeof p.cover, 'string', 'cover');
+    assert.match(p.cover, /^(|https:\/\/image-cdn-[a-z]+\.spotifycdn\.com\/image\/ab67706c[0-9a-f]{32})$/, `${p.title}: a cover is Ortis's own photo, or none`);
+    assert.ok(Number.isInteger(p.saves) && p.saves >= 0, `${p.title}: saves`);
   }
   // One player, whatever the number of playlists (docs/DECISIONS.md 2026-10-20).
   const deck = fs.readFileSync(new URL('../site/js/ui/spotify-deck.js', import.meta.url), 'utf8');
@@ -291,7 +300,13 @@ test('Playlists (Zone): playlists.json is well formed, and every playlist plays 
   }
   assert.equal(embedUrl('0XeQKa4xS4I74EsGKl8GpI'), 'https://open.spotify.com/embed/playlist/0XeQKa4xS4I74EsGKl8GpI?utm_source=generator');
   const list = deckList(data);
-  assert.equal(list[0].title, data.featured.title, 'the featured playlist is in the player first');
+  const opens = list.filter((p) => p.featured);
+  assert.equal(opens.length, 1, 'one playlist the player opens on');
+  assert.equal(opens[0].title, data.featured.title, 'the featured playlist is in the player first');
+  assert.deepEqual(list.map((p) => p.id), data.playlists.map((p) => playlistId(p.url)), 'the cards keep the order of the file (most saved first)');
+  assert.match(deck, /list\.find\(\(p\) => p\.featured\)/, 'the player opens on the featured playlist, wherever its card sits');
+  assert.ok(list.filter((p) => p.cover).length >= 40, 'most cards carry their cover');
+  assert.match(deck, /class="pl-cover"/);
   assert.equal(new Set(list.map((p) => p.id)).size, list.length, 'each playlist once');
   assert.ok(list.length >= data.playlists.length);
   assert.ok(list.every((p) => p.url === `https://open.spotify.com/playlist/${p.id}`));

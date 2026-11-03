@@ -3708,3 +3708,15 @@ window — `districtFor('portfolio')` was null on purpose, waiting for « the Ec
 The first real article (« Don’t shoot the pianist », Zoneko & Sol) ends on a photograph and opens on a portrait
 one. `site-echo.mjs` takes `![alt](src "caption")` alone in its block as a figure (a site path to an image, or
 https; anything else stays text), and `hero_focus: 50% 58%` sets where the Une's 16:9 crop of the hero falls.
+## 2026-11-03 — Playlists: most saved first, covers from Spotify's CDN
+
+Ortis: « rearrange the playlist order with the ones with most likes/saved to library first » and « put the
+playlist covers in the vignettes too since those are all my photos ».
+**Chosen:** the order lives in `site/data/playlists.json` itself (sorted by a `saves` snapshot taken from each
+playlist's public page), so the file stays the one place he edits and a later re-sort is a re-read, not code. The
+player opens on `featured` (Greetings) wherever its card sits, instead of forcing it to the front. Covers are
+linked from Spotify's image CDN, not copied into the repository: the deck already depends on Spotify for the
+player, a changed cover on Spotify would otherwise go stale here, and fifty images would weigh on a repository
+the Pi also clones. Only uploaded covers (`ab67706c…`) count; Spotify's mosaic of album art is not his photo.
+**Revisit if** Spotify's CDN refuses hotlinked images, or the site must show covers offline (then copy them
+into `site/assets/covers/`).

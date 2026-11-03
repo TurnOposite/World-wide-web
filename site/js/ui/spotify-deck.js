@@ -29,24 +29,34 @@ export function playlistId(url) {
 /** Spotify's own player for a playlist id (the URL its « Embed » button gives). */
 export const embedUrl = (id) => `https://open.spotify.com/embed/playlist/${id}?utm_source=generator`;
 
+/** A cover is one of Ortis's own photos on Spotify's image CDN, or nothing. */
+const COVER = /^https:\/\/image-cdn-[a-z]+\.spotifycdn\.com\/image\/[0-9a-f]{40}$/;
+
 /**
- * The playlists worth showing, featured first, each once:
- * [{ id, title, url, vibe, years }]. `vibe` is the few words under a card's
- * name that help a listener choose beyond its cryptic title (Ortis,
- * 2026-11-01); `description` in playlists.json is read as the same thing.
+ * The playlists worth showing, each once, in the order playlists.json gives
+ * them — most saved first since 2026-11-03 (Ortis: « the ones with most
+ * likes/saved to library first »). The featured playlist is the one the
+ * player opens on, wherever it sits in that order; when it is not in the list
+ * at all it leads it. [{ id, title, url, vibe, years, cover, featured }].
+ * `vibe` is the few words under a card's name that help a listener choose
+ * beyond its cryptic title (Ortis, 2026-11-01); `description` in
+ * playlists.json is read as the same thing.
  */
 export function deckList(data) {
   const seen = new Set();
   const out = [];
-  const add = (p) => {
+  const fid = playlistId(data?.featured?.url) || playlistId(data?.featured?.embed);
+  const add = (p, front = false) => {
     const id = playlistId(p?.url) || playlistId(p?.embed);
     if (!id || seen.has(id)) return;
     seen.add(id);
     const keep = (v) => (typeof v === 'string' && v !== 'à compléter' ? v : '');
-    out.push({ id, title: String(p.title || 'Playlist'), url: `https://open.spotify.com/playlist/${id}`, vibe: keep(p.description) || keep(p.vibe), years: keep(p.years) });
+    const cover = COVER.test(String(p.cover || '')) ? p.cover : '';
+    const item = { id, title: String(p.title || 'Playlist'), url: `https://open.spotify.com/playlist/${id}`, vibe: keep(p.description) || keep(p.vibe), years: keep(p.years), cover, featured: id === fid };
+    if (front) out.unshift(item); else out.push(item);
   };
-  if (data?.featured) add(data.featured);
   for (const p of data?.playlists || []) add(p);
+  if (data?.featured) add(data.featured, true);
   return out;
 }
 
@@ -55,6 +65,19 @@ let DATA = null;
 export async function loadPlaylists() {
   if (!DATA) DATA = await (await fetch(new URL('data/playlists.json', document.baseURI))).json();
   return DATA;
+}
+
+/**
+ * A card's vignette: the playlist's cover — Ortis's own photo — straight from
+ * Spotify's CDN, which already serves the player. A playlist without one
+ * (Spotify's mosaic of other people's album art does not count) gets its
+ * initial on a plain tile, and so does a cover that fails to load.
+ */
+function cover(p) {
+  const initial = esc((p.title.match(/[\p{L}\p{N}]/u) || ['♪'])[0].toUpperCase());
+  return `<span class="pl-cover" aria-hidden="true" data-initial="${initial}">${p.cover
+    ? `<img src="${esc(p.cover)}" alt="" width="56" height="56" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
+    : ''}</span>`;
 }
 
 /**
@@ -69,7 +92,7 @@ export async function mountDeck(root, { player = null, compact = false } = {}) {
     root.innerHTML = '<p class="hint">Aucune playlist pour l\'instant.</p>';
     return () => {};
   }
-  const first = list[0];
+  const first = list.find((p) => p.featured) || list[0];
   root.innerHTML = `
     <section class="sp-deck${compact ? ' compact' : ''}" aria-label="Playlists Spotify">
       <div class="sp-player">
@@ -78,9 +101,9 @@ export async function mountDeck(root, { player = null, compact = false } = {}) {
         <p class="sp-now" aria-live="polite">Dans le lecteur : <b class="sp-title">${esc(first.title)}</b>
           · <a class="sp-open" href="${esc(first.url)}" target="_blank" rel="noopener noreferrer">Ouvrir dans Spotify ↗</a></p>
       </div>
-      <ul class="sp-list" role="list">${list.map((p, i) => `
-        <li><button type="button" class="sp-pick" data-id="${esc(p.id)}" aria-pressed="${i === 0}">
-          ${p.years ? `<span class="pl-years">${esc(p.years)}</span>` : ''}<b>${esc(p.title)}</b>${compact ? (p.vibe ? `<span class="pl-vibe">${esc(p.vibe)}</span>` : '') : `<span class="pl-vibe pl-desc">${esc(p.vibe)}</span>`}
+      <ul class="sp-list" role="list">${list.map((p) => `
+        <li><button type="button" class="sp-pick" data-id="${esc(p.id)}" aria-pressed="${p.id === first.id}">
+          ${compact ? '' : cover(p)}<span class="pl-text">${p.years ? `<span class="pl-years">${esc(p.years)}</span>` : ''}<b>${esc(p.title)}</b>${compact ? (p.vibe ? `<span class="pl-vibe">${esc(p.vibe)}</span>` : '') : `<span class="pl-vibe pl-desc">${esc(p.vibe)}</span>`}</span>
         </button></li>`).join('')}</ul>
       ${/^https:\/\/open\.spotify\.com\/user\/[A-Za-z0-9]+$/.test(String(data.profile || '')) ? `<p class="pl-profile"><a href="${esc(data.profile)}" target="_blank" rel="noopener noreferrer">Tout le profil ZoNeKo sur Spotify ↗</a></p>` : ''}
     </section>`;
@@ -106,10 +129,14 @@ export async function mountDeck(root, { player = null, compact = false } = {}) {
   const onBlur = () => setTimeout(() => {
     if (document.activeElement === frame && player?.playing) player.mute();
   }, 0);
+  // A cover that does not load leaves its tile and the initial under it.
+  const onError = (e) => { if (e.target instanceof HTMLImageElement && e.target.closest('.pl-cover')) e.target.remove(); };
   root.addEventListener('click', onClick);
+  root.addEventListener('error', onError, true);
   window.addEventListener('blur', onBlur);
   return () => {
     root.removeEventListener('click', onClick);
+    root.removeEventListener('error', onError, true);
     window.removeEventListener('blur', onBlur);
   };
 }

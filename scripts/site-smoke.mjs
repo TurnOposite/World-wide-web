@@ -102,12 +102,18 @@ const browser = await chromium.launch(launchOpts);
 // console noise. Every context gets a stub that records what was asked for.
 const SPOTIFY = 'https://open.spotify.com/embed/playlist/';
 const spotifyAsked = [];
+const coversAsked = [];
 const newContext = browser.newContext.bind(browser);
 browser.newContext = async (o) => {
   const c = await newContext(o);
   await c.route('https://open.spotify.com/**', (r) => {
     spotifyAsked.push(r.request().url());
     return r.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>Spotify stub</title><p>stub</p>' });
+  });
+  // The playlists' covers (2026-11-03) come from Spotify's image CDN: the same rule, a stand-in image offline.
+  await c.route(/^https:\/\/image-cdn-[a-z]+\.spotifycdn\.com\//, (r) => {
+    coversAsked.push(r.request().url());
+    return r.fulfill({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>' });
   });
   return c;
 };
@@ -296,16 +302,21 @@ try {
   }));
   await a.waitForTimeout(800); // the frame's request reaches the stub
   const pl = await deckState();
-  const firstId = pl.picks[0]?.id;
-  check('Playlists: one Spotify player, loaded (not lazy), with every playlist as a card', pl.picks.length >= 60 && pl.iframes.length === 1 && pl.iframes[0].startsWith(SPOTIFY + firstId) && pl.lazy !== 'lazy' && asked(firstId) && pl.picks[0].on,
+  // Since 2026-11-03 the cards run most-saved first and the player opens on the featured playlist, wherever its card sits.
+  const onAir = pl.picks.filter((p) => p.on);
+  const firstId = onAir[0]?.id;
+  check('Playlists: one Spotify player, loaded (not lazy), with every playlist as a card', pl.picks.length >= 50 && pl.iframes.length === 1 && onAir.length === 1 && pl.iframes[0].startsWith(SPOTIFY + firstId) && pl.lazy !== 'lazy' && asked(firstId) && pl.now === onAir[0].title,
     `${pl.picks.length} cards, ${pl.iframes.join()}, asked ${spotifyAsked.length}`);
-  const picked = pl.picks[2];
+  const picked = pl.picks.find((p, i) => i >= 2 && !p.on);
   await a.click(`#view .sp-pick[data-id="${picked.id}"]`);
   await a.waitForTimeout(800);
   const pl2 = await deckState();
   check('Playlists: a card loads its playlist into the same player, and the radio plays on', pl2.iframes.length === 1 && pl2.iframes[0].startsWith(SPOTIFY + picked.id) && asked(picked.id)
     && pl2.now === picked.title && pl2.open === `https://open.spotify.com/playlist/${picked.id}` && pl2.picks.filter((p) => p.on).map((p) => p.id).join() === picked.id && pl2.playing,
     `${picked.title} → ${pl2.iframes.join()}`);
+  const vign = await a.evaluate(() => ({ cards: document.querySelectorAll('#view .sp-pick .pl-cover').length, imgs: document.querySelectorAll('#view .sp-pick .pl-cover img').length }));
+  check('Playlists: every card has its vignette, and the covers are Ortis\'s photos from Spotify\'s CDN', vign.cards === pl.picks.length && vign.imgs >= 40 && coversAsked.length > 0,
+    `${vign.cards} vignettes, ${vign.imgs} covers, ${coversAsked.length} asked`);
 
   /* ------------------------------------------- music survives navigation -- */
   const audioBefore = await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); return document.getElementById('audio').currentTime; });

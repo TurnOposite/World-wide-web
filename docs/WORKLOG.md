@@ -3028,3 +3028,24 @@ photo as cover, the green banner at the end, signed Zoneko & Sol (DECISIONS, sam
   api.github.com from the runner, refused without CORS headers. Re-running `8b5cb71` (live, green at 00:12) went
   red the same way: GitHub's side, not this change. `atelier-smoke.mjs` now builds its dist with no repository
   (`repo: ''`), as it does on a laptop: it checks the sub-path, the past's bar and the images, not the booth.
+## 2026-11-03 — Playlists: Ortis's descriptions, most saved first, seven taken off, his covers on the cards (Claude, for Ortis)
+
+- **Descriptions** (`vibe` in `site/data/playlists.json`) for the 25 playlists Ortis wrote them for, his words with
+  the spelling fixed (vinyl, chakras, BPM, MF DOOM); the other 33 stay empty for him to fill. Under the name they
+  are smaller, lighter and dimmer than the title, so the titles read first.
+- **Taken off** at his word: Alouette FM, Catpiss inspo, 🔀Sound🔊Tracks🛤️, the one that must be made, EMERGENCY NEW
+  YORK PLAYLIST, PCBTOS, chilly in da billy. 58 playlists remain; the unit test names the seven so they stay off.
+- **Order: most saved first.** Each playlist's « saves » read from its public Spotify page on 2026-11-03 and stored
+  as `saves` (a snapshot, used only for the order; ties keep the order they had). The file's order is the cards'
+  order; the player still opens on « Greetings » (`featured`), now the fourth card with a lit border.
+- **Covers:** each card leads with its playlist's cover (`cover`), Ortis's own photo on Spotify's image CDN. Six
+  playlists have only Spotify's mosaic of other people's album art (MozamBARS, shit idk cool shit, BAILE DA
+  CLASHSA, Songs that jeanne tolerates, Vending machine but it's free) or no cover (Corporate vibing): they get
+  their initial on a plain tile, as does any cover that fails to load. The smoke stubs the image CDN offline, the
+  way it stubs the player.
+- **Tests moved, not weakened:** « featured first in the list » became « the player opens on the featured
+  playlist, wherever its card sits »; at least 50 cards instead of 60; new checks for the order, the seven, and
+  the vignettes.
+- **Self-test:** before (`8b5cb71`): 451 unit, 130/130 site smoke. After: `npm run site:smoke` 131/131, and the whole
+  `scripts/build-test.sh` — 451 unit, 43/43 browser, 142/142 site, 26/26 Atelier, « the tower is sound »; again after
+  rebasing on `c4f97e6` (the Bibliothèque): 452 unit, 43/43 browser, 143/143 site, 26/26 Atelier, sound.

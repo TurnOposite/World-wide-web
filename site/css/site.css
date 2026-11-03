@@ -870,6 +870,15 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .sp-deck:not(.compact) .sp-pick b{font-size:14.5px}
 .sp-deck:not(.compact) .pl-profile{grid-column:1/-1;margin-top:6px}
 .pl-desc{display:block;min-height:2.5em;font-size:12.5px;line-height:1.25}
+/* Each card leads with its playlist's cover, Ortis's own photo (2026-11-03); the few words under the name stay
+   quieter than the name itself — smaller, lighter, dimmer — so the titles still read first down the list. */
+.sp-deck:not(.compact) .sp-pick{flex-direction:row;align-items:flex-start;gap:10px}
+.pl-text{display:flex;flex-direction:column;gap:3px;min-width:0;overflow-wrap:anywhere}
+.sp-deck:not(.compact) .sp-list:has(.pl-cover){grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.pl-cover{flex:none;position:relative;width:56px;height:56px;border-radius:6px;overflow:hidden;background:var(--bg-glass);box-shadow:inset 0 0 0 1px var(--line)}
+.pl-cover::before{content:attr(data-initial);position:absolute;inset:0;display:grid;place-items:center;font:600 20px/1 var(--serif);color:var(--text-faint)}
+.pl-cover img{position:relative;display:block;width:100%;height:100%;object-fit:cover}
+.sp-deck:not(.compact) .pl-desc{font-size:12px;font-weight:400;color:var(--text-dim);opacity:.8;min-height:0}
 .w-private .pl-desc:empty::before{content:"✎ a few words: playlists.json → vibe";color:var(--text-faint);font-style:italic;opacity:.7}
 @media (max-width:759px){
   .sp-deck:not(.compact){grid-template-columns:1fr}
