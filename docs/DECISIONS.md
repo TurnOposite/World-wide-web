@@ -3720,3 +3720,47 @@ player, a changed cover on Spotify would otherwise go stale here, and fifty imag
 the Pi also clones. Only uploaded covers (`ab67706c…`) count; Spotify's mosaic of album art is not his photo.
 **Revisit if** Spotify's CDN refuses hotlinked images, or the site must show covers offline (then copy them
 into `site/assets/covers/`).
+
+## 2026-11-03 (evening) — Lectures into the Livre miroir; Articles gets its list and the press; the Bibliothèque becomes the Archive
+
+**Context.** Ortis: the texts that Lectures pointed at should be harder to find — that is why the pond is in a book
+on the shelf; Articles only said « les articles s'ouvrent depuis la Une »; once the press lives in Articles, Archives
+is only a name; the témoin article was a template, binned now a real article leads; the Bibliothèque's two
+descriptions say nothing; the Photos belong on the world map one day, not in a tab; the map room should sit under the
+bookcase as a table, the thesis card should be what the thesis book opens.
+**Decided.**
+1. **Lectures' window is gone.** Its description (texts.json `intro`) is the Livre miroir's first double page, one
+   sentence to a paragraph, cut where the two pages come out nearest (`introPages`). Nothing says the page turns: the
+   right-hand page's outer edge lifts under the pointer (a few degrees), the bottom corner more (a curl); a click on
+   either turns it over the spine, and the pond with the six stones is under it. The edge is a real button for a
+   keyboard (« Tourner la page », its lift is its focus ring); the pond is `inert` until the page is turned.
+   A text keeps its address (`/echo/lectures/<slug>`) and opens in the Articles window; its back link is
+   `portfolio#miroir`. `/echo/lectures` alone leads there too. The Une's Lectures teaser and every menu link went.
+2. **Articles has an address**, `/echo/articles`: every Echo article, then the press — the metro walk first, then
+   the Olympics column (named « Jogos Olímpicos » in places.json `name`, its title « Parisiense em estágio no Grupo
+   Sinos » under it) — each series boxed under its name, every clipping a card. A clipping is an article of its own,
+   `/echo/presse/<id>` (id: its first page's file name; two clippings share 19 July), in the Articles window: the
+   PDF in the column (`<object>`, the picture and a link where a browser cannot show PDFs), the episodes before and
+   after. The Une shows each series once, as a group (three pages fanned), linking to `echo/articles#<key>`.
+3. **The Bibliothèque is the Archive** (`portfolio`, title « Archive », code **E-04**, Archives' own), in Lectures'
+   old place (3990, 1000): Echo is Une, Articles / Atlas, Archive. Archives' window is gone (`/echo/archives` leads
+   to the Archive). Retired codes: E-03 → `echo/lectures` (a text still lands: E-03/voyages), E-06 → `portfolio`.
+   Two rooms in tabs, Bibliothèque and Crates; the Photos room keeps its code and `/portfolio/photos`, with no tab.
+   The two descriptions (the Portfolio's and the collection's `intro`) and the shelf's hint are no longer shown.
+4. **The map table.** Under the bookcase, by the same eye, a table whose top recedes, a green leather blotter, the
+   eight maps lying on it small (`thumb`, 520 px JPEGs under `collections/university/maps/thumbs/`) on old paper
+   (`mix-blend-mode: multiply` over a paper gradient). Over the table the pointer is a loupe: a round window holding a
+   copy of the table scaled ×2.3 round the pointer (mouse only). A click lifts the map: a `<dialog>` on `<body>` whose
+   sheet flies from where the map lay (Web Animations, from its on-screen rectangle, tilted like the table) to the
+   middle of the screen, beside its description and **what the thesis draws from it** (`context` per layer, written
+   from chapters V–VIII of the thesis — Figures 1 and 3–6; the two Copenhagen maps are not in the thesis and have
+   none), the drag/zoom/download of the old map room, previous/next. `#map=<id>` opens one directly.
+5. **The thesis opens on its card** (the boxed notice that stood between the shelf and the map room), as a dialog,
+   instead of the desk; its « The maps, on the table » closes it and scrolls to the table.
+6. **The témoin** (« Article témoin : une place, un après-midi ») left `echo/articles/` for `tests/fixtures/echo/`
+   with its SVG: the unit tests build it from there, and the site smoke serves it (route interception) to the pages
+   that check every element of an article and the print.
+7. **What was removed is kept** as the private, offline version **v3** (`past/v3/`, P-04, 2741445: the world of
+   25 October – 3 November with Lectures, Archives, the Photos tab), as v1 and v2 were — and in git.
+**Revisit if** a phone finds the map table's sheets too small to aim at (then a list under the table on narrow
+screens), or the Copenhagen maps need their own reading (then their `context` from the UCPH paper).

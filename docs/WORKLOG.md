@@ -3049,3 +3049,20 @@ photo as cover, the green banner at the end, signed Zoneko & Sol (DECISIONS, sam
 - **Self-test:** before (`8b5cb71`): 451 unit, 130/130 site smoke. After: `npm run site:smoke` 131/131, and the whole
   `scripts/build-test.sh` — 451 unit, 43/43 browser, 142/142 site, 26/26 Atelier, « the tower is sound »; again after
   rebasing on `c4f97e6` (the Bibliothèque): 452 unit, 43/43 browser, 143/143 site, 26/26 Atelier, sound.
+
+## 2026-11-03 (evening) — Lectures into the Livre miroir, Articles with the press, the Archive, the map table (Claude, for Ortis)
+
+Ortis's request in one change (DECISIONS, same date, « Lectures into the Livre miroir… »).
+- **Livre miroir** (`ui/mirror-book.js`, rooms.css): opens on the introduction (texts.json `intro`, one sentence to a
+  paragraph, `introPages`); the right page lifts at its edge, curls at its corner, turns on a click; the pond under it.
+- **Articles** (`pages/articles.js`, `ui/press.js`): `/echo/articles` lists every article, then the metro series and
+  the Olympics column, boxed under their names; `/echo/presse/<id>` reads a clipping. The Une shows both series as groups.
+- **Archive**: the Bibliothèque renamed, E-04, in Lectures' place; tabs Bibliothèque + Crates (Photos: address kept, no
+  tab); descriptions gone. Lectures and Archives windows removed (`archives.js` deleted; kept in `past/v3/`, offline).
+- **Map table** (`ui/map-table.js`): perspective table under the bookcase, small maps on old paper (thumbs in
+  `collections/university/maps/thumbs/`), a magnifying loupe, a flight to a close-up with `context` from the thesis.
+- **Thesis book** opens its card as a dialog. **Témoin** moved to `tests/fixtures/echo/` (served to the smoke).
+- **Self-test before** (2741445): 452 unit, 43/43 browser, 143/143 site, 26/26 Atelier. **After:** 455 unit, 43/43
+  browser, site 155/155 in one full run; the last full run 153/155 — reds in two checks this change does not touch
+  (the booth's « it is a permutation », and « 20 pans » 19/20 at a track change, a known flake). 26/26 Atelier after
+  its v3 check was moved. **Still to do:** re-run the site smoke to confirm those two are flakes, then commit and fire.

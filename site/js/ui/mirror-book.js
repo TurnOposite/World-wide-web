@@ -1,9 +1,15 @@
 /**
  * The Livre miroir (Ortis, 2026-11-03): one more book on the Bibliothèque's top shelf. On the shelf it
  * behaves like the others — the pointer pulls it a little way out and turns its cover to you. Clicked,
- * it is taken down and opens: the cover swings over to the left, and across the two open pages lies the
- * pond of the old Écrits page (ui/pond.js), the six texts engraved on stones at the bottom of it, dark
- * until a hand moves over the water. A stone is a link to the text in Lectures.
+ * it is taken down and opens: the cover swings over to the left, and the first double page is the
+ * introduction to the texts (texts.json `intro`), one sentence to a paragraph (Ortis, 2026-11-03 later:
+ * the Lectures window is gone, its description lives here, so the texts are harder to come upon).
+ *
+ * Nothing says the page turns. Only the right-hand page's outer edge lifts a little under the pointer,
+ * the bottom corner most, as a page with another behind it does; a click on the edge or the corner turns
+ * it, and under it, across the next two pages, lies the pond of the old Écrits page (ui/pond.js), the six
+ * texts engraved on stones at the bottom of it, dark until a hand moves over the water. A stone is a link
+ * to the text, which opens in the Articles window.
  *
  * The open book is a <dialog> on <body>, not inside the page: in the world the page sits in a scaled,
  * zoomed window, and the book should open at the reader's scale, over everything.
@@ -44,10 +50,37 @@ export function mirrorHtml() {
   );
 }
 
-let TEXTS = null;
-async function texts() {
-  if (!TEXTS) TEXTS = (await (await fetch(new URL('data/texts.json', document.baseURI))).json()).texts || [];
-  return TEXTS;
+let DATA = null;
+async function load() {
+  if (!DATA) {
+    const j = await (await fetch(new URL('data/texts.json', document.baseURI))).json();
+    DATA = { texts: j.texts || [], intro: j.intro || '' };
+  }
+  return DATA;
+}
+
+/** The introduction, one sentence to a paragraph. A full stop, ?, ! or … followed by a capital ends one. */
+export function sentences(text) {
+  return String(text || '').replace(/\s+/g, ' ').trim().split(/(?<=[.!?…])\s+(?=[«"“A-ZÀ-ÖØ-Þ])/u).filter(Boolean);
+}
+
+/**
+ * The two pages of the introduction: the sentences in order, cut where the two pages come out nearest in
+ * length, the left never empty (a single sentence fills the right-hand page alone).
+ */
+export function introPages(text) {
+  const all = sentences(text);
+  if (all.length < 2) return { left: [], right: all };
+  const total = all.reduce((n, x) => n + x.length, 0);
+  let best = 1;
+  let bestGap = Infinity;
+  let run = 0;
+  for (let i = 1; i < all.length; i++) {
+    run += all[i - 1].length;
+    const gap = Math.abs(run - total / 2);
+    if (gap < bestGap) { bestGap = gap; best = i; }
+  }
+  return { left: all.slice(0, best), right: all.slice(best) };
 }
 
 /** The stones' places, as fractions of the pond: three on each page, none on the gutter. */
@@ -71,27 +104,54 @@ let dialog = null;
 let pond = null;
 let timers = [];
 
-function build() {
+const paras = (list) => list.map((x) => `<p>${esc(x)}</p>`).join('');
+
+function build(intro) {
+  const { left, right } = introPages(intro);
   dialog = document.createElement('dialog');
   dialog.className = 'mirror-book';
   dialog.setAttribute('aria-label', 'Livre miroir : les textes, au fond de l’eau');
+  // Under the first double page, the second: the pool across both. The first is the introduction — its
+  // left page lies still, its right page is the leaf that turns. On a phone the book has one page: the
+  // leaf carries the whole introduction (the left half again, hidden on a desktop).
   dialog.innerHTML = `<div class="mb-stage">
       <div class="mb-book">
-        <div class="mb-page mb-left" aria-hidden="true"><span class="mb-run">Livre miroir</span><span class="mb-folio">i</span></div>
-        <div class="mb-page mb-right" aria-hidden="true"><span class="mb-run">Au fond de l’eau</span><span class="mb-folio">ii</span></div>
-        <div class="mb-pool"><div class="mb-pond" role="group" aria-label="Les textes, au fond de l’eau"></div></div>
+        <div class="mb-page mb-left" aria-hidden="true"><span class="mb-run">Livre miroir</span><span class="mb-folio">iii</span></div>
+        <div class="mb-page mb-right" aria-hidden="true"><span class="mb-run">Au fond de l’eau</span><span class="mb-folio">iv</span></div>
+        <div class="mb-pool" inert><div class="mb-pond" role="group" aria-label="Les textes, au fond de l’eau"></div></div>
         <div class="mb-gutter" aria-hidden="true"></div>
+        <div class="mb-sheet mb-intro"><div class="mb-text">${paras(left)}</div><span class="mb-run" aria-hidden="true">Livre miroir</span><span class="mb-folio" aria-hidden="true">i</span></div>
+        <div class="mb-leaf">
+          <div class="mb-sheet mb-recto">
+            <div class="mb-text"><div class="mb-text-l" aria-hidden="true">${paras(left)}</div>${paras(right)}</div>
+            <span class="mb-run" aria-hidden="true">Au fond de l’eau</span><span class="mb-folio" aria-hidden="true">ii</span>
+            <button type="button" class="mb-edge" aria-label="Tourner la page"></button>
+            <span class="mb-corner" aria-hidden="true"></span>
+          </div>
+          <div class="mb-sheet mb-verso" aria-hidden="true"></div>
+        </div>
         <div class="mb-cover" aria-hidden="true">
           <div class="mb-front"><span class="mb-ttl">Livre miroir</span><span class="mb-art">${POOL}</span><span class="mb-sub">six textes · au fond de l’eau</span></div>
           <div class="mb-back"></div>
         </div>
       </div>
       <p class="mb-hint">Passez la main sur l’eau ; un texte s’ouvre d’un clic sur sa pierre.</p>
-      <button type="button" class="mb-close" aria-label="Refermer le livre">✕</button>
+      <button type="button" class="mb-close" aria-label="Refermer le livre" autofocus>✕</button>
     </div>`;
   document.body.append(dialog);
+  const leaf = dialog.querySelector('.mb-leaf');
+  // The lift: the outer edge a little, the bottom corner more (rooms.css). Only a mouse can hover;
+  // a keyboard lifts the edge by focusing it. A touch turns the page at once.
+  const lift = (k) => (e) => { if (e.pointerType === 'mouse' && !dialog.classList.contains('is-turned')) leaf.dataset.lift = k; };
+  const drop = (e) => { if (!e.relatedTarget?.closest?.('.mb-edge, .mb-corner')) delete leaf.dataset.lift; };
+  for (const [sel, k] of [['.mb-edge', 'edge'], ['.mb-corner', 'corner']]) {
+    const z = leaf.querySelector(sel);
+    z.addEventListener('pointerenter', lift(k));
+    z.addEventListener('pointerleave', drop);
+  }
   dialog.addEventListener('click', (e) => {
     if (e.target === dialog || e.target.closest('.mb-close')) { dialog.close(); return; }
+    if (e.target.closest('.mb-edge, .mb-corner')) { turn(); return; }
     // A stone opens its text: the router takes the link; the book closes behind it.
     if (e.target.closest('a.stone')) setTimeout(() => dialog.open && dialog.close(), 0);
   });
@@ -100,19 +160,40 @@ function build() {
     timers = [];
     pond?.destroy();
     pond = null;
-    dialog.classList.remove('is-open', 'is-ready');
+    dialog.classList.remove('is-open', 'is-ready', 'is-turned', 'is-turning');
+    delete leaf.dataset.lift;
+    dialog.querySelector('.mb-pool').inert = true;
     dialog.querySelector('.mb-pond').innerHTML = '';
     if (location.hash === '#miroir') history.replaceState(null, '', location.pathname + location.search);
     openMirror.from?.focus?.({ preventScroll: true });
   });
 }
 
+/** Turn the right-hand page over: the pond is under it. */
+function turn() {
+  if (!dialog?.open || dialog.classList.contains('is-turning') || dialog.classList.contains('is-turned')) return;
+  const leaf = dialog.querySelector('.mb-leaf');
+  delete leaf.dataset.lift;
+  dialog.classList.add('is-turning');
+  const done = () => {
+    if (!dialog.open || !dialog.classList.contains('is-turning')) return;
+    dialog.classList.remove('is-turning');
+    dialog.classList.add('is-turned');
+    const pool = dialog.querySelector('.mb-pool');
+    pool.inert = false;
+    pool.querySelector('a.stone')?.focus({ preventScroll: true });
+  };
+  timers.push(setTimeout(done, dialog.classList.contains('still') ? 0 : 1150));
+}
+
 /**
  * Take the book down and open it. `from` is the shelf's button, focused again when the book closes.
- * The cover swings open (0.9 s), then the water is drawn on the open pages.
+ * The cover swings open (0.9 s) on the introduction; the water is drawn under the page meanwhile, so it
+ * is there when the page turns.
  */
 export async function openMirror(from = null) {
-  if (!dialog) build();
+  const data = await load().catch(() => ({ texts: [], intro: '' }));
+  if (!dialog) build(data.intro);
   openMirror.from = from;
   const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!dialog.open) dialog.showModal();
@@ -120,7 +201,7 @@ export async function openMirror(from = null) {
   dialog.classList.toggle('still', still);
   // next frame: the closed book is laid out, then it opens
   requestAnimationFrame(() => requestAnimationFrame(() => dialog.classList.add('is-open')));
-  const items = (await texts()).map(stone);
+  const items = data.texts.map(stone);
   const wait = still ? 0 : 820;
   timers.push(setTimeout(async () => {
     if (!dialog.open || pond) return;
@@ -131,3 +212,4 @@ export async function openMirror(from = null) {
   }, wait));
 }
 openMirror.close = () => { if (dialog?.open) dialog.close(); };
+openMirror.turn = turn;

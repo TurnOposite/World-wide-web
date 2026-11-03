@@ -128,6 +128,16 @@ const watch = (page, tag) => {
   });
 };
 
+// The témoin (« une place, un après-midi ») carried every element of an article; it left the site on 2026-11-03 and is a
+// fixture now (tests/fixtures/echo). The pages that check an article's every element are served it in place of echo.json.
+const { build: buildEchoData } = await import('./site-echo.mjs');
+const TEMOIN_DIR = path.join(ROOT, 'tests/fixtures/echo');
+const TEMOIN = buildEchoData({ src: TEMOIN_DIR }).articles.find((x) => x.slug === 'article-temoin');
+async function serveTemoin(target) {
+  await target.route('**/data/echo.json', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ articles: [TEMOIN] }) }));
+  await target.route('**/assets/echo/temoin.svg', (r) => r.fulfill({ status: 200, contentType: 'image/svg+xml', body: fs.readFileSync(path.join(TEMOIN_DIR, 'temoin.svg')) }));
+}
+
 /** Sub-menus are closed until a half is opened: hover its half, then click the link. */
 const tab = async (pg, href) => {
   const half = await pg.evaluateHandle((h) => document.querySelector(`.tabs a[href="${h}"]`).closest('.half'), href);
@@ -148,8 +158,9 @@ try {
   const tabs = await a.$$eval('.tabs a', (els) => els.map((e) => e.textContent.trim()));
   // Since 2026-11-01 Zone's half is Radio, Ondes, Playlists, Atlas: the Zone page is part of the Atlas, the Portfolio off Zone's side.
   // Two Atlases since 2026-11-01: Zone's (/zone) and the map of the places, among Echo's.
-  // The Bibliothèque (the Portfolio) among Echo's since 2026-11-03.
-  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Playlists,Atlas,Une,Articles,Lectures,Atlas,Bibliothèque', tabs.join(', '));
+  // The Bibliothèque (the Portfolio) among Echo's since 2026-11-03, renamed the Archive that evening, in Archives' place;
+  // Lectures went into the Livre miroir.
+  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Playlists,Atlas,Une,Articles,Archive,Atlas', tabs.join(', '));
   check('…each under its own label', (await a.$$eval('.half-btn', (els) => els.map((e) => e.textContent.trim()))).join() === 'Zone,Echo');
   // The banner: two doors only; hover, focus, tap, Esc, outside tap.
   const open = () => a.$$eval('.half.open', (e) => e.map((x) => x.dataset.half).join());
@@ -392,8 +403,8 @@ try {
     zone.core ? `${zone.place} (${zone.origin.lat}, ${zone.origin.lon}) ${zone.off.toFixed(2)}px off, ${zone.coords}` : JSON.stringify(zone));
   check('…only the tower: no places, no playlists, no listener point without a geo source, and the music plays on', zone.core && zone.pins === 0 && !zone.deck && !zone.listener && zone.playing,
     JSON.stringify({ pins: zone.pins, deck: zone.deck, listener: zone.listener, playing: zone.playing }));
-  // Since 2026-11-03 the Bibliothèque follows the map's Atlas in Echo's menu.
-  check('the menus: Zone\'s is Radio, Ondes, Playlists and its Atlas; Echo\'s ends with the map\'s Atlas, then the Bibliothèque', zone.menu?.join() === 'radio,ondes,playlists,zone' && zone.echoMenu?.slice(-2).join() === 'atlas,portfolio',
+  // Since 2026-11-03 (evening): Echo's menu is the Une, Articles (its own list now), the Archive, the map's Atlas.
+  check('the menus: Zone\'s is Radio, Ondes, Playlists and its Atlas; Echo\'s is the Une, Articles, the Archive and the map\'s Atlas', zone.menu?.join() === 'radio,ondes,playlists,zone' && zone.echoMenu?.join() === 'echo,echo/articles,portfolio,atlas',
     JSON.stringify({ zone: zone.menu, echo: zone.echoMenu }));
 
   /* --------------------------------------------------------- listener B -- */
@@ -492,19 +503,18 @@ try {
     return { canvases, veils, running: window.radioTower.stage.running, onEcho: document.body.classList.contains('on-echo') };
   });
   await tab(a, 'echo');
-  await a.waitForSelector('.echo-foot a[href="echo/lectures"]', { timeout: 5000 });
-  await a.click('.echo-foot a[href="echo/lectures"]');
-  await a.waitForSelector('.echo-list li', { timeout: 5000 });
-  check('Lectures lists the six texts, one per line between thin rules', (await a.$$('.echo-list li')).length === 6 && await a.$eval('.echo-list li', (li) => getComputedStyle(li).borderBottomWidth === '1px'));
-  const lect = await echoClean();
-  check('Lectures: no Zone visualiser, no overlay, a non-empty list', lect.onEcho && lect.canvases.length === 0 && lect.veils.length === 0 && lect.running === false, JSON.stringify(lect));
-  await a.click('.echo-list a[href="echo/lectures/voyages"]');
-  await a.waitForSelector('.reading .body.verse p', { timeout: 5000 });
-  check('a poem opens verbatim, set as verse, with its score', /toits d.ardoise/.test(await a.textContent('.reading .body')) && Boolean(await a.$('#scoreBox:not([hidden])')));
-
-  await a.click('.echo-znav a[href="echo"]');
-  await a.waitForSelector('.echo-card', { timeout: 5000 });
-  check('Echo lists its articles and filters by tag', (await a.$$('.echo-card')).length >= 1);
+  await a.waitForSelector('.echo-front .echo-lead', { timeout: 5000 });
+  // Since 2026-11-03 (evening) the Lectures window is gone: the texts are found in the Livre miroir, on the Archive's
+  // top shelf, on purpose a little harder to come upon — the Une no longer points at them.
+  const uneC = await a.evaluate(() => ({
+    lectures: document.querySelectorAll('#view a[href^="echo/lectures"]').length,
+    groups: [...document.querySelectorAll('.echo-groups .echo-group')].map((g) => ({ href: g.getAttribute('href'), name: g.querySelector('b')?.textContent, fan: g.querySelectorAll('.echo-fan img').length })),
+    cards: document.querySelectorAll('.echo-card').length,
+  }));
+  check('the Une: no way to the texts any more, and the press as two groups — the metro walk, then the Olympics — each a fan of its pages',
+    uneC.lectures === 0 && uneC.groups.map((g) => g.href).join() === 'echo/articles#metro,echo/articles#jogos' && uneC.groups[0].name === 'Um passeio de metrô por Paris'
+    && uneC.groups[1].name === 'Jogos Olímpicos' && uneC.groups.every((g) => g.fan === 3), JSON.stringify(uneC));
+  check('Echo lists its articles and filters by tag', uneC.cards >= 1);
   check('Echo front page is a newspaper: masthead, lead with title link, side silhouettes, ash canvas', Boolean(
     await a.$('.echo-front .echo-mast h1') && await a.$('.echo-lead h2 a[href^="echo/"]') && (await a.$$('.echo-side .sil')).length >= 6 && await a.$('canvas.echo-ash')));
   const frontPage = await echoClean();
@@ -514,35 +524,131 @@ try {
     return w('.echo-znav', 'Bottom') === '1px' && w('.echo-mast', 'Bottom') === '1px' && w('.echo-lead-txt', 'Top') === '1px' && w('.echo-foot', 'Top') === '1px'
       && getComputedStyle(document.querySelector('.echo-col')).backgroundColor === 'rgb(245, 244, 241)';
   }));
-  // The témoin is the article that carries every element (pull quote, notes); since 2026-11-03 a real article leads the Une.
-  await a.click('.echo-card[href="echo/article-temoin"]');
-  await a.waitForSelector('.echo-article .echo-body .pull', { timeout: 5000 });
+  // A group opens Articles at its series: every clipping is there, under the series' name, in a box of its own.
+  await a.click('.echo-group[href="echo/articles#jogos"]');
+  await a.waitForSelector('.echo-articles .echo-series#jogos .echo-clip', { timeout: 5000 }).catch(() => {});
+  await a.waitForFunction(() => { const r = document.querySelector('.echo-series#jogos')?.getBoundingClientRect(); return r && r.top >= -2 && r.top < innerHeight / 2; }, null, { timeout: 3000 }).catch(() => {});
+  const artsC = { ...(await echoClean()), ...(await a.evaluate(() => {
+    const tableBox = (id) => document.querySelector(`.echo-series#${id}`);
+    const r = tableBox('jogos')?.getBoundingClientRect();
+    return {
+      path: location.pathname, hash: location.hash, on: document.querySelector('.echo-znav a.on')?.getAttribute('href'),
+      order: [...document.querySelectorAll('.echo-series')].map((x) => x.id), articles: document.querySelectorAll('.echo-articles .echo-grid .echo-card').length,
+      metro: tableBox('metro')?.querySelectorAll('.echo-clip[href^="echo/presse/"]').length, jogos: tableBox('jogos')?.querySelectorAll('.echo-clip[href^="echo/presse/"]').length,
+      names: [...document.querySelectorAll('.echo-series h2')].map((h) => h.textContent), framed: tableBox('metro') ? getComputedStyle(tableBox('metro')).borderTopWidth : null,
+      atTop: r ? r.top < innerHeight / 2 : false,
+    };
+  })) };
+  check('Articles: every article, then the metro walk and the Olympics, each clipping on its own under its series\' name, framed — opened at the series asked for',
+    artsC.path === '/echo/articles' && artsC.hash === '#jogos' && artsC.on === 'echo/articles' && artsC.order.join() === 'metro,jogos' && artsC.articles >= 1 && artsC.metro === 4 && artsC.jogos === 26
+    && artsC.names.join() === 'Um passeio de metrô por Paris,Jogos Olímpicos' && artsC.framed === '1px' && artsC.atTop && artsC.canvases.length === 0 && artsC.veils.length === 0, JSON.stringify(artsC));
+  await a.click('.echo-series#metro .echo-clip[href="echo/presse/2024-07-22-p12"]');
+  await a.waitForSelector('.echo-presse .echo-scan', { timeout: 5000 }).catch(() => {});
+  const clipC = await a.evaluate(() => ({
+    path: location.pathname, title: document.querySelector('.echo-presse h1')?.textContent, pages: document.querySelectorAll('.echo-presse .echo-scan object[data*=".pdf#toolbar=0"]').length,
+    fallback: document.querySelectorAll('.echo-presse .echo-scan-alt[href$=".pdf"]').length, prev: document.querySelector('.echo-steps a[rel="prev"]')?.getAttribute('href'),
+    next: document.querySelector('.echo-steps a[rel="next"]')?.getAttribute('href'), series: document.querySelector('.echo-presse .echo-kicker a')?.getAttribute('href'),
+  }));
+  check('…a clipping is an article: its page of the paper in the column (a link to the PDF where it cannot show), the episodes before and after',
+    clipC.path === '/echo/presse/2024-07-22-p12' && clipC.title === 'Por dentro do coração de Paris' && clipC.pages === 2 && clipC.fallback === 2
+    && clipC.prev === 'echo/presse/2024-07-19-p1' && clipC.next === 'echo/presse/2024-07-23-p12' && clipC.series === 'echo/articles#metro', JSON.stringify(clipC));
+  await a.click('.echo-znav a[href="echo"]');
+  await a.waitForSelector('.echo-lead h2 a[href^="echo/"]', { timeout: 5000 });
+  await a.click('.echo-lead h2 a[href^="echo/"]');
+  await a.waitForSelector('.echo-article .echo-body', { timeout: 5000 });
   const art = await echoClean();
   check('Echo article page: no Zone visualiser, no overlay, nameplate links back to /echo', art.canvases.length === 0 && art.veils.length === 0 && art.running === false && await a.$('.echo-mast-small a.echo-name[href="echo"]') !== null, JSON.stringify(art));
-  check('an Echo article opens: standfirst, hero with credit, pull quote, notes', Boolean(await a.$('.echo-standfirst') && await a.$('.echo-hero figcaption') && await a.$('.echo-notes li')));
-  await a.click('.echo-znav a[href="echo/archives"]');
-  await a.waitForSelector('.echo-archives .echo-press-list li', { timeout: 5000 }).catch(() => {});
-  const archC = { ...(await echoClean()), ...(await a.evaluate(() => ({
-    press: document.querySelectorAll('.echo-press-list li a[href$=".pdf"]').length, tags: document.querySelectorAll('.echo-tag-list a[href^="echo/"]').length,
-    feed: document.querySelector('.echo-archives a[href="echo/feed.xml"]') !== null, on: document.querySelector('.echo-znav a.on')?.getAttribute('href'),
-    paper: getComputedStyle(document.querySelector('.echo-col')).backgroundColor, path: location.pathname,
-  }))) };
-  check('Archives (since the world\'s phase 4, on the classic site too): the press, every article by tag, the feed — on the Gazette paper, no Zone visualiser',
-    archC.path === '/echo/archives' && archC.press >= 26 && archC.tags >= 1 && archC.feed && archC.on === 'echo/archives' && archC.paper === 'rgb(245, 244, 241)'
-    && archC.onEcho && archC.canvases.length === 0 && archC.veils.length === 0 && archC.running === false, JSON.stringify(archC));
-
-  // The Portfolio left Zone's side (2026-11-01) and came back on Echo's as the Bibliothèque (2026-11-03): the last rubrique.
+  // The témoin, served as the fixture it is now (serveTemoin): the reading page still sets every element.
+  {
+    const t = await ctxA.newPage();
+    watch(t, 'A-témoin');
+    await serveTemoin(t);
+    await t.goto(dev + 'echo/article-temoin?classic=1', { waitUntil: 'domcontentloaded' });
+    await t.waitForSelector('.echo-article .echo-body .pull', { timeout: 8000 }).catch(() => {});
+    check('an Echo article opens: standfirst, hero with credit, pull quote, notes (the témoin, as a fixture)', Boolean(await t.$('.echo-standfirst') && await t.$('.echo-hero figcaption .credit') && await t.$('.echo-body .pull') && await t.$('.echo-notes li')));
+    await t.close();
+    await a.bringToFront();
+  }
+  // /echo/archives went into Articles and the Archive: its address leads to the Archive.
+  await a.evaluate(() => window.radioTower.router.go('echo/archives'));
+  await a.waitForFunction(() => location.pathname === '/portfolio' && document.querySelector('.room .book'), null, { timeout: 8000 }).catch(() => {});
+  check('the old /echo/archives address answers and moves to the Archive', await a.evaluate(() => location.pathname === '/portfolio' && document.querySelector('.page-head h1')?.textContent === 'Archive'), await a.evaluate(() => location.pathname));
+  await a.click('.echo-znav a[href="echo"]').catch(() => tab(a, 'echo'));
+  await a.waitForSelector('.echo-znav', { timeout: 5000 });
+  // The Portfolio left Zone's side (2026-11-01), came back on Echo's as the Bibliothèque (11-03) and became the Archive that evening.
   // The Atlas is two since 11-01: Zone's (/zone) beside Radio, the map's (/atlas) among Echo's.
   const rubriques = await a.$$eval('.echo-znav a', (as) => as.map((x) => x.getAttribute('href')));
-  check('Echo\'s rubriques: Zone is Radio and its Atlas, Média ends with the map\'s Atlas and the Bibliothèque', rubriques.join() === 'radio,zone,echo,echo/lectures,echo/archives,atlas,portfolio', rubriques.join());
-  await a.click('#view a.echo-go[href="portfolio"]');
+  check('Echo\'s rubriques: Zone is Radio and its Atlas; Média is the Une, Articles, the Archive and the map\'s Atlas', rubriques.join() === 'radio,zone,echo,echo/articles,portfolio,atlas', rubriques.join());
+  await a.click('#view a[href="portfolio"]');
   await a.waitForSelector('.room .book', { timeout: 8000 });
   const books = (await a.$$('.room .book')).length;
-  check('Portfolio: the library puts every book on a shelf', books >= 20, `${books} spines`);
+  check('the Archive: the library puts every book on a shelf', books >= 20, `${books} spines`);
   const covers = await a.$$eval('.room .book', (bs) => bs.filter((b) => b.querySelector('.bcover .cv-art svg') && b.querySelector('.spine')).length);
-  check('Portfolio: every book is a volume with a cover drawn for it, the thesis face-out', covers === books && Boolean(await a.$('.room .book.thesis.face-out')), `${covers}/${books} covers`);
-  // The Livre miroir (2026-11-03): on the top shelf, pulled out under the pointer like the others; clicked, it opens on
-  // the pond with the six texts at the bottom of it, each stone a link to its text; Esc closes it and the shelf is back.
+  check('the Archive: every book is a volume with a cover drawn for it, the thesis face-out', covers === books && Boolean(await a.$('.room .book.thesis.face-out')), `${covers}/${books} covers`);
+  const archHead = await a.evaluate(() => ({
+    title: document.querySelector('.page-head h1')?.textContent, said: document.querySelectorAll('.page-head p, #libIntro, .room > .hint:not(#statusLine)').length,
+    tabs: [...document.querySelectorAll('.room-tabs a')].map((x) => x.getAttribute('href')), card: Boolean(document.querySelector('.room > .thesis-card, .room > section.thesis-card')),
+  }));
+  check('the Archive: its name, two rooms (the Bibliothèque, the Crates — the Photos have no tab), no descriptions, no thesis card between the shelf and the maps',
+    archHead.title === 'Archive' && archHead.said === 0 && archHead.tabs.join() === 'portfolio/library,portfolio/crates' && !archHead.card, JSON.stringify(archHead));
+  // The thesisC, clicked, opens on its card (the boxed notice that stood under the shelf until 2026-11-03), not on the desk.
+  await a.bringToFront();
+  await a.click('.room .book.thesis');
+  await a.waitForSelector('#thesisDesk[open] #thesisCard a.btn.gold[href$=".pdf"]', { timeout: 4000 }).catch(() => {});
+  const thesisC = await a.evaluate(() => ({ open: document.getElementById('thesisDesk')?.open, desk: document.getElementById('desk')?.open, title: document.querySelector('#thesisDesk #thesisTitle')?.textContent, hash: location.hash }));
+  check('the thesis opens on its card — the download, the title, the way to the maps — and not on the desk',
+    thesisC.open && !thesisC.desk && /Platformized Music Subcultures/.test(thesisC.title || '') && thesisC.hash.startsWith('#book=') && Boolean(await a.$('#thesisDesk a[data-maps]')), JSON.stringify(thesisC));
+  // "#maps" under <base href="/"> resolves to the site root: the router must keep the reader here.
+  const roomPath = await a.evaluate(() => location.pathname);
+  await a.click('#thesisDesk a[data-maps]').catch(() => {});
+  await a.waitForTimeout(600);
+  check('an in-page link (#maps) keeps the reader in the library, and puts the thesis back on the shelf', (await a.evaluate(() => location.pathname)) === roomPath && Boolean(await a.$('.room .book'))
+    && !(await a.evaluate(() => document.getElementById('thesisDesk').open)), roomPath);
+  // The map table under the bookcase: every map small on old paper; over the table the pointer is a loupe; a click lifts a
+  // map up to the reader with what it shows and what the thesis draws from it.
+  await a.locator('.room .maptable').scrollIntoViewIfNeeded();
+  await a.waitForFunction(() => [...document.querySelectorAll('.room .mt-scene .mt-sheet img')].every((i) => i.complete && i.naturalWidth > 0), null, { timeout: 8000 }).catch(() => {});
+  const tableC = await a.evaluate(() => {
+    const sheets = [...document.querySelectorAll('.room .maptable > .mt-scene .mt-sheet')];
+    const img = sheets[0]?.querySelector('img');
+    const below = document.querySelector('.room .maptable').getBoundingClientRect().top >= document.querySelector('.room .bookcase').getBoundingClientRect().bottom - 2;
+    return { sheets: sheets.length, small: sheets.every((s) => s.getBoundingClientRect().width < document.querySelector('.room .maptable').getBoundingClientRect().width / 3),
+      thumbs: sheets.every((s) => /\/thumbs\//.test(s.querySelector('img').getAttribute('src'))), paper: img ? getComputedStyle(img).mixBlendMode : null,
+      tilted: getComputedStyle(document.querySelector('.room .mt-table')).transform !== 'none', below };
+  });
+  const tableBox = await a.locator('.room .maptable > .mt-scene').boundingBox();
+  await a.mouse.move(tableBox.x + 4, tableBox.y + tableBox.height - 6);
+  const firstSheet = await a.locator('.room .maptable > .mt-scene .mt-sheet').first().boundingBox();
+  await a.mouse.move(firstSheet.x + firstSheet.width / 2, firstSheet.y + firstSheet.height / 2, { steps: 4 });
+  await a.waitForTimeout(250);
+  const lensC = await a.evaluate(() => {
+    const t = document.querySelector('.room .maptable');
+    return { on: t.classList.contains('lensing'), shown: getComputedStyle(t.querySelector('.mt-loupe')).opacity, cursor: getComputedStyle(t.querySelector('.mt-scene')).cursor,
+      copy: t.querySelectorAll('.mt-lens-in .mt-sheet img').length, zoom: t.querySelector('.mt-lens-in').style.transform, onSheet: t.querySelector('.mt-loupe').classList.contains('on-sheet') };
+  });
+  check('the map table: every map lies on it in small format, on old paper, under the bookcase and in perspective',
+    tableC.sheets >= 8 && tableC.small && tableC.thumbs && tableC.paper === 'multiply' && tableC.tilted && tableC.below, JSON.stringify(tableC));
+  check('…over it the pointer becomes a loupe that magnifies the maps under it', lensC.on && lensC.shown === '1' && lensC.cursor === 'none' && lensC.copy === tableC.sheets && /scale\(2/.test(lensC.zoom) && lensC.onSheet, JSON.stringify(lensC));
+  const mapId = await a.locator('.room .maptable > .mt-scene .mt-sheet').first().getAttribute('data-id');
+  await a.mouse.click(firstSheet.x + firstSheet.width / 2, firstSheet.y + firstSheet.height / 2);
+  await a.waitForTimeout(120);
+  const flying = await a.evaluate(() => document.querySelector('dialog.map-close .mc-sheet')?.getAnimations().length || 0);
+  await a.waitForFunction(() => document.querySelector('dialog.map-close.is-up .mc-info h3') && !document.querySelector('dialog.map-close .mc-sheet').getAnimations().length, null, { timeout: 4000 }).catch(() => {});
+  const upC = await a.evaluate(() => {
+    const d = document.querySelector('dialog.map-close');
+    const r = d.querySelector('.mc-sheet').getBoundingClientRect();
+    return { open: d.open, title: d.querySelector('.mc-info h3')?.textContent, context: d.querySelector('.mc-context')?.textContent.length || 0, legend: d.querySelectorAll('.mc-legend li').length,
+      big: r.width > innerWidth * 0.3, hash: location.hash, hidden: getComputedStyle(document.querySelector('.room .maptable > .mt-scene .mt-sheet.lifted')).visibility, dl: d.querySelector('.mc-dl')?.getAttribute('href') };
+  });
+  check('…a click lifts the map off the table and brings it close, beside its description and what the thesis draws from it',
+    flying >= 1 && upC.open && upC.title === 'Co-commented videos' && upC.context > 200 && upC.legend >= 5 && upC.big && upC.hash === `#map=${mapId}` && upC.hidden === 'hidden' && /thesis-figure-1\.png$/.test(upC.dl || ''), JSON.stringify({ flying, ...upC }));
+  await a.keyboard.press('Escape');
+  await a.waitForFunction(() => !document.querySelector('dialog.map-close').open, null, { timeout: 3000 }).catch(() => {});
+  check('…and Esc puts it back where it lay', await a.evaluate(() => !document.querySelector('dialog.map-close').open && location.hash === '' && !document.querySelector('.room .mt-sheet.lifted')));
+  // The Livre miroir (2026-11-03): on the top shelf, pulled out under the pointer like the others; clicked, it opens on the
+  // introduction (the Lectures window's, one sentence to a paragraph). Nothing says the page turns; the right-hand page's
+  // edge lifts under the pointer, the corner more; a click on it turns it, and the pond with the six texts is under it.
+  await a.evaluate(() => window.scrollTo(0, 0));
   const mirrorBtn = await a.$('.room .shelf:first-child .book.mirror');
   let mirror = { onTop: Boolean(mirrorBtn) };
   if (mirrorBtn) {
@@ -552,32 +658,61 @@ try {
     await a.waitForFunction(() => /^0px -1\d/.test(getComputedStyle(document.querySelector('.room .book.mirror .b3d')).translate), null, { timeout: 3000 }).catch(() => {});
     mirror.lift = await a.evaluate(() => getComputedStyle(document.querySelector('.room .book.mirror .b3d')).translate);
     await mirrorBtn.click();
-    await a.waitForFunction(() => document.querySelectorAll('dialog.mirror-book[open].is-ready .mb-pond a.stone[href^="echo/lectures/"]').length === 6, null, { timeout: 8000 }).catch(() => {});
+    await a.waitForFunction(() => document.querySelector('dialog.mirror-book[open].is-ready .mb-pond a.stone'), null, { timeout: 8000 }).catch(() => {});
+    mirror = { ...mirror, ...(await a.evaluate(() => {
+      const d = document.querySelector('dialog.mirror-book');
+      const intro = [...d.querySelectorAll('.mb-intro .mb-text > p, .mb-recto .mb-text > p')].map((p) => p.textContent);
+      const said = d.textContent.replace(/\s+/g, ' ');
+      return { open: Boolean(d?.open), paras: intro.length, first: intro[0]?.slice(0, 16), hash: location.hash, inert: d.querySelector('.mb-pool').inert,
+        quiet: !/tourn|page suivante|→|›/i.test([...d.querySelectorAll('.mb-intro, .mb-recto')].map((x) => x.innerText).join(' ')) && !/tourner/i.test(said.replace(/aria-label="[^"]*"/g, '')) };
+    })) };
+    const edgeBox = await a.locator('dialog.mirror-book .mb-corner').boundingBox();
+    await a.mouse.move(edgeBox.x - 60, edgeBox.y - 60);
+    await a.mouse.move(edgeBox.x + edgeBox.width / 2, edgeBox.y + edgeBox.height / 2, { steps: 3 });
+    await a.waitForTimeout(500);
+    mirror.lift = { shelf: mirror.lift, ...(await a.evaluate(() => {
+      const leaf = document.querySelector('dialog.mirror-book .mb-leaf');
+      const m = new DOMMatrixReadOnly(getComputedStyle(leaf).transform);
+      return { by: leaf.dataset.lift, curl: parseFloat(getComputedStyle(leaf.querySelector('.mb-recto'), '::after').width), m13: Number(m.m13.toFixed(3)) };
+    })) };
+    await a.mouse.click(edgeBox.x + edgeBox.width / 2, edgeBox.y + edgeBox.height / 2);
+    await a.waitForFunction(() => document.querySelector('dialog.mirror-book.is-turned') && !document.querySelector('dialog.mirror-book .mb-pool').inert, null, { timeout: 4000 }).catch(() => {});
     mirror = { ...mirror, ...(await a.evaluate(() => {
       const d = document.querySelector('dialog.mirror-book');
       const pond = d?.querySelector('.mb-pond');
       const r = pond?.getBoundingClientRect();
-      return { open: Boolean(d?.open), stones: pond?.querySelectorAll('a.stone[href^="echo/lectures/"]').length || 0, water: Boolean(pond?.querySelector('canvas.pond-water')),
-        hash: location.hash, wide: r ? r.width > 300 && r.height > 200 : false };
+      return { turned: d.classList.contains('is-turned'), stones: pond?.querySelectorAll('a.stone[href^="echo/lectures/"]').length || 0, water: Boolean(pond?.querySelector('canvas.pond-water')),
+        wide: r ? r.width > 300 && r.height > 200 : false, poolOpen: !d.querySelector('.mb-pool').inert };
     })) };
-    await a.keyboard.press('Escape');
-    // the dialog's close event (which takes #miroir off the address) comes a task after the dialog shuts
-    await a.waitForFunction(() => !document.querySelector('dialog.mirror-book')?.open && location.hash === '', null, { timeout: 3000 }).catch(() => {});
-    mirror.closed = await a.evaluate(() => !document.querySelector('dialog.mirror-book')?.open && location.hash === '');
   }
-  check('Portfolio: the Livre miroir lifts like the others and opens on the pond of the six texts, Esc closes it',
-    mirror.onTop && /\d/.test(mirror.lift || '') && mirror.lift !== '0px' && mirror.open && mirror.stones === 6 && mirror.water && mirror.wide && mirror.hash === '#miroir' && mirror.closed, JSON.stringify(mirror));
-  // "#maps" under <base href="/"> resolves to the site root: the router must keep the reader here.
-  const roomPath = await a.evaluate(() => location.pathname);
-  await a.click('a[data-maps]').catch(() => {});
-  await a.waitForTimeout(500);
-  check('an in-page link (#maps) keeps the reader in the library', (await a.evaluate(() => location.pathname)) === roomPath && Boolean(await a.$('.room .book')), roomPath);
-  await a.click('.room-tabs a[href="portfolio/photos"]');
-  await a.waitForSelector('.room .ph', { timeout: 8000 });
-  check('Portfolio: photos render as tiles', (await a.$$('.room .ph')).length >= 12);
+  check('the Livre miroir lifts like the others and opens on the introduction, one sentence to a paragraph, with nothing that says the page turns',
+    mirror.onTop && mirror.open && mirror.paras === 5 && mirror.first === 'Quelques projets' && mirror.hash === '#miroir' && mirror.inert && mirror.quiet, JSON.stringify(mirror));
+  check('…the right-hand page lifts under the pointer, its bottom corner most; a click turns it, and under it the pond of the six texts',
+    mirror.lift?.by === 'corner' && mirror.lift.curl > 30 && mirror.lift.m13 !== 0 && mirror.turned && mirror.poolOpen && mirror.stones === 6 && mirror.water && mirror.wide, JSON.stringify({ lift: mirror.lift, turned: mirror.turned, stones: mirror.stones, water: mirror.water, wide: mirror.wide }));
+  // A stone opens its text: the book closes behind it, the text is a reading page of Echo, back to the book.
+  if (mirror.turned) {
+    await a.click('dialog.mirror-book .mb-pond a.stone[href="echo/lectures/voyages"]', { force: true });
+    await a.waitForSelector('.reading .body.verse p', { timeout: 5000 }).catch(() => {});
+  }
+  const poem = await a.evaluate(() => ({ path: location.pathname, book: document.querySelector('dialog.mirror-book')?.open, back: document.querySelector('.reading a.back')?.getAttribute('href') }));
+  check('a stone opens its text: a poem verbatim, set as verse, with its score, and the way back is the book',
+    poem.path === '/echo/lectures/voyages' && !poem.book && poem.back === 'portfolio#miroir' && /toits d.ardoise/.test(await a.textContent('.reading .body').catch(() => '')) && Boolean(await a.$('#scoreBox:not([hidden])')), JSON.stringify(poem));
+  const lect = await echoClean();
+  check('the text\'s page: no Zone visualiser, no overlay', lect.onEcho && lect.canvases.length === 0 && lect.veils.length === 0 && lect.running === false, JSON.stringify(lect));
+  // /echo/lectures alone, the list that was: it leads to the Archive with the book open.
+  await a.evaluate(() => window.radioTower.router.go('echo/lectures'));
+  await a.waitForFunction(() => location.pathname === '/portfolio' && document.querySelector('dialog.mirror-book')?.open, null, { timeout: 8000 }).catch(() => {});
+  check('the old /echo/lectures address leads to the Archive, the Livre miroir open', await a.evaluate(() => location.pathname === '/portfolio' && location.hash === '#miroir' && document.querySelector('dialog.mirror-book').open));
+  await a.keyboard.press('Escape');
+  await a.waitForFunction(() => !document.querySelector('dialog.mirror-book')?.open && location.hash === '', null, { timeout: 3000 }).catch(() => {});
+  check('…and Esc closes the book', await a.evaluate(() => !document.querySelector('dialog.mirror-book')?.open && location.hash === ''));
   await a.click('.room-tabs a[href="portfolio/crates"]');
   await a.waitForSelector('.room .sleeve', { timeout: 8000 });
-  check('Portfolio: crates render as sleeves, with no play button', (await a.$$('.room .sleeve')).length >= 1 && !(await a.$('.room .sleeve button.play')));
+  check('the Archive: crates render as sleeves, with no play button', (await a.$$('.room .sleeve')).length >= 1 && !(await a.$('.room .sleeve button.play')));
+  // The photos keep their room and address, without a tab (Ortis: one day on the world map).
+  await a.evaluate(() => window.radioTower.router.go('portfolio/photos'));
+  await a.waitForSelector('.room .ph', { timeout: 8000 });
+  check('the photos keep their room at their address, without a tab: they render as tiles', (await a.$$('.room .ph')).length >= 12);
 
   // Two clicks in quick succession: the page that finishes loading last must
   // not cover the one the reader asked for last, nor leave its state behind.
@@ -735,15 +870,16 @@ try {
   await settled('articles');
   const walk1 = await shot('articles');
   await w.keyboard.press('ArrowRight');
-  await settled('lectures');
-  const walk2 = await shot('lectures');
-  check('→ walks the map: Articles moves only the camera, Lectures opens its address', walk1.current === 'articles' && walk1.path === '/echo' && walk1.centre < 30
-    && walk2.current === 'lectures' && walk2.path === '/echo/lectures' && walk2.centre < 30, `${walk1.path} → ${walk2.path}`);
+  await settled('portfolio');
+  const walk2 = await shot('portfolio');
+  // Since 2026-11-03 Articles has an address of its own (its list), and the Archive follows it.
+  check('→ walks the map: Articles opens its list, the Archive its address', walk1.current === 'articles' && walk1.path === '/echo/articles' && walk1.centre < 30
+    && walk2.current === 'portfolio' && walk2.path === '/portfolio' && walk2.centre < 30, `${walk1.path} → ${walk2.path}`);
 
   await w.reload({ waitUntil: 'domcontentloaded' });
-  await w.waitForFunction(() => window.radioTower?.world?.current === 'lectures', null, { timeout: 10000 }).catch(() => {});
-  const reloaded = await shot('lectures');
-  check('a reload keeps the world for the tab and lands without a flight', reloaded.current === 'lectures' && reloaded.centre < 30 && reloaded.filter === ''
+  await w.waitForFunction(() => window.radioTower?.world?.current === 'portfolio', null, { timeout: 10000 }).catch(() => {});
+  const reloaded = await shot('portfolio');
+  check('a reload keeps the world for the tab and lands without a flight', reloaded.current === 'portfolio' && reloaded.centre < 30 && reloaded.filter === ''
     && await w.evaluate(() => !window.radioTower.world.camera.moving), JSON.stringify(reloaded));
   await w.goBack({ waitUntil: 'domcontentloaded' });
   await settled('radio');
@@ -792,8 +928,8 @@ try {
     window.__worldSwaps = 0;
     for (const ev of ['ended', 'emptied', 'loadstart']) au.addEventListener(ev, () => { window.__worldSwap = performance.now(); window.__worldSwaps += ev === 'loadstart' ? 1 : 0; });
   });
-  const pans = ['ondes', 'playlists', 'atlas', 'une', 'articles', 'lectures', 'booth', 'playlists', 'radio', 'archives',
-    'booth', 'une', 'radio', 'lectures', 'atlas', 'ondes', 'une', 'playlists', 'articles', 'radio'];
+  const pans = ['ondes', 'playlists', 'atlas', 'une', 'articles', 'portfolio', 'booth', 'playlists', 'radio', 'portfolio',
+    'booth', 'une', 'radio', 'articles', 'atlas', 'ondes', 'une', 'playlists', 'articles', 'radio'];
   let tunedThrough = 0;
   for (const [i, id] of pans.entries()) {
     await w.click(`.w-tag[data-go="${id}"]`);
@@ -842,10 +978,12 @@ try {
     JSON.stringify(opened));
 
   // Every route answers on a cold link, already in its district (no flight), the page live in its window.
-  // Since 2026-11-01 /zone is Zone's Atlas and /atlas Echo's; since 11-03 the Portfolio is Echo's Bibliothèque again, every room in its window.
+  // Since 2026-11-01 /zone is Zone's Atlas and /atlas Echo's; since 11-03 the Portfolio is Echo's Archive, every room in its window;
+  // Articles has its list, a clipping and a text open in it; the old Lectures and Archives addresses lead to the Archive.
   const coldRoutes = [['', 'radio'], ['radio', 'radio'], ['ondes', 'ondes'], ['echoes', 'ondes'], ['zone', 'zone'], ['atlas', 'atlas'], ['portfolio', 'portfolio'],
-    ['portfolio/photos', 'portfolio'], ['playlists', 'playlists'], ['booth', 'booth'], ['echo', 'une'], ['echo/article-temoin', 'articles'],
-    ['echo/lectures', 'lectures'], ['ecrits', 'lectures'], ['echo/archives', 'archives'], ['nulle-part', null]];
+    ['portfolio/photos', 'portfolio'], ['playlists', 'playlists'], ['booth', 'booth'], ['echo', 'une'], ['echo/dont-shoot-the-pianist', 'articles'],
+    ['echo/articles', 'articles'], ['echo/presse/2024-07-19-p1', 'articles'], ['echo/lectures/voyages', 'articles'],
+    ['echo/lectures', 'portfolio'], ['ecrits', 'portfolio'], ['echo/archives', 'portfolio'], ['nulle-part', null]];
   const coldMiss = [];
   // axe on each of them too: since phase 5b these are the pages everyone gets on a laptop.
   const worldA11y = [];
@@ -902,7 +1040,8 @@ try {
       stage: `${getComputedStyle(st).backgroundImage} ${getComputedStyle(st).backgroundColor}`, col: `${getComputedStyle(col).boxShadow} ${getComputedStyle(col).marginTop}`,
       mast: Boolean(box.querySelector('h1.echo-name')), lead: Boolean(box.querySelector('.echo-lead h2 a[href^="echo/"]')),
       onair: box.querySelector('[data-onair-title]')?.textContent, playing: window.radioTower.player.onAir?.title,
-      go: box.querySelector('.echo-onair a.echo-go')?.getAttribute('href'), teaser: box.querySelectorAll('.echo-teaser a[href^="echo/lectures/"]').length,
+      go: box.querySelector('.echo-onair a.echo-go')?.getAttribute('href'), teaser: box.querySelectorAll('a[href^="echo/lectures"]').length,
+      groups: [...box.querySelectorAll('.echo-groups .echo-group')].map((g) => g.getAttribute('href')),
       cols: getComputedStyle(box.querySelector('.echo-cols')).gridTemplateColumns.split(' ').length,
       tab: getComputedStyle(document.querySelector('#w-une .w-wt')).fontFamily.split(',')[0],
       figures: document.querySelectorAll('.w-figures .w-fig use').length, ash: window.radioTower.world.ash, drawn: a1.n, moved: a0.h !== a1.h,
@@ -912,8 +1051,10 @@ try {
   check('Echo skin: the Une opens as the bare Gazette in its window — masthead and lead, no night sides, ash or Zone/Média line of its own; the window is the sheet',
     echoSkin.bare && echoSkin.own === 0 && echoSkin.stage === 'none rgba(0, 0, 0, 0)' && /^none 0px$/.test(echoSkin.col) && echoSkin.mast && echoSkin.lead
     && /Old Standard TT/.test(echoSkin.tab), JSON.stringify(echoSkin));
-  check('…beside the lead, « À l\'antenne »: what Zone plays right now and the way back to the radio, and three Lectures', echoSkin.onair === echoSkin.playing
-    && echoSkin.go === 'radio' && echoSkin.teaser === 3 && echoSkin.cols === 2, JSON.stringify({ onair: echoSkin.onair, playing: echoSkin.playing, go: echoSkin.go, teaser: echoSkin.teaser, cols: echoSkin.cols }));
+  // Since 2026-11-03 (evening) the column no longer teases Lectures: the texts are found in the Livre miroir. Under the lead, the press series.
+  check('…beside the lead, « À l\'antenne »: what Zone plays right now and the way back to the radio — no way to the texts; under it, the two press series', echoSkin.onair === echoSkin.playing
+    && echoSkin.go === 'radio' && echoSkin.teaser === 0 && echoSkin.cols === 2 && echoSkin.groups.join() === 'echo/articles#metro,echo/articles#jogos',
+    JSON.stringify({ onair: echoSkin.onair, playing: echoSkin.playing, go: echoSkin.go, teaser: echoSkin.teaser, cols: echoSkin.cols, groups: echoSkin.groups }));
   check('…the Gazette\'s silhouettes stand on Echo\'s paper and its ash falls behind the windows (the plane\'s paper has faded into the far layer)',
     echoSkin.figures === 6 && echoSkin.ash && echoSkin.drawn > 2 && echoSkin.moved && echoSkin.ground === '0' && echoSkin.tear === '0', JSON.stringify(echoSkin));
 
@@ -936,33 +1077,40 @@ try {
   check('…seen from Zone, Echo\'s paper is the ground again, its edge torn over a thin red rim', crossed.ground === '1' && crossed.tear === '1' && crossed.mask
     && crossed.rim === 'rgb(163, 22, 31)', JSON.stringify({ ground: crossed.ground, tear: crossed.tear, mask: crossed.mask, rim: crossed.rim }));
 
-  await w.click('.w-tag[data-go="archives"]');
-  await settled('archives');
-  await w.waitForFunction(() => document.querySelector('#w-archives .w-box .echo-press-list li'), null, { timeout: 8000 }).catch(() => {});
-  const arch = { ...(await shot('archives')), ...(await w.evaluate(async () => {
+  // Archives went into Articles (the press) and the Archive (the Bibliothèque renamed) on 2026-11-03 (evening).
+  await w.click('.w-tag[data-go="articles"]');
+  await settled('articles');
+  await w.waitForFunction(() => document.querySelector('#w-articles .w-box .echo-series .echo-clip'), null, { timeout: 8000 }).catch(() => {});
+  const arch = { ...(await shot('articles')), ...(await w.evaluate(async () => {
     const places = (await (await fetch('data/places.json')).json()).places;
     const want = places.reduce((n, p) => n + (p.press?.column?.items?.length || 0) + (p.press?.series?.items?.length || 0), 0);
-    const box = document.querySelector('#w-archives .w-box');
-    return { want, press: box.querySelectorAll('.echo-press-list a[href$=".pdf"][target="_blank"]').length, tags: box.querySelectorAll('.echo-tag-list a[href^="echo/"]').length,
-      atlas: box.querySelector('a[href="atlas#novo-hamburgo"]') !== null, feed: box.querySelector('a[href="echo/feed.xml"]') !== null,
-      portfolio: box.querySelector('a[href="portfolio"]') !== null, bare: Boolean(box.querySelector('.echo-in-world')) };
+    const box = document.querySelector('#w-articles .w-box');
+    return { want, press: box.querySelectorAll('.echo-series .echo-clip[href^="echo/presse/"]').length, articles: box.querySelectorAll('.echo-grid .echo-card[href^="echo/"]').length,
+      series: [...box.querySelectorAll('.echo-series h2')].map((h) => h.textContent).join(' | '), feed: box.querySelector('a[href="echo/feed.xml"]') !== null,
+      bare: Boolean(box.querySelector('.echo-in-world')) };
   })) };
-  check('Archives (E-04) has an address since phase 4: its tag opens /echo/archives — every piece of press on the Atlas\'s cards, the articles by tag, the feed',
-    arch.path === '/echo/archives' && arch.current === 'archives' && arch.centre < 30 && arch.want >= 26 && arch.press === arch.want && arch.tags >= 1 && arch.atlas
-    && arch.feed && arch.portfolio && arch.bare, JSON.stringify(arch));
-  await w.click('#w-archives .w-box a[href="portfolio"]');
+  check('Articles (E-02) has an address since 2026-11-03: its tag opens /echo/articles — every article, then every piece of press on the Atlas\'s cards under its series, the feed',
+    arch.path === '/echo/articles' && arch.current === 'articles' && arch.centre < 30 && arch.want >= 26 && arch.press === arch.want && arch.articles >= 1
+    && arch.series === 'Um passeio de metrô por Paris | Jogos Olímpicos' && arch.feed && arch.bare, JSON.stringify(arch));
+  await w.click('#w-articles .w-box .echo-clip[href="echo/presse/2024-07-19-p1"]');
+  await w.waitForFunction(() => location.pathname === '/echo/presse/2024-07-19-p1' && document.querySelector('#w-articles .w-box .echo-presse .echo-scan'), null, { timeout: 8000 }).catch(() => {});
+  const clipW = await shot('articles');
+  check('…a clipping opens in the same window, at its own address', clipW.current === 'articles' && clipW.path === '/echo/presse/2024-07-19-p1' && clipW.centre < 30, JSON.stringify(clipW));
+  await w.click('.w-tag[data-go="portfolio"]');
   await w.waitForFunction(() => location.pathname === '/portfolio' && window.radioTower.world.current === 'portfolio' && !window.radioTower.world.camera.moving
-    && document.querySelector('#w-portfolio .w-box > .page .room .book.mirror'), null, { timeout: 10000 }).catch(() => {});
+    && document.querySelector('#w-portfolio .w-box > .page .room .book.mirror') && document.querySelector('#w-portfolio .w-box .maptable .mt-sheet'), null, { timeout: 10000 }).catch(() => {});
   const toPortfolio = await w.evaluate(() => {
     const au = document.getElementById('audio');
     const win = document.getElementById('w-portfolio');
     return { path: location.pathname, current: window.radioTower.world.current, same: au === window.__worldAudio, paused: au.paused,
-      half: win?.closest('.w-district')?.dataset.half || win?.dataset.half || null, books: win?.querySelectorAll('.room .book').length || 0,
+      title: win?.querySelector('.w-wt')?.textContent, code: win?.querySelector('.w-cd')?.textContent, books: win?.querySelectorAll('.room .book').length || 0,
+      table: win?.querySelectorAll('.maptable > .mt-scene .mt-sheet').length || 0, tabs: [...(win?.querySelectorAll('.room-tabs a') || [])].map((x) => x.textContent).join(),
       lost: !document.querySelector('.w-lost')?.hidden, echo: document.body.classList.contains('on-echo') };
   });
-  // The Portfolio left Zone's side on 2026-11-01 and came back on Echo's as the Bibliothèque (E-06) on 11-03.
-  check('…and « Ouvrir le Portfolio » flies to the Bibliothèque, its window on Echo, the shelves in it, the radio still playing', toPortfolio.path === '/portfolio'
-    && toPortfolio.current === 'portfolio' && toPortfolio.books >= 20 && !toPortfolio.lost && toPortfolio.echo && toPortfolio.same && !toPortfolio.paused, JSON.stringify(toPortfolio));
+  // The Portfolio left Zone's side on 2026-11-01, came back on Echo's as the Bibliothèque (E-06) on 11-03, and that evening became the Archive (E-04).
+  check('…and the Archive\'s tag flies to its window on Echo (E-04): the shelves, the map table under them, two rooms, the radio still playing', toPortfolio.path === '/portfolio'
+    && toPortfolio.current === 'portfolio' && toPortfolio.title === 'Archive' && toPortfolio.code === 'E-04' && toPortfolio.books >= 20 && toPortfolio.table >= 8
+    && toPortfolio.tabs === 'Bibliothèque,Crates' && !toPortfolio.lost && toPortfolio.echo && toPortfolio.same && !toPortfolio.paused, JSON.stringify(toPortfolio));
 
   // R9's own check for this phase: an article prints from the world as it does from the classic site. Measured at the
   // paper's width (A4 at 96 dpi), then printed to PDF.
@@ -970,6 +1118,8 @@ try {
     const ctx = await browser.newContext({ viewport: { width: 794, height: 1123 } });
     const p = await ctx.newPage();
     watch(p, `print, ${q || 'default'}`);
+    // the témoin carries notes, which the print must lay out alike: served as its fixture (serveTemoin)
+    await serveTemoin(p);
     await p.goto(dev + 'echo/article-temoin?' + q, { waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => document.querySelector('.echo-article .echo-body')?.textContent.trim().length > 50 && window.radioTower?.router?.current, null, { timeout: 10000 })
       .catch(() => {});
@@ -1084,10 +1234,10 @@ try {
   watch(still, 'world, reduced motion');
   await still.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await still.waitForFunction(() => window.radioTower?.world?.current === 'radio', null, { timeout: 10000 });
-  await still.click('.w-tag[data-go="lectures"]');
-  await still.waitForFunction(() => window.radioTower.world.current === 'lectures', null, { timeout: 8000 }).catch(() => {});
+  await still.click('.w-tag[data-go="portfolio"]');
+  await still.waitForFunction(() => window.radioTower.world.current === 'portfolio', null, { timeout: 8000 }).catch(() => {});
   const cut = await still.evaluate(() => {
-    const r = document.getElementById('w-lectures').getBoundingClientRect();
+    const r = document.getElementById('w-portfolio').getBoundingClientRect();
     return { moving: window.radioTower.world.camera.moving, filter: document.querySelector('.w-plane').style.filter, centre: Math.abs(r.left + r.width / 2 - innerWidth / 2) };
   });
   check('reduced motion: a cut, not a pan — no flight, no blur', !cut.moving && cut.filter === '' && cut.centre < 30, JSON.stringify(cut));
@@ -1253,7 +1403,7 @@ try {
   /* ------------------------------------------------------------- phone -- */
   // The classic shell's phone pass, kept one release: ?classic=1 once, then every cold load in this tab stays classic.
   const PHONE_ROUTES = ['', 'radio', 'ondes', 'playlists', 'atlas', 'zone', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo/lectures', 'echo/lectures/voyages', 'echo',
-    'echo/article-temoin', 'echo/archives', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth'];
+    'echo/dont-shoot-the-pianist', 'echo/articles', 'echo/presse/2024-07-22-p12', 'echo/archives', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth'];
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const m = await phone.newPage();
   watch(m, 'phone');
@@ -1348,7 +1498,8 @@ try {
   check('the old /ecrits address still opens the text and moves to /echo/lectures', dh === 'Opal Orre' && d.url().endsWith('/radio-tower/echo/lectures/opal-orre'), d.url());
   const cfg = await d.evaluate(() => window.radioTower?.client?.config?.github);
   const dWorld = await d.evaluate(() => window.radioTower?.world?.current || null);
-  check('the built site answers a cold deep link under /<repo>/, in the world as shipped', dh === 'Opal Orre' && dWorld === 'lectures', `${dh || 'no heading'}, ${dWorld}`);
+  // A text opens in the Articles window since 2026-11-03 (its list went into the Livre miroir).
+  check('the built site answers a cold deep link under /<repo>/, in the world as shipped', dh === 'Opal Orre' && dWorld === 'articles', `${dh || 'no heading'}, ${dWorld}`);
   check('…and knows which repository its booth writes to', cfg?.owner === 'ortis' && cfg?.repo === 'radio-tower');
   const dc = await (await browser.newContext()).newPage();
   watch(dc, 'dist, classic');

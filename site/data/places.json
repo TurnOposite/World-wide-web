@@ -6,7 +6,8 @@
     "story: the paragraphs the card unfolds on hover. projects[]: name, what, link (a page of this site or an https URL). Every project should have a working link.",
     "press: clippings shown in the card (Novo Hamburgo: site/press/nh/).",
     "nudge/anchor: where the label sits next to the pin. Places inside the Europe box are drawn in the inset (over Siberia).",
-    "The tower's own point comes from config.json → station.origin."
+    "The tower's own point comes from config.json → station.origin.",
+    "press.column / press.series: name is the series as Echo shows it (Articles, the Une), key its anchor (echo/articles#key); on Echo the series comes first, then the column (Ortis, 2026-11-03)."
   ],
   "places": [
     {
@@ -207,6 +208,8 @@
         "lang": "pt",
         "column": {
           "title": "Parisiense em estágio no Grupo Sinos",
+          "name": "Jogos Olímpicos",
+          "key": "jogos",
           "items": [
             {
               "date": "2024-06-06",
@@ -421,6 +424,8 @@
         },
         "series": {
           "title": "Um passeio de metrô por Paris",
+          "name": "Um passeio de metrô por Paris",
+          "key": "metro",
           "items": [
             {
               "date": "2024-07-19",

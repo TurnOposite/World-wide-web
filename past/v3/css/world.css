@@ -1,0 +1,392 @@
+/* The world shell (docs/WORLD.md). Loaded only when the world is on —
+   site/js/world/world.js adds it — so the classic site never downloads it.
+   Direction A « Velvet Grid »: tamed neon on deep night for Zone, the Gazette's
+   paper for Echo. Phase 3 dressed Zone (glass windows, the « Écran » menu, the
+   visualiser behind); phase 4 dressed Echo (the Gazette in its windows, the
+   silhouettes and the ash on the paper, the torn seam); phase 5 fitted the phone
+   (the swipe between halves, a phone on its side). The station green stays the
+   mark, the focus ring and nothing else. */
+
+/* Zone's faces, self-hosted Latin subsets (site/fonts/OFL.txt): ~44 KB, only fetched with the world on. */
+@font-face{font-family:"Chakra Petch";font-style:normal;font-weight:400;font-display:swap;src:url("../fonts/ChakraPetch-400.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Chakra Petch";font-style:normal;font-weight:600;font-display:swap;src:url("../fonts/ChakraPetch-600.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Chakra Petch";font-style:normal;font-weight:700;font-display:swap;src:url("../fonts/ChakraPetch-700.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"IBM Plex Mono";font-style:normal;font-weight:400;font-display:swap;src:url("../fonts/IBMPlexMono-400.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+.w-root{
+  --w-night:#0c0e18; --w-night-2:#141a2a; --w-glass:rgba(22,29,50,.74); --w-gloss:.13; --w-edge:#2e3858;
+  --w-text:#dce3ee; --w-dim:#8f99af;
+  --w-neon-a:#5aaebf; --w-neon-b:#b06a9b; --w-neon-c:#c4a160;
+  --w-paper:#f2f0eb; --w-paper-2:#e8e5dd; --w-ink:#171615; --w-mute:#5b5650; --w-red:#a3161f; --w-rule:#1d1c1b;
+  --w-signal:#34d399; /* the brand green, not body.on-echo's --signal */
+  --w-cut:14px; --w-slant:-10deg;
+  --w-ui:"Chakra Petch","Bahnschrift","DIN Alternate","Segoe UI",system-ui,sans-serif;
+  --w-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --w-head:"Old Standard TT",Georgia,"Times New Roman",serif;
+  --w-mix:0;
+  position:fixed;inset:0;z-index:20;color:var(--w-text);font:15px/1.5 var(--w-ui);
+}
+html.world-on,html.world-on body{height:100%;overflow:hidden}
+/* The classic shell stays in the document, empty since phase 2 (the pages open in their districts), unseen and inert. */
+.world-on body>.masthead,.world-on body>main,.world-on body>.sitefoot{visibility:hidden}
+.world-on .preview-note{position:fixed;z-index:26;left:0;right:0;bottom:calc(var(--mb-h) + 6px);margin:0 auto;text-align:center}
+.world-on body.theatre .w-root{opacity:0;pointer-events:none;transition:opacity .4s}
+/* The world draws its own scan lines (« Écran »); the classic overlay steps aside. */
+.world-on .scanlines{display:none}
+.w-root :focus-visible{outline:2px solid var(--w-signal);outline-offset:3px}
+/* A frame takes focus after each page change so screen readers land on the new page; its lit corners already say where. */
+.w-root .w-district:focus-visible,.w-root .w-lost:focus-visible{outline:none}
+.w-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:0}
+
+/* ---- the far layer: night on Zone, paper on Echo, crossfaded by the camera ---- */
+.w-far{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.w-far>i{position:absolute;inset:-40px}
+/* Zone's ground is a haze, not a wall: the station's visualiser (#stage, behind the world) is Zone's background. */
+.w-dark{opacity:calc(1 - var(--w-mix));background:
+  radial-gradient(ellipse 80% 55% at 30% 115%,rgba(90,174,191,.18),transparent 70%),
+  radial-gradient(ellipse 60% 40% at 85% -10%,rgba(176,106,155,.12),transparent 70%),
+  rgba(12,14,24,.55)}
+.w-dark::after{content:"";position:absolute;inset:0;opacity:.8}
+/* « Écran » → Fond. Grille: lines on the ground, drifting a little with the camera. */
+[data-w-bg="grid"] .w-dark::after{background:
+  linear-gradient(rgba(90,174,191,.08) 1px,transparent 1px) 0 var(--w-py,0)/64px 64px,
+  linear-gradient(90deg,rgba(90,174,191,.08) 1px,transparent 1px) var(--w-px,0) 0/64px 64px}
+/* Pluie: slanted streaks in dashes, falling along themselves. The layer moves (a transform, no repaint) by
+   exactly one dash period down its own slant, so the loop has no seam. */
+[data-w-bg="rain"] .w-dark::after{inset:-200px;opacity:1;
+  background:repeating-linear-gradient(100deg,transparent 0 23px,rgba(160,190,220,.09) 23px 24px);
+  -webkit-mask:repeating-linear-gradient(0deg,#000 0 60px,transparent 60px 130px);mask:repeating-linear-gradient(0deg,#000 0 60px,transparent 60px 130px);
+  animation:w-rain 1.1s linear infinite}
+@keyframes w-rain{from{transform:translate(0,0)}to{transform:translate(-22.92px,130px)}}
+/* Vide: the haze alone. */
+.w-bubbles{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:calc(1 - var(--w-mix))}
+/* « Écran » → Lignes de balayage: over Zone's windows and tags, gone on the paper. */
+.w-scan{position:absolute;inset:0;z-index:3;pointer-events:none;opacity:calc((1 - var(--w-mix)) * .5);
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+[data-w-scan="off"] .w-scan{display:none}
+.w-light{opacity:var(--w-mix);background:repeating-linear-gradient(0deg,rgba(23,22,21,.025) 0 1px,transparent 1px 4px),var(--w-paper)}
+/* Echo's ash on the paper (echo-front.js ash(), ink colours): it runs only while the camera is on Echo. */
+.w-ash{position:absolute;inset:0;width:100%;height:100%;opacity:var(--w-mix)}
+
+/* ---- the plane ----
+   Echo's paper is the plane's ground while Zone is in view (its edge is the seam), and fades into the far
+   layer's paper as the camera crosses: over Echo the ash falls on the far layer, under the windows. */
+.w-viewport{position:absolute;inset:0;overflow:hidden;overflow:clip}
+/* will-change is set by camera.js only while it flies: a layer kept after landing draws the scaled text soft. */
+.w-plane{position:absolute;left:0;top:0;width:5200px;height:2600px;transform-origin:0 0}
+.w-ground{position:absolute;left:2720px;top:0;right:0;bottom:0;background:var(--w-paper);opacity:calc(1 - var(--w-mix));
+  background-image:repeating-linear-gradient(0deg,rgba(23,22,21,.03) 0 1px,transparent 1px 5px)}
+/* The seam: Zone's scan lines run out where the paper starts, and the paper's edge is torn, over a thin red rim. */
+.w-seam{position:absolute;left:2480px;top:0;width:240px;height:2600px;
+  --w-torn:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='160'%3E%3Cpath d='M20 0H9L4 8L11 17L6 27L2 38L9 46L5 58L12 67L3 80L8 91L4 103L10 114L2 126L7 137L11 148L9 160H20Z'/%3E%3C/svg%3E")}
+.w-seam::before{content:"";position:absolute;inset:0;opacity:.3;
+  background:repeating-linear-gradient(180deg,var(--w-neon-a) 0 2px,transparent 2px 46px);
+  -webkit-mask:linear-gradient(90deg,transparent 30%,#000 47%,transparent 50%);mask:linear-gradient(90deg,transparent 30%,#000 47%,transparent 50%)}
+.w-tear{position:absolute;top:0;bottom:0;left:calc(50% - 10px);right:0;background:var(--w-paper);opacity:calc(1 - var(--w-mix));
+  -webkit-mask:var(--w-torn) 0 0/20px 160px repeat-y,linear-gradient(#000,#000) 20px 0/100% 100% no-repeat;
+  mask:var(--w-torn) 0 0/20px 160px repeat-y,linear-gradient(#000,#000) 20px 0/100% 100% no-repeat}
+.w-rim{background:var(--w-red);transform:translateX(-2px)}
+/* The Gazette's silhouettes, standing on the paper between Echo's windows (layout.js FIGURES): ink, a thin red rim. */
+.w-figures{position:absolute;inset:0;pointer-events:none}
+.w-fig{position:absolute;fill:#141312;stroke:var(--w-red);stroke-width:2.4;paint-order:stroke;opacity:.88}
+
+/* ---- districts: a dashed frame, a code, corner brackets that light up on arrival ---- */
+.w-district{position:absolute;display:flex;flex-direction:column;box-sizing:border-box;padding:40px 30px 30px;transform:rotate(var(--rot,0deg));outline:none}
+.w-district::before{content:"";position:absolute;inset:0;border:1px dashed rgba(143,153,175,.3);pointer-events:none;transition:border-color .3s}
+.w-district.here::before{border-color:rgba(143,153,175,.55)}
+.w-code{position:absolute;left:16px;top:-12px;font:400 13px/1 var(--w-mono);letter-spacing:.16em;text-transform:uppercase;
+  color:var(--w-dim);background:var(--w-night);padding:5px 9px}
+.w-corner{position:absolute;width:26px;height:26px;border:2px solid var(--w-neon-a);opacity:0;transition:opacity .35s,transform .35s}
+.w-corner.c1{left:-7px;top:-7px;border-right:0;border-bottom:0;transform:translate(-9px,-9px)}
+.w-corner.c2{right:-7px;top:-7px;border-left:0;border-bottom:0;transform:translate(9px,-9px)}
+.w-corner.c3{left:-7px;bottom:-7px;border-right:0;border-top:0;transform:translate(-9px,9px)}
+.w-corner.c4{right:-7px;bottom:-7px;border-left:0;border-top:0;transform:translate(9px,9px)}
+.w-district.here .w-corner{opacity:1;transform:none}
+.w-echo-d::before{border:3px double rgba(29,28,27,.2)}
+.w-echo-d .w-code{background:var(--w-paper);color:var(--w-mute)}
+.w-echo-d .w-corner{border-color:var(--w-red)}
+
+/* ---- windows: Zone's are glass with cut corners, Echo's are a sheet with one ink rule ---- */
+/* The edge is drawn over the glass (::after: four 1 px sides and the two cut diagonals), not as a solid
+   backing under it — a backing would hide the visualiser the glass is meant to show. */
+.w-win{--w-e:var(--w-edge);position:relative;flex:1;min-height:0;padding:1px;
+  clip-path:polygon(var(--w-cut) 0,100% 0,100% calc(100% - var(--w-cut)),calc(100% - var(--w-cut)) 100%,0 100%,0 var(--w-cut))}
+.w-win::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:
+  linear-gradient(to bottom right,transparent 50%,var(--w-e) 50% calc(50% + 1.5px),transparent calc(50% + 1.5px)) 0 0/var(--w-cut) var(--w-cut) no-repeat,
+  linear-gradient(to bottom right,transparent calc(50% - 1.5px),var(--w-e) calc(50% - 1.5px) 50%,transparent 50%) 100% 100%/var(--w-cut) var(--w-cut) no-repeat,
+  linear-gradient(var(--w-e),var(--w-e)) 0 0/100% 1px no-repeat,linear-gradient(var(--w-e),var(--w-e)) 0 100%/100% 1px no-repeat,
+  linear-gradient(var(--w-e),var(--w-e)) 0 0/1px 100% no-repeat,linear-gradient(var(--w-e),var(--w-e)) 100% 0/1px 100% no-repeat}
+.w-win:hover,.w-win:focus-within{--w-e:var(--w-neon-a)}
+.w-in{position:relative;box-sizing:border-box;height:100%;display:flex;flex-direction:column;padding:14px 22px 0;overflow:hidden;
+  background:linear-gradient(180deg,rgba(255,255,255,var(--w-gloss)) 0,rgba(255,255,255,0) 34%),var(--w-glass)}
+/* Clear glass, not frosted: a backdrop blur over the always-moving visualiser re-blurs every frame — measured
+   at 18 fps against 39 without it (headless Chrome, 2026-10-22). The glass is thicker instead (74 %). */
+/* A light sweeps across the window the camera rests on, every 9 s — a transform, so no repaint. */
+.w-zone-d.here .w-in::after{content:"";position:absolute;top:0;bottom:0;left:0;width:45%;z-index:1;pointer-events:none;
+  background:linear-gradient(105deg,transparent 0,rgba(255,255,255,.07) 50%,transparent 100%);transform:translateX(-100%);animation:w-sweep 9s ease-in-out infinite}
+@keyframes w-sweep{0%,70%{transform:translateX(-100%)}100%{transform:translateX(230%)}}
+.w-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-4px 0 10px}
+.w-wt{display:inline-block;margin:0;transform:skewX(var(--w-slant));background:var(--w-neon-a);color:var(--w-night);
+  font:700 19px/1 var(--w-ui);letter-spacing:.14em;text-transform:uppercase;padding:7px 16px 6px}
+.w-wt>span{display:inline-block;transform:skewX(calc(var(--w-slant) * -1))}
+.w-cd{font:400 13px/1 var(--w-mono);color:var(--w-dim);letter-spacing:.1em}
+/* The page's box: it scrolls inside the window; world.js gives it the zoom that keeps its text at 1:1. */
+.w-box{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--w-edge) transparent;
+  padding-bottom:16px;outline:none}
+.w-box>.page{padding:2px 2px 8px}
+/* The page the camera is leaving: asleep in its frame until the camera lands, then a door again. */
+.w-box[aria-hidden="true"]{opacity:.5;filter:saturate(.5);transition:opacity .3s,filter .3s}
+.w-hosts{margin:0 0 10px;font-size:17px;line-height:1.4;max-width:46ch}
+.w-door{margin:0}
+.w-door a{display:inline-block;padding:9px 14px;border:1px solid var(--w-edge);color:var(--w-text);font:600 15px/1.2 var(--w-ui);
+  letter-spacing:.04em;text-decoration:none;background:rgba(12,14,24,.5)}
+.w-door a:hover,.w-door a:focus-visible{border-color:var(--w-neon-a);background:var(--w-neon-a);color:var(--w-night)}
+.w-echo-d .w-win{background:var(--w-rule);clip-path:none}
+.w-echo-d .w-win::after{content:none}
+.w-echo-d .w-win:hover,.w-echo-d .w-win:focus-within{background:var(--w-red)}
+.w-echo-d .w-in{background:var(--w-paper);color:var(--w-ink);clip-path:none}
+.w-echo-d .w-wt{transform:none;background:var(--w-ink);color:var(--w-paper);font:700 15px/1 var(--w-head);letter-spacing:.16em;text-transform:uppercase;padding:8px 14px 7px}
+.w-echo-d .w-wt>span{transform:none}
+.w-echo-d .w-cd{color:var(--w-mute)}
+.w-echo-d .w-hosts{font-family:var(--w-head)}
+.w-echo-d .w-box{scrollbar-color:var(--w-mute) transparent}
+.w-echo-d .w-door a{border-color:var(--w-rule);color:var(--w-ink);background:none;font-family:var(--w-head)}
+.w-echo-d .w-door a:hover,.w-echo-d .w-door a:focus-visible{background:var(--w-red);border-color:var(--w-red);color:var(--w-paper)}
+
+/* ---- Echo's pages in their windows (phase 4): echo-front.js gives the bare Gazette column — no night sides,
+   no ash, no Zone/Média line (the world draws the first two on its ground, the tags are the third). The window
+   is the sheet: the column loses its own paper, margins and shadow. ---- */
+.w-echo-d .w-box>.page{padding:0}
+.w-echo-d .echo-in-world{min-height:0;background:none;overflow:visible}
+.w-echo-d .echo-in-world .echo-col{margin:0;padding:0;box-shadow:none;background:none}
+
+/* ---- Zone's pages in their windows: the classic pages read their colours, radii and faces from site.css's
+   tokens, so the skin re-points the tokens instead of restyling each page. Panels stay nearly opaque:
+   the glass shows the visualiser around the text, never under it. ---- */
+.w-zone-d .w-box{
+  --bg-raise:rgba(18,24,42,.84); --bg-raise-2:rgba(30,38,64,.9); --bg-glass:rgba(14,18,32,.92);
+  --line:#2e3858; --line-soft:#232b45; --text:#dce3ee; --text-dim:#a7b0c3; --text-faint:#8f99af;
+  --ink:#5aaebf; --radius:3px; --radius-sm:2px;
+  --font:var(--w-ui); --mono:var(--w-mono);
+  font-family:var(--w-ui)}
+.w-zone-d .w-box .panel h2,.w-zone-d .w-box .panel h3{font-family:var(--w-mono);font-weight:400;letter-spacing:.16em;color:var(--w-neon-a)}
+.w-zone-d .w-box .page-head h1{font-family:var(--w-ui);font-weight:600;letter-spacing:.01em}
+.w-zone-d .w-box .btn,.w-zone-d .w-box .pill{border-radius:2px}
+.w-zone-d .w-box .btn{font-family:var(--w-ui);font-weight:600;letter-spacing:.04em}
+.w-zone-d .w-box .btn:not(.primary):hover{border-color:var(--w-neon-a)}
+
+/* ---- off the map: a route that is no district's opens in a window over the world ---- */
+.w-lost{position:absolute;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,calc(100vw - 32px));max-height:60vh;
+  display:flex;flex-direction:column;padding:22px 24px 0;background:var(--w-glass);border:1px solid var(--w-neon-b);outline:none;
+  box-shadow:8px 8px 0 rgba(176,106,155,.35)}
+.w-lost[hidden]{display:none}
+
+/* ---- HUD: the brand, the Zone ⇄ Echo switch, the minimap ---- */
+.w-hud{position:absolute;z-index:4;top:0;left:0;right:0;display:flex;align-items:flex-start;gap:12px;pointer-events:none;
+  padding:max(12px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.w-hud>*{pointer-events:auto}
+.w-brand{display:flex;align-items:center;gap:10px;padding:7px 14px 7px 9px;background:rgba(12,14,24,.86);border:1px solid var(--w-edge);
+  color:var(--w-text);text-decoration:none}
+.w-brand svg{color:var(--w-signal)}
+.w-brand b{font:700 15px/1 var(--w-ui);letter-spacing:.06em}
+.w-switch{position:relative;display:grid;grid-template-columns:1fr 1fr;margin:0 auto;background:rgba(12,14,24,.9);border:1px solid var(--w-edge);
+  clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+.w-switch button{position:relative;z-index:1;border:0;background:none;padding:11px 28px;cursor:pointer;font:700 14px/1 var(--w-ui);
+  letter-spacing:.2em;text-transform:uppercase;color:var(--w-dim)}
+.w-switch button[aria-pressed="true"]{color:var(--w-night)}
+.w-ind{position:absolute;top:0;bottom:0;left:0;width:50%;background:var(--w-neon-a);transform:translateX(calc(var(--w-mix) * 100%))}
+.w-at-echo .w-ind{background:var(--w-red)}
+.w-at-echo .w-switch button[aria-pressed="true"]{color:var(--w-paper)}
+/* « Écran »: the button in the HUD, and its panel — a Persona-style screen menu. */
+.w-screen-btn{display:flex;align-items:center;gap:9px;flex:none;padding:10px 14px;border:1px solid var(--w-edge);background:rgba(12,14,24,.9);
+  color:var(--w-text);cursor:pointer;font:700 13px/1 var(--w-ui);letter-spacing:.16em;text-transform:uppercase}
+.w-screen-btn:hover,.w-screen-btn[aria-expanded="true"]{background:var(--w-neon-a);border-color:var(--w-neon-a);color:var(--w-night)}
+.w-screen-glyph{width:15px;height:11px;border:2px solid currentColor;border-radius:1px;box-shadow:inset 0 -3px 0 -1px currentColor}
+.w-screen{position:absolute;z-index:9;top:calc(max(12px,env(safe-area-inset-top,0px)) + 100px);right:max(16px,env(safe-area-inset-right,0px));
+  width:min(400px,calc(100vw - 32px));max-height:calc(100% - 200px);overflow:auto;background:rgba(10,12,20,.96);border:1px solid var(--w-edge);
+  padding:0 0 16px;box-shadow:12px 12px 0 rgba(0,0,0,.35)}
+.w-screen header{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;
+  background:var(--w-neon-a);color:var(--w-night);clip-path:polygon(0 0,100% 0,calc(100% - 22px) 100%,0 100%)}
+.w-screen h2{margin:0;font:700 17px/1 var(--w-ui);letter-spacing:.2em;text-transform:uppercase;transform:skewX(var(--w-slant))}
+.w-screen-close{border:0;background:var(--w-night);color:var(--w-text);padding:7px 10px;margin-right:18px;cursor:pointer;font:600 12px/1 var(--w-ui);letter-spacing:.1em}
+.w-grp{padding:14px 16px 0}
+.w-grp>p{margin:0 0 6px;font:400 12px/1 var(--w-mono);letter-spacing:.16em;color:var(--w-dim);text-transform:uppercase}
+.w-opts{display:grid;gap:3px}
+.w-opt{position:relative;isolation:isolate;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;border:0;
+  background:none;cursor:pointer;padding:9px 12px;font:600 16px/1.1 var(--w-ui);color:var(--w-text)}
+.w-opt small{font:400 12px/1.3 var(--w-mono);color:var(--w-dim)}
+.w-opt::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--w-neon-a);transform:skewX(var(--w-slant)) scaleX(0);transform-origin:left;
+  opacity:.35;transition:transform .14s}
+.w-opt:hover::before,.w-opt:focus-visible::before{transform:skewX(var(--w-slant)) scaleX(1)}
+.w-opt[aria-checked="true"],.w-opt[aria-checked="true"] small{color:var(--w-night)}
+.w-opt[aria-checked="true"]::before{transform:skewX(var(--w-slant)) scaleX(1);opacity:1}
+.w-opt:focus-visible{outline:2px solid var(--w-signal);outline-offset:-2px}
+.w-minimap{display:block;flex:none;width:176px;height:88px;border:1px solid var(--w-edge);background:rgba(12,14,24,.86);cursor:pointer}
+.w-minimap .z{fill:rgba(90,174,191,.25)}
+.w-minimap .e{fill:rgba(242,240,235,.55)}
+.w-minimap .d{fill:none;stroke:var(--w-dim);stroke-width:14}
+.w-minimap .d.here{stroke:var(--w-neon-c)}
+.w-minimap .cam{fill:none;stroke:var(--w-signal);stroke-width:22}
+
+/* ---- tags: the menu ---- */
+.w-tags{position:absolute;z-index:3;inset:0;pointer-events:none;outline:none}
+.w-tag{position:absolute;top:var(--tt);left:var(--tl,auto);right:var(--tr,auto);pointer-events:auto;cursor:pointer;
+  border:0;padding:0;background:none;transform:rotate(var(--r,0deg))}
+.w-tag>span{display:inline-block;transform:skewX(var(--w-slant));padding:8px 15px 7px;font:700 14px/1 var(--w-ui);letter-spacing:.16em;
+  text-transform:uppercase;background:#0c0e18;color:var(--w-text);border:1px solid var(--w-edge);
+  transition:box-shadow .12s,transform .12s}
+/* The colours change at once, not over 120 ms: half-way between night and neon a tag's text and face are too alike
+   to read (axe caught it at 1.76:1 under a resting pointer, 2026-11-02). The lift still eases. */
+.w-tag>span>i{display:inline-block;font-style:normal;transform:skewX(calc(var(--w-slant) * -1))}
+.w-tag[data-half="echo"]>span{background:var(--w-paper);color:var(--w-ink);border-color:var(--w-rule);font-family:var(--w-head);letter-spacing:.12em}
+.w-tag:hover>span,.w-tag:focus-visible>span{background:var(--w-neon-a);color:var(--w-night);box-shadow:5px 5px 0 var(--w-neon-b);transform:skewX(var(--w-slant)) scale(1.08)}
+.w-tag[data-half="echo"]:hover>span,.w-tag[data-half="echo"]:focus-visible>span{background:var(--w-red);color:var(--w-paper);box-shadow:5px 5px 0 var(--w-ink)}
+.w-tag:focus-visible{outline:none}
+.w-tag[aria-current="true"]>span{box-shadow:0 0 0 2px var(--w-night),0 0 0 4px var(--w-neon-c)}
+.w-tag[data-half="echo"][aria-current="true"]>span{box-shadow:0 0 0 2px var(--w-paper),0 0 0 4px var(--w-red)}
+/* Faint by its text and a dashed edge, never by opacity: a see-through tag over Echo's paper loses its contrast. */
+.w-tag.faint>span{font-size:12px;border-style:dashed}
+.w-tag.faint:not(:hover):not(:focus-visible)>span{color:var(--w-dim)}
+/* « Écran » → Menu → Pile: the tags stacked down the left, a Persona pause menu (desktop; a phone keeps its strip). */
+@media (min-width:761px) and (min-height:501px){
+  [data-w-list="stack"] .w-tags{display:flex;flex-direction:column;align-items:flex-start;gap:7px;
+    padding:112px 0 0 max(20px,env(safe-area-inset-left,0px))}
+  [data-w-list="stack"] .w-tag{position:static;transform:none}
+  [data-w-list="stack"] .w-tag:nth-child(odd){margin-left:18px}
+  [data-w-list="stack"] .w-tag>span{font-size:16px;padding:9px 20px 8px}
+}
+
+/* ---- phone (layout.js PHONE_MEDIA — upright, or on its side): the tags become a strip under the header,
+   a swipe goes to the other half (world.js) ---- */
+@media (max-width:760px),(max-height:500px){
+  .w-brand b,.w-minimap{display:none}
+  .w-brand{padding:7px}
+  .w-switch button{padding:10px 16px;letter-spacing:.14em}
+  .w-tags{inset:62px 0 auto 0;height:50px;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;pointer-events:auto;
+    padding:6px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px))}
+  .w-tag{position:static;flex:none;transform:none}
+  .w-tag>span{font-size:12px;padding:8px 12px 7px}
+  /* A sideways swipe is the world's (world.js): left to the browser it overscrolls into its own Back — measured in
+     Chrome, where the root's overscroll-behavior does not stop it. The box is a scroller and would let the pan back
+     in, so it says pan-y too; a strip that scrolls sideways inside a page is a scroller of its own and keeps its pan. */
+  .w-viewport,.w-box{touch-action:pan-y pinch-zoom}
+  /* The frame is the screen (layout.js frameFor), shown at 1:1. */
+  .w-district{padding:22px 0 0}
+  .w-code{left:8px;top:-2px;font-size:11px}
+  .w-corner{display:none}
+  .w-in{padding:12px 12px 0}
+  /* A phone's window is the screen: thicker glass still, the page's text over the visualiser. */
+  .w-root{--w-glass:rgba(22,29,50,.88)}
+  .w-screen-btn{padding:10px}
+  .w-screen-btn>span:last-child{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .w-screen{top:auto;bottom:calc(var(--mb-h) + 8px);max-height:70%}
+  .w-bar{margin:0 0 10px}
+  .w-wt{font-size:16px;padding:7px 13px 6px}
+  .w-echo-d .w-wt{font-size:13px}
+}
+/* A phone on its side: height is short, so the brand, the switch, the strip and « Écran » share one line
+   (world.js fitStrip measures the room between the switch and « Écran »); the frame starts under it (SHORT_TOP). */
+@media (max-height:500px){
+  .w-hud{padding-top:max(8px,env(safe-area-inset-top,0px))}
+  .w-switch{margin:0}
+  .w-screen-btn{margin-left:auto}
+  .w-tags{inset:max(6px,env(safe-area-inset-top,0px)) var(--w-strip-r,64px) auto var(--w-strip-l,240px);height:48px;padding:6px 4px}
+  .w-screen{max-height:calc(100% - var(--mb-h) - 24px)}
+}
+/* ---- on paper: the page in view alone, as the classic site prints it (site.css's print rules do the rest) ---- */
+@media print{
+  html.world-on,html.world-on body{height:auto;overflow:visible}
+  .world-on body>main{display:none}
+  .w-root{position:static;color:#000;font:inherit}
+  .w-far,.w-bubbles,.w-hud,.w-screen,.w-tags,.w-scan,.w-lost,.w-ground,.w-seam,.w-figures,.w-code,.w-corner,.w-bar,.w-district:not(.here){display:none!important}
+  .w-viewport,.w-plane{position:static;overflow:visible;width:auto;height:auto;transform:none!important;filter:none!important}
+  .w-district.here{display:block;position:static;transform:none;width:auto!important;height:auto!important;padding:0}
+  .w-district::before,.w-win::after,.w-in::after{content:none}
+  .w-win,.w-in{display:block;height:auto;padding:0;clip-path:none;overflow:visible;background:none!important}
+  .w-box{zoom:1!important;overflow:visible;padding:0}
+}
+@media (prefers-reduced-motion:reduce){
+  .w-district::before,.w-corner,.w-tag>span,.w-opt::before,.w-box[aria-hidden="true"]{transition:none}
+  .w-zone-d.here .w-in::after,[data-w-bg="rain"] .w-dark::after{animation:none}
+}
+
+/* ---- the map as data (docs/ATELIER.md): the past band, the archive's windows and tags, the doors' short links ---- */
+.w-strata{position:absolute;left:0;right:0;pointer-events:none;border-top:1px dashed rgba(196,161,96,.6);
+  background:linear-gradient(180deg,rgba(196,161,96,.12),transparent 260px)}
+.w-strata[hidden]{display:none}
+.w-strata>span{position:absolute;top:22px;font:400 14px/1 var(--w-mono);letter-spacing:.3em;text-transform:uppercase;color:var(--w-neon-c)}
+.w-strata-l{left:150px}
+.w-strata-r{left:2860px;color:var(--w-red)!important}
+/* A version of the past: a gold dashed edge and a stamp; the page inside is the old site, untouched. */
+.w-past-d::before{border-color:rgba(196,161,96,.6)}
+.w-past-d::after{content:"Archive";position:absolute;top:6px;right:30px;padding:4px 9px 3px;border:1px solid currentColor;
+  font:700 12px/1 var(--w-mono);letter-spacing:.3em;text-transform:uppercase;color:var(--w-neon-c);transform:rotate(2.5deg)}
+.w-echo-d.w-past-d::after{color:var(--w-red)}
+.w-zone-d.w-past-d .w-wt{background:var(--w-neon-c)}
+/* Offline: only the Atelier shows it, greyed, so it can be put back online. */
+.w-off{opacity:.42;filter:grayscale(1)}
+.w-past-d.w-off::after{content:"Hors ligne";color:var(--w-dim)}
+.w-tag-past>span{border-style:dashed;border-color:var(--w-neon-c)}
+.w-tag-past[data-half="echo"]>span{border-color:var(--w-red)}
+.w-tag.w-off>span{text-decoration:line-through;opacity:.6}
+.w-minimap .p{fill:rgba(196,161,96,.16)}
+.w-minimap .d.dp{stroke-dasharray:40 26}
+.w-minimap .d.off{stroke-opacity:.35}
+.w-copy{display:inline-block;margin-left:10px;padding:8px 11px;border:1px dashed var(--w-edge);background:none;color:var(--w-dim);cursor:pointer;
+  font:400 13px/1.2 var(--w-mono);letter-spacing:.06em;vertical-align:middle}
+.w-copy:hover,.w-copy:focus-visible{border-style:solid;border-color:var(--w-neon-a);color:var(--w-text)}
+.w-echo-d .w-copy{border-color:var(--w-mute);color:var(--w-mute)}
+.w-echo-d .w-copy:hover,.w-echo-d .w-copy:focus-visible{border-color:var(--w-red);color:var(--w-ink)}
+@media (max-width:760px),(max-height:500px){
+  .w-copy{margin:10px 0 0}
+  .w-past-d::after{top:-2px;right:8px;font-size:10px}
+}
+@media print{
+  .w-strata,.w-copy,.w-past-d::after{display:none!important}
+  .w-plane,.w-seam{height:auto!important}
+}
+
+/* ---- public and private (Ortis, 2026-11-01): what builds the site — « Écran », the minimap, the versions of
+   the past and their band — is the private view's (the Atelier, ?atelier=1) and nobody else's. ---- */
+.w-root:not(.w-private) .w-screen-btn,.w-root:not(.w-private) .w-screen,.w-root:not(.w-private) .w-minimap,
+.w-root:not(.w-private) .w-past-d,.w-root:not(.w-private) .w-tag-past,.w-root:not(.w-private) .w-strata{display:none!important}
+/* With the HUD's right side gone the switch would drift right of the middle: it is centred on the screen instead. */
+@media (min-width:761px) and (min-height:501px){
+  .w-switch{position:absolute;left:50%;top:max(12px,env(safe-area-inset-top,0px));margin:0;transform:translateX(-50%)}
+  .w-screen-btn{margin-left:auto}
+}
+/* A page shown whole in its window (world.js fitPage) has nothing left to scroll. */
+.w-box.w-fitted{overflow:hidden}
+
+/* ---- Echo's Atlas (2026-11-01): the map of the places on paper — ink land, red pins, the postcards as before ---- */
+.w-echo-d .atlas .mapbox{background:var(--w-paper-2);border:1px solid var(--w-rule);border-radius:0}
+.w-echo-d .map-land{fill:#d9d4c8;stroke:#a59d8f}
+.w-echo-d .atlas-grat line{stroke:#cfc9bc}
+.w-echo-d .atlas-grat line.eq{stroke:#b9b1a3}
+.w-echo-d .inset-bg{fill:#ebe7de}
+.w-echo-d .inset-edge{stroke:var(--w-mute)}
+.w-echo-d .inset-label{fill:var(--w-mute)}
+.w-echo-d .eu-lead rect,.w-echo-d .eu-lead path{stroke:var(--w-mute)}
+.w-echo-d .pin .dot{fill:var(--w-red)}
+.w-echo-d .pin .halo{stroke:var(--w-red)}
+.w-echo-d .pin.k-work .dot,.w-echo-d .pin.k-trip .dot{fill:var(--w-paper);stroke:var(--w-red)}
+.w-echo-d .pin text{fill:var(--w-ink);stroke:var(--w-paper-2)}
+.w-echo-d .pin.on .dot{fill:var(--w-ink)}
+.w-echo-d .map-legend{color:var(--w-mute)}
+.w-echo-d .map-legend .sw{background:var(--w-red)}
+.w-echo-d .atlas .page-head h1,.w-echo-d .page-head h1{font-family:var(--w-head);color:var(--w-ink)}
+.w-echo-d .page-head p{color:var(--w-mute)}
+.w-echo-d .ai-chip{border-color:var(--w-rule);color:var(--w-ink);border-radius:0;background:none}
+.w-echo-d .ai-chip b{color:var(--w-ink)}
+.w-echo-d .ai-chip span{color:var(--w-mute)}
+.w-echo-d .ai-chip[aria-pressed=true]{background:var(--w-ink);border-color:var(--w-ink)}
+.w-echo-d .ai-chip[aria-pressed=true] b,.w-echo-d .ai-chip[aria-pressed=true] span{color:var(--w-paper)}
+.w-echo-d .ai-chip.k-work b::after,.w-echo-d .ai-chip.k-trip b::after{border-color:var(--w-red)}
+.w-echo-d .page-head{text-shadow:none}
+/* The Une's lead picture grows with the column's width: in its window it stops at a share of the window's height
+   (world.js --w-room), so the front page shows whole at a readable size. */
+.w-echo-d .echo-lead img,.w-echo-d .echo-lead video{aspect-ratio:auto;height:min(calc(var(--w-room,100vh) * .42),calc((100cqw) * 9 / 16));max-height:calc(var(--w-room,100vh) * .42)}

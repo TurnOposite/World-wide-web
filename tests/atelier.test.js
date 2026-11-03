@@ -160,9 +160,17 @@ test('short links: codes, ids, articles, rooms, the past in its window or full s
   // The map's Atlas was Z-04 until it moved to Echo (2026-11-01): a link handed out before still lands on it.
   assert.deepEqual(resolveRef('Z-04', pages), { kind: 'route', to: 'atlas' });
   assert.deepEqual(resolveRef('Z-03', pages), { kind: 'route', to: 'zone', page: byIdIn(pages, 'zone') }, 'Z-03 is Zone\'s Atlas again');
-  assert.equal(resolveRef('E-02/article-temoin', pages).to, 'echo/article-temoin');
-  assert.equal(resolveRef('E-02', pages).to, 'echo', 'Articles has no address of its own: the Une');
+  assert.equal(resolveRef('E-02/dont-shoot-the-pianist', pages).to, 'echo/dont-shoot-the-pianist');
+  // Articles has its own address since 2026-11-03: the list of every article and of the press.
+  assert.equal(resolveRef('E-02', pages).to, 'echo/articles');
+  assert.equal(resolveRef('E-02/presse/2024-07-19-p1', pages).to, 'echo/presse/2024-07-19-p1');
+  // Lectures' window went into the Livre miroir that evening: its code still lands, a text still opens.
+  assert.deepEqual(resolveRef('E-03', pages), { kind: 'route', to: 'echo/lectures' });
   assert.equal(resolveRef('E-03/voyages', pages).to, 'echo/lectures/voyages');
+  // The Archive took Archives' code, E-04; E-06, the Bibliothèque's that morning, and Z-05 before it land there too.
+  assert.deepEqual(resolveRef('E-04', pages), { kind: 'route', to: 'portfolio', page: byIdIn(pages, 'portfolio') });
+  assert.equal(resolveRef('E-04/crates', pages).to, 'portfolio/crates');
+  assert.deepEqual(resolveRef('E-06', pages), { kind: 'route', to: 'portfolio' });
   assert.equal(resolveRef('Z-05/photos', pages).to, 'portfolio/photos');
   assert.deepEqual([resolveRef('P-01', pages).kind, resolveRef('P-01', pages).to], ['route', 'versions/v1']);
   assert.deepEqual([resolveRef('v1/atlas', pages).kind, resolveRef('v1/atlas', pages).to], ['load', 'past/v1/atlas']);
@@ -190,6 +198,13 @@ test('the same page in another version: renames both ways, nothing invented', ()
   assert.equal(sameRoute('playlists', v1), null, 'v1 had no playlists');
   assert.equal(sameRoute('echo/archives', v2), null, 'v2 had Echo, not its Archives');
   assert.equal(sameRoute('echo/lectures/odes', v2), 'echo/lectures/odes');
+  // Articles' list and the press pages are new on 2026-11-03: no older version had them; v3 had Archives, today has not.
+  const v3 = all().find((p) => p.id === 'v3').routes;
+  assert.equal(sameRoute('echo/articles', v3), null, 'v3 had no list of the articles');
+  assert.equal(sameRoute('echo/presse/2024-07-19-p1', v2), null);
+  assert.equal(sameRoute('echo/articles', TODAY), 'echo/articles');
+  assert.equal(sameRoute('echo/archives', v3), 'echo/archives');
+  assert.equal(sameRoute('echo/archives', TODAY), null, 'today Archives is only an address that leads to the Archive');
 });
 
 test('Echo articles take links: a ref, an address of the site, the web — nothing else', () => {

@@ -324,56 +324,69 @@
               "share": 0.46,
               "color": "#0b1030"
             }
-          ]
+          ],
+          "thumb": "university/maps/thumbs/thesis-figure-1.jpg",
+          "context": "The thesis reads this map in two moves. Size is not centrality: many of the biggest dots, the most-liked videos, sit out at the edge, their viewers arriving from neighbouring genres and recommendation paths. And the colours fall into islands shaped like artists — Flamingosis almost sealed inside its own catalogue, the cross-genre outlier Denz1000 dense but cut off — while Snowpoint Lounge, with few videos, is scattered right across the map. Its conclusion: Barber Beats is not one audience but a constellation of micro-publics, fragmented and still connected."
         },
         {
           "id": "co-commenting-edges",
           "title": "Edges by channel",
           "source": "Thesis · Figure 3",
           "file": "university/maps/thesis-figure-3.png",
-          "caption": "The same network with each link coloured by the channels it joins."
+          "caption": "The same network with each link coloured by the channels it joins.",
+          "thumb": "university/maps/thumbs/thesis-figure-3.jpg",
+          "context": "Colouring the links by the channels they join makes Snowpoint Lounge legible: thick, heavily weighted edges run from its videos into every sector, so the same people comment on its videos and everyone else's. Where Figure 1 shows the dispersion, this shows the bridge — a mobile audience linking listener groups that would otherwise stay apart."
         },
         {
           "id": "communities",
           "title": "Within-community links",
           "source": "Thesis · Figure 4",
           "file": "university/maps/thesis-figure-4.png",
-          "caption": "The co-commenting data again, drawn to show the linkages inside each community."
+          "caption": "The co-commenting data again, drawn to show the linkages inside each community.",
+          "thumb": "university/maps/thumbs/thesis-figure-4.jpg",
+          "context": "With the weights rescaled, attention moves from Vapor Memory's mass to the communities between channels. Macroblank, Mabisyo and Slowerpace form the largest connected cluster — the established artists, with steady uploads and steady engagement. Vapor Memory, a curator account re-posting smaller artists, turns out isolated: listeners prefer to engage with the artists themselves. The biggest cluster grows around Macroblank, one of only two artists who publicly recommend and subscribe to others."
         },
         {
           "id": "channels",
           "title": "Channel network",
           "source": "Thesis · Figure 5",
           "file": "university/maps/thesis-figure-5.png",
-          "caption": "Channels linked by shared commenters. The yellow dots are channels with weaker centrality."
+          "caption": "Channels linked by shared commenters. The yellow dots are channels with weaker centrality.",
+          "thumb": "university/maps/thumbs/thesis-figure-5.jpg",
+          "context": "The formal ties are almost absent: hardly any channel subscribes to or recommends another, so the community holds together while leaving almost no trace in the platform's official social graph. The two channels that do, Macroblank and theuppermostinlife, are both central — supporting other artists seems to pay. Weakest of all is 'what is?', the AI-generated channel: similar music, but its viewers form the community furthest from the rest. The thesis reads it as authenticity norms at work, a second curation on top of the algorithm's."
         },
         {
           "id": "co-tags",
           "title": "Tag co-usage",
           "source": "Thesis · Figure 6",
           "file": "university/maps/thesis-figure-6.png",
-          "caption": "Tags used together across vaporwave videos; bigger, darker titles are the more central tags."
+          "caption": "Tags used together across vaporwave videos; bigger, darker titles are the more central tags.",
+          "thumb": "university/maps/thumbs/thesis-figure-6.jpg",
+          "context": "Tags are the creators' own choices, not the audience's behaviour. Three terms dominate — Vaporwave, Post-Vaporwave and Barber Beats — in a dense core, with the specialised tags out on the periphery as niche markers or bids for adjacent recommendations. The thesis takes it as a remarkable consensus on how the genre should be filed and found, and as proof that barber beats still leans on its vaporwave origins to stay discoverable."
         },
         {
           "id": "ucph-fa1",
           "title": "Vaporwave, 5,500 videos",
           "source": "UCPH · ForceAtlas",
           "file": "university/maps/ucph-vaporwave-forceatlas1.png",
-          "caption": "The Copenhagen study that came first: a co-commenting network of 5,500 vaporwave videos."
+          "caption": "The Copenhagen study that came first: a co-commenting network of 5,500 vaporwave videos.",
+          "thumb": "university/maps/thumbs/ucph-vaporwave-forceatlas1.jpg"
         },
         {
           "id": "ucph-fa2-circle",
           "title": "Vaporwave, ForceAtlas 2",
           "source": "UCPH · ForceAtlas 2",
           "file": "university/maps/ucph-vaporwave-forceatlas2-circle.png",
-          "caption": "The same 5,500 videos under ForceAtlas 2: one dominant audience and a ring of satellites."
+          "caption": "The same 5,500 videos under ForceAtlas 2: one dominant audience and a ring of satellites.",
+          "thumb": "university/maps/thumbs/ucph-vaporwave-forceatlas2-circle.jpg"
         },
         {
           "id": "ucph-fa2-splash",
           "title": "The splash",
           "source": "UCPH · ForceAtlas 2",
           "file": "university/maps/ucph-vaporwave-forceatlas2-splash.png",
-          "caption": "A sparser cut of the vaporwave network, where only the strongest links survive."
+          "caption": "A sparser cut of the vaporwave network, where only the strongest links survive.",
+          "thumb": "university/maps/thumbs/ucph-vaporwave-forceatlas2-splash.jpg"
         }
       ]
     }

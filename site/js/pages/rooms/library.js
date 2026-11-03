@@ -3,7 +3,10 @@
  * of owning a page, listeners removed on navigation, data through the station
  * client so it works on the Pi and on the static site alike.
  *
- * The Library: a close-up bookshelf of essays, the thesis, and the map room.
+ * The Library: a close-up bookshelf of essays, the thesis, the Livre miroir, and under the bookcase the
+ * map table (ui/map-table.js, 2026-11-03 evening: the map room as a table seen in the shelves'
+ * perspective, the maps on it in small format under a loupe). The thesis, clicked, opens on its card —
+ * the boxed notice that stood between the shelf and the map room until then — instead of the desk.
  *
  * Everything on this page comes from GET /api/collections (the manifest in
  * collections/collection.json). The case is seen a little from the side
@@ -18,38 +21,24 @@
 import { esc } from '../../ui/util.js';
 import { coverArt } from '../../ui/covers.js';
 import { MIRROR, mirrorBook, mirrorHtml, openMirror } from '../../ui/mirror-book.js';
+import { mountMapTable } from '../../ui/map-table.js';
 
 const TEMPLATE = `<div class="room-head">
     <h2 id="libTitle">The Library</h2>
-    <p id="libIntro">Loading the shelves…</p>
     <div class="chips" id="courseChips" role="group" aria-label="Filter by class"></div>
   </div>
 
   <section class="bookcase" id="bookcase" aria-label="Bookshelf">
-    <p class="empty-room" id="shelfEmpty">…</p>
+    <p class="empty-room" id="shelfEmpty">Loading the shelves…</p>
   </section>
-  <p class="hint">Hover a spine and the book lifts off the shelf. Click it to open the reading desk. Every essay can be read in the browser or downloaded as a PDF — and the Livre miroir opens on a pond with the texts at the bottom of it.</p>
 
-  <section class="thesis-card" id="thesisCard" hidden aria-labelledby="thesisTitle"></section>
-
-  <section class="maproom" id="maps" aria-labelledby="mapsTitle" hidden>
-    <div class="panel-head"><h3 id="mapsTitle">The map room</h3></div>
-    <p class="hint" id="mapsIntro" style="margin-top:0"></p>
-    <div class="layer-tabs" id="layerTabs" role="tablist" aria-label="Network layers"></div>
-    <div class="map-grid">
-      <div class="map-stage" id="mapStage" tabindex="0" aria-label="Network map. Drag to pan, scroll or pinch to zoom, plus and minus keys also zoom.">
-        <img id="mapImg" alt="" draggable="false" decoding="async">
-        <span class="map-zoom" id="mapZoom">100%</span>
-        <div class="map-controls">
-          <button type="button" data-z="in" aria-label="Zoom in">+</button>
-          <button type="button" data-z="out" aria-label="Zoom out">−</button>
-          <button type="button" data-z="reset">Fit</button>
-          <a id="mapDownload" href="#" download>Download</a>
-        </div>
-      </div>
-      <aside class="map-info" id="mapInfo" aria-live="polite"></aside>
-    </div>
+  <section class="maptable" id="maps" aria-labelledby="mapsTitle" hidden>
+    <h3 class="mt-title" id="mapsTitle">The map room</h3>
   </section>
+<dialog class="desk thesis-desk" id="thesisDesk" aria-labelledby="thesisTitle">
+  <button class="close-x" type="button" data-close aria-label="Close">✕</button>
+  <section class="thesis-card" id="thesisCard"></section>
+</dialog>
 <dialog class="desk" id="desk" aria-labelledby="deskTitle">
   <div class="desk-inner">
     <button class="close-x" type="button" data-close aria-label="Close">✕</button>
@@ -72,12 +61,11 @@ export async function mount(root, ctx) {
   const cleanups = [];
   const on = (target, ...args) => { target.addEventListener(...args); cleanups.push(() => target.removeEventListener(...args)); };
   const el = {
-    title: $('libTitle'), intro: $('libIntro'), chips: $('courseChips'),
-    thesis: $('thesisCard'), bookcase: $('bookcase'), status: $('statusLine'),
+    title: $('libTitle'), chips: $('courseChips'),
+    thesis: $('thesisCard'), thesisDesk: $('thesisDesk'), bookcase: $('bookcase'), status: $('statusLine'),
     desk: $('desk'), deskCover: $('deskCover'), deskTitle: $('deskTitle'), deskMeta: $('deskMeta'),
     deskBlurb: $('deskBlurb'), deskActions: $('deskActions'), peek: $('peek'),
-    maps: $('maps'), mapsTitle: $('mapsTitle'), mapsIntro: $('mapsIntro'), tabs: $('layerTabs'),
-    stage: $('mapStage'), img: $('mapImg'), zoom: $('mapZoom'), download: $('mapDownload'), info: $('mapInfo'),
+    maps: $('maps'), mapsTitle: $('mapsTitle'),
   };
 
   // The peek card is positioned in page coordinates; <main> is a positioned
@@ -313,9 +301,15 @@ export async function mount(root, ctx) {
       `<div class="actions">` +
       (book.file ? `<a class="btn gold" href="${book.file.url}" download>Download the full thesis${size}</a>` : '') +
       (book.file ? `<a class="btn quiet" href="${book.file.url}" target="_blank" rel="noopener">Read online · ${book.pages ?? ''} pages</a>` : '') +
-      `<a class="btn quiet" href="#maps" data-maps>Open the map room</a>` +
+      `<a class="btn quiet" href="#maps" data-maps>The maps, on the table</a>` +
       `</div></div>`;
-    el.thesis.hidden = false;
+  }
+
+  /** The thesis opens on its card, in the Gazette's boxed notice, not on the desk (Ortis, 2026-11-03). */
+  function openThesis(id) {
+    if (!el.thesis.innerHTML) return;
+    history.replaceState(null, '', `#book=${encodeURIComponent(id)}`);
+    if (!el.thesisDesk.open) el.thesisDesk.showModal();
   }
 
   // ------------------------------------------------------------ peek & desk --
@@ -342,6 +336,7 @@ export async function mount(root, ctx) {
   function openDesk(id) {
     const b = BOOKS.get(id);
     if (!b) return;
+    if (b.featured) { openThesis(id); return; }
     el.deskTitle.textContent = b.title;
     el.deskMeta.textContent = [b.course, b.kind, b.pages ? `${b.pages} pages` : '', b.lang === 'fr' ? 'en français' : ''].filter(Boolean).join(' · ');
     el.deskBlurb.textContent = b.blurb || (b.subtitle ?? '');
@@ -386,194 +381,33 @@ export async function mount(root, ctx) {
     el.desk.addEventListener('click', (e) => {
       if (e.target === el.desk || e.target.closest('[data-close]')) el.desk.close();
     });
-    el.desk.addEventListener('close', () => {
-      if (location.hash.startsWith('#book=')) history.replaceState(null, '', location.pathname);
+    el.thesisDesk.addEventListener('click', (e) => {
+      if (e.target === el.thesisDesk || e.target.closest('[data-close]')) el.thesisDesk.close();
     });
+    for (const d of [el.desk, el.thesisDesk]) {
+      d.addEventListener('close', () => {
+        if (location.hash.startsWith('#book=')) history.replaceState(null, '', location.pathname + location.search);
+      });
+    }
     on(document, 'click', (e) => {
       const link = e.target.closest('[data-maps]');
       if (!link) return;
       e.preventDefault();
       if (el.desk.open) el.desk.close();
+      if (el.thesisDesk.open) el.thesisDesk.close();
       el.maps.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
 
-  // --------------------------------------------------------------- map room --
+  // -------------------------------------------------------------- map table --
 
-  const view = { s: 1, x: 0, y: 0, fit: 1, iw: 1, ih: 1, atFit: true };
-  const pointers = new Map();
-  let pinch = null;
-
-  function applyView() {
-    el.img.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.s})`;
-    el.zoom.textContent = `${Math.round((view.s / view.fit) * 100)}%`;
-  }
-
-  function fitView() {
-    const W = el.stage.clientWidth;
-    const H = el.stage.clientHeight;
-    if (!W || !H) return;
-    view.fit = Math.min(W / view.iw, H / view.ih) * 0.96;
-    view.s = view.fit;
-    view.x = (W - view.iw * view.s) / 2;
-    view.y = (H - view.ih * view.s) / 2;
-    view.atFit = true;
-    applyView();
-  }
-
-  function zoomAt(factor, cx, cy) {
-    const next = Math.min(view.fit * 10, Math.max(view.fit * 0.6, view.s * factor));
-    const k = next / view.s;
-    view.x = cx - (cx - view.x) * k;
-    view.y = cy - (cy - view.y) * k;
-    view.s = next;
-    view.atFit = false;
-    applyView();
-  }
-
-  function stagePoint(e) {
-    const r = el.stage.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
-  }
-
-  function wireMap() {
-    el.stage.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      const p = stagePoint(e);
-      zoomAt(Math.exp(-e.deltaY * 0.0016), p.x, p.y);
-    }, { passive: false });
-
-    el.stage.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.map-controls')) return;
-      el.stage.setPointerCapture(e.pointerId);
-      pointers.set(e.pointerId, stagePoint(e));
-      el.stage.classList.add('dragging');
-      if (pointers.size === 2) {
-        const [a, b] = [...pointers.values()];
-        pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), m: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
-      }
-    });
-    el.stage.addEventListener('pointermove', (e) => {
-      if (!pointers.has(e.pointerId)) return;
-      const prev = pointers.get(e.pointerId);
-      const now = stagePoint(e);
-      pointers.set(e.pointerId, now);
-      if (pointers.size === 1) {
-        view.x += now.x - prev.x;
-        view.y += now.y - prev.y;
-        view.atFit = false;
-        applyView();
-      } else if (pointers.size === 2 && pinch) {
-        const [a, b] = [...pointers.values()];
-        const d = Math.hypot(a.x - b.x, a.y - b.y);
-        const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-        view.x += m.x - pinch.m.x;
-        view.y += m.y - pinch.m.y;
-        zoomAt(d / pinch.d, m.x, m.y);
-        pinch = { d, m };
-      }
-    });
-    const end = (e) => {
-      pointers.delete(e.pointerId);
-      if (pointers.size < 2) pinch = null;
-      if (!pointers.size) el.stage.classList.remove('dragging');
-    };
-    el.stage.addEventListener('pointerup', end);
-    el.stage.addEventListener('pointercancel', end);
-    el.stage.addEventListener('dblclick', (e) => {
-      const p = stagePoint(e);
-      zoomAt(2, p.x, p.y);
-    });
-    el.stage.addEventListener('keydown', (e) => {
-      const c = { x: el.stage.clientWidth / 2, y: el.stage.clientHeight / 2 };
-      const step = 50;
-      const keys = {
-        '+': () => zoomAt(1.4, c.x, c.y), '=': () => zoomAt(1.4, c.x, c.y), '-': () => zoomAt(1 / 1.4, c.x, c.y),
-        0: fitView, ArrowLeft: () => { view.x += step; }, ArrowRight: () => { view.x -= step; },
-        ArrowUp: () => { view.y += step; }, ArrowDown: () => { view.y -= step; },
-      };
-      if (!keys[e.key]) return;
-      e.preventDefault();
-      keys[e.key]();
-      applyView();
-    });
-    el.stage.querySelector('.map-controls').addEventListener('click', (e) => {
-      const z = e.target.closest('button')?.dataset.z;
-      if (!z) return;
-      const c = { x: el.stage.clientWidth / 2, y: el.stage.clientHeight / 2 };
-      if (z === 'in') zoomAt(1.5, c.x, c.y);
-      else if (z === 'out') zoomAt(1 / 1.5, c.x, c.y);
-      else fitView();
-    });
-    const ro = new ResizeObserver(() => { if (view.atFit) fitView(); });
-    ro.observe(el.stage);
-    cleanups.push(() => ro.disconnect());
-  }
-
-  // The map images are up to 1.6 MB each: fetch one when the map room comes
-  // near the screen, not with the bookshelf (a phone reading one essay never pays for it).
-  let mapNear = typeof IntersectionObserver !== 'function';
-  let pendingSrc = null;
-  const setMapSrc = (url) => { if (mapNear) el.img.src = url; else pendingSrc = url; };
-
-  function showLayer(layer, tabs) {
-    tabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.id === layer.id)));
-    el.img.onload = () => {
-      view.iw = el.img.naturalWidth;
-      view.ih = el.img.naturalHeight;
-      el.img.style.width = `${view.iw}px`;
-      el.img.style.height = `${view.ih}px`;
-      fitView();
-    };
-    setMapSrc(layer.url);
-    el.img.alt = `${layer.title} — ${layer.caption}`;
-    el.download.href = `${layer.url}`;
-    el.download.textContent = `Download · ${Math.max(1, Math.round(layer.bytes / 1024))} KB`;
-
-    let legend = '';
-    if (layer.legend?.length) {
-      const max = Math.max(...layer.legend.map((l) => l.share));
-      legend =
-        '<ol class="legend" aria-label="Share of nodes by channel">' +
-        layer.legend
-          .map(
-            (l) =>
-              `<li><span class="sw" style="background:${esc(l.color)}"></span><span class="nm">${esc(l.label)}</span>` +
-              `<span class="pc">${l.share.toLocaleString(undefined, { maximumFractionDigits: 2 })}%</span>` +
-              `<span class="bar"><i style="width:${(l.share / max) * 100}%;background:${esc(l.color)}"></i></span></li>`,
-          )
-          .join('') +
-        '</ol>';
-    }
-    el.info.innerHTML =
-      `<h4>${esc(layer.title)}</h4><p class="source">${esc(layer.source)}</p><p>${esc(layer.caption)}</p>${legend}`;
-  }
-
+  let table = null;
   function renderMaps(maps) {
     if (!maps?.layers?.length) return;
     el.mapsTitle.textContent = maps.title;
-    el.mapsIntro.textContent = maps.intro;
-    el.tabs.innerHTML = maps.layers
-      .map((l) => `<button type="button" role="tab" class="layer-tab" data-id="${esc(l.id)}" aria-selected="false">${esc(l.title)}<small>${esc(l.source)}</small></button>`)
-      .join('');
-    const tabs = [...el.tabs.querySelectorAll('.layer-tab')];
-    el.tabs.addEventListener('click', (e) => {
-      const t = e.target.closest('.layer-tab');
-      if (t) showLayer(maps.layers.find((l) => l.id === t.dataset.id), tabs);
-    });
     el.maps.hidden = false;
-    wireMap();
-    if (!mapNear) {
-      const io = new IntersectionObserver((entries) => {
-        if (!entries.some((en) => en.isIntersecting)) return;
-        io.disconnect();
-        mapNear = true;
-        if (pendingSrc) el.img.src = pendingSrc;
-      }, { rootMargin: '400px 0px' });
-      io.observe(el.maps);
-      cleanups.push(() => io.disconnect());
-    }
-    showLayer(maps.layers[0], tabs);
+    table = mountMapTable(el.maps, maps);
+    cleanups.push(() => table.destroy());
   }
 
   // ------------------------------------------------------------------- boot --
@@ -582,8 +416,8 @@ export async function mount(root, ctx) {
     try {
       const data = await ctx.client.get('/api/collections');
       const uni = data.university;
+      // The intro under the title said how to use the shelf; Ortis took it out (2026-11-03): the shelf says it.
       el.title.textContent = uni.title;
-      el.intro.textContent = uni.intro || '';
       renderShelves(uni.shelves);
       renderThesis(uni.shelves.flatMap((s) => s.books).find((b) => b.featured));
       renderChips();
@@ -592,8 +426,10 @@ export async function mount(root, ctx) {
       const essays = [...BOOKS.values()].filter((b) => b.file).length;
       el.status.textContent = `${essays} works on the shelves · ${uni.maps.layers.length} maps`;
       const m = location.hash.match(/^#book=(.+)$/);
+      const map = location.hash.match(/^#map=(.+)$/);
       if (location.hash === '#miroir') openMirror(el.bookcase.querySelector('.book.mirror'));
       else if (m) openDesk(decodeURIComponent(m[1]));
+      else if (map && table) table.open(decodeURIComponent(map[1]));
       else if (location.hash === '#maps') el.maps.scrollIntoView();
     } catch (err) {
       el.bookcase.innerHTML = '<p class="empty-room">Could not load the shelves.</p>';

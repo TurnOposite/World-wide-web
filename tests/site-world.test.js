@@ -13,7 +13,7 @@ import {
   WORLD, DISTRICTS, FIGURES, MIN_SCALE, MAX_SCALE, FIT_MIN, PHONE_MAX, SHORT_MAX, PHONE_MEDIA, SWIPE, isPhone, phoneTop, swipeHalf,
   byId, districtFor, frameFor, cameraFor, pageZoom, fitFactor, sideOf, centreOf, flightMs, ease, pullBack, seamMix, nearest,
 } from '../site/js/world/layout.js';
-import { byTag, pressOf, dateFr } from '../site/js/pages/archives.js';
+import { byTag, pressOf, dateFr, pressGroups, clipping, clipId } from '../site/js/ui/press.js';
 import { routes } from '../scripts/site-build.mjs';
 import { SCREEN_KEY, SCREEN_OPTIONS, SCREEN_DEFAULTS, normalScreen, readScreen, writeScreen, bubbleCount } from '../site/js/world/screen.js';
 
@@ -66,22 +66,26 @@ test('?classic=1 and ?world=1 are each remembered for the tab; a new tab starts 
   assert.equal(worldWanted({ search: '', storage: broken }), false);
 });
 
-test('eleven districts — two Atlases, Zone\'s (Z-03, where the tower broadcasts from) and Echo\'s (E-05, the map of the places), the Bibliothèque on Echo, each on its own half, none overlapping', () => {
-  assert.equal(DISTRICTS.length, 11);
-  // In the order a visitor meets them (Ortis, 2026-11-01): Zone's five, then Echo's six (the Bibliothèque since 11-03).
-  assert.deepEqual(DISTRICTS.map((d) => d.code), ['Z-01', 'Z-02', 'Z-06', 'Z-03', 'Z-07', 'E-01', 'E-02', 'E-03', 'E-04', 'E-05', 'E-06']);
-  assert.equal(new Set(DISTRICTS.map((d) => d.id)).size, 11);
+test('nine districts — two Atlases, Zone\'s (Z-03, where the tower broadcasts from) and Echo\'s (E-05, the map of the places), the Archive on Echo, each on its own half, none overlapping', () => {
+  assert.equal(DISTRICTS.length, 9);
+  // In the order a visitor meets them (Ortis, 2026-11-01): Zone's five, then Echo's four — since 2026-11-03 (evening)
+  // Une, Articles, the Archive (the Bibliothèque renamed, in Archives' place and with its code), Atlas.
+  assert.deepEqual(DISTRICTS.map((d) => d.code), ['Z-01', 'Z-02', 'Z-06', 'Z-03', 'Z-07', 'E-01', 'E-02', 'E-04', 'E-05']);
+  assert.equal(new Set(DISTRICTS.map((d) => d.id)).size, 9);
+  assert.equal(byId('lectures'), null, 'Lectures\' window went into the Livre miroir');
+  assert.equal(byId('archives'), null, 'Archives went into Articles and the Archive');
   assert.equal(byId('zone').title, 'Atlas', 'Zone\'s Atlas is called Atlas');
   assert.equal(byId('atlas').title, 'Atlas', '…and so is Echo\'s');
   assert.equal(byId('zone').half, 'zone');
   assert.equal(byId('atlas').half, 'echo', 'the map of the places stands on Echo\'s side');
   // The bookshelf left Zone's side on 11-01 and has its window on Echo's since 11-03 (Ortis: « it got removed completely »).
-  assert.equal(byId('portfolio').half, 'echo', 'the Portfolio\'s window, the Bibliothèque, stands on Echo\'s side');
-  assert.equal(byId('portfolio').title, 'Bibliothèque');
+  assert.equal(byId('portfolio').half, 'echo', 'the Portfolio\'s window, the Archive, stands on Echo\'s side');
+  assert.equal(byId('portfolio').title, 'Archive');
+  assert.equal(byId('portfolio').code, 'E-04');
   // What may scroll inside its window, and what shows whole (world.js fitPage).
-  // Ondes and Playlists by Ortis's word; the reading pages and Archives (a long list of press) because they are read.
-  // The Bibliothèque scrolls too: the bookcase, then the thesis and the map room under it.
-  assert.deepEqual(DISTRICTS.filter((d) => d.scroll).map((d) => d.id), ['ondes', 'playlists', 'articles', 'lectures', 'archives', 'portfolio']);
+  // Ondes and Playlists by Ortis's word; Articles (the list, the press, the reading pages) because it is read.
+  // The Archive scrolls too: the bookcase, then the map table under it.
+  assert.deepEqual(DISTRICTS.filter((d) => d.scroll).map((d) => d.id), ['ondes', 'playlists', 'articles', 'portfolio']);
   for (const d of DISTRICTS) {
     assert.ok(d.x >= 0 && d.y >= 0 && d.x + d.w <= WORLD.w && d.y + d.h <= WORLD.h, `${d.id} is inside the world`);
     if (d.half === 'zone') assert.ok(d.x + d.w <= WORLD.seam - 100, `${d.id} stays left of the seam`);
@@ -103,21 +107,26 @@ test('every route lands in a district, and every district with a page names a ro
   for (const d of DISTRICTS) if (d.route !== null) assert.ok(served.has(d.route), `${d.id} → /${d.route}`);
   const expect = {
     home: 'radio', radio: 'radio', ondes: 'ondes', zone: 'zone', atlas: 'atlas',
-    playlists: 'playlists', booth: 'booth', lectures: 'lectures', ecrits: 'lectures', archives: 'archives', portfolio: 'portfolio',
+    playlists: 'playlists', booth: 'booth', articles: 'articles', portfolio: 'portfolio',
+    // Since 2026-11-03 (evening): the texts' list leads to the Archive (the Livre miroir), Archives' address too.
+    lectures: 'portfolio', ecrits: 'portfolio', archives: 'portfolio',
   };
   for (const [name, id] of Object.entries(expect)) assert.equal(districtFor(name, {}), id, name);
   assert.equal(districtFor('echo', {}), 'une');
-  assert.equal(districtFor('echo', { slug: 'article-temoin' }), 'articles', 'an article opens on the reading desk');
+  assert.equal(districtFor('echo', { slug: 'dont-shoot-the-pianist' }), 'articles', 'an article opens on the reading desk');
+  assert.equal(districtFor('presse', { id: '2024-07-19-p1' }), 'articles', '…so does a clipping of the press');
+  assert.equal(districtFor('lectures', { slug: 'voyages' }), 'articles', '…and a text of the Livre miroir');
+  assert.equal(districtFor('ecrits', { slug: 'voyages' }), 'articles');
   assert.equal(districtFor('missing', {}), null, 'a page that does not exist leaves the camera where it is');
   // Every route name main.js declares is mapped (a new route must be placed on the map)…
-  for (const name of ['home', 'radio', 'ondes', 'playlists', 'atlas', 'lectures', 'zone', 'ecrits', 'archives', 'echo', 'booth', 'portfolio']) {
+  for (const name of ['home', 'radio', 'ondes', 'playlists', 'atlas', 'lectures', 'zone', 'ecrits', 'archives', 'articles', 'presse', 'echo', 'booth', 'portfolio']) {
     assert.ok(districtFor(name, {}), name);
   }
   // Every room of the Portfolio opens in its window, not only the Bibliothèque.
   assert.equal(districtFor('portfolio', { room: 'photos' }), 'portfolio');
-  // Since phase 4 only Articles has no address of its own: it is reached through an article's.
-  assert.deepEqual(DISTRICTS.filter((d) => d.route === null).map((d) => d.id), ['articles']);
-  assert.equal(byId('archives').route, 'echo/archives');
+  // Since 2026-11-03 every district has an address of its own — Articles too, its list.
+  assert.deepEqual(DISTRICTS.filter((d) => d.route === null).map((d) => d.id), []);
+  assert.equal(byId('articles').route, 'echo/articles');
 });
 
 test('Echo\'s figures stand on the paper, in the gutters: never over a window, every one a symbol the Gazette draws', () => {
@@ -133,7 +142,7 @@ test('Echo\'s figures stand on the paper, in the gutters: never over a window, e
   }
 });
 
-test('Archives: the press from the Atlas\'s places, the articles by tag, French dates', () => {
+test('the press on Echo (Archives\' until 2026-11-03): from the Atlas\'s places, the articles by tag, French dates', () => {
   const places = JSON.parse(fs.readFileSync(new URL('../site/data/places.json', import.meta.url), 'utf8')).places;
   const press = pressOf(places);
   assert.ok(press.length >= 1, 'at least the Jornal NH');
@@ -158,6 +167,21 @@ test('Archives: the press from the Atlas\'s places, the articles by tag, French 
   assert.deepEqual(byTag([]), []);
   assert.equal(dateFr('2024-06-06'), '6 juin 2024');
   assert.equal(dateFr('2024-08-01'), '1er août 2024');
+
+  // Since 2026-11-03 each clipping is an article of Articles: the metro walk first, then the Olympics, every piece with an id.
+  const groups = pressGroups(places);
+  assert.deepEqual(groups.map((g) => [g.key, g.name, g.kind]), [['metro', 'Um passeio de metrô por Paris', 'series'], ['jogos', 'Jogos Olímpicos', 'column']]);
+  assert.equal(groups[0].items.length, src.series.items.length);
+  assert.equal(groups[1].items.length, src.column.items.length);
+  const ids = groups.flatMap((g) => g.items.map((i) => i.id));
+  assert.equal(new Set(ids).size, ids.length, 'every clipping has an address of its own, even two of one day');
+  assert.ok(ids.every((id) => /^[\w-]+$/.test(id)), 'and it fits the route');
+  assert.equal(clipId({ pages: ['press/nh/2024-07-19-p1.pdf'] }), '2024-07-19-p1');
+  const hit = clipping(groups, '2024-07-22-p12');
+  assert.equal(hit.group.key, 'metro');
+  assert.equal(hit.prev.id, '2024-07-19-p1');
+  assert.equal(hit.next.id, '2024-07-23-p12');
+  assert.equal(clipping(groups, 'nowhere'), null);
 });
 
 test('the camera centres a district in the free area and fits the whole frame', () => {
@@ -190,7 +214,7 @@ test('the camera centres a district in the free area and fits the whole frame', 
     }
   }
   // centreOf inverts the transform.
-  const d = byId('lectures');
+  const d = byId('portfolio');
   const cam = cameraFor(d, 1440, 900);
   const c = centreOf(cam, 1440, 900);
   assert.ok(Math.abs(c.x - (d.x + d.w / 2)) < 0.5);
@@ -302,7 +326,7 @@ test('a click on the minimap picks the district under it', () => {
   for (const d of DISTRICTS) assert.equal(nearest(d.x + d.w / 2, d.y + d.h / 2).id, d.id);
   assert.equal(nearest(0, 0).id, 'radio');
   assert.equal(nearest(0, WORLD.h).id, 'zone');
-  assert.equal(nearest(3790, WORLD.h).id, 'archives');
+  assert.equal(nearest(4800, WORLD.h).id, 'portfolio', 'the bottom right of Echo: the Archive');
 });
 
 test('« Écran »: four settings, each default one of its own choices, anything unknown falls back', () => {

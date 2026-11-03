@@ -170,9 +170,9 @@ test('GitHub ahead of this copy: fire stops — it never forces, never merges fo
 test('a map with an error is never published', async () => {
   const s = scratch();
   try {
-    moveAtlas(s.work, 3900); // on top of Lectures: two windows would cover each other
+    moveAtlas(s.work, 3900); // on top of the Archive (Lectures' place until 2026-11-03): two windows would cover each other
     const f = fakes(s.work);
-    await assert.rejects(fire(opts({ yes: true }), f.deps, CFG), /the map has errors[\s\S]*lectures: on top of atlas/);
+    await assert.rejects(fire(opts({ yes: true }), f.deps, CFG), /the map has errors[\s\S]*portfolio: on top of atlas/);
     assert.equal(f.calls.tests, 0);
   } finally { s.done(); }
 });

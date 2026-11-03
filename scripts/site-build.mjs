@@ -33,6 +33,7 @@ import { buildView } from './site-collections.mjs';
 import { assemble } from './site-past.mjs';
 import { resolveLayout } from '../site/js/world/model.js';
 import { RETIRED } from '../site/js/refs.js';
+import { pressGroups } from '../site/js/ui/press.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = path.join(ROOT, 'site');
@@ -66,7 +67,7 @@ export function shellFor(html, { base = '/', siteUrl = '' } = {}) {
  * window's address, and every page its short links — so a go/ link shared
  * in a message answers 200 (and a link preview) before it redirects.
  */
-export function routes(texts, echo = [], pages = []) {
+export function routes(texts, echo = [], pages = [], clips = []) {
   const past = pages.filter((p) => p.era === 'past');
   return [
     ...past.map((p) => `versions/${p.id}`),
@@ -80,6 +81,8 @@ export function routes(texts, echo = [], pages = []) {
     ...texts.map((t) => `ecrits/${t.slug}`),
     'echo/lectures', ...texts.map((t) => `echo/lectures/${t.slug}`),
     'echo', 'echo/archives', ...echo.map((a) => `echo/${a.slug}`),
+    // Articles' list and each clipping of the press (2026-11-03): ui/press.js pressGroups ids.
+    'echo/articles', ...clips.map((id) => `echo/presse/${id}`),
   ];
 }
 
@@ -131,6 +134,7 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   await fsp.writeFile(path.join(DIST, 'index.html'), shell);
   const texts = JSON.parse(await fsp.readFile(path.join(DIST, 'data/texts.json'), 'utf8')).texts;
   const echo = JSON.parse(await fsp.readFile(path.join(DIST, 'data/echo.json'), 'utf8')).articles;
+  const clips = pressGroups(JSON.parse(await fsp.readFile(path.join(DIST, 'data/places.json'), 'utf8')).places || []).flatMap((g) => g.items.map((i) => i.id));
   // The map: the versions of the past it has online, and every page's short link (docs/ATELIER.md).
   const { pages, problems } = resolveLayout(JSON.parse(await fsp.readFile(path.join(DIST, 'data/layout.json'), 'utf8')));
   if (problems.length) throw new Error(`site/data/layout.json: ${problems.join('; ')}`);
@@ -144,7 +148,7 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   if (shells) await fsp.writeFile(path.join(DIST, '404.html'), shell);
   const root = siteUrl ? new URL(base.replace(/^\//, ''), siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).href : '';
   const bySlug = new Map(echo.map((a) => [`echo/${a.slug}`, a]));
-  for (const r of shells ? routes(texts, echo, shown) : []) {
+  for (const r of shells ? routes(texts, echo, shown, clips) : []) {
     await fsp.mkdir(path.join(DIST, r), { recursive: true });
     const a = bySlug.get(r);
     await fsp.writeFile(path.join(DIST, r, 'index.html'), a ? articleShell(shell, a, { root }) : shell);
@@ -176,7 +180,7 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   await fsp.writeFile(path.join(DIST, '.nojekyll'), '');
 
   log(`  ✓ dist/ ready — base ${base}${siteUrl ? ` at ${siteUrl}` : ''}${owner ? `, booth writes to ${owner}/${name}` : ', booth read-only (no repository)'}; ${files.length} portfolio files (${(bytes / 1048576).toFixed(1)} MB)${laid.length ? `; the past online: ${laid.map((l) => l.id).join(', ')}` : ''}`);
-  return { base, files: files.length, routes: routes(texts, echo, shown).length, past: laid.map((l) => l.id) };
+  return { base, files: files.length, routes: routes(texts, echo, shown, clips).length, past: laid.map((l) => l.id) };
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);

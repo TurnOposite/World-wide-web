@@ -19,6 +19,8 @@ import { build as buildEcho, frenchTypo, parseArticle } from '../scripts/site-ec
 import { routes, normaliseBase, shellFor } from '../scripts/site-build.mjs';
 import { CloudEngine } from '../site/js/engine/cloud.js';
 import { webAudioIsSafe } from '../site/js/player.js';
+import { introPages, sentences } from '../site/js/ui/mirror-book.js';
+import { sheetWidth, SLOTS } from '../site/js/ui/map-table.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MOODS = JSON.parse(fs.readFileSync(path.join(ROOT, 'dj/moods.json'), 'utf8'));
@@ -140,10 +142,14 @@ test('the Pages shell gives link previews an absolute picture and address', () =
   assert.doesNotMatch(local, /property="og:url"/);
 });
 
+// The témoin (« une place, un après-midi ») was the sample that carries every element of an article; Ortis
+// binned it from the site on 2026-11-03, once a real article stood à la une. It lives on as this fixture.
+const FIXTURES = path.join(ROOT, 'tests/fixtures/echo');
+
 test('Echo: the sample article builds with French typography, notes and a route', () => {
-  const data = buildEcho();
+  const data = buildEcho({ src: FIXTURES });
   const a = data.articles.find((x) => x.slug === 'article-temoin');
-  assert.ok(a, 'the sample article is built from echo/articles');
+  assert.ok(a, 'the sample article is built from tests/fixtures/echo');
   assert.deepEqual(a.tags, ['témoin', 'reportage']);
   assert.ok(a.hero.credit && a.hero.caption, 'hero carries caption and credit');
   assert.match(a.html, /class="pull"/);
@@ -156,7 +162,14 @@ test('Echo: the sample article builds with French typography, notes and a route'
   assert.match(a.html, /\u202f!/);
   assert.ok(a.readingTime >= 1);
   assert.ok(routes([], data.articles).includes('echo/article-temoin') && routes([]).includes('echo'));
-  assert.ok(fs.existsSync(path.join(ROOT, 'site', a.hero.src)), 'the hero image exists');
+  assert.ok(fs.existsSync(path.join(FIXTURES, path.basename(a.hero.src))), 'the hero image exists');
+});
+
+test('Echo: the témoin is off the site — only real articles are built, and none takes a page\'s address', () => {
+  const { articles } = buildEcho();
+  assert.ok(articles.length >= 1 && !articles.some((a) => /temoin/.test(a.slug)), articles.map((a) => a.slug).join());
+  assert.ok(!fs.existsSync(path.join(ROOT, 'site/assets/echo/temoin.svg')), 'its picture went with it');
+  assert.ok(articles.every((a) => !['lectures', 'archives', 'articles', 'presse'].includes(a.slug)));
 });
 
 test('Echo: typography and front-matter errors', () => {
@@ -164,7 +177,7 @@ test('Echo: typography and front-matter errors', () => {
   assert.throws(() => parseArticle('bad.md', '---\ntitle: x\n---\ntext'), /name must be/);
   assert.throws(() => parseArticle('2026-01-01-x.md', '---\ntitle: x\n---\ntext'), /lacks "standfirst"/);
   // /echo/lectures and /echo/archives are pages: an article with that slug could never be opened.
-  for (const slug of ['lectures', 'archives']) assert.throws(() => parseArticle(`2026-01-01-${slug}.md`, '---\ntitle: x\n---\ntext'), /another Echo page/);
+  for (const slug of ['lectures', 'archives', 'articles', 'presse']) assert.throws(() => parseArticle(`2026-01-01-${slug}.md`, '---\ntitle: x\n---\ntext'), /another Echo page/);
 });
 
 test('Echo: site/data/echo.json is not stale', () => {
@@ -175,7 +188,7 @@ test('Echo: site/data/echo.json is not stale', () => {
 test('Echo: the Atom feed, per-article link previews and the import script', async () => {
   const { atomFeed, articleShell } = await import('../scripts/site-echo.mjs');
   const { importMarkdown, slugify } = await import('../scripts/echo-import.mjs');
-  const { articles } = buildEcho();
+  const { articles } = buildEcho({ src: FIXTURES });
   const root = 'https://example.org/site/';
 
   const feed = atomFeed(articles, { root });
@@ -312,4 +325,38 @@ test('Playlists (Zone): playlists.json is well formed, and every playlist plays 
   assert.ok(list.every((p) => p.url === `https://open.spotify.com/playlist/${p.id}`));
   const { ONDES_LABEL } = await import('../site/js/labels.js');
   assert.equal(ONDES_LABEL, 'Ondes');
+});
+
+test('the Livre miroir opens on the introduction: one sentence to a paragraph, over two pages that come out even', () => {
+  const { intro, texts } = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/data/texts.json'), 'utf8'));
+  const all = sentences(intro);
+  assert.ok(all.length >= 3, `${all.length} sentences`);
+  assert.equal(all.join(' '), intro.replace(/\s+/g, ' ').trim(), 'nothing lost, nothing added');
+  const { left, right } = introPages(intro);
+  assert.deepEqual([...left, ...right], all, 'in order');
+  assert.ok(left.length >= 1 && right.length >= 1);
+  const len = (xs) => xs.join(' ').length;
+  // the cut is where the pages come out nearest: no other cut is better
+  for (let i = 1; i < all.length; i++) {
+    const gap = Math.abs(len(all.slice(0, i)) - len(all.slice(i)));
+    assert.ok(Math.abs(len(left) - len(right)) <= gap + all.length, `cut at ${i}`);
+  }
+  assert.deepEqual(sentences('Un. Deux ! « Trois » ? Quatre… Cinq'), ['Un.', 'Deux !', '« Trois » ?', 'Quatre…', 'Cinq']);
+  assert.deepEqual(introPages('Seule.'), { left: [], right: ['Seule.'] });
+  assert.equal(texts.length, 6, 'six stones under the page');
+});
+
+test('the map table: a place for every map, and sheets of one paper size whatever the map\'s shape', () => {
+  const view = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/data/collections.json'), 'utf8'));
+  const layers = view.university.maps.layers;
+  assert.ok(layers.length <= SLOTS.length, `${layers.length} maps, ${SLOTS.length} places on the table`);
+  for (const l of layers) {
+    assert.ok(l.thumb && fs.existsSync(path.join(ROOT, l.thumb)), `${l.id}: its small copy is published`);
+    assert.ok(fs.statSync(path.join(ROOT, l.thumb)).size < 100 * 1024, `${l.id}: the small copy stays small`);
+  }
+  // Every figure of the thesis on the table says what the thesis draws from it.
+  for (const l of layers.filter((x) => /^Thesis/.test(x.source))) assert.ok(l.context.length > 80, `${l.id} has its context`);
+  const area = (a) => sheetWidth(a) ** 2 / a;
+  assert.ok(Math.abs(area(1) - area(2)) / area(1) < 0.01, 'a wide map is a wider sheet of the same area');
+  assert.ok(sheetWidth(10) <= 26 && sheetWidth(0.1) >= 11, 'never a strip, never a stamp');
 });

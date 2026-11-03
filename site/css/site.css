@@ -741,6 +741,55 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
   .echo-cols>.echo-aside{border-left:0;padding-left:0;border-top:1px solid var(--ink);padding-top:14px}
 }
 
+/* Articles (E-02, 2026-11-03): every article, then the press, each series boxed under its name */
+.echo-articles{display:grid;gap:18px;container-type:inline-size}
+.echo-articles h1{font-size:clamp(34px,6cqw,56px);line-height:1}
+.echo-articles .echo-standfirst{font-size:16px;line-height:1.55}
+.echo-series{display:grid;gap:14px;border:1px solid var(--ink);box-shadow:inset 0 0 0 4px var(--paper),inset 0 0 0 5px var(--ink);padding:20px 22px 22px;scroll-margin-top:12px}
+.echo-series-head{display:grid;gap:5px;justify-items:center;text-align:center;border-bottom:1px solid var(--ink);padding-bottom:12px}
+.echo-series-head h2{font:700 clamp(26px,4.2cqw,40px)/1.05 "Old Standard TT",Georgia,serif;color:var(--ink)}
+.echo-series-head .echo-sub{margin:0;font-style:italic}
+.echo-clips{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px 16px}
+.echo-clip{display:grid;gap:5px;align-content:start;text-decoration:none;color:var(--ink)}
+.echo-clip img{width:100%;height:auto;aspect-ratio:240/330;object-fit:cover;object-position:top;display:block;background:#fff;
+  filter:grayscale(1) contrast(1.04);box-shadow:0 0 0 1px var(--ink),0 6px 14px rgba(0,0,0,.16);transition:transform .2s ease,filter .2s ease}
+.echo-clip:hover img,.echo-clip:focus-visible img{transform:translateY(-3px) rotate(-.6deg);filter:none}
+.echo-clip b{font:700 15px/1.2 "Old Standard TT",Georgia,serif}
+.echo-clip:hover b{text-decoration:underline}
+.echo-clip .echo-dek{font-size:13px;line-height:1.35}
+.echo-clip .echo-meta{font-size:12px}
+/* …on the Une, each series once: a group, three of its pages fanned out */
+.echo-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;border-top:1px solid var(--ink);padding-top:14px}
+.echo-group{display:grid;gap:6px;align-content:start;text-decoration:none;color:var(--ink);border:1px solid var(--ink);padding:16px 18px 18px;
+  box-shadow:inset 0 0 0 3px var(--paper),inset 0 0 0 4px var(--ink)}
+.echo-group b{font:700 clamp(22px,2.8cqw,28px)/1.1 "Old Standard TT",Georgia,serif}
+.echo-group:hover b,.echo-group:focus-visible b{text-decoration:underline}
+.echo-fan{position:relative;display:block;height:150px;margin:0 0 6px}
+.echo-fan img{position:absolute;bottom:0;left:calc(50% - 48px);width:96px;height:auto;aspect-ratio:240/330;object-fit:cover;object-position:top;background:#fff;
+  filter:grayscale(1);box-shadow:0 0 0 1px var(--ink),0 6px 14px rgba(0,0,0,.22);transform-origin:50% 100%;transition:transform .25s ease,filter .25s ease}
+.echo-fan img:nth-child(1){transform:translateX(-64px) rotate(-10deg)}
+.echo-fan img:nth-child(2){z-index:1}
+.echo-fan img:nth-child(3){transform:translateX(64px) rotate(10deg)}
+.echo-group:hover .echo-fan img{filter:none}
+.echo-group:hover .echo-fan img:nth-child(1){transform:translateX(-78px) rotate(-14deg)}
+.echo-group:hover .echo-fan img:nth-child(3){transform:translateX(78px) rotate(14deg)}
+/* a clipping's reading page: the paper's page, in the column */
+.echo-scan{margin:0;border-bottom:1px solid var(--ink);padding-bottom:12px}
+.echo-scan object{display:block;width:100%;height:auto;aspect-ratio:240/330;border:1px solid var(--ink);background:#fff}
+.echo-scan-alt{display:grid;justify-items:center;align-content:center;gap:10px;height:100%;padding:18px;color:var(--red);font-weight:700;text-decoration:none}
+.echo-scan-alt img{box-shadow:0 0 0 1px var(--ink),0 8px 20px rgba(0,0,0,.2)}
+.echo-steps{display:flex;justify-content:space-between;gap:14px;font-size:14px}
+.echo-steps a{color:var(--red);font-weight:700;text-decoration:none;max-width:48%}
+.echo-steps a[rel="next"]{text-align:right;margin-left:auto}
+.echo-steps a:hover{text-decoration:underline}
+.echo-head .echo-kicker a{color:inherit;text-decoration:none}
+.echo-head .echo-kicker a:hover{text-decoration:underline}
+@container (max-width:640px){
+  .echo-groups{grid-template-columns:minmax(0,1fr)}
+  .echo-series{padding:16px 14px 18px}
+  .echo-clips{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+}
+
 /* narrow screens: the side figures become one band above the paper */
 @container (max-width:760px){
   .echo-layout{grid-template-columns:minmax(0,1fr);gap:0;padding:0}

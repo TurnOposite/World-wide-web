@@ -40,6 +40,7 @@ async function put(rel, data) {
 await put('university/essays/real.pdf', PDF);
 await put('university/covers/real.jpg', PNG);
 await put('university/maps/map.png', PNG);
+await put('university/maps/thumbs/map.jpg', PNG);
 await put('photos/a/one.jpg', PNG);
 await put('_review/private-contact-sheet.jpg', PNG);
 await put('_incoming/staged.pdf', PDF);
@@ -62,7 +63,10 @@ const manifest = {
         ],
       },
     ],
-    maps: { layers: [{ id: 'm', title: 'Map', source: 'Fig 1', file: 'university/maps/map.png', legend: [{ label: 'A', share: 60, color: '#f00' }] }] },
+    maps: { layers: [
+      { id: 'm', title: 'Map', source: 'Fig 1', file: 'university/maps/map.png', thumb: 'university/maps/thumbs/map.jpg', context: 'What the thesis draws from it.', legend: [{ label: 'A', share: 60, color: '#f00' }] },
+      { id: 'n', title: 'No thumb', source: 'Fig 2', file: 'university/maps/map.png', thumb: 'university/maps/thumbs/missing.jpg' },
+    ] },
   },
   photos: { albums: [{ id: 'a', title: 'A', items: [{ file: 'photos/a/one.jpg', w: 4, h: 3, caption: 'one' }, { file: 'photos/a/missing.jpg' }] }] },
   music: { crates: [{ id: 'c', match: { album: 'X' }, cover: 'music/covers/none.jpg', note: 'n' }] },
@@ -99,6 +103,11 @@ test('the manifest is served with paths turned into /collections/ URLs', async (
   assert.equal(real.file.bytes, PDF.length);
   assert.equal(real.cover, '/collections/university/covers/real.jpg');
   assert.equal(data.university.maps.layers[0].url, '/collections/university/maps/map.png');
+  // The map table (2026-11-03): a small copy to lay on the table, and what the thesis concludes from the map.
+  assert.equal(data.university.maps.layers[0].thumb, '/collections/university/maps/thumbs/map.jpg');
+  assert.equal(data.university.maps.layers[0].context, 'What the thesis draws from it.');
+  assert.equal(data.university.maps.layers[1].thumb, '/collections/university/maps/map.png', 'no small copy on disk: the full map stands in');
+  assert.equal(data.university.maps.layers[1].context, '');
   assert.equal(data.photos.albums[0].items[0].thumb, '/collections/photos/a/one.jpg', 'no thumb listed → the full image stands in');
 });
 

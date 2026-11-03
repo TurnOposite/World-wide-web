@@ -32,8 +32,8 @@ export const BOTTOM = 68;
 
 /**
  * x, y, w, h in world pixels. `route` is where the district's tag goes;
- * null means the tag only moves the camera (Articles is reached through an
- * article's own address). `tag` places
+ * null would mean the tag only moves the camera (Articles was, until it got
+ * its own list on 2026-11-03). `tag` places
  * the tag on a desktop: a % of the screen, from the left edge for Zone and
  * from the right edge for Echo, and a tilt in degrees.
  *
@@ -62,20 +62,19 @@ export const DISTRICTS = [
   { id: 'booth', code: 'Z-07', title: 'Booth', half: 'zone', x: 1320, y: 1000, w: 1160, h: 670, rot: 1, route: 'booth',
     hosts: 'The lights, for everyone; the music booth, behind its key', tag: [2, 51, -5] },
   { id: 'une', code: 'E-01', title: 'Une', half: 'echo', x: 2760, y: 140, w: 1180, h: 680, rot: 0, route: 'echo',
-    hosts: 'La une : le titre, l’article de tête, ce qui passe à l’antenne', tag: [3, 18, 4] },
-  { id: 'articles', code: 'E-02', title: 'Articles', half: 'echo', x: 3990, y: 180, w: 1180, h: 680, rot: 0, route: null,
-    hosts: 'La page de lecture : titre, photo, texte, notes', tag: [5, 27, -3], scroll: true },
-  { id: 'lectures', code: 'E-03', title: 'Lectures', half: 'echo', x: 3990, y: 1000, w: 1180, h: 680, rot: 0, route: 'echo/lectures',
-    hosts: 'Les textes, et la musique qui les accompagne', tag: [4.5, 36, 6], scroll: true },
-  { id: 'archives', code: 'E-04', title: 'Archives', half: 'echo', x: 2760, y: 1760, w: 1180, h: 680, rot: 0, route: 'echo/archives',
-    hosts: 'La presse, les articles par thème, les collections, le fil', tag: [2.5, 45, -6], scroll: true },
+    hosts: 'La une : le titre, l’article de tête, les séries, ce qui passe à l’antenne', tag: [3, 18, 4] },
+  // Articles has an address since 2026-11-03 (Ortis: « let it open any article »): the list of every article,
+  // the press series under their names; an article, a clipping or a text opens here too.
+  { id: 'articles', code: 'E-02', title: 'Articles', half: 'echo', x: 3990, y: 180, w: 1180, h: 680, rot: 0, route: 'echo/articles',
+    hosts: 'Tous les articles, et les séries de presse ; la page de lecture', tag: [5, 27, -3], scroll: true },
+  // The Archive (Ortis, 2026-11-03, later): the Bibliothèque's window, renamed, takes the place of Archives
+  // and of Lectures — E-04, Archives' code, so a short link handed out for Archives lands here; E-03
+  // (Lectures) and E-06 (the Bibliothèque's code that morning) are retired onto it (refs.js RETIRED).
+  // It opens on the Bibliothèque: the bookcase, the map table under it; the Crates are its other room.
+  { id: 'portfolio', code: 'E-04', title: 'Archive', half: 'echo', x: 3990, y: 1000, w: 1180, h: 680, rot: 0, route: 'portfolio',
+    hosts: 'La Bibliothèque : les travaux sur leur étagère, les cartes sur la table ; les bacs de disques', tag: [4.5, 36, 6], scroll: true },
   { id: 'atlas', code: 'E-05', title: 'Atlas', half: 'echo', x: 2760, y: 960, w: 1180, h: 680, rot: 0, route: 'atlas',
-    hosts: 'Les villes où j’ai vécu, ce qui s’y est fait : projets, presse, cartes postales', tag: [2, 54, 3] },
-  // The bookshelf comes back (Ortis, 2026-11-03: it left Zone's side on 11-01 to go to Echo, and went off the
-  // map instead). The Portfolio's window, on Echo beside Archives; it opens on the Bibliothèque and scrolls
-  // down to the map room. Z-05, its old code on Zone's side, still lands here (refs.js RETIRED).
-  { id: 'portfolio', code: 'E-06', title: 'Bibliothèque', half: 'echo', x: 3990, y: 1760, w: 1180, h: 680, rot: 0, route: 'portfolio',
-    hosts: 'Les travaux sur leur étagère : essais, mémoire, le Livre miroir ; les photos, les bacs de disques', tag: [3.5, 63, -4], scroll: true },
+    hosts: 'Les villes où j’ai vécu, ce qui s’y est fait : projets, presse, cartes postales', tag: [2.5, 45, -6] },
 ];
 
 /**
@@ -87,11 +86,11 @@ export const FIGURES = [
   { kind: 'fist', x: 2640, y: 300, w: 104, h: 228 },
   { kind: 'flag', x: 2635, y: 1000, w: 118, h: 258 },
   { kind: 'horn', x: 4400, y: 865, w: 182, h: 130 },
-  // Archives moved left and the Bibliothèque took the bottom right (2026-11-03): the drum keeps the left
-  // gutter, narrower; the crowd and the statue stand in the band under the bottom row.
-  { kind: 'drum', x: 2622, y: 1800, w: 132, h: 220 },
-  { kind: 'crowd', x: 3300, y: 2452, w: 240, h: 144 },
-  { kind: 'statue', x: 5050, y: 2452, w: 72, h: 144 },
+  // Echo is two rows since 2026-11-03 (Lectures and Archives went; the Archive took Lectures' place):
+  // the band under them is the figures' again.
+  { kind: 'drum', x: 2700, y: 1800, w: 150, h: 250 },
+  { kind: 'crowd', x: 3300, y: 2120, w: 392, h: 236 },
+  { kind: 'statue', x: 4560, y: 1830, w: 150, h: 300 },
 ];
 
 /** The map as designed, untouched by layout.json: the Atelier's « as designed » and the tests' reference. */
@@ -111,11 +110,14 @@ export function districtFor(name, params = {}) {
   switch (name) {
     case 'home': case 'radio': return 'radio';
     case 'ondes': case 'atlas': case 'playlists': case 'booth': case 'zone': return name;
-    // Off the map from 11-01 to 11-03; now its window on Echo (the Bibliothèque), whichever room is open.
-    case 'portfolio': return 'portfolio';
+    // Off the map from 11-01 to 11-03; then its window on Echo, the Archive since that evening, whichever room is open.
+    // The old Archives' address leads there too.
+    case 'portfolio': case 'archives': return 'portfolio';
+    // Every reading page opens in Articles: an article, a clipping of the press, a text of the Livre miroir.
     case 'echo': return params.slug ? 'articles' : 'une';
-    case 'lectures': case 'ecrits': return 'lectures';
-    case 'archives': return 'archives';
+    case 'articles': case 'presse': return 'articles';
+    // The texts' list went into the Livre miroir (2026-11-03): /echo/lectures leads to the Archive, a text to Articles.
+    case 'lectures': case 'ecrits': return params.slug ? 'articles' : 'portfolio';
     // A version of the past, in its own window — only while it is on the map (online, or in the Atelier).
     case 'version': return BY_ID.has(params.id) ? params.id : null;
     default: return null;

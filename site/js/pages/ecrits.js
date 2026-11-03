@@ -1,7 +1,11 @@
 /**
- * /echo/lectures and /echo/lectures/<slug> — the Globe Trotter texts, verbatim.
- * (They lived at /ecrits until 2026-10-19; those addresses still answer and
- * move to the new ones.)
+ * /echo/lectures/<slug> — the Globe Trotter texts, verbatim. (They lived at
+ * /ecrits until 2026-10-19; those addresses still answer and move to the new
+ * ones.) Since 2026-11-03 (evening) a text opens in the Articles window, and
+ * the list that was /echo/lectures is the Livre miroir's: its first double
+ * page is the introduction, the pond with the six stones behind the page
+ * (ui/mirror-book.js). /echo/lectures alone leads to the Archive, the book
+ * open. The list as it was is kept in past/v3/js/pages/ecrits.js.
  *
  * Three of them are "scored": a track in the rotation was chosen for them.
  * On Wix the score was a private player inside the post. Here the radio is a
@@ -15,6 +19,8 @@ import { frame, ash } from '../ui/echo-front.js';
 
 export const title = 'Lectures';
 const BASE = 'echo/lectures';
+/** Where the texts are found now: the Livre miroir, on the Archive's top shelf, opened. */
+const BOOK = 'portfolio#miroir';
 
 let DATA = null;
 async function load() {
@@ -56,36 +62,24 @@ export async function mount(root, ctx) {
     return;
   }
   if (!slug) {
-    // A newspaper list, one text per line between thin rules. (The pond that
-    // used to carry the texts is still in ui/pond.js; Echo does not use it.)
-    document.title = 'Lectures — Echo';
-    root.innerHTML = frame(`<section class="echo-lectures">
-        <p class="echo-kicker">Lectures</p>
-        <h1>Lectures</h1>
-        <p class="echo-standfirst">${esc(data.intro)}</p>
-        <ul class="echo-list">${data.texts.map((t) => `<li><a href="${BASE}/${esc(t.slug)}" data-link>
-          <b>${esc(t.title)}</b>
-          <span class="echo-meta">${esc([t.category, t.readingTime].filter(Boolean).join(' · '))}${t.scoredBy ? ' · scoré' : ''}</span>
-          <span class="echo-dek">${esc(t.excerpt || '')}</span></a></li>`).join('')}</ul>
-        <p class="echo-foot"><a class="back" href="echo" data-link>← Retour à Echo</a></p>
-      </section>`, { current: 'lectures', sides: 2 });
-    return ash(root.querySelector('.echo-ash'), { slow: true });
+    ctx.router.go('portfolio#miroir', { replace: true });
+    return;
   }
   const t = data.texts.find((x) => x.slug === slug);
   if (!t) {
-    root.innerHTML = frame(`<div class="reading"><a class="back" href="echo/lectures" data-link>← Lectures</a><h1>Introuvable</h1><p>Ce texte n'existe pas (ou plus).</p></div>`, { current: 'lectures', sides: 1 });
+    root.innerHTML = frame(`<div class="reading"><a class="back" href="${BOOK}" data-link>← Livre miroir</a><h1>Introuvable</h1><p>Ce texte n'existe pas (ou plus).</p></div>`, { current: 'articles', sides: 1 });
     return ash(root.querySelector('.echo-ash'), { slow: true });
   }
   document.title = `${t.title} — Lectures`;
   const verse = /po[eè]me/i.test(t.category || '');
   root.innerHTML = frame(`<article class="reading">
-      <a class="back" href="echo/lectures" data-link>← Lectures</a>
+      <a class="back" href="${BOOK}" data-link>← Livre miroir</a>
       <h1>${esc(t.title)}</h1>
       <p class="meta">${esc(t.category)} · ${esc(t.signature || '')} · ${esc(t.published || '')} · ${esc(t.readingTime || '')}</p>
       <div class="score-box" id="scoreBox" hidden></div>
       <div class="body${verse ? ' verse' : ''}">${t.html}</div>
       ${t.afterword ? `<p class="aveu"><span class="eyebrow" style="display:block;margin-bottom:8px;font-style:normal">Aveu de l'auteur</span>${esc(t.afterword)}</p>` : ''}
-    </article>`, { current: 'lectures', sides: 2 });
+    </article>`, { current: 'articles', sides: 2 });
   const stopAsh = ash(root.querySelector('.echo-ash'), { slow: true });
 
   if (t.scoredBy) {

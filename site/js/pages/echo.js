@@ -45,11 +45,11 @@ function lead(a) {
 }
 
 /**
- * In the world, the Une's side column (R9, E-01): what Zone is playing right
- * now — the way back across the seam — and a teaser for Lectures.
+ * In the world, the Une's side column (R9, E-01): what Zone is playing right now — the way back across
+ * the seam. (Its teaser for Lectures went with the Lectures window, 2026-11-03: the texts are found in
+ * the Livre miroir now, on purpose a little harder to come upon.)
  */
-function aside(texts) {
-  const some = texts.slice(0, 3).map((t) => `<a href="echo/lectures/${esc(t.slug)}" data-link>${esc(t.title)}</a>`).join(' · ');
+function aside() {
   return `<div class="echo-aside">
       <section class="echo-onair">
         <h2>À l'antenne</h2>
@@ -57,16 +57,29 @@ function aside(texts) {
         <p class="echo-onair-t" aria-live="polite"><b data-onair-title>—</b> <span data-onair-artist></span></p>
         <p><a class="echo-go" href="radio" data-link>← Aller à la radio</a></p>
       </section>
-      <section class="echo-teaser">
-        <h2>Lectures</h2>
-        <p>${some}</p>
-        <p><a class="echo-go" href="echo/lectures" data-link>Tous les textes →</a></p>
-      </section>
     </div>`;
 }
 
-async function loadTexts() {
-  try { return (await (await fetch(new URL('data/texts.json', document.baseURI))).json()).texts || []; } catch { return []; }
+/**
+ * The press series, once each (Ortis, 2026-11-03): the metro walk, then the Olympics — a group with its
+ * name, how many pieces, and three of its pages fanned out; every piece opens from Articles.
+ */
+function seriesCard(g) {
+  const pics = g.items.filter((i) => i.thumb).slice(0, 3);
+  const n = `${g.items.length} ${g.kind === 'series' ? 'épisodes' : 'chroniques'}`;
+  return `<a class="echo-group" href="echo/articles#${esc(g.key)}" data-link>
+      <span class="echo-fan" aria-hidden="true">${pics.map((i) => `<img src="${esc(i.thumb)}" alt="" loading="lazy" width="240" height="330">`).join('')}</span>
+      <span class="echo-kicker">${g.kind === 'series' ? 'Série' : 'Chronique'} · ${esc(g.outlet)}</span>
+      <b lang="${esc(g.lang || 'pt')}">${esc(g.name)}</b>
+      <span class="echo-meta">${esc(n)} · ${esc(g.city)} · ${esc(dateFr(g.from))} – ${esc(dateFr(g.to))}</span>
+    </a>`;
+}
+
+async function loadGroups() {
+  try {
+    const { pressGroups } = await import('../ui/press.js');
+    return pressGroups((await (await fetch(new URL('data/places.json', document.baseURI))).json()).places || []);
+  } catch { return []; }
 }
 
 export async function mount(root, ctx) {
@@ -78,14 +91,16 @@ export async function mount(root, ctx) {
     const [first, ...rest] = data.articles;
     const world = inWorld();
     const top = first ? lead(first) : '';
+    const groups = await loadGroups();
     root.innerHTML = frame(`
         <div class="echo-filter" role="group" aria-label="Filtrer par thème">
           <button type="button" class="chip" data-tag="" aria-pressed="true">Tout</button>
           ${tags.map((t) => `<button type="button" class="chip" data-tag="${esc(t)}" aria-pressed="false">${esc(t)}</button>`).join('')}
         </div>
-        ${world ? `<div class="echo-cols">${top}${aside(await loadTexts())}</div>` : top}
+        ${world ? `<div class="echo-cols">${top}${aside()}</div>` : top}
+        ${groups.length ? `<section class="echo-groups" aria-label="Les séries de presse">${groups.map(seriesCard).join('')}</section>` : ''}
         <div class="echo-grid" id="articles">${rest.map(card).join('')}</div>
-        <p class="echo-foot"><a href="echo/lectures" data-link>Lectures →</a>${world ? '<a href="echo/archives" data-link>Archives →</a>' : ''}<a href="radio" data-link>Zone · la radio en direct</a></p>`,
+        <p class="echo-foot"><a href="echo/articles" data-link>Tous les articles →</a><a href="portfolio" data-link>L’Archive →</a><a href="radio" data-link>Zone · la radio en direct</a></p>`,
     { current: 'echo', full: true });
     root.firstElementChild.classList.add('echo-front');
     const stopAsh = ash(root.querySelector('.echo-ash'));
@@ -116,7 +131,7 @@ export async function mount(root, ctx) {
   }
   const a = data.articles.find((x) => x.slug === slug);
   if (!a) {
-    root.innerHTML = frame(`<div class="echo-article"><h1>Introuvable</h1><p>Cet article n'existe pas (ou plus).</p><p><a class="back" href="echo" data-link>← Echo</a></p></div>`, { sides: 1 });
+    root.innerHTML = frame(`<div class="echo-article"><h1>Introuvable</h1><p>Cet article n'existe pas (ou plus).</p><p><a class="back" href="echo/articles" data-link>← Articles</a></p></div>`, { current: 'articles', sides: 1 });
     return ash(root.querySelector('.echo-ash'), { slow: true });
   }
   document.title = `${a.title} — Echo`;
@@ -131,7 +146,7 @@ export async function mount(root, ctx) {
       ${a.video ? `<figure class="echo-video"><video controls preload="none" playsinline src="${esc(a.video.src)}"${a.video.poster ? ` poster="${esc(a.video.poster)}"` : ''}></video>${a.video.caption ? `<figcaption>${esc(a.video.caption)}</figcaption>` : ''}</figure>` : ''}
       <div class="body echo-body">${a.html}</div>
       ${a.notes ? `<aside class="echo-notes"><h2>${esc(a.notes.title)}</h2><ol>${a.notes.items.map((i) => `<li>${i}</li>`).join('')}</ol></aside>` : ''}
-      <p class="echo-foot"><a class="back" href="echo" data-link>← Retour à Echo</a></p>
-    </article>`, { current: 'echo', sides: 2 });
+      <p class="echo-foot"><a class="back" href="echo" data-link>← Retour à Echo</a><a href="echo/articles" data-link>Tous les articles →</a></p>
+    </article>`, { current: 'articles', sides: 2 });
   return ash(root.querySelector('.echo-ash'), { slow: true });
 }

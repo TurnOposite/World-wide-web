@@ -1,0 +1,76 @@
+/* The Atelier (site/js/world/atelier.js, docs/ATELIER.md): the map's editor. Loaded only for a tab that
+   asked with ?atelier=1 — nobody else downloads it. It wears the world's Zone skin (world.css tokens). */
+
+.at-panel{position:absolute;z-index:8;top:76px;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(var(--mb-h) + 12px);
+  width:min(380px,calc(100vw - 32px));display:flex;flex-direction:column;overflow:auto;overscroll-behavior:contain;
+  background:rgba(10,12,20,.97);border:1px solid var(--w-neon-c);box-shadow:12px 12px 0 rgba(0,0,0,.35);
+  color:var(--w-text);font:14px/1.4 var(--w-ui);scrollbar-width:thin}
+.at-head{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;
+  background:var(--w-neon-c);color:var(--w-night)}
+.at-head h2{margin:0;font:700 18px/1 var(--w-ui);letter-spacing:.24em;text-transform:uppercase;transform:skewX(var(--w-slant))}
+.at-quit{border:0;background:var(--w-night);color:var(--w-text);padding:7px 10px;cursor:pointer;font:600 12px/1 var(--w-ui);letter-spacing:.1em}
+.at-state{margin:10px 14px 0;color:var(--w-dim);font-size:13px}
+.at-tools,.at-foot{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px 0}
+.at-foot{margin-top:auto;padding-bottom:14px;border-top:1px solid var(--w-edge);padding-top:12px}
+.at-btn{border:1px solid var(--w-edge);background:rgba(20,26,42,.9);color:var(--w-text);padding:7px 11px;cursor:pointer;
+  font:600 13px/1.1 var(--w-ui);letter-spacing:.04em}
+.at-btn:hover,.at-btn:focus-visible,.at-btn[aria-pressed="true"]{border-color:var(--w-neon-c);background:var(--w-neon-c);color:var(--w-night)}
+.at-btn:disabled{opacity:.4;cursor:default;background:none;color:var(--w-dim);border-color:var(--w-edge)}
+.at-btn[hidden]{display:none}
+.at-primary{border-color:var(--w-signal);color:var(--w-signal)}
+.at-problems{list-style:none;margin:10px 0 0;padding:0 14px;display:grid;gap:3px}
+.at-problems:empty{display:none}
+.at-prob{width:100%;text-align:left;border:0;padding:5px 8px;cursor:pointer;font:12px/1.35 var(--w-mono);background:rgba(163,22,31,.25);color:#ffd6d6}
+.at-warn .at-prob{background:rgba(196,161,96,.16);color:#f0dcb0}
+.at-list{padding:6px 14px 0}
+.at-group h3,.at-insp h4{margin:12px 0 4px;font:400 11px/1 var(--w-mono);letter-spacing:.2em;text-transform:uppercase;color:var(--w-dim)}
+.at-group ul{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.at-item{display:flex;align-items:center;gap:6px}
+.at-pick{flex:1;display:flex;gap:10px;align-items:baseline;text-align:left;border:1px solid transparent;background:none;color:var(--w-text);
+  padding:5px 8px;cursor:pointer;font:600 14px/1.2 var(--w-ui)}
+.at-pick code{font:400 12px/1 var(--w-mono);color:var(--w-dim)}
+.at-pick:hover,.at-pick:focus-visible,.at-item.on .at-pick{border-color:var(--w-neon-c)}
+.at-status{border:1px dashed var(--w-dim);background:none;color:var(--w-dim);padding:4px 8px;cursor:pointer;font:600 11px/1 var(--w-mono);
+  letter-spacing:.08em;text-transform:uppercase}
+.at-status.online{border-style:solid;border-color:var(--w-signal);color:var(--w-signal)}
+.at-changed{color:var(--w-neon-c);font-size:18px;line-height:1}
+.at-insp{padding:4px 14px 0;border-top:1px solid var(--w-edge);margin-top:12px}
+.at-insp-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px}
+.at-insp-head h3{margin:0;font:700 15px/1.2 var(--w-ui);letter-spacing:.06em}
+.at-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:6px;margin-top:8px}
+.at-field{display:grid;gap:3px;font:400 11px/1.1 var(--w-mono);color:var(--w-dim)}
+.at-field input{width:100%;box-sizing:border-box;border:1px solid var(--w-edge);background:var(--w-night);color:var(--w-text);padding:6px 7px;font:14px/1 var(--w-mono)}
+.at-field input:focus-visible{outline:2px solid var(--w-signal);outline-offset:0}
+.at-link{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0 0}
+.at-link code{font:13px/1 var(--w-mono);color:var(--w-neon-a)}
+
+/* The whole map: each window gets a handle over it; the pages under it rest. */
+.at-grips{position:absolute;inset:0;pointer-events:none}
+.at-over .w-district{pointer-events:none}
+.at-over .w-box{visibility:hidden}
+/* The menu would cover the map; the panel lists every page instead. */
+.at-over .w-tags{display:none}
+.at-grip{position:absolute;pointer-events:auto;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:calc(4px * var(--at-k,1));
+  border:calc(2px * var(--at-k,1)) dashed rgba(196,161,96,.75);background:rgba(12,14,24,.42);color:#fff;cursor:grab;touch-action:none;transform-origin:50% 50%}
+.at-grip:active{cursor:grabbing}
+.at-grip.on{border-style:solid;border-color:var(--w-signal);background:rgba(52,211,153,.12)}
+.at-grip.off{border-color:rgba(143,153,175,.6);background:rgba(12,14,24,.7)}
+.at-grip:focus-visible{outline:calc(3px * var(--at-k,1)) solid var(--w-signal);outline-offset:calc(2px * var(--at-k,1))}
+/* Sized against the zoom (--at-k = 1 / scale), so a label reads the same on any screen. */
+.at-lbl{font:700 calc(13px * var(--at-k,1))/1 var(--w-ui);letter-spacing:.08em;text-transform:uppercase;text-align:center;padding:0 4%;text-shadow:0 1px 0 rgba(0,0,0,.6)}
+.at-dim{font:400 calc(11px * var(--at-k,1))/1 var(--w-mono);color:var(--w-neon-c);text-shadow:0 1px 0 rgba(0,0,0,.6)}
+.at-size{position:absolute;right:-6px;bottom:-6px;width:calc(18px * var(--at-k,1));height:calc(18px * var(--at-k,1));cursor:nwse-resize;
+  background:linear-gradient(135deg,transparent 50%,var(--w-neon-c) 50%)}
+
+@media (max-width:760px),(max-height:500px){
+  .at-panel{top:auto;left:8px;right:8px;width:auto;height:min(56vh,460px);bottom:calc(var(--mb-h) + 8px)}
+}
+
+/* « Aperçu public » (2026-11-01): the panel put away, the site as everyone sees it, one way back. */
+.at-public{position:absolute;z-index:8;left:50%;bottom:calc(var(--mb-h) + 14px);transform:translateX(-50%);display:flex;align-items:center;gap:14px;
+  padding:9px 10px 9px 16px;background:rgba(10,12,20,.96);border:1px dashed var(--w-neon-c);color:var(--w-text);font:600 13px/1.2 var(--w-ui);
+  letter-spacing:.04em;box-shadow:8px 8px 0 rgba(0,0,0,.35)}
+.at-public[hidden]{display:none}
+.at-public-btn{border-style:dashed}
+.at-stale{margin:10px 14px 0;padding:9px 11px;border:1px solid var(--w-neon-b);background:rgba(176,106,155,.14);color:var(--w-text);font-size:13px;line-height:1.4}
+.at-stale .at-btn{margin-top:8px}

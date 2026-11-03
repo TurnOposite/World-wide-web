@@ -1,0 +1,21 @@
+{
+  "_readme": "The map of the site (docs/ATELIER.md). Every page that is or was part of Globe Trotter: where its window sits on the world (x, y, w, h in world pixels — the world is 5200 wide, Zone left of 2600, Echo right of it; rot in degrees) and where its tag sits in the menu (tag: % from its side, % from the top, tilt). The pages of today keep what they are in site/js/world/layout.js; the versions of the past (era \"past\") are described here whole, and each is online or offline. The versions of the past are a private view: only the Atelier shows their windows and tags. Change it in the Atelier (?atelier=1), with `npm run layout`, or by hand; `npm run layout -- check` says whether it holds; `fire` publishes it.",
+  "version": 1,
+  "updatedAt": "2026-11-03T00:00:00.000Z",
+  "pages": [
+    {"id":"radio","x":60,"y":140,"w":1180,"h":650,"rot":-0.6,"tag":[2,15,-4]},
+    {"id":"ondes","x":1320,"y":180,"w":1160,"h":670,"rot":0.8,"tag":[4.5,24,3]},
+    {"id":"playlists","x":60,"y":960,"w":1180,"h":670,"rot":-0.4,"tag":[1.5,33,-7]},
+    {"id":"zone","x":380,"y":1780,"w":1180,"h":650,"rot":-0.8,"tag":[4,42,5]},
+    {"id":"booth","x":1320,"y":1000,"w":1160,"h":670,"rot":1,"tag":[2,51,-5]},
+    {"id":"une","x":2760,"y":140,"w":1180,"h":680,"rot":0,"tag":[3,18,4]},
+    {"id":"articles","x":3990,"y":180,"w":1180,"h":680,"rot":0,"tag":[5,27,-3]},
+    {"id":"lectures","x":3990,"y":1000,"w":1180,"h":680,"rot":0,"tag":[4.5,36,6]},
+    {"id":"archives","x":2760,"y":1760,"w":1180,"h":680,"rot":0,"tag":[2.5,45,-6]},
+    {"id":"atlas","x":2760,"y":960,"w":1180,"h":680,"rot":0,"tag":[2,54,3]},
+    {"id":"portfolio","x":3990,"y":1760,"w":1180,"h":680,"rot":0,"tag":[3.5,63,-4]},
+    {"id":"v1","code":"P-01","title":"Version 1","era":"past","kind":"version","half":"zone","status":"online","since":"2026-10-08","until":"2026-10-20","source":"site-v1-2026-10-20","hosts":"The site as it was live from 8 to 20 October 2026: the Seuil, Radio, Echoes, Atlas, Écrits, Portfolio","routes":["","radio","echoes","atlas","zone","ecrits","portfolio","booth"],"x":300,"y":2800,"w":1100,"h":680,"rot":-0.5,"tag":[3,86,-3]},
+    {"id":"v2","code":"P-02","title":"Version 2","era":"past","kind":"version","half":"echo","status":"online","since":"2026-10-20","source":"site-v2-echo-2026-10-20","hosts":"Le site du 20 octobre 2026 : les deux moitiés, Zone et Echo — Ondes, Playlists, la Gazette","routes":["","radio","ondes","echoes","playlists","atlas","zone","ecrits","echo","echo/lectures","portfolio","booth"],"x":2860,"y":2800,"w":1100,"h":680,"rot":0,"tag":[4,72,3]},
+    {"id":"wix","code":"P-03","title":"Wix","era":"past","kind":"external","half":"echo","status":"offline","url":"https://arthurbarrier.wixsite.com/globe-trotter","hosts":"Le premier Globe Trotter, sur Wix — un autre site, qui s’ouvre dans un nouvel onglet","x":4140,"y":2840,"w":840,"h":560,"rot":0,"tag":[11,81,-4]}
+  ]
+}

@@ -145,8 +145,12 @@ export class Collections {
         title: String(l.title || ''),
         source: String(l.source || ''),
         caption: l.caption ? String(l.caption) : '',
+        // What the thesis concludes from the figure (2026-11-03): read on the map table's close-up.
+        context: l.context ? String(l.context) : '',
         legend: Array.isArray(l.legend) ? l.legend : null,
         ...this._fileInfo(l.file),
+        // The small copy laid on the map table; without one the full image stands in.
+        thumb: l.thumb && this._exists(l.thumb) ? toUrl(l.thumb) : toUrl(l.file),
       }));
 
     const albums = (raw.photos?.albums || []).map((a) => ({

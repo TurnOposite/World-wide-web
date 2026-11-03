@@ -4,8 +4,8 @@
  *
  *   E-05 · atlas          the Atlas of the places, wherever its window is on the map
  *   Z-03 · zone           Zone's Atlas: where the tower broadcasts from
- *   E-02/<slug>           an Echo article        E-03/<slug>  a text in Lectures
- *   Z-05/photos           a Portfolio room (Z-05 left the map: RETIRED)
+ *   E-02/<slug>           an Echo article        E-03/<slug>  a text of the Livre miroir (E-03 left the map)
+ *   E-04/crates           a room of the Archive  (Z-05, E-06: its old codes, RETIRED)
  *   P-01 · v1             the v1 version, in its window on the world
  *   v1/atlas              the v1 site itself, at its own /atlas
  *
@@ -30,6 +30,11 @@ export const RENAMED = [
 export const RETIRED = new Map([
   ['z-04', 'atlas'],
   ['z-05', 'portfolio'],
+  // 2026-11-03 (evening): Lectures' window went into the Livre miroir — its list leads to the Archive, a
+  // text still opens at its address (E-03/voyages → echo/lectures/voyages); the Bibliothèque, E-06 that
+  // morning, became the Archive and took E-04, Archives' code.
+  ['e-03', 'echo/lectures'],
+  ['e-06', 'portfolio'],
 ]);
 
 const SAFE = /^[\w-]+(?:\/[\w-]+)*$/;
@@ -76,7 +81,6 @@ export function resolveRef(ref, pages) {
   }
   if (rest) {
     if (page.id === 'articles' || page.id === 'une') return { kind: 'route', to: `echo/${rest}`, page };
-    if (page.id === 'lectures') return { kind: 'route', to: `echo/lectures/${rest}`, page };
     if (page.id === 'portfolio') return { kind: 'route', to: `portfolio/${rest}`, page };
   }
   return { kind: 'route', to: page.route ?? 'echo', page };
@@ -90,7 +94,7 @@ export function resolveRef(ref, pages) {
  */
 export function sameRoute(route, routes) {
   const r = refOf(route);
-  // Lectures and Archives are pages of their own under Echo's address: a version has them only if it lists them.
+  // Lectures, Archives, Articles' list and the press are pages of their own under Echo's address: a version has them only if it lists them.
   const has = (x) => {
     const under = PAGES_UNDER.find((p) => x === p || x.startsWith(`${p}/`));
     return under ? routes.includes(under) : routes.includes(x.split('/')[0]);
@@ -108,7 +112,7 @@ export function sameRoute(route, routes) {
   return null;
 }
 
-const PAGES_UNDER = ['echo/lectures', 'echo/archives'];
+const PAGES_UNDER = ['echo/lectures', 'echo/archives', 'echo/articles', 'echo/presse'];
 
 /**
  * The heavy files every version shares with today (33 MB): never copied under
@@ -126,8 +130,12 @@ export function pointHome(value, own = () => false) {
   return value;
 }
 
-/** Today's pages, by first segment (and the two under Echo), for sameRoute. The old names (RENAMED) are not here: they only redirect. */
-export const TODAY = ['', 'radio', 'ondes', 'zone', 'atlas', 'portfolio', 'playlists', 'booth', 'echo', 'echo/lectures', 'echo/archives'];
+/**
+ * Today's pages, by first segment (and those under Echo), for sameRoute. The old names (RENAMED) are not here:
+ * they only redirect — nor, since 2026-11-03, /echo/archives, whose address only leads to the Archive. The
+ * texts keep their addresses under /echo/lectures; its list is gone into the Livre miroir.
+ */
+export const TODAY = ['', 'radio', 'ondes', 'zone', 'atlas', 'portfolio', 'playlists', 'booth', 'echo', 'echo/articles', 'echo/presse', 'echo/lectures'];
 
 /** The first segments of the site's own addresses, old names included, and the past's windows. */
 const HEADS = new Set([...TODAY, ...RENAMED.map(([old]) => old), 'versions'].map((r) => r.split('/')[0]).filter(Boolean));

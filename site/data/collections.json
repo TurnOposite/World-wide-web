@@ -483,6 +483,7 @@
      "title": "Co-commented videos",
      "source": "Thesis · Figure 1",
      "caption": "Every dot is a video; two videos are linked when the same people comment on both. Colour is the channel. Vapor Memory's audience is the continent; the smaller artists sit on its coast.",
+     "context": "The thesis reads this map in two moves. Size is not centrality: many of the biggest dots, the most-liked videos, sit out at the edge, their viewers arriving from neighbouring genres and recommendation paths. And the colours fall into islands shaped like artists — Flamingosis almost sealed inside its own catalogue, the cross-genre outlier Denz1000 dense but cut off — while Snowpoint Lounge, with few videos, is scattered right across the map. Its conclusion: Barber Beats is not one audience but a constellation of micro-publics, fragmented and still connected.",
      "legend": [
       {
        "label": "Vapor Memory",
@@ -541,70 +542,85 @@
       }
      ],
      "url": "collections/university/maps/thesis-figure-1.png",
-     "bytes": 1193529
+     "bytes": 1193529,
+     "thumb": "collections/university/maps/thumbs/thesis-figure-1.jpg"
     },
     {
      "id": "co-commenting-edges",
      "title": "Edges by channel",
      "source": "Thesis · Figure 3",
      "caption": "The same network with each link coloured by the channels it joins.",
+     "context": "Colouring the links by the channels they join makes Snowpoint Lounge legible: thick, heavily weighted edges run from its videos into every sector, so the same people comment on its videos and everyone else's. Where Figure 1 shows the dispersion, this shows the bridge — a mobile audience linking listener groups that would otherwise stay apart.",
      "legend": null,
      "url": "collections/university/maps/thesis-figure-3.png",
-     "bytes": 387920
+     "bytes": 387920,
+     "thumb": "collections/university/maps/thumbs/thesis-figure-3.jpg"
     },
     {
      "id": "communities",
      "title": "Within-community links",
      "source": "Thesis · Figure 4",
      "caption": "The co-commenting data again, drawn to show the linkages inside each community.",
+     "context": "With the weights rescaled, attention moves from Vapor Memory's mass to the communities between channels. Macroblank, Mabisyo and Slowerpace form the largest connected cluster — the established artists, with steady uploads and steady engagement. Vapor Memory, a curator account re-posting smaller artists, turns out isolated: listeners prefer to engage with the artists themselves. The biggest cluster grows around Macroblank, one of only two artists who publicly recommend and subscribe to others.",
      "legend": null,
      "url": "collections/university/maps/thesis-figure-4.png",
-     "bytes": 301938
+     "bytes": 301938,
+     "thumb": "collections/university/maps/thumbs/thesis-figure-4.jpg"
     },
     {
      "id": "channels",
      "title": "Channel network",
      "source": "Thesis · Figure 5",
      "caption": "Channels linked by shared commenters. The yellow dots are channels with weaker centrality.",
+     "context": "The formal ties are almost absent: hardly any channel subscribes to or recommends another, so the community holds together while leaving almost no trace in the platform's official social graph. The two channels that do, Macroblank and theuppermostinlife, are both central — supporting other artists seems to pay. Weakest of all is 'what is?', the AI-generated channel: similar music, but its viewers form the community furthest from the rest. The thesis reads it as authenticity norms at work, a second curation on top of the algorithm's.",
      "legend": null,
      "url": "collections/university/maps/thesis-figure-5.png",
-     "bytes": 550135
+     "bytes": 550135,
+     "thumb": "collections/university/maps/thumbs/thesis-figure-5.jpg"
     },
     {
      "id": "co-tags",
      "title": "Tag co-usage",
      "source": "Thesis · Figure 6",
      "caption": "Tags used together across vaporwave videos; bigger, darker titles are the more central tags.",
+     "context": "Tags are the creators' own choices, not the audience's behaviour. Three terms dominate — Vaporwave, Post-Vaporwave and Barber Beats — in a dense core, with the specialised tags out on the periphery as niche markers or bids for adjacent recommendations. The thesis takes it as a remarkable consensus on how the genre should be filed and found, and as proof that barber beats still leans on its vaporwave origins to stay discoverable.",
      "legend": null,
      "url": "collections/university/maps/thesis-figure-6.png",
-     "bytes": 440162
+     "bytes": 440162,
+     "thumb": "collections/university/maps/thumbs/thesis-figure-6.jpg"
     },
     {
      "id": "ucph-fa1",
      "title": "Vaporwave, 5,500 videos",
      "source": "UCPH · ForceAtlas",
      "caption": "The Copenhagen study that came first: a co-commenting network of 5,500 vaporwave videos.",
+     "context": "",
      "legend": null,
      "url": "collections/university/maps/ucph-vaporwave-forceatlas1.png",
-     "bytes": 1133872
+     "bytes": 1133872,
+     "thumb": "collections/university/maps/thumbs/ucph-vaporwave-forceatlas1.jpg"
     },
     {
      "id": "ucph-fa2-circle",
      "title": "Vaporwave, ForceAtlas 2",
      "source": "UCPH · ForceAtlas 2",
      "caption": "The same 5,500 videos under ForceAtlas 2: one dominant audience and a ring of satellites.",
+     "context": "",
      "legend": null,
      "url": "collections/university/maps/ucph-vaporwave-forceatlas2-circle.png",
-     "bytes": 1627279
+     "bytes": 1627279,
+     "thumb": "collections/university/maps/thumbs/ucph-vaporwave-forceatlas2-circle.jpg"
     },
     {
      "id": "ucph-fa2-splash",
      "title": "The splash",
      "source": "UCPH · ForceAtlas 2",
      "caption": "A sparser cut of the vaporwave network, where only the strongest links survive.",
+     "context": "",
      "legend": null,
      "url": "collections/university/maps/ucph-vaporwave-forceatlas2-splash.png",
-     "bytes": 291422
+     "bytes": 291422,
+     "thumb": "collections/university/maps/thumbs/ucph-vaporwave-forceatlas2-splash.jpg"
     }
    ]
   }

@@ -103,7 +103,7 @@ try {
     atelier: Boolean(document.querySelector('.at-panel')) || [...document.querySelectorAll('link')].some((l) => l.href.includes('atelier.css')),
   }));
   // The versions of the past are the private view's since 2026-11-01: a visitor's world has no tag, no window, no band for them.
-  check('the public world carries none of the past: no tag, no window, no band', map.past.length === 0 && !map.tags.some((t) => /^(v1|v2|wix)$/.test(t))
+  check('the public world carries none of the past: no tag, no window, no band', map.past.length === 0 && !map.tags.some((t) => /^(v1|v2|v3|wix)$/.test(t))
     && map.plane === 2600 && !map.band, JSON.stringify(map));
   check('nobody who did not ask loads the Atelier', !map.atelier);
 
@@ -113,12 +113,14 @@ try {
   const priv = await w.evaluate(() => ({
     past: [...document.querySelectorAll('.w-tag-past')].map((b) => b.dataset.go),
     wix: document.querySelector('.w-tag[data-go="wix"]')?.classList.contains('w-off') ?? null,
+    v3: document.querySelector('.w-tag[data-go="v3"]')?.classList.contains('w-off') ?? null,
     plane: parseFloat(document.querySelector('.w-plane').style.height),
     band: !document.querySelector('.w-strata').hidden,
     mini: document.querySelector('.w-minimap').viewBox.baseVal.height,
   }));
-  check('the private view reads the map: Version 1 and 2 have a tag and a window under both halves; Wix (offline) only greyed',
-    priv.past.join() === 'v1,v2,wix' && priv.wix === true && priv.plane > 2600 && priv.band && priv.mini === priv.plane, JSON.stringify(priv));
+  // Version 3 (2026-11-03: the world with Lectures, Archives and the Photos tab, kept when they went) is offline too.
+  check('the private view reads the map: Version 1 and 2 have a tag and a window under both halves; Wix and Version 3 (offline) only greyed',
+    priv.past.join() === 'v1,v2,wix,v3' && priv.wix === true && priv.v3 === true && priv.plane > 2600 && priv.band && priv.mini === priv.plane, JSON.stringify(priv));
 
   // ---- a version in its window, the radio playing through
   if (!(await w.evaluate(() => window.radioTower.player.playing))) await w.click('#mbTune');
@@ -197,12 +199,12 @@ try {
     return w.evaluate(() => ({ path: location.pathname, here: window.radioTower?.world?.current, said: document.querySelector('.w-lost:not([hidden]) .page h1')?.textContent || null, past: document.querySelector('meta[name="gt-past"]')?.content || null }));
   };
   const z04 = await go('Z-04');
-  const art = await go('E-02/article-temoin');
+  const art = await go('E-02/dont-shoot-the-pianist');
   const v2atlas = await go('v2/atlas');
   const off = await go('wix');
   const none = await go('nulle-part');
   check('short links: go/Z-04 (retired onto Echo’s Atlas) is the Atlas, go/E-02/<slug> an article, go/v2/atlas the v2 site’s own Atlas',
-    z04.path === '/atlas' && z04.here === 'atlas' && art.path === '/echo/article-temoin' && art.here === 'articles' && v2atlas.path === '/past/v2/atlas' && v2atlas.past === 'v2',
+    z04.path === '/atlas' && z04.here === 'atlas' && art.path === '/echo/dont-shoot-the-pianist' && art.here === 'articles' && v2atlas.path === '/past/v2/atlas' && v2atlas.past === 'v2',
     JSON.stringify({ z04, art, v2atlas }));
   check('…an offline version and an unknown ref each say why, over the world', /Wix est hors ligne/.test(off.said || '') && /ne mène nulle part/.test(none.said || ''), `${off.said} | ${none.said}`);
   await w.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
@@ -233,8 +235,8 @@ try {
     state: document.querySelector('.at-state').textContent,
   }));
   check('the Atelier lists every page, today’s and the past’s, an online/offline switch on each version, the page in view chosen',
-    // 11 pages of today (the Bibliothèque, E-06, since 2026-11-03) + 3 of the past
-    opened.rows === 14 && opened.switches.join() === 'En ligne,En ligne,Hors ligne' && opened.wix && opened.picked === 'E-05' && /Identique/.test(opened.state), JSON.stringify(opened));
+    // 9 pages of today (Lectures and Archives went on 2026-11-03, the Bibliothèque became the Archive) + 4 of the past (v3 kept them, offline)
+    opened.rows === 13 && opened.switches.join() === 'En ligne,En ligne,Hors ligne,Hors ligne' && opened.wix && opened.picked === 'E-05' && /Identique/.test(opened.state), JSON.stringify(opened));
   const a11yPanel = await axeRun(at, '.at-panel');
   check('the Atelier’s panel passes axe', a11yPanel.length === 0, a11yPanel.slice(0, 3).join(' | '));
   await at.click('.at-tools button:first-child');

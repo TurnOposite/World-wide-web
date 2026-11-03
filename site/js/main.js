@@ -164,11 +164,16 @@ async function boot() {
       // Two Atlases (2026-11-01): Zone's says where the tower broadcasts from; Echo's is the map of the places.
       { name: 'zone', pattern: /^zone$/, load: () => import('./pages/broadcast.js') },
       { name: 'atlas', pattern: /^atlas$/, load: () => import('./pages/atlas.js') },
+      // A text keeps its address; the list that was here is the Livre miroir's first page since 2026-11-03,
+      // and /echo/lectures alone leads to the Archive, where the book is (ecrits.js).
       { name: 'lectures', pattern: /^echo\/lectures(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
       // Old address of the reading section: kept alive, and moved to /echo/lectures by the page.
       { name: 'ecrits', pattern: /^ecrits(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/ecrits.js') },
-      // Before 'echo', whose /echo/<slug> would read it as an article (site-echo.mjs refuses the slug).
-      { name: 'archives', pattern: /^echo\/archives$/, load: () => import('./pages/archives.js') },
+      // Before 'echo', whose /echo/<slug> would read these as articles (site-echo.mjs refuses the slugs).
+      // Archives went into Articles and the Archive (2026-11-03): its address leads to the Archive.
+      { name: 'archives', pattern: /^echo\/archives$/, load: () => import('./pages/portfolio.js') },
+      { name: 'articles', pattern: /^echo\/articles$/, load: () => import('./pages/articles.js') },
+      { name: 'presse', pattern: /^echo\/presse\/(?<id>[\w-]+)$/, load: () => import('./pages/articles.js') },
       { name: 'echo', pattern: /^echo(?:\/(?<slug>[\w-]+))?$/, load: () => import('./pages/echo.js') },
       { name: 'portfolio', pattern: /^portfolio(?:\/(?<room>[\w-]+))?$/, load: () => import('./pages/portfolio.js') },
       { name: 'booth', pattern: /^booth$/, load: () => import('./pages/booth.js') },
@@ -187,7 +192,7 @@ async function boot() {
       try { cleanup?.(); } catch (e) { console.error(e); }
       cleanup = null;
       // In the world the map's Atlas stands on Echo's side (2026-11-01); the classic shell keeps it with Zone.
-      const echoRoute = ['echo', 'lectures', 'ecrits', 'archives'].includes(match.name) || (Boolean(world) && ['atlas', 'portfolio'].includes(match.name));
+      const echoRoute = ['echo', 'articles', 'presse', 'lectures', 'ecrits'].includes(match.name) || (Boolean(world) && ['atlas', 'portfolio', 'archives'].includes(match.name));
       document.body.classList.toggle('on-echo', echoRoute);
       globalThis.__echoStage?.(echoRoute);
       // With the world on, the page opens in its district's window, not in <main>.

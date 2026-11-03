@@ -48,13 +48,7 @@ export async function mount(root, ctx) {
       </section>
 
       <section class="textstrip">
-        <div class="panel-head"><span class="eyebrow">Echo · Lectures</span><a class="btn small" href="echo/lectures" data-link>Tous les textes</a></div>
-        <p class="intro" id="hIntro"></p>
-        <div class="tcards" id="hTexts" style="margin-top:14px"></div>
-      </section>
-
-      <section class="textstrip">
-        <div class="panel-head"><span class="eyebrow">Portfolio</span><a class="btn small" href="portfolio" data-link>Entrer</a></div>
+        <div class="panel-head"><span class="eyebrow">Archive</span><a class="btn small" href="portfolio" data-link>Entrer</a></div>
         <div class="tcards" id="hRooms"></div>
       </section>
     </section>`;
@@ -102,16 +96,11 @@ export async function mount(root, ctx) {
       $('hPlace').innerHTML = `<b>${esc(p.city)}</b>${work ? `: ${esc(work)}` : ''}`;
     });
   }
-  if (texts) {
-    $('hIntro').textContent = texts.intro;
-    $('hTexts').innerHTML = texts.texts.map((t) => `<a class="tcard" href="echo/lectures/${esc(t.slug)}" data-link><b>${esc(t.title)}</b><span>${esc(t.category)}${t.scoredBy ? ' · <span class="scored">♦ scoré</span>' : ''}</span></a>`).join('');
-  }
-  const u = rooms?.university; const ph = rooms?.photos; const mu = rooms?.music;
+  // The texts are no longer listed on the doorstep (2026-11-03): they are in the Livre miroir, on the Archive's top shelf.
+  const u = rooms?.university; const mu = rooms?.music;
   const works = (u?.shelves || []).reduce((s, sh) => s + (sh.books || []).length, 0) + (u?.thesis ? 1 : 0);
-  const photos = (ph?.albums || []).reduce((s, a) => s + (a.photos || []).length, 0);
   $('hRooms').innerHTML = `
     <a class="tcard" href="portfolio/library" data-link><b>La bibliothèque</b><span>${works ? `${works} travaux · ` : ''}essais, mémoire, cartes</span></a>
-    <a class="tcard" href="portfolio/photos" data-link><b>Photos</b><span>${photos ? `${photos} images · ` : ''}Kruger, voyages</span></a>
     <a class="tcard" href="portfolio/crates" data-link><b>Crates</b><span>${(mu?.crates || []).length || 'les'} bacs · ce que joue la tour</span></a>`;
 
   return () => {

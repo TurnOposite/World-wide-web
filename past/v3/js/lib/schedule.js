@@ -1,0 +1,836 @@
+// GENERATED — copied verbatim from server/lib/schedule.js by scripts/site-sync.mjs. Edit the source, not this file.
+/**
+ * The station clock.
+ *
+ * This is what makes Radio Tower a *station* rather than a music player:
+ * the programme is a pure function of wall-clock time. Nobody's playback
+ * position is stored anywhere. Given the same library and the same epoch,
+ * every client — and the server, and a restart three days from now — computes
+ * the identical answer to "what is playing right now, and how far in?".
+ *
+ * Model
+ * -----
+ * Time is divided into CYCLES. One cycle plays every track in the library
+ * exactly once, in an order derived deterministically from the cycle number.
+ * Cycle N therefore has a fixed order and a fixed total duration, so:
+ *
+ *   elapsed      = now - epoch
+ *   cycleIndex   = floor(elapsed / cycleDuration)
+ *   posInCycle   = elapsed % cycleDuration
+ *
+ * and walking the cycle's order accumulating durations lands on the track and
+ * the offset inside it. O(n) per lookup, memoised per cycle.
+ *
+ * Library changes and "eras"
+ * ---------------------------
+ * `cycleDuration` is the sum of every track's duration. If it changed the
+ * instant `setTracks()` was called, it would retroactively re-date every
+ * cycle boundary since the epoch — the *current* cycle index and position
+ * would jump, sometimes by hours, for a station that has been on air for
+ * months (see docs/ROADMAP.md #5 and docs/DECISIONS.md for a measured
+ * example). Adding one MP3 is the most ordinary possible action; it must not
+ * cut every listener to a different song.
+ *
+ * So a library change does not replace the schedule in place. It is staged
+ * as an "era" — a `{ tracks, cycleSeconds, startTimeMs, startAbsCycle }`
+ * snapshot that only starts governing playback once the wall clock reaches
+ * `startTimeMs`, which is computed once, at the moment the change is noticed,
+ * as the end of whichever cycle is already in progress under the *previous*
+ * era. `startAbsCycle` keeps the global cycle counter (and therefore the
+ * shuffle seed, `cycleIndex * 2654435761`) monotonic across the switch, so a
+ * library change doesn't reset the shuffle back to cycle 0's natural order.
+ *
+ * A `Station` keeps at most two eras alive: `_era` (governs playback right
+ * now, or did until `_nextEra` took over) and `_nextEra` (queued, takes over
+ * at its own `startTimeMs`). Which one applies to a given `now` is a pure
+ * comparison against stored timestamps — no mutation happens inside `at()`
+ * itself, so calling it with times in any order, on any number of `Station`
+ * instances that received the same `setTracks()` calls at the same moments,
+ * gives the same answer. That last clause is deliberate: two independent
+ * processes whose *rescans* land at slightly different real moments can in
+ * principle queue different boundary times and diverge from that point on.
+ * Radio Tower runs as a single process today, so this is a documented
+ * property, not a live bug — see docs/DECISIONS.md, 2026-08-18 "Deferring
+ * library changes to the next cycle boundary".
+ *
+ * Reordering what's next
+ * ----------------------
+ * A station whose programme is a pure function of time cannot, naively, let
+ * anyone change what plays next — that is the whole point of the model. But
+ * "I want to move that track up" is a reasonable thing to want from your own
+ * radio station, so there is exactly one sanctioned way to do it, and it is
+ * built to not disturb anything else: `setQueueOrder()` applies a
+ * **permutation of a bounded window of upcoming slots**.
+ *
+ * Permutation is the load-bearing word. Swapping a 3-minute track for a
+ * 5-minute one would change `cycleSeconds`, which would move every cycle
+ * boundary since the epoch — the exact catastrophe the era mechanism above
+ * exists to prevent. A permutation reorders the *same multiset of durations*
+ * inside a window, so the window still ends at precisely the same instant.
+ * Everything after it is untouched, `cycleSeconds` is unchanged, no era is
+ * created, and a listener who is not in the window hears nothing different.
+ *
+ * The override is still a pure input to `at()`: for a fixed override, the
+ * schedule remains a deterministic function of time, so two clients that
+ * fetched the same override compute the same programme. It is deliberately
+ * *not* persisted across a library change — if the underlying slots no
+ * longer match, the override is ignored rather than applied to the wrong
+ * tracks. See docs/DECISIONS.md, 2026-08-19.
+ *
+ * `Station.tracks` / `Station.byId` / `Station.cycleSeconds` /
+ * `Station.revision` are deliberately NOT gated by the era mechanism — they
+ * reflect the most recently scanned library immediately, the same way they
+ * always have, because `/api/library` (search) and `/api/health` (track
+ * count) are "what's here" views, not the programme itself. Only the
+ * programme — `at()`, `upcoming()`, `history()`, `schedule()` — is deferred.
+ */
+
+/** Mulberry32 — small, fast, deterministic PRNG. Same seed, same sequence, forever. */
+export function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function next() {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** Deterministic Fisher-Yates. Returns a new array; never mutates the input. */
+export function seededShuffle(items, seed) {
+  const out = items.slice();
+  const rand = mulberry32(seed);
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** FNV-1a over a string — a stable 32-bit seed from a group name. */
+function hashString(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+
+/**
+ * Deterministic interleave: every group gets its turn, spread as evenly as
+ * the group sizes allow.
+ *
+ * Each group is shuffled on its own (seeded by the cycle and the group's
+ * name), then item k of a group of n is given the position (k + u) / n,
+ * where u is a seeded offset in [0, 1) per group. Sorting everything by that
+ * position deals the groups out like cards: a group with twice the tracks
+ * comes round twice as often, and two tracks from the same group only sit
+ * side by side when that group outnumbers everything else put together.
+ *
+ * This is what the Mashup channel plays — "fluctuate between the genres"
+ * as a rule rather than as luck. Pure: same tracks, same seed, same order,
+ * in every browser and on every server. Floating-point keys are fine here —
+ * IEEE-754 division is identical on every JS engine.
+ *
+ * @param {Array} tracks
+ * @param {number} seed
+ * @param {(t: object) => string} keyOf   which group a track belongs to
+ */
+export function interleave(tracks, seed, keyOf = (t) => t.crate ?? t.genreSlug ?? '') {
+  const groups = new Map();
+  for (const t of tracks) {
+    const k = String(keyOf(t) ?? '');
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(t);
+  }
+  const names = [...groups.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const rand = mulberry32(seed);
+  const dealt = [];
+  names.forEach((name, gi) => {
+    const list = seededShuffle(groups.get(name), (seed ^ hashString(name)) >>> 0);
+    const offset = rand();
+    list.forEach((t, k) => dealt.push({ t, pos: (k + offset) / list.length, gi }));
+  });
+  dealt.sort((a, b) => a.pos - b.pos || a.gi - b.gi);
+  // The even spread can still put two of a big crate side by side where the
+  // offsets happen to line up. Repair: pull the next track from another
+  // crate forward into that slot. Only gives up when everything left is one
+  // crate — then there is nothing else to play.
+  for (let i = 1; i < dealt.length; i++) {
+    if (dealt[i].gi !== dealt[i - 1].gi) continue;
+    let j = i + 1;
+    while (j < dealt.length && dealt[j].gi === dealt[i - 1].gi) j++;
+    if (j >= dealt.length) break;
+    const [moved] = dealt.splice(j, 1);
+    dealt.splice(i, 0, moved);
+  }
+  return dealt.map((d) => d.t);
+}
+
+/** The running orders a Station knows. */
+export const ORDERS = ['shuffle', 'library', 'interleave'];
+
+/**
+ * Order-independent content fingerprint for a track list.
+ *
+ * `Station.revision` (`count:cycleSeconds`) is deliberately coarse — cheap to
+ * compare, fine for "did the library view change at all". It is too coarse
+ * to gate the era-staging mechanism, though: renaming a file without adding
+ * or removing any changes that file's id (`trackId()` is `sha1(relPath)`)
+ * but not its duration, so the count and the total duration — and therefore
+ * `revision` — stay identical while every id could be different underneath.
+ * This fingerprint is the sorted set of ids, so it changes exactly when the
+ * *content* changes, independent of ordering. See docs/ROADMAP.md #5,
+ * finding 1 ("a revision-fingerprint collision permanently drops a library
+ * change") and docs/DECISIONS.md 2026-08-19 for the full writeup.
+ */
+function fingerprintTracks(tracks) {
+  return tracks.map((t) => t.id).sort().join(',');
+}
+
+export class Station {
+  /**
+   * @param {Array} tracks   library tracks (need at least id + duration)
+   * @param {object} opts
+   * @param {number} opts.epoch        ms since Unix epoch — the station's t=0
+   * @param {number} opts.gapSeconds   silence between tracks
+   * @param {string} opts.name
+   * @param {boolean} [opts.shuffle=true]  false plays every cycle in the
+   *   library's own order (a deliberate running order, like an album side)
+   *   instead of a fresh deterministic shuffle per cycle. The Pi keeps the
+   *   default; the cloud channel uses false — see docs/DECISIONS.md 2026-09-26.
+   * @param {'shuffle'|'library'|'interleave'} [opts.order]  the running order,
+   *   spelled out. Overrides `shuffle` when given: 'library' is shuffle:false,
+   *   'interleave' deals the library's groups (crates, else genres) out in
+   *   turn every cycle — the Mashup channel (server/lib/channels.js).
+   */
+  constructor(tracks = [], { epoch = 0, gapSeconds = 0, name = 'Radio Tower', shuffle = true, order = null } = {}) {
+    this.name = name;
+    this.epoch = epoch;
+    this.gapSeconds = Math.max(0, gapSeconds);
+    this.order = ORDERS.includes(order) ? order : (shuffle === false ? 'library' : 'shuffle');
+    this.shuffle = this.order !== 'library';
+    this._cycleCache = new Map(); // absolute cycleIndex -> ordered tracks for whichever era owns it
+
+    // The schedule starts life empty, "as of" the epoch itself, so the very
+    // first real setTracks() call (see the bootstrap branch below) begins
+    // cycle 0 exactly at `epoch` rather than waiting for a boundary that
+    // never existed.
+    this._era = this._buildEra([], epoch, 0);
+    this._nextEra = null;
+
+    // A permutation of a run of slots inside one cycle, or null.
+    // { cycleIndex, startWithin, ids: string[], setAt: number }
+    this._override = null;
+
+    this.tracks = [];
+    this.byId = new Map();
+    this.cycleSeconds = 0;
+    this.revision = '0:0';
+    this.setTracks(tracks);
+  }
+
+  /** Build an era snapshot: an immutable library + where in the global cycle count it starts. */
+  _buildEra(tracks, startTimeMs, startAbsCycle) {
+    const cycleSeconds = tracks.reduce((s, t) => s + t.duration + this.gapSeconds, 0);
+    return {
+      tracks,
+      // A per-era id index, kept alongside the live `this.byId` so a track
+      // the schedule is still actively promising (this era hasn't retired
+      // yet) stays resolvable via `get()` even after a rescan has already
+      // moved the live view on. See docs/ROADMAP.md #5, finding 2.
+      byId: new Map(tracks.map((t) => [t.id, t])),
+      cycleSeconds,
+      startTimeMs,
+      startAbsCycle,
+      revision: `${tracks.length}:${Math.round(cycleSeconds)}`,
+      fingerprint: fingerprintTracks(tracks),
+    };
+  }
+
+  /**
+   * Update the library.
+   *
+   * `this.tracks`/`this.byId`/`this.cycleSeconds`/`this.revision` change
+   * immediately — they describe "what's in the library right now", used by
+   * `/api/library` and `/api/health`. The *schedule* only adopts the change
+   * once the clock crosses into the next cycle: see the file header.
+   *
+   * @param {Array} tracks
+   * @param {object} [opts]
+   * @param {number} [opts.now]  ms since Unix epoch — when this change was
+   *   noticed. Defaults to real time; tests pass an explicit value so the
+   *   boundary math is deterministic without waiting on the wall clock.
+   */
+  setTracks(tracks, { now = Date.now() } = {}) {
+    const filtered = (tracks || []).filter((t) => Number.isFinite(t.duration) && t.duration > 0);
+    this.tracks = filtered;
+    this.byId = new Map(filtered.map((t) => [t.id, t]));
+    this.cycleSeconds = filtered.reduce((s, t) => s + t.duration + this.gapSeconds, 0);
+    this.revision = `${filtered.length}:${Math.round(this.cycleSeconds)}`;
+
+    // Nothing new for the *schedule* to adopt (a routine rescan that found no
+    // changes is the common case — every AUTO_RESCAN_MINUTES). Whatever is
+    // already active or already queued still matches. Gated on the content
+    // fingerprint (the sorted set of ids), not the coarser `revision` string:
+    // `revision` is only `count:cycleSeconds`, so a same-count/same-duration
+    // swap (e.g. renaming files without adding or removing any) used to leave
+    // it unchanged, which made this an early return that silently skipped
+    // staging the real change — forever, since every later no-op rescan would
+    // hit the same false match. See docs/ROADMAP.md #5, finding 1 (BLOCKING).
+    const queuedFingerprint = this._nextEra ? this._nextEra.fingerprint : this._era.fingerprint;
+    if (this._fingerprintOf(filtered) === queuedFingerprint) return this;
+
+    const baseline = this._effectiveEra(now);
+    if (baseline.tracks.length === 0 || baseline.cycleSeconds <= 0) {
+      // Nothing has ever been on air under this era — there is no currently
+      // playing track to protect, so apply immediately. This is what makes
+      // the station's very first scan start the programme at `epoch` instead
+      // of waiting for a boundary that was never real.
+      this._era = this._buildEra(filtered, baseline.startTimeMs, baseline.startAbsCycle);
+      this._nextEra = null;
+    } else {
+      // Protect the cycle already in progress: queue the new library to take
+      // over at the end of it, not before.
+      this._era = baseline;
+      const { startTimeMs, startAbsCycle } = this._nextBoundary(baseline, now);
+      this._nextEra = this._buildEra(filtered, startTimeMs, startAbsCycle);
+    }
+    // A library change reshuffles the cycles the override was pinned to.
+    // `_applyOverride` would refuse to apply it anyway (the slots no longer
+    // match), but dropping it here means `/api/queue` reports the truth
+    // rather than advertising an override that silently does nothing.
+    this._override = null;
+    this._cycleCache.clear();
+    return this;
+  }
+
+  /*
+   * The three hooks below are the only places that know a cycle is "every
+   * track once, back to back". DailyStation (server/lib/programme.js)
+   * overrides them so a cycle can be one broadcast day instead.
+   */
+
+  /** What decides whether a rescan changed anything the schedule must adopt. */
+  _fingerprintOf(tracks) {
+    return fingerprintTracks(tracks);
+  }
+
+  /** Where a library change noticed at `now` takes over: the end of the cycle in progress. */
+  _nextBoundary(baseline, now) {
+    const elapsed = (now - baseline.startTimeMs) / 1000;
+    const localCycle = Math.floor(elapsed / baseline.cycleSeconds);
+    return {
+      startAbsCycle: baseline.startAbsCycle + localCycle + 1,
+      startTimeMs: baseline.startTimeMs + (localCycle + 1) * baseline.cycleSeconds * 1000,
+    };
+  }
+
+  /** Which cycle `now` falls in, and how many seconds into it — or null when nothing is on. */
+  _locate(now) {
+    const era = this._effectiveEra(now);
+    if (era.tracks.length === 0 || era.cycleSeconds <= 0) return null;
+
+    const elapsed = (now - era.startTimeMs) / 1000;
+    // Negative elapsed (querying before this era's own start) still works:
+    // JS % keeps the sign, so we normalise it back into [0, cycleSeconds).
+    const localCycle = Math.floor(elapsed / era.cycleSeconds);
+    let pos = elapsed - localCycle * era.cycleSeconds;
+    if (pos < 0) pos += era.cycleSeconds;
+    return { cycleIndex: era.startAbsCycle + localCycle, pos };
+  }
+
+  /** Which era governs playback at wall-clock instant `now`? Pure — no mutation. */
+  _effectiveEra(now) {
+    if (this._nextEra && now >= this._nextEra.startTimeMs) return this._nextEra;
+    return this._era;
+  }
+
+  /** Which era owns a given *global* cycle index? Pure — no mutation. */
+  _eraForCycle(cycleIndex) {
+    if (this._nextEra && cycleIndex >= this._nextEra.startAbsCycle) return this._nextEra;
+    return this._era;
+  }
+
+  /** Wall-clock instant (ms) at which a given global cycle index begins. */
+  _startOfCycle(cycleIndex) {
+    const era = this._eraForCycle(cycleIndex);
+    return era.startTimeMs + (cycleIndex - era.startAbsCycle) * era.cycleSeconds * 1000;
+  }
+
+  get isEmpty() {
+    // Whether *playback* has anything to offer right now — deliberately
+    // reads the effective era (not the immediate `this.tracks`) so this
+    // agrees with what `at(Date.now())` would actually return, even during
+    // the window where a library change is queued but not yet in effect.
+    const era = this._effectiveEra(Date.now());
+    return era.tracks.length === 0 || era.cycleSeconds <= 0;
+  }
+
+  /** The ordered playlist for a given *global* cycle. Cached — cycles are revisited constantly. */
+  cycleOrder(cycleIndex) {
+    if (this._cycleCache.has(cycleIndex)) return this._cycleCache.get(cycleIndex);
+    const era = this._eraForCycle(cycleIndex);
+    // Cycle 0 plays the library in its natural (path-sorted) order so a fresh
+    // install sounds intentional; later cycles shuffle deterministically.
+    // Keyed off the *global* cycle index, which stays monotonic across a
+    // library change (see setTracks) — a change does not reset the shuffle
+    // back to natural order.
+    const base = this._naturalOrder(era, cycleIndex);
+    const order = this._applyOverride(base, cycleIndex);
+    if (this._cycleCache.size > 8) this._cycleCache.clear();
+    this._cycleCache.set(cycleIndex, order);
+    return order;
+  }
+
+  /**
+   * A cycle's order before any queue override: the library's own order for
+   * cycle 0 (or always, when `shuffle` is off), a seeded shuffle otherwise.
+   * The single definition both `cycleOrder()` and `setQueueOrder()` use, so
+   * the override is always validated against exactly what it will permute.
+   */
+  _naturalOrder(era, cycleIndex) {
+    // Interleave from cycle 0 on: a Mashup that opened on one crate's whole
+    // run would be the opposite of what it is for.
+    if (this.order === 'interleave') return interleave(era.tracks, (cycleIndex * 2654435761 + 0x9e3779b9) >>> 0);
+    if (cycleIndex === 0 || !this.shuffle) return era.tracks.slice();
+    return seededShuffle(era.tracks, cycleIndex * 2654435761);
+  }
+
+  /**
+   * Apply the queue override to a cycle's natural order, if one targets it.
+   *
+   * Returns `base` untouched — same array identity — when there is nothing to
+   * do, which is the overwhelmingly common case.
+   *
+   * The override is verified against the slots it claims to permute *every
+   * time it is applied*, not just when it was set. A library rescan between
+   * those two moments can reshuffle the cycle underneath it; rather than
+   * reordering whatever now happens to sit at those indices, a mismatch
+   * makes the override a no-op.
+   */
+  _applyOverride(base, cycleIndex) {
+    const ov = this._override;
+    if (!ov || ov.cycleIndex !== cycleIndex) return base;
+
+    const { startWithin, ids } = ov;
+    if (startWithin < 0 || startWithin + ids.length > base.length) return base;
+
+    const slice = base.slice(startWithin, startWithin + ids.length);
+    const byId = new Map(slice.map((t) => [t.id, t]));
+    // Must be a genuine permutation of exactly these slots: no repeats, no
+    // strangers. Anything else and we leave the schedule alone.
+    if (byId.size !== slice.length) return base;
+    if (!ids.every((id) => byId.has(id))) return base;
+
+    const order = base.slice();
+    ids.forEach((id, i) => {
+      order[startWithin + i] = byId.get(id);
+    });
+    return order;
+  }
+
+  /**
+   * Reorder a run of upcoming slots.
+   *
+   * @param {object} req
+   * @param {number} req.cycleIndex   global cycle the window sits in
+   * @param {number} req.startWithin  index of the first slot in the window
+   * @param {string[]} req.ids        the window's track ids, in the order wanted
+   * @returns {{ok: true}|{ok: false, error: string}}
+   *
+   * Rejects anything that is not a permutation of the slots it names, so a
+   * caller cannot use this to insert, remove, or duplicate a track — only to
+   * rearrange. That restriction is what keeps `cycleSeconds` constant.
+   */
+  setQueueOrder({ cycleIndex, startWithin, ids } = {}) {
+    if (!Number.isInteger(cycleIndex) || !Number.isInteger(startWithin) || startWithin < 0) {
+      return { ok: false, error: 'invalid_window' };
+    }
+    if (!Array.isArray(ids) || ids.length < 2) return { ok: false, error: 'nothing_to_reorder' };
+
+    // Compare against the *natural* order, not the currently-overridden one,
+    // so repeated reorders of the same window compose predictably instead of
+    // stacking permutation on permutation.
+    const base = this._naturalOrder(this._eraForCycle(cycleIndex), cycleIndex);
+
+    if (startWithin + ids.length > base.length) return { ok: false, error: 'window_out_of_range' };
+
+    const slice = base.slice(startWithin, startWithin + ids.length);
+    const want = [...ids].sort();
+    const have = slice.map((t) => t.id).sort();
+    if (want.length !== have.length || want.some((id, i) => id !== have[i])) {
+      return { ok: false, error: 'not_a_permutation' };
+    }
+
+    this._override = { cycleIndex, startWithin, ids: [...ids], setAt: Date.now() };
+    this._cycleCache.clear();
+    return { ok: true };
+  }
+
+  /**
+   * Wall-clock instant (ms) at which a given slot begins, or null if the slot
+   * does not exist.
+   *
+   * The queue editor addresses slots by (cycleIndex, withinCycle) rather than
+   * by track id, because a library smaller than the lookahead window repeats
+   * ids across cycles — with 8 tracks and a 12-slot window, "move track X"
+   * names two different slots. A slot address is unambiguous at any library
+   * size.
+   */
+  slotStartsAt(cycleIndex, withinCycle) {
+    if (!Number.isInteger(cycleIndex) || !Number.isInteger(withinCycle)) return null;
+    const order = this.cycleOrder(cycleIndex);
+    if (withinCycle < 0 || withinCycle >= order.length) return null;
+    let acc = 0;
+    for (let i = 0; i < withinCycle; i++) acc += order[i].duration + this.gapSeconds;
+    return Math.round(this._startOfCycle(cycleIndex) + acc * 1000);
+  }
+
+  /* ----------------------------------------------- safe composition --
+   *
+   * `setQueueOrder()` replaces the one override outright. That is right for
+   * applying a document everyone already agreed on, but wrong for a *new*
+   * decision: the override being replaced may be what put the track on air
+   * where it is. Dropping it — by a second reorder, or by "back to the
+   * station clock" — would change what is playing, mid-track, for every
+   * listener. The two planners below are what a DJ's request goes through
+   * instead (the Pi's POST /api/queue/* and the cloud booth alike): they
+   * compose with what is in force, and they never touch the fence — the slot
+   * on air and every slot starting within `lockMs`.
+   */
+
+  /** The slots nothing may change: on air, and every slot starting before now + lockMs. */
+  _fence(now, lockMs) {
+    const cur = this.at(now);
+    if (!cur) return [];
+    const until = now + lockMs;
+    const out = [];
+    let cursor = { cycleIndex: cur.cycleIndex, withinCycle: cur.withinCycle };
+    for (let n = 0; cursor && n < 10_000; n++) {
+      const startsAt = this.slotStartsAt(cursor.cycleIndex, cursor.withinCycle);
+      if (startsAt === null || (n > 0 && startsAt >= until)) break;
+      out.push({ cycleIndex: cursor.cycleIndex, withinCycle: cursor.withinCycle, id: this._trackAtCursor(cursor)?.id ?? null, startsAt });
+      cursor = this._advanceCursor(cursor, +1);
+    }
+    return out;
+  }
+
+  _withOverride(override, fn) {
+    const saved = this._override;
+    this._override = override;
+    this._cycleCache.clear();
+    try { return fn(); } finally { this._override = saved; this._cycleCache.clear(); }
+  }
+
+  /** Would putting `candidate` in force change anything inside the fence? */
+  _fenceHolds(candidate, now, lockMs) {
+    const before = this._fence(now, lockMs);
+    const after = this._withOverride(candidate, () => this._fence(now, lockMs));
+    if (before.length !== after.length) return false;
+    return before.every((b, i) => b.id === after[i].id && b.startsAt === after[i].startsAt);
+  }
+
+  /** When the override in force has played out entirely (ms), or null. */
+  _overrideEndsAt(ov = this._override) {
+    if (!ov) return null;
+    const end = ov.startWithin + ov.ids.length;
+    const order = this.cycleOrder(ov.cycleIndex);
+    return end < order.length ? this.slotStartsAt(ov.cycleIndex, end) : this._startOfCycle(ov.cycleIndex + 1);
+  }
+
+  /**
+   * Plan a reorder requested against the queue *as listeners hear it* (what
+   * /api/queue shows), composed with the override in force and expressed as
+   * the smallest override of the natural order that produces it.
+   *
+   * @returns {{ok: true, override: object|null} | {ok: false, error: string, until?: number}}
+   *   `override` null means the request restores the natural order.
+   */
+  planQueueOrder({ cycleIndex, startWithin, ids } = {}, { now = Date.now(), lockMs = 0 } = {}) {
+    if (!Number.isInteger(cycleIndex) || !Number.isInteger(startWithin) || startWithin < 0) {
+      return { ok: false, error: 'invalid_window' };
+    }
+    if (!Array.isArray(ids) || ids.length < 2) return { ok: false, error: 'nothing_to_reorder' };
+
+    const heard = this.cycleOrder(cycleIndex);
+    if (startWithin + ids.length > heard.length) return { ok: false, error: 'window_out_of_range' };
+    const slice = heard.slice(startWithin, startWithin + ids.length);
+    const byId = new Map(slice.map((t) => [t.id, t]));
+    if (new Set(ids).size !== ids.length || ids.length !== byId.size || !ids.every((id) => byId.has(id))) {
+      return { ok: false, error: 'not_a_permutation' };
+    }
+
+    const wanted = heard.slice();
+    ids.forEach((id, i) => { wanted[startWithin + i] = byId.get(id); });
+    const natural = this._naturalOrder(this._eraForCycle(cycleIndex), cycleIndex);
+    let a = -1;
+    let b = -1;
+    for (let i = 0; i < wanted.length; i++) {
+      if (wanted[i].id !== natural[i]?.id) { if (a < 0) a = i; b = i; }
+    }
+    const candidate = a < 0 ? null : { cycleIndex, startWithin: a, ids: wanted.slice(a, b + 1).map((t) => t.id), setAt: now };
+
+    if (!this._fenceHolds(candidate, now, lockMs)) {
+      // Only an earlier override being dropped (it lives in another cycle)
+      // can reach the fence: the new window itself starts after it.
+      return { ok: false, error: 'earlier_reorder_on_air', until: this._overrideEndsAt() };
+    }
+    // One override at a time. One still waiting to play in another cycle
+    // would vanish without a word: refuse, and say how to proceed.
+    const current = this._override;
+    if (current && current.cycleIndex !== cycleIndex && this._overrideEndsAt(current) > now) {
+      return { ok: false, error: 'other_reorder_waiting', until: this._overrideEndsAt(current) };
+    }
+    return { ok: true, override: candidate };
+  }
+
+  /**
+   * Plan "back to the station clock". Everything that is not on air or inside
+   * the fence returns to the natural order now; the reordered tracks that are
+   * keep their place and play out — by `until` the override is spent.
+   *
+   * @returns {{ok: true, override: object|null, full: boolean, changed: boolean, until: number|null}}
+   *   `full`: nothing of the override is left. `changed`: the queue moved.
+   */
+  planClearQueueOrder({ now = Date.now(), lockMs = 0 } = {}) {
+    const ov = this._override;
+    if (!ov) return { ok: true, override: null, full: true, changed: false, until: null };
+    if (this._fenceHolds(null, now, lockMs)) return { ok: true, override: null, full: true, changed: true, until: null };
+
+    const ci = ov.cycleIndex;
+    const a = ov.startWithin;
+    const end = a + ov.ids.length;
+    const heard = this.cycleOrder(ci);
+    const natural = this._naturalOrder(this._eraForCycle(ci), ci);
+    const naturalIndex = new Map(natural.map((t, i) => [t.id, i]));
+    // The last slot of the window that is on air or fenced: up to there, as heard.
+    const k = Math.max(a, ...this._fence(now, lockMs).filter((f) => f.cycleIndex === ci && f.withinCycle >= a && f.withinCycle < end).map((f) => f.withinCycle));
+    const keep = heard.slice(a, k + 1);
+    const kept = new Set(keep.map((t) => t.id));
+    // After it, the window's other tracks in the order the clock would play them.
+    const rest = natural.slice(a, end).filter((t) => !kept.has(t.id)).sort((x, y) => naturalIndex.get(x.id) - naturalIndex.get(y.id));
+    const wanted = heard.slice(0, a).concat(keep, rest, heard.slice(end));
+
+    let lo = -1;
+    let hi = -1;
+    for (let i = 0; i < wanted.length; i++) {
+      if (wanted[i].id !== natural[i]?.id) { if (lo < 0) lo = i; hi = i; }
+    }
+    const candidate = lo < 0 ? null : { cycleIndex: ci, startWithin: lo, ids: wanted.slice(lo, hi + 1).map((t) => t.id), setAt: ov.setAt };
+    if (!this._fenceHolds(candidate, now, lockMs)) {
+      // Cannot happen by construction; if it ever does, change nothing.
+      return { ok: true, override: { ...ov, ids: [...ov.ids] }, full: false, changed: false, until: this._overrideEndsAt(ov) };
+    }
+    const changed = !candidate || candidate.startWithin !== ov.startWithin || candidate.ids.join() !== ov.ids.join();
+    return { ok: true, override: candidate, full: !candidate, changed, until: candidate ? this._overrideEndsAt(candidate) : null };
+  }
+
+  /** Put a planned override (or null) in force. */
+  applyQueueOverride(override) {
+    if (!override) return { ok: true, cleared: this.clearQueueOrder() };
+    return this.setQueueOrder(override);
+  }
+
+  /** Drop any override and return to the natural order. */
+  clearQueueOrder() {
+    const had = Boolean(this._override);
+    this._override = null;
+    if (had) this._cycleCache.clear();
+    return had;
+  }
+
+  /** The active override, or null. Read-only view for the API. */
+  get queueOverride() {
+    return this._override ? { ...this._override, ids: [...this._override.ids] } : null;
+  }
+
+  /** Step one slot forward (+1) or backward (-1) from a {cycleIndex, withinCycle} position. */
+  _advanceCursor({ cycleIndex, withinCycle }, delta) {
+    if (delta >= 0) {
+      const order = this.cycleOrder(cycleIndex);
+      let wc = withinCycle + 1;
+      let ci = cycleIndex;
+      if (wc >= order.length) {
+        wc = 0;
+        ci += 1;
+      }
+      return { cycleIndex: ci, withinCycle: wc };
+    }
+    let ci = cycleIndex;
+    let wc = withinCycle - 1;
+    if (wc < 0) {
+      ci -= 1;
+      const order = this.cycleOrder(ci);
+      if (order.length === 0) return null; // nothing further back to walk into
+      wc = order.length - 1;
+    }
+    return { cycleIndex: ci, withinCycle: wc };
+  }
+
+  _trackAtCursor(cursor) {
+    if (!cursor) return null;
+    const order = this.cycleOrder(cursor.cycleIndex);
+    return order[cursor.withinCycle] ?? null;
+  }
+
+  /**
+   * What is on air at `now`?
+   * @param {number} now ms since Unix epoch
+   * @returns {null|{track, offset, startsAt, endsAt, cycleIndex, withinCycle, inGap}}
+   */
+  at(now = Date.now()) {
+    const loc = this._locate(now);
+    if (!loc) return null;
+    const { cycleIndex, pos } = loc;
+
+    const order = this.cycleOrder(cycleIndex);
+    const cycleStartSec = this._startOfCycle(cycleIndex) / 1000;
+    let acc = 0;
+    for (let i = 0; i < order.length; i++) {
+      const track = order[i];
+      const slot = track.duration + this.gapSeconds;
+      if (pos < acc + slot) {
+        const offset = pos - acc;
+        const startsAtSec = cycleStartSec + acc;
+        return {
+          track,
+          offset: Math.min(offset, track.duration),
+          inGap: offset > track.duration,
+          startsAt: Math.round(startsAtSec * 1000),
+          endsAt: Math.round((startsAtSec + track.duration) * 1000),
+          cycleIndex,
+          withinCycle: i,
+          slotIndex: cycleIndex * order.length + i, // informational only — not comparable across a library change
+        };
+      }
+      acc += slot;
+    }
+    // Floating-point rounding can leave us a hair past the end of the last
+    // slot. Recurse into the exact start of the next cycle rather than
+    // duplicating the lookup above — also the correct, safe answer if that
+    // next cycle turns out to belong to an empty era (returns null via the
+    // isEmpty-equivalent check at the top, not a crash on order[0]).
+    return this.at(this._startOfCycle(cycleIndex + 1));
+  }
+
+  /** The next `count` tracks after the one on air at `now`, with their start times. */
+  upcoming(now = Date.now(), count = 5) {
+    const current = this.at(now);
+    if (!current) return [];
+    const out = [];
+    let cursor = { cycleIndex: current.cycleIndex, withinCycle: current.withinCycle };
+    let startsAt = current.endsAt + this.gapSeconds * 1000;
+    for (let i = 0; i < count; i++) {
+      cursor = this._advanceCursor(cursor, 1);
+      const track = this._trackAtCursor(cursor);
+      if (!track) break;
+      out.push({
+        ...publicTrack(track),
+        startsAt: Math.round(startsAt),
+        endsAt: Math.round(startsAt + track.duration * 1000),
+        // The slot's address in the programme. The queue editor needs this to
+        // name the window it wants permuted — a position in a list on screen
+        // is not enough, because the list scrolls forward as tracks end.
+        cycleIndex: cursor.cycleIndex,
+        withinCycle: cursor.withinCycle,
+      });
+      startsAt += (track.duration + this.gapSeconds) * 1000;
+    }
+    return out;
+  }
+
+  /**
+   * The programme guide: every slot whose play window overlaps [fromMs, toMs).
+   * Like `at()` and `upcoming()`, this is a pure function of time — same
+   * station, same window, same answer, on any machine, after any restart.
+   * The first item is whatever is on air at `fromMs` (even though it started
+   * earlier), so "what plays starting now" and "what plays starting at some
+   * future instant" are the same call.
+   *
+   * `maxItems` is a belt-and-braces guard, not a normal limit: the caller
+   * (the `/api/schedule` route) already caps the wall-clock span, so this
+   * only matters for a pathological library (many very short tracks) where a
+   * capped time window could still mean many thousands of slots.
+   */
+  schedule(fromMs, toMs, { maxItems = 2000 } = {}) {
+    if (!(toMs > fromMs)) return [];
+    const first = this.at(fromMs);
+    if (!first) return [];
+    const out = [];
+    let cursor = { cycleIndex: first.cycleIndex, withinCycle: first.withinCycle };
+    let startsAt = first.startsAt;
+    while (out.length < maxItems && startsAt < toMs) {
+      const track = this._trackAtCursor(cursor);
+      if (!track) break;
+      const endsAt = startsAt + track.duration * 1000;
+      out.push({ ...publicTrack(track), startsAt: Math.round(startsAt), endsAt: Math.round(endsAt) });
+      startsAt = endsAt + this.gapSeconds * 1000;
+      cursor = this._advanceCursor(cursor, 1);
+    }
+    return out;
+  }
+
+  /** What played before now — useful for a "recently played" strip. */
+  history(now = Date.now(), count = 5) {
+    const current = this.at(now);
+    if (!current) return [];
+    const out = [];
+    let cursor = { cycleIndex: current.cycleIndex, withinCycle: current.withinCycle };
+    for (let i = 0; i < count; i++) {
+      cursor = this._advanceCursor(cursor, -1);
+      const track = this._trackAtCursor(cursor);
+      if (!track) break;
+      out.push(publicTrack(track));
+    }
+    return out;
+  }
+
+  /**
+   * Resolve a track id to its metadata.
+   *
+   * Checked against the live `byId` first (the current scan — updates the
+   * instant a rescan lands, per the file header). Falls back to whichever
+   * eras are still governing playback: `at()`/`upcoming()`/`schedule()` can
+   * keep promising an id for the rest of a cycle already in progress after a
+   * rescan has already moved that id out of the live `byId` (an ordinary
+   * rename is enough — `trackId()` is `sha1(relPath)`, so a renamed-but-
+   * still-present file gets a new id and the old one vanishes from the live
+   * view immediately). Without this fallback, `/api/track/:id/stream` and
+   * `/art` 404 for exactly the track the schedule is telling every client is
+   * playing right now. A genuinely gone file still fails correctly — this
+   * only keeps the *lookup* resolvable; `resolveTrackPath()` still 410s if
+   * the bytes really aren't there. See docs/ROADMAP.md #5, finding 2 (HIGH).
+   */
+  get(id) {
+    return this.byId.get(id) || this._era?.byId.get(id) || this._nextEra?.byId.get(id) || null;
+  }
+}
+
+/** Strip filesystem details before anything crosses the wire. */
+export function publicTrack(t) {
+  if (!t) return null;
+  return {
+    id: t.id,
+    title: t.title,
+    artist: t.artist,
+    album: t.album || null,
+    year: t.year ?? null,
+    genre: t.genre ?? null,
+    duration: t.duration,
+    hasArt: Boolean(t.hasArt),
+    // The station plays one undifferentiated shuffle across every genre, so
+    // the genre is the only cue a listener gets that Brassens following
+    // Macroblank is intentional. It also drives the visualiser's palette.
+    genreSlug: t.genreSlug || null,
+    genreLabel: t.genreLabel || null,
+    // Degrees on the colour wheel, set by server/lib/genre.js. The player
+    // passes this straight to public/viz.js so barber beats (285, violet) and
+    // atmospheric DnB (165, sea-green) do not paint the same picture.
+    genreAccent: Number.isFinite(t.genreAccent) ? t.genreAccent : null,
+  };
+}
+
+export default Station;
