@@ -3024,3 +3024,7 @@ photo as cover, the green banner at the end, signed Zoneko & Sol (DECISIONS, sam
   43/43 browser, site smoke 131/131 alone and 142/142 in the full run, Atelier 26/26 (its page count 13 → 14, the
   Bibliothèque). One later full run had one red, « Canopy maps the music live on the radio page » (the classic
   Radio page, untouched here), green again in the next run. Not measurable here: a real phone's touch on the pond.
+- **CI after the push:** red three times on stage 8, « no page errors anywhere » — the dist page's booth polling
+  api.github.com from the runner, refused without CORS headers. Re-running `8b5cb71` (live, green at 00:12) went
+  red the same way: GitHub's side, not this change. `atelier-smoke.mjs` now builds its dist with no repository
+  (`repo: ''`), as it does on a laptop: it checks the sub-path, the past's bar and the images, not the booth.

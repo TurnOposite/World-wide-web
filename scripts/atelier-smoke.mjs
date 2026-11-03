@@ -282,7 +282,9 @@ try {
   fs.writeFileSync(layoutFile, MAP);
 
   // ---- the built site, under a repository sub-path
-  const dist = await build({ base: '/radio-tower/', quiet: true });
+  // No repository (2026-11-03): in CI, GITHUB_REPOSITORY made this dist's booth poll api.github.com, which GitHub's
+  // runners were refused that night (a CORS-less 403, red on 8b5cb71 re-run too). Nothing checked here is the booth's.
+  const dist = await build({ base: '/radio-tower/', quiet: true, repo: '' });
   check('the build lays out the versions online, and only those', dist.past.join() === 'v1,v2' && !fs.existsSync(path.join(ROOT, 'dist/past/wix')), JSON.stringify(dist.past));
   const distServer = await createSiteServer({ dist: true, base: '/radio-tower/', fixtures: fx });
   const sub = `http://127.0.0.1:${await listen(distServer)}/radio-tower/`;
