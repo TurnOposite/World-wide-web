@@ -588,7 +588,8 @@ dialog.mirror-book::backdrop{background:rgba(8,9,10,.74);backdrop-filter:blur(5p
 .mirror-book .mb-recto{border-radius:2px 6px 6px 2px;
   background:radial-gradient(140% 100% at 0% 50%,rgba(0,0,0,.08),transparent 40%),linear-gradient(90deg,#ddd3bb 0%,#f3ecdc 20%,#f6f1e4 88%,#e9e1cd 100%);
   box-shadow:0 0 0 rgba(0,0,0,0);transition:box-shadow .45s ease}
-.mirror-book .mb-verso{transform:rotateY(180deg);border-radius:6px 2px 2px 6px;
+/* the verso never takes the pointer: a browser that hit-tests a hidden back face would hide the edge and corner behind it */
+.mirror-book .mb-verso{transform:rotateY(180deg);border-radius:6px 2px 2px 6px;pointer-events:none;
   background:radial-gradient(140% 100% at 100% 50%,rgba(0,0,0,.08),transparent 40%),linear-gradient(90deg,#e9e1cd 0%,#f6f1e4 12%,#f3ecdc 80%,#ddd3bb 100%);
   transition:opacity .55s ease}
 /* the lift: the edge a few degrees off the page under it, the corner curling up besides */

@@ -199,17 +199,21 @@ export async function openMirror(from = null) {
   if (!dialog.open) dialog.showModal();
   if (location.hash !== '#miroir') history.replaceState(null, '', `${location.pathname}${location.search}#miroir`);
   dialog.classList.toggle('still', still);
-  // next frame: the closed book is laid out, then it opens
-  requestAnimationFrame(() => requestAnimationFrame(() => dialog.classList.add('is-open')));
   const items = data.texts.map(stone);
   const wait = still ? 0 : 820;
-  timers.push(setTimeout(async () => {
-    if (!dialog.open || pond) return;
-    const { createPond } = await import('./pond.js');
-    if (!dialog.open || pond) return;
-    pond = createPond(dialog.querySelector('.mb-pond'), items, { reducedMotion: still, spots: SPOTS });
-    dialog.classList.add('is-ready');
-  }, wait));
+  // next frame: the closed book is laid out, then it opens. The pages are ready (the edge answers) only once the
+  // book has opened: counted from the frame it starts to, not from the click — a busy machine may draw that late.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (!dialog.open) return;
+    dialog.classList.add('is-open');
+    timers.push(setTimeout(async () => {
+      if (!dialog.open || pond) return;
+      const { createPond } = await import('./pond.js');
+      if (!dialog.open || pond) return;
+      pond = createPond(dialog.querySelector('.mb-pond'), items, { reducedMotion: still, spots: SPOTS });
+      dialog.classList.add('is-ready');
+    }, wait));
+  }));
 }
 openMirror.close = () => { if (dialog?.open) dialog.close(); };
 openMirror.turn = turn;

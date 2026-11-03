@@ -3066,3 +3066,9 @@ Ortis's request in one change (DECISIONS, same date, « Lectures into the Livre 
   browser, site 155/155 in one full run; the last full run 153/155 — reds in two checks this change does not touch
   (the booth's « it is a permutation », and « 20 pans » 19/20 at a track change, a known flake). 26/26 Atelier after
   its v3 check was moved. **Still to do:** re-run the site smoke to confirm those two are flakes, then commit and fire.
+- **CI on `6c166a6`: 152/155 site** — the Livre miroir's corner never took the pointer, so the page did not turn
+  (and the two checks after it followed). Cause: the book was marked ready 820 ms after the click, but its opening
+  starts on a later frame; on the slower runner it was still moving when the smoke measured the corner. The pages are
+  now ready 820 ms after the book starts to open (a product fix: the edge never answers on a book still moving), the
+  smoke waits for the book to stand still before aiming, and the verso never takes the pointer. Site smoke 144/144 in
+  Chromium's headless shell.

@@ -666,6 +666,9 @@ try {
       return { open: Boolean(d?.open), paras: intro.length, first: intro[0]?.slice(0, 16), hash: location.hash, inert: d.querySelector('.mb-pool').inert,
         quiet: !/tourn|page suivante|→|›/i.test([...d.querySelectorAll('.mb-intro, .mb-recto')].map((x) => x.innerText).join(' ')) && !/tourner/i.test(said.replace(/aria-label="[^"]*"/g, '')) };
     })) };
+    // the book still moving (a slow runner draws late) would put the corner somewhere else by the time the pointer arrives
+    await a.waitForFunction(() => [...document.querySelectorAll('dialog.mirror-book .mb-book, dialog.mirror-book .mb-cover, dialog.mirror-book .mb-leaf')]
+      .every((el) => !el.getAnimations().some((x) => x.playState === 'running')), null, { timeout: 4000 }).catch(() => {});
     const edgeBox = await a.locator('dialog.mirror-book .mb-corner').boundingBox();
     await a.mouse.move(edgeBox.x - 60, edgeBox.y - 60);
     await a.mouse.move(edgeBox.x + edgeBox.width / 2, edgeBox.y + edgeBox.height / 2, { steps: 3 });
