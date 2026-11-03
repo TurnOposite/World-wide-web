@@ -101,9 +101,37 @@ export function verdict(runs, workflow) {
   return ours[0].conclusion === 'success' ? 'success' : 'failure';
 }
 
+/**
+ * On Windows the unit tests run the tower's shell scripts with bash, which Git for Windows ships but seldom
+ * puts on PATH: a double-clicked fire.cmd then stopped at « the unit tests fail — nothing was sent » (41
+ * tests, `spawn bash ENOENT`, 2026-11-02). The PATH to run them with: Git's own bin and usr/bin first, found
+ * from `git --exec-path` (<git>/mingw64/libexec/git-core), else a portable Git beside the repository, else the
+ * usual install. null when nothing is to change (not Windows, bash already found, or no Git bash anywhere).
+ * Pure: tests/fire.test.js checks it.
+ */
+export function bashPath({ platform = process.platform, pathVar = '', execPath = '', root = ROOT, exists = fs.existsSync } = {}) {
+  if (platform !== 'win32') return null;
+  const w = path.win32;
+  const dirs = String(pathVar).split(';').filter(Boolean);
+  if (dirs.some((d) => exists(w.join(d, 'bash.exe')))) return null;
+  const roots = [];
+  if (execPath) roots.push(w.resolve(execPath.trim(), '..', '..', '..'));
+  roots.push(w.resolve(root, '..', 'Git'), 'C:\\Program Files\\Git');
+  for (const r of roots) {
+    const bin = w.join(r, 'bin');
+    if (exists(w.join(bin, 'bash.exe'))) return [bin, w.join(r, 'usr', 'bin'), ...dirs].join(';');
+  }
+  return null;
+}
+
 function realDeps(root) {
   return {
     git: (args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim(),
+    bashPath: () => {
+      let execPath = '';
+      try { execPath = execFileSync('git', ['--exec-path'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch { /* no git: the other places */ }
+      return bashPath({ pathVar: process.env.PATH || '', execPath, root });
+    },
     run: (cmd, args, { cwd = root } = {}) => new Promise((resolve) => {
       const p = spawn(cmd, args, { cwd, stdio: 'inherit', shell: false });
       p.on('error', (err) => { console.log(`  ${err.message}`); resolve(127); });
@@ -182,8 +210,13 @@ export async function fire(o, deps, cfg) {
   say(3, 'Unit tests');
   if (!o.tests) log('  skipped (--skip-tests) — CI still runs the whole self-test');
   else if (o.dryRun) log('  would run npm test');
-  else if ((await deps.run(process.execPath, ['--test', 'tests/*.test.js'])) !== 0) stop('the unit tests fail — nothing was sent');
-  else log('  ✓ green');
+  else {
+    // Windows: the tests need Git's bash, which is rarely on PATH (bashPath).
+    const withBash = deps.bashPath?.();
+    if (withBash) { process.env.PATH = withBash; log(`  bash: Git's (${withBash.split(';')[0]}), for the tests that run the tower's shell scripts`); }
+    if ((await deps.run(process.execPath, ['--test', 'tests/*.test.js'])) !== 0) stop('the unit tests fail — nothing was sent');
+    log('  ✓ green');
+  }
 
   // 4. the question
   say(4, 'Publish');

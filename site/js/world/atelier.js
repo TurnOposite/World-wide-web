@@ -414,6 +414,16 @@ export async function mountAtelier({ world, published, draft, toast }) {
   drawProblems();
   drawState();
   probe();
-  if (draft) toast('Atelier : le brouillon de votre dernière visite est repris.', 4500);
+  // A draft made against an older map lies over the new one and can make it unsaveable: say so, with the way
+  // back (2026-11-03: a 1 November draft over the 2 November map read as 13 windows changed and 2 errors).
+  const stale = Boolean(draft?.updatedAt && base?.updatedAt) && Date.parse(draft.updatedAt) < Date.parse(base.updatedAt);
+  if (stale) {
+    const when = (iso) => new Date(iso).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+    const note = el('p', 'at-stale');
+    note.setAttribute('role', 'alert');
+    note.append(`Ce brouillon date du ${when(draft.updatedAt)}, d’avant la carte publiée (${when(base.updatedAt)}) : il la recouvre. `,
+      button('Revenir au publié', 'at-btn at-primary', () => { note.remove(); restore(resolveLayout(base, { all: true }).pages, 'Revenu à la carte publiée.'); }));
+    state.after(note);
+  } else if (draft) toast('Atelier : le brouillon de votre dernière visite est repris.', 4500);
   return { panel, setOver, select, preview, get over() { return over; } };
 }

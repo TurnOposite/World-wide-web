@@ -72,3 +72,5 @@
   letter-spacing:.04em;box-shadow:8px 8px 0 rgba(0,0,0,.35)}
 .at-public[hidden]{display:none}
 .at-public-btn{border-style:dashed}
+.at-stale{margin:10px 14px 0;padding:9px 11px;border:1px solid var(--w-neon-b);background:rgba(176,106,155,.14);color:var(--w-text);font-size:13px;line-height:1.4}
+.at-stale .at-btn{margin-top:8px}

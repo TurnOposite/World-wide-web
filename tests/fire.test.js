@@ -13,7 +13,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-import { fire, loadConfig, mapChanges, mapErrors, parseArgs, repoSlug, verdict } from '../scripts/fire.mjs';
+import { fire, loadConfig, mapChanges, mapErrors, parseArgs, repoSlug, verdict, bashPath } from '../scripts/fire.mjs';
 import { layoutFile, resolveLayout, stringifyLayout } from '../site/js/world/model.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -245,4 +245,17 @@ test('the pieces: options, the origin’s name, GitHub’s verdict, what changed
   assert.match(cfg.tower.update, /radio-tower-update$/, 'the same updater the night runs (deploy/cloud/update.sh)');
   const site = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/config.json'), 'utf8'));
   assert.equal(cfg.tower.url, site.tower.url, 'fire and the site name the same tower');
+});
+
+test('Windows: the tests get Git\'s bash, which a double-clicked fire.cmd did not have on PATH (2026-11-02)', () => {
+  const has = (...files) => (f) => files.includes(f);
+  assert.equal(bashPath({ platform: 'linux', pathVar: '/usr/bin' }), null, 'not Windows: nothing to change');
+  assert.equal(bashPath({ platform: 'win32', pathVar: 'C:\\Tools;C:\\Git\\bin', exists: has('C:\\Git\\bin\\bash.exe') }), null, 'bash already on PATH');
+  // Found from git itself: <git>/mingw64/libexec/git-core, as `git --exec-path` prints it.
+  assert.equal(bashPath({ platform: 'win32', pathVar: 'C:\\Tools', execPath: 'C:/Users/o/Ortis/Git/mingw64/libexec/git-core\n', root: 'C:\\elsewhere\\repo', exists: has('C:\\Users\\o\\Ortis\\Git\\bin\\bash.exe') }),
+    'C:\\Users\\o\\Ortis\\Git\\bin;C:\\Users\\o\\Ortis\\Git\\usr\\bin;C:\\Tools');
+  // A portable Git beside the repository, as on Ortis's laptop.
+  assert.equal(bashPath({ platform: 'win32', pathVar: '', root: 'C:\\Users\\o\\Ortis\\radio-tower-live', exists: has('C:\\Users\\o\\Ortis\\Git\\bin\\bash.exe') }),
+    'C:\\Users\\o\\Ortis\\Git\\bin;C:\\Users\\o\\Ortis\\Git\\usr\\bin');
+  assert.equal(bashPath({ platform: 'win32', pathVar: 'C:\\Tools', root: 'C:\\r', exists: () => false }), null, 'no Git bash anywhere: the tests say so themselves');
 });

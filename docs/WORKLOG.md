@@ -2985,3 +2985,17 @@ Ortis's remarks on the live site (`2e71ed4`), all in one change, pushed with `fi
   with the pointer resting on the tag, as the smoke leaves it after its 20 pans): the tag's hover swapped its
   colours over 120 ms, and half-way its text and face measured 1.76:1. The colours now change at once (the lift
   still eases); 0 of 16 after. A product fix, the check untouched.
+
+## 2026-11-03 — « It's not going through »: fire on a double-click, and a stale draft that blocked the Atelier (Claude, for Ortis)
+
+- **Diagnosed, live side healthy:** GitHub, Vercel and the tower on `91bde17`; the tower accepts its key at
+  `POST /api/key` (checked by fingerprint against `Radio Tower\library\tower.json`, the key never shown), and the
+  live Booth, driven in Chrome on the laptop with that key, opens: 12 queue slots, 10 moods, no errors.
+- **What was failing, on the laptop:** (1) `fire.cmd` stopped at its unit tests — 41 tests run the tower's shell
+  scripts with bash, which the portable Git in `Ortis\Git` does not put on PATH (`spawn bash ENOENT`): « the unit
+  tests fail — nothing was sent ». `fire.mjs` `bashPath` now finds Git's bash (from `git --exec-path`, a portable
+  Git beside the repository, or the usual install) and runs the tests with it; unit-tested. (2) The Atelier in
+  Chrome reloaded a 1 November draft made against the old map: laid over the 2 November map it read as 13 windows
+  changed and 2 errors, so it could not be saved. The Atelier now says when a draft predates the published map,
+  with « Revenir au publié » beside it. (3) The local `npm run site` had stopped with a restart of the Claude app;
+  restarted in its own window.
