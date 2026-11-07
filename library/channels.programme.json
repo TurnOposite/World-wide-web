@@ -8,9 +8,35 @@
     "lanes": [
       { "name": "Long mixes", "minMinutes": 35, "perDay": 5, "apart": 3 },
       { "name": "Favourites", "folders": ["For Radio", "For The Waves"], "every": 1 },
+      {
+        "name": "Snowpoint Lounge",
+        "_why": "Arthur, 07/11/2026: \"that artist is the goat, it needs to be high in the playrate\". Every 4 days = about 1 track in 5 (simulated). The folder plus his 18 Snowpoint album folders in Crates/Bandcamp.",
+        "folders": [
+          "Snowpoint Lounge",
+          "Crates/Bandcamp/snowpoint lounge - FRONTIER ワンダーランド",
+          "Crates/Bandcamp/snowpoint lounge - Lake Guardian Collection 感情- 知識- 意志力",
+          "Crates/Bandcamp/snowpoint lounge - Newmoon Nightmare (新月 悪夢)",
+          "Crates/Bandcamp/snowpoint lounge - SILPH SKYLINE - ウィッシュメーカー2 0 0 5",
+          "Crates/Bandcamp/snowpoint lounge - Sevii Safari 遠征",
+          "Crates/Bandcamp/snowpoint lounge - ス_ロ_ー_ス_タ_ー_ト ep (Remastered)",
+          "Crates/Bandcamp/snowpoint lounge - スロースタート ep",
+          "Crates/Bandcamp/snowpoint lounge - マグマストーム lp",
+          "Crates/Bandcamp/snowpoint lounge - マグマストーム lp (Remastered)",
+          "Crates/Bandcamp/snowpoint lounge - 予_想_外_の_メ_ロ_デ_ィ_ー Vol. 2",
+          "Crates/Bandcamp/snowpoint lounge - 予想外のメロディー Vol. 1",
+          "Crates/Bandcamp/snowpoint lounge - 失われた時間",
+          "Crates/Bandcamp/snowpoint lounge - 失われた時間 (Remastered)",
+          "Crates/Bandcamp/snowpoint lounge - 思い出の森",
+          "Crates/Bandcamp/snowpoint lounge - 意志力 lp",
+          "Crates/Bandcamp/snowpoint lounge - 感情 ep",
+          "Crates/Bandcamp/snowpoint lounge - 知識 ep",
+          "Crates/Bandcamp/snowpoint lounge - 비윤리적 변화 !"
+        ],
+        "every": 4
+      },
       { "name": "More often", "folders": ["More often"], "every": 3 },
       { "name": "Less often", "folders": ["Less often"], "every": 30 },
-      { "name": "Albums", "folders": ["Crates/Bandcamp", "Crates/Phone"], "fill": true },
+      { "name": "Albums", "folders": ["Crates/Bandcamp", "Crates/Phone", "Crates/Behold", "Behold"], "fill": true },
       { "name": "Loop", "every": 2 }
     ],
     "aliases": {}

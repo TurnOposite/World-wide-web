@@ -3800,3 +3800,30 @@ that, it's just a song. Keep the long mix slots to 5. »
 
 **Revisit if** Ortis cuts long mixes into pieces in Audition (they leave the lane for the Loop or the albums), the 84
 untagged files get names, or the 31 Bandcamp albums waiting for disk space arrive (the album pass grows by ~4 days).
+
+## 2026-11-07 (late) - Snowpoint Lounge every 4 days; the backup's songs at the albums' pace; the Crates read every page
+
+**Context.** Ortis, on the Behold import: « that artist is the goat, it needs to be high in the playrate ». Until
+then the snowpoint lounge albums were ordinary albums, one track each per pass of about 18 days.
+
+**Decision.**
+
+1. A **Snowpoint Lounge** lane, `every: 4`, right under the favourites: the `Snowpoint Lounge` folder plus each
+   snowpoint lounge album folder in `Crates/Bandcamp`, by name. Chosen that evening from a simulation of every 2, 3
+   and 4 days with the tower's code (`Claude outputs\behold-import\sim.txt`: 25 %, 18 % and 14 % of airtime). Under
+   the favourites, so the five snowpoint tracks in `For The Waves` stay daily; under the long mixes, so a snowpoint
+   piece of 35 minutes or more stays a long mix.
+2. The backup's songs (`Behold/`) and its 10-35-minute pieces (`Crates/Behold/`) join the **Albums** lane rather
+   than the Loop: 91 more songs every two days would have added about 3 hours a day to the Loop.
+3. The git copy matches the live file again: `DEFAULT_PROGRAMME`, `library/channels.programme.json` (a test keeps
+   the two identical) and `docs/PROGRAMME.md`.
+4. **The Crates read the whole library**, page by page, from the browser. The server's 500-a-page cap stays (a
+   public endpoint on a small server, and the in-browser station caps the same way); the room asks for the first
+   page, learns the total, then asks for the rest together.
+
+**Left open.** Six of the seven Snowpoint finds duplicate album tracks (WORKLOG, same date). Taking them off the
+tower is Ortis's call; `behold-import\snowpoint-dupes.mjs` does it.
+
+**Revisit if** a new snowpoint lounge album is downloaded (it joins the albums until its folder is added to the
+lane: a lane matched on the artist would catch it by itself, at the cost of also catching anything merely tagged
+with the name), or if 3 hours a day turns out to be too much or too little.

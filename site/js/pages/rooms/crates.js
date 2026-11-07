@@ -11,8 +11,9 @@
  * instead is the one thing a radio can promise: when each track is next on
  * air, read from the same pure-function-of-time schedule the player uses.
  *
- * Data: /api/library (what exists), /api/schedule over the next 48h (when it
- * plays), /api/collections (hand-picked covers and notes for some crates).
+ * Data: /api/library (what exists — every page of it, see loadLibrary), /api/schedule
+ * over the next 48h (when it plays), /api/collections (hand-picked covers and notes
+ * for some crates).
  */
 import { esc } from '../../ui/util.js';
 
@@ -40,6 +41,29 @@ const TEMPLATE = `<div class="room-head">
 </dialog>
 <p class="hint" id="statusLine"></p>
 `;
+
+/**
+ * The whole library, page by page. /api/library gives at most 500 tracks a
+ * request (the tower and the in-browser station alike), and the Crates asked
+ * for one page: on 2026-11-07 the tower held 3,174 tracks and the Archive
+ * showed 59 of its 287 albums, none of the evening's Bandcamp albums. The
+ * first page says the total; the rest are asked for together. Two pages read
+ * either side of a rescan can overlap, so a track is kept once.
+ *
+ * @param {(path: string) => Promise<{total?: number, items?: Array}>} get
+ */
+export async function loadLibrary(get, { page = 500, maxPages = 40 } = {}) {
+  const first = await get(`/api/library?limit=${page}&offset=0`);
+  const items = [...(first?.items || [])];
+  const total = Number(first?.total) || 0;
+  const step = items.length;
+  const offsets = [];
+  for (let off = step; step && off < total && offsets.length < maxPages; off += step) offsets.push(off);
+  const rest = await Promise.all(offsets.map((off) => get(`/api/library?limit=${page}&offset=${off}`)));
+  for (const r of rest) items.push(...(r?.items || []));
+  const seen = new Set();
+  return items.filter((t) => !seen.has(t.id) && seen.add(t.id));
+}
 
 export async function mount(root, ctx) {
   root.insertAdjacentHTML('beforeend', TEMPLATE);
@@ -213,10 +237,10 @@ export async function mount(root, ctx) {
     try {
       const [col, lib] = await Promise.all([
         ctx.client.get('/api/collections'),
-        ctx.client.get('/api/library?limit=500'),
+        loadLibrary((p) => ctx.client.get(p)),
         loadSchedule().catch(() => {}),
       ]);
-      crates = buildCrates(lib.items || [], col.music?.crates || []);
+      crates = buildCrates(lib, col.music?.crates || []);
       render(col.music);
       // The programme moves; keep the "next" times honest without a reload.
       const timer = setInterval(async () => {

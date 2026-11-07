@@ -21,7 +21,9 @@ shuffle.
 4. **Every album track plays, as many days as that takes.** The albums
    (`Crates/Bandcamp`, where the library bot opens Bandcamp zips, and since
    2026-11-07 `Crates/Phone`, the phone's pieces of 10 to 35 minutes — full
-   albums and short mixes as one file) fill the rest of each day, mixed track
+   albums and short mixes as one file; since that evening also `Crates/Behold`
+   and `Behold`, the pieces and songs from the backup drive) fill the rest of
+   each day, mixed track
    by track: a track from one album, then from another, never two from the
    same album in a row. Each track plays once per pass. A pass is as many
    days as the albums need, about 18 today.
@@ -43,6 +45,14 @@ shuffle.
    join the albums. New songs in a playlist folder join the loop. New
    favourites go in `For Radio` or `For The Waves`. Any of these starts
    playing the morning after it reaches the tower.
+9. **Snowpoint Lounge comes round every four days** (since 2026-11-07).
+   Ortis: « that artist is the goat, it needs to be high in the playrate ».
+   The lane is the `Snowpoint Lounge` folder plus each snowpoint lounge album
+   in `Crates/Bandcamp`, listed by name (18 on 2026-11-07): about 145 tracks,
+   11 hours, so about 3 hours a day, one track in six or seven. It sits under
+   the favourites, so the five snowpoint tracks in `For The Waves` stay daily.
+   A snowpoint lounge album downloaded later joins the albums until its folder
+   is added to the lane.
 
 ## What that gives, on the real library (simulated 2026-10-13, 28 days)
 
@@ -94,9 +104,10 @@ music; `library/channels.programme.json` is the copy in git):
   "lanes": [
     { "name": "Long mixes", "minMinutes": 35, "perDay": 5, "apart": 3 },
     { "name": "Favourites", "folders": ["For Radio", "For The Waves"], "every": 1 },
+    { "name": "Snowpoint Lounge", "folders": ["Snowpoint Lounge", "Crates/Bandcamp/snowpoint lounge - 思い出の森", "…17 more"], "every": 4 },
     { "name": "More often", "folders": ["More often"], "every": 3 },
     { "name": "Less often", "folders": ["Less often"], "every": 30 },
-    { "name": "Albums", "folders": ["Crates/Bandcamp", "Crates/Phone"], "fill": true },
+    { "name": "Albums", "folders": ["Crates/Bandcamp", "Crates/Phone", "Crates/Behold", "Behold"], "fill": true },
     { "name": "Loop", "every": 2 }
   ],
   "aliases": {}

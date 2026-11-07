@@ -56,7 +56,7 @@ test('a broken rules block falls back instead of throwing', () => {
   assert.equal(r.timeZone, 'Europe/Paris');
   assert.equal(r.dayStarts, '05:00');
   assert.equal(r.lanes.length, DEFAULT_PROGRAMME.lanes.length);
-  assert.deepEqual(normalizeProgramme(null).lanes.map((l) => l.kind), ['spaced', 'every', 'every', 'every', 'fill', 'every']);
+  assert.deepEqual(normalizeProgramme(null).lanes.map((l) => l.kind), ['spaced', 'every', 'every', 'every', 'every', 'fill', 'every']); // Snowpoint Lounge since 2026-11-07
   const odd = normalizeProgramme({ lanes: [{ name: 'Long', minMinutes: 20, perDay: 'lots', apart: -1 }, { name: 'Rest' }] });
   assert.equal(odd.lanes[0].perDay, 4);
   assert.equal(odd.lanes[0].apart, 3);

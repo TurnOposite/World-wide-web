@@ -3115,3 +3115,38 @@ Ortis's request in one change (DECISIONS, same date, « Lectures into the Livre 
 - **Self-test before** (5f5aab2): 455 unit, 43/43 browser, 154/156 site (Playlists' Spotify embed, the old
   `/echo/lectures` address — code this run did not touch), 26/26 Atelier. **After:** 455 unit, 43/43 browser,
   156/156 site, 26/26 Atelier — « the tower is sound ».
+
+## 2026-11-07 (late evening) - The Bandcamp albums, the Behold backup, a Snowpoint Lounge lane; the Crates read the whole library (Claude, for Ortis)
+
+- **Bandcamp:** once C: had room, the 31 albums missing from the radio were downloaded into `music\Crates\Bandcamp`
+  (352 tracks, Lake Guardian Collection included) and sent with the bot's `publish`
+  (`Claude outputs\programme-sheet\publish-*.log`).
+- **The Behold backup** (the USB key), 525 tracks read with the tower's scanner (`Claude outputs\behold-import\`,
+  `plan.json`, `summary.txt`): 264 already on the radio, 47 already there under another title, 25 whole albums
+  already there as tracks, 5 doubles inside the backup, 27 voice memos kept off. Added: 52 long mixes
+  (`Behold long mixes/`), 91 songs (`Behold/`), 7 pieces of 10-35 min (`Crates/Behold/`), 7 Snowpoint finds
+  (`Snowpoint Lounge/`). 184 files copied to the laptop (7.61 GB, `place.log`), 186 sent (`publish.log`). The 27
+  voice memos had gone to the tower too: replaced there by 16-byte stubs the scanner skips (`memo-stubs.log`); the
+  laptop's copies are in `behold-import\_excluded\`.
+- **Programme** (live `music\channels.json`; the earlier one kept as `channels.before-behold-2026-11-07.json`): a
+  **Snowpoint Lounge** lane, every 4 days, under the favourites - his folder and the 18 snowpoint lounge albums in
+  `Crates/Bandcamp`; the Albums lane also takes `Crates/Behold` and `Behold`. Now also in `DEFAULT_PROGRAMME`,
+  `library/channels.programme.json` and `docs/PROGRAMME.md` (rule 9); `programme.test.js` pins seven lanes.
+- **Checked** with the tower's code and its public API (`Claude outputs\check-2026-11-07\programme-check.txt`): the
+  lane holds 145 tracks, 11.3 h, every one of them on the tower; the tower's own schedule for 8 November gives it 38
+  of 246 slots, 2.9 h. **Six of the seven Snowpoint finds are the same recordings as album tracks already on air**
+  (lengths within 0.15 s; titles the same or nearly: « 鋭敏な洞窟 », « ＢＩＲＴＨ 島 », « B a t t l e F a c t o r y
+  ゴールドシンボルバトル » / « …v2 », « fallacious will and desire » / « fallacious willpower », « ミチナの飲み物 » /
+  « ミチナで飲む », « 空間と時間 (ep version) »). The dedupe cannot see them: Japanese titles fold to nothing, and
+  the other names differ. So each of those six plays twice per pass. The only new one is FRONTIER 08 « 戦いRoulette
+  with Dahlia ». **Not taken off yet:** changing the tower's files needs Ortis's word.
+  `behold-import\snowpoint-dupes.mjs` is ready (its `--check` run lists the six): it stubs them on the tower,
+  rescans, and moves the laptop copies to `behold-import\_excluded\`.
+- **The Crates** (the Archive's second room) asked for one page of `/api/library`, 500 tracks: the tower holds
+  3,174 and the room showed 59 of its 287 albums, none of tonight's. `loadLibrary` in `rooms/crates.js` reads the
+  first page, then the rest together, and keeps a track once if two pages overlap. Against the real tower: 3,174
+  tracks, 275 albums, 146 by snowpoint lounge, in about half a second. `tests/crates.test.js` (5 tests).
+- **The tower's night** (~04:20 UTC, 05:20 Paris) comes 20 minutes after the programme's day starts at 05:00, so
+  this goes out with `fire`, which updates the tower at once, rather than waiting for it.
+- **Unit tests** on the laptop, with Git's bash on PATH: 464, 434 pass, 30 skipped, 0 fail. CI runs the full
+  self-test before the tower takes the commit.
