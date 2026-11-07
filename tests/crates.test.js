@@ -5,7 +5,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { loadLibrary } from '../site/js/pages/rooms/crates.js';
+import { loadLibrary, onTower } from '../site/js/pages/rooms/crates.js';
 
 /** A /api/library like the tower's: limit capped at `cap`, offset honoured. */
 function tower(n, cap = 500, shift = 0) {
@@ -54,4 +54,14 @@ test('the page count is bounded', async () => {
   const { get, asked } = tower(100_000);
   await loadLibrary(get, { maxPages: 3 });
   assert.equal(asked.length, 4);
+});
+
+test('a cover the room names is fetched from the tower when the site is tuned to one (it was the website\'s 404)', () => {
+  const tower = 'https://129-151-227-129.sslip.io';
+  assert.equal(onTower('/api/track/861d253028f8/art', tower), `${tower}/api/track/861d253028f8/art`);
+  assert.equal(onTower('/collections/music/covers/orre-region.jpg', tower + '/'), `${tower}/collections/music/covers/orre-region.jpg`);
+  assert.equal(onTower('https://cdn.example/a.jpg', tower), 'https://cdn.example/a.jpg', 'an absolute address is left alone');
+  assert.equal(onTower('//cdn.example/a.jpg', tower), '//cdn.example/a.jpg');
+  assert.equal(onTower('/api/track/x/art', undefined), '/api/track/x/art', 'no tower: the page and the art share an origin');
+  assert.equal(onTower(null, tower), null);
 });

@@ -3150,3 +3150,7 @@ Ortis's request in one change (DECISIONS, same date, « Lectures into the Livre 
   this goes out with `fire`, which updates the tower at once, rather than waiting for it.
 - **Unit tests** on the laptop, with Git's bash on PATH: 464, 434 pass, 30 skipped, 0 fail. CI runs the full
   self-test before the tower takes the commit.
+- **Then, on the live site:** the Crates now list 3,174 tracks in 275 albums, but every sleeve showed a broken
+  image: the room builds `/api/track/<id>/art` (and the picked covers' `/collections/…`) as bare paths, which on
+  Vercel ask the website, not the tower (the tower client only rewrites the API's own `…Url` fields). `onTower` in
+  `rooms/crates.js` puts the tower's origin in front; one more test in `tests/crates.test.js`.

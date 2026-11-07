@@ -65,6 +65,20 @@ export async function loadLibrary(get, { page = 500, maxPages = 40 } = {}) {
   return items.filter((t) => !seen.has(t.id) && seen.add(t.id));
 }
 
+/**
+ * A cover the room names itself (`/api/track/<id>/art`, or a crate's picked
+ * cover under `/collections/`) is a path on the tower. On the site (Vercel,
+ * tuned to the cloud tower) a bare path asked the website, which answered 404:
+ * every sleeve showed a broken image. The tower client makes the API's own
+ * `…Url` fields absolute (towerUrls in engine/transport.js); these two it
+ * never sees. No origin (the in-browser station, or the tower serving its own
+ * pages) leaves the path as it is.
+ */
+export function onTower(url, origin) {
+  if (!url || !origin || !url.startsWith('/') || url.startsWith('//')) return url;
+  return String(origin).replace(/\/$/, '') + url;
+}
+
 export async function mount(root, ctx) {
   root.insertAdjacentHTML('beforeend', TEMPLATE);
   const $ = (id) => root.querySelector('#' + id);
@@ -119,7 +133,7 @@ export async function mount(root, ctx) {
       const pick = picks.find((p) => p.match?.album && c.album !== LOOSE && fold(c.album).includes(fold(p.match.album)));
       c.note = pick?.note || '';
       const withArt = c.tracks.find((t) => t.hasArt);
-      c.cover = pick?.cover || c.tracks.find((t) => t.artUrl)?.artUrl || (withArt ? `/api/track/${withArt.id}/art` : null);
+      c.cover = onTower(pick?.cover || c.tracks.find((t) => t.artUrl)?.artUrl || (withArt ? `/api/track/${withArt.id}/art` : null), ctx.client.origin);
       c.id = pick?.id || c.key.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
       out.push(c);
     }
