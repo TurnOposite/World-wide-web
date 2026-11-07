@@ -24,7 +24,7 @@
  * ------------------
  * Every track belongs to the first *lane* whose filter it matches:
  *
- *   perDay: 4  a few a day, in turn, at least `apart` songs     (Long mixes)
+ *   perDay: 5  a few a day, in turn, at least `apart` songs     (Long mixes)
  *              apart and never two in a row
  *   every: 1   all of its tracks, every day                      (Favourites)
  *   every: N   a "pass" of N days: shuffled once per pass, then   (Loop, More
@@ -150,11 +150,13 @@ export const DEFAULT_PROGRAMME = {
   dayStarts: '05:00',
   since: '2026-10-14',
   lanes: [
-    { name: 'Long mixes', minMinutes: 20, perDay: 4, apart: 3 },
+    // 35 min / 5 a day since 2026-11-07 (was 20 / 4). Ortis: « 35 minutes or more is a long mix. Under that, it's just a song. »
+    { name: 'Long mixes', minMinutes: 35, perDay: 5, apart: 3 },
     { name: 'Favourites', folders: ['For Radio', 'For The Waves'], every: 1 },
     { name: 'More often', folders: ['More often'], every: 3 },
     { name: 'Less often', folders: ['Less often'], every: 30 },
-    { name: 'Albums', folders: ['Crates/Bandcamp'], fill: true },
+    // Crates/Phone (2026-11-07): the phone's 10–35-minute pieces, at the albums' pace rather than the loop's.
+    { name: 'Albums', folders: ['Crates/Bandcamp', 'Crates/Phone'], fill: true },
     { name: 'Loop', every: 2 },
   ],
   aliases: {},
@@ -466,12 +468,15 @@ function longPicks(plan, d) {
   if (!lane) return [];
   const m = lane.tracks.length;
   const k = Math.min(lane.perDay, m);
-  const out = [];
-  for (let g = (d - plan.since) * k, end = g + k; g < end; g++) {
+  // A day that straddles two passes can meet a mix of the old pass again early in the new one; it used to be
+  // dropped (a day of 3 where the rules say 4). The day now reads on down the stream until it has k different
+  // mixes — rare with the real lane, common in a small one. 2026-11-07.
+  const out = new Set();
+  for (let g = (d - plan.since) * k, n = 0; out.size < k && n < 2 * m + k; g++, n++) {
     const pass = Math.floor(g / m);
-    out.push(passOf(plan, lane, pass).order[g - pass * m]);
+    out.add(passOf(plan, lane, pass).order[g - pass * m]);
   }
-  return [...new Set(out)];
+  return [...out];
 }
 
 const slotSeconds = (list, gap) => list.reduce((s, t) => s + t.duration + gap, 0);

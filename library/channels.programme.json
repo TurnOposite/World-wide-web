@@ -6,11 +6,11 @@
     "dayStarts": "05:00",
     "since": "2026-10-14",
     "lanes": [
-      { "name": "Long mixes", "minMinutes": 20, "perDay": 4, "apart": 3 },
+      { "name": "Long mixes", "minMinutes": 35, "perDay": 5, "apart": 3 },
       { "name": "Favourites", "folders": ["For Radio", "For The Waves"], "every": 1 },
       { "name": "More often", "folders": ["More often"], "every": 3 },
       { "name": "Less often", "folders": ["Less often"], "every": 30 },
-      { "name": "Albums", "folders": ["Crates/Bandcamp"], "fill": true },
+      { "name": "Albums", "folders": ["Crates/Bandcamp", "Crates/Phone"], "fill": true },
       { "name": "Loop", "every": 2 }
     ],
     "aliases": {}

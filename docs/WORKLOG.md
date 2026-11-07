@@ -3088,3 +3088,30 @@ Ortis's request in one change (DECISIONS, same date, « Lectures into the Livre 
 - **Articles:** the line under the title (« Les reportages d'Echo, puis la presse… ») is gone, at Ortis's word.
 - **`docs/LIVE.md`:** a new section — what the Oracle server does and what the site becomes without it.
 - **Self-test:** 455 unit; site smoke 145/145 (Chromium's headless shell).
+
+## 2026-11-07 — Echo without its silhouettes; long mixes from 35 minutes; the phone's music (Claude, for Ortis)
+
+- **Echo:** the six silhouettes are off the paper (`layout.js` `FIGURES = []`) — the fist beside the Une and the
+  flag beside the Atlas that Ortis named, and the horn that reached over the Zone/Echo switch from the Archive.
+  White paper, ash and torn seam kept. Unit test and smoke check now pin « no figures »; the mechanism stays for
+  when one comes back. Before/after screenshots at 1536 × 864: Une, Atlas, Archive.
+- **Programme:** Long mixes `minMinutes 20 → 35`, `perDay 4 → 5` (a first go at 10 / 6 was turned down the same
+  afternoon), Albums also take `Crates/Phone`; live `Radio Tower\music\channels.json` (the 13/10 file kept as
+  `channels.before-long-10min-2026-11-07.json`), `library/channels.programme.json`, `DEFAULT_PROGRAMME`.
+  `longPicks` fixed so a day straddling two passes still gets its full count. Two long files lay loose at the root
+  of `music\` where `publish` never looks (« Dirty River – The desire to move forward », Kester Spach's « UTOPIAN
+  SCHOLASTIC ») — moved into `Liminal Atmosphere\`.
+- **The phone's music** (USB key `D:\Music\iPhone tracks`, 327 files, 17 GB), read with the tower's own scanner
+  and deduplicated against the library: 44 songs → `music\Phone\`, 27 pieces of 10–35 min → `music\Crates\Phone\`,
+  70 long mixes → the tower as `Phone long mixes/` straight from the key (C: had 6 GB free); 76 already on the
+  radio, 26 whole albums already in `Crates`, 84 untagged files left on the key. The laptop's disk is the limit:
+  `C:\Users\barri\iPhone-Backup` holds 289 GB.
+- **Published** from the laptop (`Claude outputs\programme-sheet\run-publish.cmd`: the bot's `publish`, then
+  `publish-usb.mjs` for the long mixes) — see the end of this entry for how far it got.
+- **Bandcamp:** 191 items in the collection (168 + 23 hidden), 31 not on the radio (4.1 GB) — not downloaded, no
+  disk space. Listed in the sheet.
+- **The sheet:** `Radio-Tower_programme_3-weeks.xlsx` — 21 days slot by slot from the tower's code, by category,
+  with days, categories, tracks, long mixes, artists, hours of day, the phone import and the Bandcamp list.
+- **Self-test before** (5f5aab2): 455 unit, 43/43 browser, 154/156 site (Playlists' Spotify embed, the old
+  `/echo/lectures` address — code this run did not touch), 26/26 Atelier. **After:** 455 unit, 43/43 browser,
+  156/156 site, 26/26 Atelier — « the tower is sound ».

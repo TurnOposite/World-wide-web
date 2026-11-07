@@ -20,7 +20,8 @@ function library() {
   for (let i = 0; i < 3; i++) add(`For The Waves/wave${i}.mp3`, 'slowerpace', 240);
   for (let i = 0; i < 30; i++) add(`BarberBeats/loop${i}.mp3`, ['undersaken', 'Mabisyo', 'silph skyline', 'Blank Banshee'][i % 4], 180 + (i % 5) * 20);
   for (let a = 0; a < 40; a++) for (let i = 0; i < 10; i++) add(`Crates/Bandcamp/album${a}/t${i}.mp3`, a % 4 === 0 ? `Artist ${a}` : 'undersaken', 150 + ((a * 7 + i * 13) % 200));
-  for (let i = 0; i < 7; i++) add(`Liminal Atmosphere/mix${i}.mp3`, i === 3 ? 'undersaken' : `Mixer ${i}`, 1500 + i * 700);
+  // Seven long mixes, 35 to 105 minutes: a long mix is 35 minutes or more since 2026-11-07 (it was 25 to 95, from 20).
+  for (let i = 0; i < 7; i++) add(`Liminal Atmosphere/mix${i}.mp3`, i === 3 ? 'undersaken' : `Mixer ${i}`, 2100 + i * 700);
   for (let i = 0; i < 4; i++) add(`More often/up${i}.mp3`, `Pushed ${i}`, 200);
   for (let i = 0; i < 2; i++) add(`Less often/down${i}.mp3`, `Rested ${i}`, 200);
   return out;
@@ -136,15 +137,15 @@ test('favourites every day, the loop once every two days, every album track with
   assert.ok(mean(favs) > mean(loop) && mean(loop) > mean(albums), `${mean(favs)} / ${mean(loop)} / ${mean(albums)}`);
 });
 
-test('long mixes: at most four a day, in turn, never two in a row, at least three songs between', () => {
+test('long mixes: at most five a day (four until 2026-11-07), in turn, never two in a row, at least three songs between', () => {
   const st = new DailyStation(tracks, { epoch: EPOCH, programme: DEFAULT_PROGRAMME });
   const longIds = new Set(st._era.plan.spaced.tracks.map((t) => t.id));
   const heard = new Set();
   for (let d = day0; d < day0 + 4; d++) {
     const order = st.cycleOrder(d);
     const at = order.map((t, i) => (longIds.has(t.id) ? i : -1)).filter((i) => i >= 0);
-    assert.ok(at.length <= 4, `${at.length} long mixes on ${cal.dateOf(d)}`);
-    assert.equal(at.length, 4, 'the day has room for four');
+    assert.ok(at.length <= 5, `${at.length} long mixes on ${cal.dateOf(d)}`);
+    assert.equal(at.length, 5, 'the day has room for five');
     for (let j = 1; j < at.length; j++) assert.ok(at[j] - at[j - 1] - 1 >= 3, `only ${at[j] - at[j - 1] - 1} songs between two long mixes`);
     assert.equal(new Set(at.map((i) => order[i].id)).size, at.length, 'no long mix twice in a day');
     // Spread through the day, not bunched: the first in the first half, the last in the second.

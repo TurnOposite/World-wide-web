@@ -1091,8 +1091,9 @@ try {
   check('…beside the lead, « À l\'antenne »: what Zone plays right now and the way back to the radio — no way to the texts; under it, the two press series', echoSkin.onair === echoSkin.playing
     && echoSkin.go === 'radio' && echoSkin.teaser === 0 && echoSkin.cols === 2 && echoSkin.groups.join() === 'echo/articles#metro,echo/articles#jogos',
     JSON.stringify({ onair: echoSkin.onair, playing: echoSkin.playing, go: echoSkin.go, teaser: echoSkin.teaser, cols: echoSkin.cols, groups: echoSkin.groups }));
-  check('…the Gazette\'s silhouettes stand on Echo\'s paper and its ash falls behind the windows (the plane\'s paper has faded into the far layer)',
-    echoSkin.figures === 6 && echoSkin.ash && echoSkin.drawn > 2 && echoSkin.moved && echoSkin.ground === '0' && echoSkin.tear === '0', JSON.stringify(echoSkin));
+  // The silhouettes came off on 2026-11-07 (Ortis: the flag beside the Atlas, the black shape beside the Une): plain paper.
+  check('…Echo\'s paper is plain — no silhouettes on it — and its ash falls behind the windows (the plane\'s paper has faded into the far layer)',
+    echoSkin.figures === 0 && echoSkin.ash && echoSkin.drawn > 2 && echoSkin.moved && echoSkin.ground === '0' && echoSkin.tear === '0', JSON.stringify(echoSkin));
 
   if (!(await w.evaluate(() => window.radioTower.player.playing))) await w.click('#mbTune');
   await w.waitForFunction(() => { const au = document.getElementById('audio'); return !au.paused && au.currentTime > 0.3; }, null, { timeout: 10000 }).catch(() => {});

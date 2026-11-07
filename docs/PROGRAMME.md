@@ -19,14 +19,18 @@ shuffle.
    plus any song later filed in a playlist folder. Each one plays once in
    every two-day pass: more often than the albums, not every day.
 4. **Every album track plays, as many days as that takes.** The albums
-   (`Crates/Bandcamp`, where the library bot opens Bandcamp zips) fill the rest
-   of each day, mixed track by track: a track from one album, then from
-   another, never two from the same album in a row. Each track plays once per
-   pass. A pass is as many days as the albums need, 9 today.
-5. **Long mixes are spaced out.** Anything 20 minutes or longer: **at most 4
-   a day, never two in a row, at least 3 songs between them**, spread evenly
-   through the day (around 07:30, 13:30, 19:30 and 01:30). They take turns, so
-   each comes round every 5 or 6 days.
+   (`Crates/Bandcamp`, where the library bot opens Bandcamp zips, and since
+   2026-11-07 `Crates/Phone`, the phone's pieces of 10 to 35 minutes — full
+   albums and short mixes as one file) fill the rest of each day, mixed track
+   by track: a track from one album, then from another, never two from the
+   same album in a row. Each track plays once per pass. A pass is as many
+   days as the albums need, about 18 today.
+5. **Long mixes are spaced out.** Anything **35 minutes or longer** (20 until
+   2026-11-07) — Ortis: « 35 minutes or more is a long mix. Under that, it's
+   just a song. » **At most 5 a day, never two in a row, at least 3 songs
+   between them**, spread evenly through the day (about every five hours).
+   They take turns: with the phone's mixes there are 90 of them, so each comes
+   round about every 18 days, and long mixes fill about 5½ hours a day.
 6. **Never the same artist twice in a row, as far as the music allows.**
    Collaborations count as each of their artists, so "undersaken & GORE"
    can follow neither undersaken nor GORE. A file with no artist tag gets
@@ -88,11 +92,11 @@ music; `library/channels.programme.json` is the copy in git):
   "dayStarts": "05:00",
   "since": "2026-10-14",
   "lanes": [
-    { "name": "Long mixes", "minMinutes": 20, "perDay": 4, "apart": 3 },
+    { "name": "Long mixes", "minMinutes": 35, "perDay": 5, "apart": 3 },
     { "name": "Favourites", "folders": ["For Radio", "For The Waves"], "every": 1 },
     { "name": "More often", "folders": ["More often"], "every": 3 },
     { "name": "Less often", "folders": ["Less often"], "every": 30 },
-    { "name": "Albums", "folders": ["Crates/Bandcamp"], "fill": true },
+    { "name": "Albums", "folders": ["Crates/Bandcamp", "Crates/Phone"], "fill": true },
     { "name": "Loop", "every": 2 }
   ],
   "aliases": {}
@@ -100,7 +104,10 @@ music; `library/channels.programme.json` is the copy in git):
 ```
 
 - A track goes in the **first lane it matches**, top to bottom, so a track of
-  20 minutes or more is always a long mix, whatever its folder. `folders`
+  35 minutes or more is always a long mix, whatever its folder (a favourite
+  too). Without a readable `programme` block the tower falls back to
+  `DEFAULT_PROGRAMME` in `server/lib/programme.js`, which holds these same
+  rules (a test keeps the two identical). `folders`
   matches the path inside the music folder (`"Crates/Bandcamp"` also covers
   everything under it). `crates` matches a Spotify playlist it belongs to.
   `minMinutes` / `maxMinutes` match its length. A lane with no filter takes

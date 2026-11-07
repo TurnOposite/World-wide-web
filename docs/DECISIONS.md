@@ -3764,3 +3764,39 @@ bookcase as a table, the thesis card should be what the thesis book opens.
    25 October – 3 November with Lectures, Archives, the Photos tab), as v1 and v2 were — and in git.
 **Revisit if** a phone finds the map table's sheets too small to aim at (then a list under the table on narrow
 screens), or the Copenhagen maps need their own reading (then their `context` from the UCPH paper).
+
+## 2026-11-07 — Echo's paper goes plain; a long mix is 35 minutes or more, 5 a day; the phone's music
+
+**Context.** Ortis on the Echo side: « the tabs themselves are pretty, but around the tabs it just does not work —
+a random flag on the left of Atlas and a random black shape on the left of the Une… remove those… keep the white
+style before we find anything. » The black shape is the fist (2640, 300), the flag stands at (2635, 1000); the horn
+at (4400, 865) also reached over the Zone/Echo switch from the Archive's view. On the programme, after a first try at
+10 minutes / 6 a day that he turned down the same afternoon: « Anything of 35 minutes or more is a long mix. Under
+that, it's just a song. Keep the long mix slots to 5. »
+
+**Decision.**
+1. `FIGURES` is empty (all six silhouettes, not only the two named: they are one family, and « the white style »
+   is the paper without them). The layer, the sprite (still used by the classic Gazette's night sides) and the
+   never-over-a-window rule stay, so one line brings a figure back. The ash and the torn seam stay.
+2. Long mixes: `minMinutes: 35, perDay: 5` (was 20 / 4), in the live `music/channels.json`, in
+   `library/channels.programme.json` and in `DEFAULT_PROGRAMME` (a test keeps the last two identical). The test
+   library's seven mixes now run 35–105 minutes, so they are still long mixes under the new line.
+3. **The phone's music** (USB key, `D:\Music\iPhone tracks`, 327 files): songs under 10 minutes → `music/Phone/`
+   (the Loop, every 2 days); 10–35 minutes → `music/Crates/Phone/`, added to the Albums lane's folders (full albums
+   and half-hour mixes as one file would have tripled the Loop's hours and starved the albums); 35 minutes and over
+   → the tower only, `Phone long mixes/`, sent straight from the USB key because the laptop's disk had 6 GB free.
+   Not taken: tracks the library already has (the scanner's dedupe would have kept the phone copy and moved, for
+   one, a favourite out of `For The Waves`), whole albums already in `Crates` as tracks, and 84 files with no tags
+   (iPhone names like `ASTT.mp3`) — they stay on the key until named.
+4. **A day always gets its full count of long mixes.** A day that straddles two passes of the lane met a mix of the
+   old pass again in the new one, and the duplicate was dropped (a day of 4 where the rules say 5; rare in the real
+   lane, found by the test library at a higher `perDay`). `longPicks` now reads on down the stream until it has
+   `perDay` different mixes. Deterministic as before; a mix pulled forward can then play two days running.
+
+**Measured** (the tower's code on the real library + the phone, 21 days from 8 November,
+`Radio-Tower_programme_3-weeks.xlsx`): 2,683 tracks; 5 long mixes a day, 5.5 h of the day, each back every ~18 days
+(90 of them); favourites daily; the Loop (146) every 2 days, 6.2 h a day; the albums 10.4 h a day, a full pass in
+~18 days; undersaken 36 % of airtime.
+
+**Revisit if** Ortis cuts long mixes into pieces in Audition (they leave the lane for the Loop or the albums), the 84
+untagged files get names, or the 31 Bandcamp albums waiting for disk space arrive (the album pass grows by ~4 days).

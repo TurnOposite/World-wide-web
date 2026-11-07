@@ -129,9 +129,10 @@ test('every route lands in a district, and every district with a page names a ro
   assert.equal(byId('articles').route, 'echo/articles');
 });
 
-test('Echo\'s figures stand on the paper, in the gutters: never over a window, every one a symbol the Gazette draws', () => {
+test('Echo\'s paper is plain (Ortis, 2026-11-07); a figure put back stands in a gutter, never over a window, a symbol the Gazette draws', () => {
   const sprite = fs.readFileSync(new URL('../site/js/ui/echo-front.js', import.meta.url), 'utf8');
-  assert.ok(FIGURES.length >= 4);
+  // The flag beside the Atlas, the fist beside the Une and the rest came off: « keep the white style ».
+  assert.deepEqual(FIGURES, []);
   for (const f of FIGURES) {
     assert.ok(sprite.includes(`id="s-${f.kind}"`), `${f.kind} is a symbol of echo-front.js`);
     assert.ok(f.x >= WORLD.seam + 20 && f.x + f.w <= WORLD.w && f.y >= 0 && f.y + f.h <= WORLD.h, `${f.kind} is on Echo's paper, past the torn edge`);

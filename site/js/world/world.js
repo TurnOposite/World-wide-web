@@ -90,6 +90,8 @@ function figures() {
   const g = el('div', 'w-figures');
   g.setAttribute('aria-hidden', 'true');
   g.innerHTML = FIGURES.map((f) => `<svg class="w-fig" data-k="${f.kind}" style="left:${f.x}px;top:${f.y}px;width:${f.w}px;height:${f.h}px" focusable="false"><use href="#s-${f.kind}"/></svg>`).join('');
+  // None since 2026-11-07 (layout.js FIGURES): plain paper, the layer kept for when one comes back.
+  g.hidden = FIGURES.length === 0;
   return g;
 }
 function hideCovered(g) {

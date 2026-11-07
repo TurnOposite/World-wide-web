@@ -79,19 +79,19 @@ export const DISTRICTS = [
 
 /**
  * Echo's backdrop (phase 4): the Gazette's silhouettes — ui/echo-front.js's
- * symbols, shapes and not people — stand on the paper in the gutters between
+ * symbols, shapes and not people — stood on the paper in the gutters between
  * Echo's windows, never over one. x, y, w, h in world pixels.
+ *
+ * Taken off 2026-11-07 (Ortis: « a random flag on the left of Atlas and a
+ * random black shape on the left of the Une… keep the white style before we
+ * find anything »): the fist beside the Une, the flag beside the Atlas and
+ * the horn that reached over the Zone/Echo switch from Archive's view went
+ * with the three under the windows. Echo is plain paper until a better idea.
+ * To bring one back, put its line back here — e.g.
+ * `{ kind: 'flag', x: 2635, y: 1000, w: 118, h: 258 }` — the layer, the sprite
+ * and the never-over-a-window rule are all still in place.
  */
-export const FIGURES = [
-  { kind: 'fist', x: 2640, y: 300, w: 104, h: 228 },
-  { kind: 'flag', x: 2635, y: 1000, w: 118, h: 258 },
-  { kind: 'horn', x: 4400, y: 865, w: 182, h: 130 },
-  // Echo is two rows since 2026-11-03 (Lectures and Archives went; the Archive took Lectures' place):
-  // the band under them is the figures' again.
-  { kind: 'drum', x: 2700, y: 1800, w: 150, h: 250 },
-  { kind: 'crowd', x: 3300, y: 2120, w: 392, h: 236 },
-  { kind: 'statue', x: 4560, y: 1830, w: 150, h: 300 },
-];
+export const FIGURES = [];
 
 /** The map as designed, untouched by layout.json: the Atelier's « as designed » and the tests' reference. */
 export const DESIGNED = Object.freeze(DISTRICTS.map((d) => Object.freeze({ ...d, tag: Object.freeze([...d.tag]) })));
