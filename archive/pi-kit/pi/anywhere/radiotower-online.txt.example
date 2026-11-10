@@ -1,0 +1,52 @@
+# Radio Tower — how the tower goes online, wherever you plug it in.
+#
+# Copy this file to the SD card's boot partition (the small drive Windows
+# calls "bootfs") and name it exactly:
+#
+#     radiotower-online.txt
+#
+# The tower reads it on EVERY boot, next to radiotower-wifi.txt.
+# Or let pi\anywhere\prepare-card.ps1 write both files for you.
+#
+# ---------------------------------------------------------------------------
+# YOUR DOMAIN
+# ---------------------------------------------------------------------------
+# The address people type. The tunnel below must have a "published
+# application" route for exactly this name → http://localhost:8080.
+
+DOMAIN = radio.example.com
+
+# The Cloudflare Tunnel token: one long string starting with eyJ.
+# Cloudflare dashboard → Networking → Tunnels → your tunnel → the install
+# command shows it. Pasting the whole "cloudflared service install eyJ..."
+# line also works. Full walkthrough: pi/anywhere/DOMAIN.md
+#
+# Leave it empty and the station stays on the local network only.
+
+TUNNEL_TOKEN =
+
+# ---------------------------------------------------------------------------
+# THE SETUP HOTSPOT
+# ---------------------------------------------------------------------------
+# When the tower can't find any Wi-Fi it knows (and no Ethernet cable is
+# in), it makes this network. Join it from your phone, a page opens, pick the
+# router that is actually there, type its password. Done — it remembers it.
+#
+# name | password    (password: 8 to 63 characters)
+
+SETUP_HOTSPOT = Radio Tower Setup | radiotower
+
+# ---------------------------------------------------------------------------
+# OPTIONAL: tell my phone when it's live
+# ---------------------------------------------------------------------------
+# Install the free "ntfy" app, subscribe to a topic name only you know, and
+# put it here. The tower sends one message each time it comes online
+# somewhere new. Anyone who guesses the topic can read it, so make it long.
+
+NOTIFY =
+
+# ---------------------------------------------------------------------------
+# The same honest warning as the Wi-Fi file: this partition is FAT32 and has
+# no permissions. Anyone holding the card can read the token. After the
+# first boot the tower keeps its own root-only copy in /etc/radiotower/, so
+# you may delete the TUNNEL_TOKEN line and it will stay online.

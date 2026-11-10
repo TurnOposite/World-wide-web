@@ -705,7 +705,8 @@ try {
   // /echo/lectures alone, the list that was: it leads to the Archive with the book open.
   await a.evaluate(() => window.radioTower.router.go('echo/lectures'));
   await a.waitForFunction(() => location.pathname === '/portfolio' && document.querySelector('dialog.mirror-book')?.open, null, { timeout: 8000 }).catch(() => {});
-  check('the old /echo/lectures address leads to the Archive, the Livre miroir open', await a.evaluate(() => location.pathname === '/portfolio' && location.hash === '#miroir' && document.querySelector('dialog.mirror-book').open));
+  const oldLect = await a.evaluate(() => ({ path: location.pathname, hash: location.hash, book: Boolean(document.querySelector('dialog.mirror-book')?.open) }));
+  check('the old /echo/lectures address leads to the Archive, the Livre miroir open', oldLect.path === '/portfolio' && oldLect.hash === '#miroir' && oldLect.book, JSON.stringify(oldLect));
   await a.keyboard.press('Escape');
   await a.waitForFunction(() => !document.querySelector('dialog.mirror-book')?.open && location.hash === '', null, { timeout: 3000 }).catch(() => {});
   check('…and Esc closes the book', await a.evaluate(() => !document.querySelector('dialog.mirror-book')?.open && location.hash === ''));

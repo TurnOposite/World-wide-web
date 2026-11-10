@@ -1,0 +1,57 @@
+# Radio Tower — which Wi-Fi networks this station may join.
+#
+# Copy this file to the SD card's boot partition (the small one Windows can
+# see, usually called "bootfs") and name it exactly:
+#
+#     radiotower-wifi.txt
+#
+# The tower reads it on EVERY boot. To move the station to a new house: put
+# the card in a card reader, edit this file, put it back, power on. You never
+# need to SSH in, and you never need a monitor and keyboard.
+#
+# ---------------------------------------------------------------------------
+# ONE NETWORK PER LINE:      network name | password
+# ---------------------------------------------------------------------------
+#
+# Everything before the "|" is the network name, everything after it is the
+# password. Spaces around the "|" are ignored, spaces inside the name and the
+# password are kept. Lines starting with "#" are ignored, like this one.
+#
+# The FIRST line listed wins when more than one is in range, so put the
+# network you actually want at the top.
+
+Living Room 5G | correcthorsebattery
+
+# A phone hotspot is a good second line — it means you can always reach the
+# tower by turning tethering on, wherever you both happen to be.
+
+# My iPhone | tetherpassword
+
+# An open network with no password: leave the right-hand side empty.
+
+# CoffeeShopGuest |
+
+# ---------------------------------------------------------------------------
+# THE FALLBACK: the tower makes its own Wi-Fi
+# ---------------------------------------------------------------------------
+#
+# If none of the networks above can be reached, the tower can broadcast its
+# own instead. No router involved at all — people join the tower directly and
+# open http://10.42.0.1:8080. This is what makes the station something you can
+# carry to a place with no internet and still switch on.
+#
+# Uncomment the line below to enable it. The password must be at least 8
+# characters, or WPA will refuse it.
+
+# HOTSPOT = Radio Tower | towerpassword
+
+# ---------------------------------------------------------------------------
+# ONE HONEST WARNING
+# ---------------------------------------------------------------------------
+#
+# The boot partition is FAT32 and has no permissions, so these passwords are
+# readable by anyone who puts this card in a computer. That is the price of
+# being able to fix the network without logging in. If the card is going
+# somewhere you would not leave a written-down password, delete the lines
+# after the first successful boot — NetworkManager has already stored them
+# and the tower will keep reconnecting without this file.

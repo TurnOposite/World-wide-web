@@ -169,6 +169,11 @@ function build(intro) {
     if (e.target.closest('a.stone')) setTimeout(() => dialog.open && dialog.close(), 0);
   });
   dialog.addEventListener('close', () => {
+    // The event arrives a moment after close(): when the book was closed and taken down again in the same
+    // breath (leaving the Archive for a text and coming straight back by /echo/lectures, 2026-11-10), it lands
+    // on a book that is open again — and would strip its address, its water and its classes. That close is
+    // over; this book is not closing.
+    if (dialog.open) return;
     timers.forEach(clearTimeout);
     timers = [];
     pond?.destroy();

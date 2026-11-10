@@ -1,0 +1,31 @@
+[Unit]
+Description=Radio Tower — public on your domain via Cloudflare Tunnel
+Documentation=file:///opt/radio-tower/pi/anywhere/DOMAIN.md
+After=network-online.target radiotower.service radiotower-online.service
+Wants=network-online.target
+# Keep trying forever: a tower carried between networks will spend minutes at
+# a time offline, and giving up after five failed starts would leave it dark
+# on arrival.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/radiotower-tunnel
+# No token configured → the script exits 0 and the unit simply stays down.
+Restart=on-failure
+RestartSec=10
+Environment=PORT=8080
+RuntimeDirectory=radiotower-tunnel
+RuntimeDirectoryPreserve=no
+Environment=RT_TOKEN_FILE=/run/radiotower-tunnel/tunnel.token
+# Root, like `cloudflared service install` itself, because the settings file
+# holding the token is root-only. Everything cloudflared does not need is
+# read-only or hidden: it only ever makes outbound connections.
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+SyslogIdentifier=radiotower-tunnel
+
+[Install]
+WantedBy=multi-user.target
