@@ -115,7 +115,7 @@ test('the texts come through verbatim — spelling, punctuation and all', () => 
 
 test('the build writes a shell at every route, including every text', () => {
   const r = routes([{ slug: 'voyages' }, { slug: 'odes' }]);
-  for (const want of ['radio', 'ondes', 'echoes', 'playlists', 'atlas', 'zone', 'ecrits', 'portfolio/photos', 'booth', 'ecrits/voyages', 'ecrits/odes', 'echo/lectures', 'echo/lectures/voyages']) assert.ok(r.includes(want), want);
+  for (const want of ['radio', 'ondes', 'echoes', 'playlists', 'atlas', 'antenna', 'zone', 'ecrits', 'portfolio/photos', 'booth', 'ecrits/voyages', 'ecrits/odes', 'echo/lectures', 'echo/lectures/voyages']) assert.ok(r.includes(want), want);
   assert.equal(normaliseBase('radio-tower'), '/radio-tower/');
   assert.equal(normaliseBase('/radio-tower/'), '/radio-tower/');
   assert.equal(normaliseBase(''), '/');
@@ -296,11 +296,11 @@ test('Playlists (Zone): playlists.json is well formed, and every playlist plays 
   assert.equal((deck.match(/<iframe/g) || []).length, 1, 'one Spotify player');
   assert.doesNotMatch(deck.match(/<iframe[^>]*>/)[0], /loading=/, 'a lazy frame never loaded here: the player stayed blank on 85c46c1');
   // The Playlists page carries the deck; the Atlas does not any more (Ortis, 2026-11-01 evening: « remove the playlist part from there »).
-  for (const page of ['playlists', 'atlas', 'broadcast']) {
+  for (const page of ['playlists', 'atlas', 'antenna']) {
     const src = fs.readFileSync(new URL(`../site/js/pages/${page}.js`, import.meta.url), 'utf8');
     assert.equal((src.match(/<iframe/g) || []).length, 0, `${page}: no frame of its own, only the deck's`);
     if (page === 'playlists') assert.match(src, /mountDeck\(/, 'Playlists carries the deck');
-    else assert.doesNotMatch(src, /mountDeck|spotify-deck/, `${page}: no playlists on an Atlas`);
+    else assert.doesNotMatch(src, /mountDeck|spotify-deck/, `${page}: no playlists on the Atlas, nor in the Antenna`);
   }
   // Every card keeps room for a few words that help a listener choose (2026-11-01), written or not yet.
   assert.match(deck, /pl-desc/);

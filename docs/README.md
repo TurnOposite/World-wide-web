@@ -22,6 +22,7 @@ would cost more than the tidiness is worth.
 | Where does it run right now, and how do I add music? | [`LIVE.md`](./LIVE.md) — Vercel + the Oracle server, **current since 2026-10-08** |
 | How did it go on GitHub Pages? (retired 2026-10-02) | [`GO-LIVE.md`](./GO-LIVE.md) — historical |
 | Is this still heading the right way? | [`PLANNING.md`](./PLANNING.md) |
+| What is planned for the telegraph line, the streams and the phone, and what is the next step? | [`plans/PLAN-chat-and-moods.md`](./plans/PLAN-chat-and-moods.md) — started 2026-11-10, with a log |
 | How do I move pages around, put an old version online, link to a page, publish now? | [`ATELIER.md`](./ATELIER.md) — the map as data, the past, short links, `fire` (2026-10-26) |
 
 ## Current authorities

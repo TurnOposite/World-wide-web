@@ -324,42 +324,6 @@ body.theatre .minibar:hover,body.theatre .minibar:focus-within{opacity:1}
 
 .atlas .mapbox{padding:14px 14px 12px}
 
-/* ----------------------------------------------------------------- zone */
-/* /zone: the world, and the one place the signal leaves from. The point
-   speaks the logo's language — a green dot, the mark's sideways arcs leaving
-   it slowly (DESIGN-BRIEF §2). Still for reduced motion: three arcs drawn. */
-.zone{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:16px;align-items:start}
-.zone-mapbox{background:rgba(14,18,23,.92);border:1px solid var(--line);border-radius:18px;padding:14px;min-width:0}
-.zone-map{display:block;width:100%;height:auto}
-.zone-land path{fill:#1a212a;stroke:#26303b;stroke-width:.25}
-.zone-guides line{stroke:#1d2731;stroke-width:.2;stroke-dasharray:1 1.4}
-.zone-guides line.eq{stroke:#22303a}
-.zone-origin .zo-core{fill:var(--signal)}
-.zone-origin .zo-halo{fill:var(--signal);opacity:.18}
-.zone-origin .zw path{fill:none;stroke:var(--signal);stroke-width:.45;stroke-linecap:round}
-.zone-origin .zw{transform-box:fill-box;transform-origin:center;opacity:0;animation:zone-wave 4.8s cubic-bezier(.2,.6,.3,1) infinite}
-.zone-origin .zw:nth-child(2){animation-delay:1.6s}.zone-origin .zw:nth-child(3){animation-delay:3.2s}
-@keyframes zone-wave{0%{opacity:0;transform:scale(.55)}15%{opacity:.95}100%{opacity:0;transform:scale(3.2)}}
-.zo-label{font:600 4px var(--font);fill:var(--text);paint-order:stroke;stroke:#0e1217;stroke-width:1.1px;letter-spacing:.02em}
-.zone-listener circle{fill:var(--ink);stroke:#0e1217;stroke-width:.4}
-.zone-card .zone-place{font:600 clamp(24px,3vw,30px)/1.15 var(--serif);color:var(--text)}
-.zone-card .zone-coords{font:12.5px var(--mono);color:var(--signal);margin-top:6px}
-.zone-card .zone-time{margin-top:12px;color:var(--text-dim);font-size:13.5px}
-.zone-card .zone-time b{font:600 15px var(--mono);color:var(--text);margin-left:6px}
-.zone-card .zone-you{margin-top:12px;font-size:13px;color:var(--text-dim);display:flex;align-items:center;gap:8px}
-.zone-card .zone-you i{width:9px;height:9px;border-radius:50%;background:var(--ink)}
-@media (max-width:759px){
-  .zone{grid-template-columns:1fr}
-  .zone-mapbox{padding:8px;border-radius:14px}
-  .zo-label{font-size:6px;stroke-width:1.5px}
-}
-@media (prefers-reduced-motion:reduce){
-  .zone-origin .zw{animation:none!important}
-  .zone-origin .zw:nth-child(1){opacity:.9;transform:scale(1)}
-  .zone-origin .zw:nth-child(2){opacity:.5;transform:scale(1.7)}
-  .zone-origin .zw:nth-child(3){opacity:.25;transform:scale(2.4)}
-}
-
 /* The postcard. Floats beside its pin; unfolds on a rest of the pointer. */
 .postcard{
   --pc-w:344px;
@@ -828,14 +792,6 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .sp-deck.compact .sp-pick{width:auto;height:auto;padding:6px 12px;border-radius:999px}
 .sp-deck.compact .sp-pick b{font-size:13.5px;font-weight:500}
 .sp-deck.compact .pl-years,.sp-deck.compact .pl-vibe{display:none}
-.zone-playlists{margin-top:28px}
-.zone-playlists h2{font:600 clamp(20px,2.4vw,24px)/1.2 var(--serif);color:var(--text)}
-.zone-playlists .hint a{color:var(--signal)}
-/* The Atlas since it took Zone in (2026-11-01): the playlists above the map, Zone's card under it. */
-.atlas-playlists{margin:0 0 22px}
-/* Two rows of playlists, the rest a scroll away: above the map they must not push it off the window. */
-.atlas-playlists .sp-deck.compact .sp-list{max-height:92px}
-.atlas-origin{margin-top:16px;max-width:460px}
 
 /* ---------------------------------------------------------------- the two doors on the home page */
 .doors{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:0 0 18px}
@@ -934,11 +890,104 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
   .sp-deck:not(.compact) .sp-player{position:static}
 }
 
-/* ------------------------------------------ Zone's Atlas: /zone (2026-11-01) */
-.broadcast{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr);gap:20px;align-items:center}
-.broadcast-card .zone-place{font-size:clamp(30px,4vw,44px)}
-.broadcast-card .zone-time b{font-size:18px}
-/* Maps grow with their width: in a window they stop at its height (world.js --w-room), so the page shows whole. */
-.w-box .broadcast-map svg.world-map{max-height:max(220px,calc(var(--w-room,100vh) - 200px))}
+/* A map grows with its width: in a window it stops at the window's height (world.js --w-room), so the page shows whole. */
 .w-box .atlas .mapbox svg.world-map{max-height:max(240px,calc(var(--w-room,100vh) - 250px))}
-@media (max-width:759px){ .broadcast{grid-template-columns:1fr} }
+
+/* ------------------------------------------- the Antenna (2026-11-10) */
+/* The streams on the left, each a station on air; the telegraph line — the one chat room — beside them.
+   The window scrolls (layout.js), and the line takes the height the window has left (--w-room, world.js). */
+.antenna-head{margin:2px 0 10px}
+.antenna-head h1{font-size:30px}
+.antenna{display:grid;grid-template-columns:minmax(210px,270px) minmax(0,1fr);gap:20px;align-items:start}
+.antenna-streams{min-width:0}
+.antenna-dial{margin:0}
+.antenna-dial .dial{flex-direction:column;overflow:visible;padding:2px}
+.antenna-dial .ch{width:auto;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 12px;align-items:baseline}
+.antenna-dial .ch-now{grid-column:1/-1;grid-row:2}
+.antenna-dial .ch-meta{grid-column:2;grid-row:1;white-space:nowrap}
+.antenna-dial .dial-hint{display:none}
+.ch.waiting{cursor:default;border-style:dashed;background:transparent}
+.ch.waiting .ch-name{color:var(--text-dim)}
+.ch.waiting .ch-meta{color:var(--warm,#f0b35a)}
+.ch.waiting:hover{border-color:var(--line)}
+.antenna-one{margin-top:0;text-shadow:0 1px 10px rgba(0,0,0,.95)}
+.tg{display:flex;flex-direction:column;min-width:0;padding:16px 18px}
+.tg-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.tg-head h2{margin:0;font:600 19px/1.2 var(--serif)}
+.tg-head .hint{margin:0}
+.tg-log{list-style:none;margin:0;padding:4px 6px 4px 0;display:flex;flex-direction:column;gap:10px;overflow-y:auto;overscroll-behavior:contain;
+  height:max(150px,calc(var(--w-room,620px) - 284px));border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);
+  scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.tg-log:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.tg-joining .tg-log{display:none}
+.tg-empty{margin:auto;max-width:44ch;text-align:center;color:var(--text-faint);font-size:13.5px;padding:18px 0}
+.tg-msg{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:start}
+.tg-face{width:28px;height:28px;border-radius:8px;object-fit:cover;background:var(--bg-raise-2);flex:none}
+.tg-letter{display:grid;place-items:center;font:700 13px/1 var(--font);color:var(--text-dim);border:1px solid var(--line)}
+.tg-top{margin:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;min-width:0}
+.tg-name{font-size:13.5px;font-weight:650;overflow-wrap:anywhere}
+.tg-meta{font:11px var(--mono);color:var(--text-faint)}
+.tg-badge{font:700 9.5px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--signal-ink);background:var(--signal);border-radius:4px;padding:2px 5px}
+.tg-text{margin:2px 0 0;font-size:14.5px;line-height:1.4;color:var(--text);overflow-wrap:anywhere;white-space:pre-wrap}
+.tg-host .tg-name{color:var(--signal)}
+.tg-x{border:0;background:none;color:var(--text-faint);font-size:18px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:6px}
+.tg-x:hover,.tg-x:focus-visible{color:var(--live);background:var(--bg-raise-2)}
+.tg-mod{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.tg-foot{margin-top:12px;min-height:84px}
+.tg-join{margin-right:12px}
+.tg-joinhint{display:inline-block;margin:0}
+.tg-say{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center}
+.tg-say input,.tg-joinform input[type=text]{background:#0d1116;border:1px solid var(--line);border-radius:10px;padding:10px 12px;color:var(--text);font:14.5px var(--font);min-width:0;width:100%}
+.tg-say input:focus-visible,.tg-joinform input[type=text]:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
+.tg-me{width:34px;height:34px}
+.tg-who{margin:8px 0 0;font-size:12.5px;color:var(--text-faint)}
+.tg-who b{color:var(--text-dim)}
+.tg-link{border:0;background:none;padding:0;color:var(--ink);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.tg-state{margin:6px 0 0;min-height:1.2em}
+.tg-state:empty{display:none}
+.tg-joinform{display:grid;grid-template-columns:minmax(200px,280px) minmax(0,1fr);gap:12px 22px;align-items:start}
+.tg-jwho{display:grid;gap:10px;min-width:0}
+.tg-jwho>label:first-child{font-size:12.5px;color:var(--text-dim)}
+.tg-joinform>.hint{grid-column:1/-1}
+.tg-icons{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px;max-height:168px;overflow-y:auto}
+.tg-icons legend{font-size:12.5px;color:var(--text-dim);padding:0;margin-bottom:6px}
+.tg-pick{position:relative;display:block;cursor:pointer;line-height:0}
+.tg-pick input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.tg-pick img{width:44px;height:44px;border-radius:11px;object-fit:cover;border:2px solid transparent;opacity:.72;transition:opacity .15s,border-color .15s}
+.tg-pick input:checked+img{border-color:var(--signal);opacity:1}
+.tg-pick input:focus-visible+img{outline:2px solid var(--signal);outline-offset:2px}
+.tg-pick:hover img{opacity:1}
+.tg-keep{font-size:13.5px;color:var(--text)}
+.tg-joinform .hint{margin:0;max-width:62ch}
+.pill-link{text-decoration:none;cursor:pointer}
+.pill-link:hover,.pill-link:focus-visible{border-color:var(--signal);color:var(--text)}
+.booth-lights #bBig{margin-left:auto}
+.booth-lights .panel-head .booth-keys{margin-left:0}
+
+/* The phone (Ortis, 2026-11-10: « people have to scroll down to see the music name »): the same breakpoints as the
+   world's (layout.js PHONE_MEDIA). /radio loses what a listener does not act on — the tagline, the loop and sync
+   figures, Resync — and its cover is sized by the screen's height, so the title is on the first screen. */
+@media (max-width:760px),(max-height:500px){
+  .radio-extra{display:none!important}
+  .radio-head{margin:0 0 10px}
+  .onair{gap:14px;padding:16px}
+  .onair .cover{max-width:min(240px,25vh)}
+  .onair h1{margin:10px 0 6px}
+  .progress{margin-top:16px}
+  .controls{margin-top:14px}
+  .status-line{margin-top:10px}
+  .booth-keys{display:none}
+  .booth-lights #bBig{margin-left:0}
+  .antenna{grid-template-columns:1fr;gap:14px}
+  .antenna-dial .dial{flex-direction:row;overflow-x:auto;padding:2px 2px 10px}
+  .antenna-dial .ch{width:clamp(150px,44vw,206px)}
+  .tg{padding:14px}
+  .antenna-dial .ch{grid-template-columns:1fr;padding:12px 14px}
+  .antenna-dial .ch-now,.antenna-dial .ch-meta{grid-column:auto;grid-row:auto}
+  .antenna-dial .dial-hint{display:inline}
+  .tg-foot{min-height:0}
+  .tg-log{height:max(150px,calc(var(--w-room,560px) - 344px))}
+  .tg-sub{display:none}
+  .tg-joinform{grid-template-columns:1fr}
+  .tg-icons{max-height:118px}
+}

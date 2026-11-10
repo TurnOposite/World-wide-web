@@ -45,7 +45,7 @@ export const BOTTOM = 68;
  */
 export const DISTRICTS = [
   { id: 'radio', code: 'Z-01', title: 'Radio', half: 'zone', x: 60, y: 140, w: 1180, h: 650, rot: -0.6, route: 'radio',
-    hosts: 'On air: the cover, the channels dial', tag: [2, 15, -4] },
+    hosts: 'On air: the cover, the title, Tune in', tag: [2, 15, -4] },
   // Ortis, 2026-11-01 (evening): Ondes and Playlists may scroll inside their windows — the only Zone
   // pages that do, with the Booth's music desk under its lights; every other window shows its page
   // whole (world.js fitPage).
@@ -53,11 +53,17 @@ export const DISTRICTS = [
     hosts: 'Just played, up next behind the lock fence, the next hours', tag: [4.5, 24, 3], scroll: true },
   { id: 'playlists', code: 'Z-06', title: 'Playlists', half: 'zone', x: 60, y: 960, w: 1180, h: 670, rot: -0.4, route: 'playlists',
     hosts: 'Every playlist, a few words each, playable here', tag: [1.5, 33, -7], scroll: true },
-  // Two Atlases (Ortis, 2026-11-01): Zone's says where the tower broadcasts from (one day, a playlist
-  // per place); Echo's is the map of the places, the work and the press. Z-03 is Zone's again; Z-04,
-  // the merged Atlas of that afternoon, is retired onto Echo's (refs.js RETIRED).
-  { id: 'zone', code: 'Z-03', title: 'Atlas', half: 'zone', x: 380, y: 1780, w: 1180, h: 650, rot: -0.8, route: 'zone',
-    hosts: 'Where the tower broadcasts from, and what time it is there', tag: [4, 42, 5] },
+  // The Antenna (Ortis, 2026-11-10: « remove the Atlas from the Zone side, its weird having two anyways and we
+  // need space for the streams and telegraph lines… call that window Antenna »). It stands where Zone's Atlas
+  // stood and keeps its place on the map — the id `zone` and the code Z-03, so the map as arranged
+  // (site/data/layout.json), a draft in the Atelier and every go/Z-03 or go/zone handed out still find it.
+  // Its address is /antenna; /zone still opens it. Z-04, the merged Atlas of 2026-11-01, stays retired onto Echo's.
+  // The window shows its page whole, like every Zone window but Ondes, Playlists and the Booth's desk: the
+  // line's own list is what scrolls, sized to the room the window has (site.css .tg-log, --w-room).
+  // It is 80 taller than the Atlas was, upwards (y 1780 → 1700, the same foot), so the line has room for a
+  // few more messages: as tall as it gets while clearing the Booth above it and keeping the world's height.
+  { id: 'zone', code: 'Z-03', title: 'Antenna', half: 'zone', x: 380, y: 1700, w: 1180, h: 730, rot: -0.8, route: 'antenna',
+    hosts: 'The streams, all on air at once; the telegraph line, for whoever is tuned in', tag: [4, 42, 5] },
   // The Booth: the lights first, for everyone, shown whole; the music desk a scroll under them, behind the key.
   { id: 'booth', code: 'Z-07', title: 'Booth', half: 'zone', x: 1320, y: 1000, w: 1160, h: 670, rot: 1, route: 'booth',
     hosts: 'The lights, for everyone; the music booth, behind its key', tag: [2, 51, -5] },
@@ -109,7 +115,9 @@ export function reindex() { BY_ID = new Map(DISTRICTS.map((d) => [d.id, d])); }
 export function districtFor(name, params = {}) {
   switch (name) {
     case 'home': case 'radio': return 'radio';
-    case 'ondes': case 'atlas': case 'playlists': case 'booth': case 'zone': return name;
+    case 'ondes': case 'atlas': case 'playlists': case 'booth': return name;
+    // The Antenna's window is the place Zone's Atlas held (its id on the map is still `zone`).
+    case 'antenna': return 'zone';
     // Off the map from 11-01 to 11-03; then its window on Echo, the Archive since that evening, whichever room is open.
     // The old Archives' address leads there too.
     case 'portfolio': case 'archives': return 'portfolio';

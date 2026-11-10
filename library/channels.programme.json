@@ -1,5 +1,5 @@
 {
-  "_readme": "The tower's channels.json with the daily programme switched on (docs/PROGRAMME.md). To use it: copy it to channels.json in the music folder (Radio Tower\\music\\channels.json), then node library\\bot.mjs publish, then restart the tower once. The programme block holds the rules; edit them and publish again — they take over at the next 05:00 Paris time.",
+  "_readme": "The tower's channels.json with the daily programme switched on (docs/PROGRAMME.md). To use it: copy it to channels.json in the music folder (Radio Tower\\music\\channels.json), then node library\\bot.mjs publish, then restart the tower once. The programme block holds the rules; edit them and publish again — they take over at the next 05:00 Paris time. The channels after Everything are the streams (Chill, Energy): each is its own clock over the folders and labels it names, and a change to them takes effect at the tower's next scan.",
   "default": "all",
   "programme": {
     "timeZone": "Europe/Paris",
@@ -47,6 +47,28 @@
       "label": "Everything",
       "blurb": "Favourites every day, the loop every other day, the albums mixed in turn. A new day at 05:00 Paris time.",
       "order": "station"
+    },
+    {
+      "slug": "chill",
+      "label": "Chill",
+      "blurb": "Slow and quiet. For working, reading, or nothing at all.",
+      "_why": "Arthur, 10/11/2026: two streams beside Everything, one chill, one more energetic, on the dial now and empty until he fills them. To fill it: drop music in a Chill folder at the top of the library, or add any folders already on the tower to the list below (\"Crates/Bandcamp/an album\"). \"genres\": [\"jazz\"] also brings in everything with that label (match any = by folder OR by label). excludeFolders takes things out. keepEmpty keeps it on the dial, marked as waiting, while it holds nothing.",
+      "order": "shuffle",
+      "match": "any",
+      "folders": ["Chill"],
+      "excludeFolders": ["Energy"],
+      "keepEmpty": true
+    },
+    {
+      "slug": "energy",
+      "label": "Energy",
+      "blurb": "Faster and louder.",
+      "_why": "Same rules as Chill, with an Energy folder.",
+      "order": "shuffle",
+      "match": "any",
+      "folders": ["Energy"],
+      "excludeFolders": ["Chill"],
+      "keepEmpty": true
     }
   ]
 }

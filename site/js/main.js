@@ -32,9 +32,18 @@ const ambientScene = () => {
   return { mode: 'ambient', anchor: b ? { x: b.left + b.width / 2, y: b.top + b.height / 2 } : null, bottomInset: $('minibar')?.offsetHeight ?? 70 };
 };
 
+// The big screen from a page that has no scene of its own (the Booth's button, F anywhere): the figure hangs
+// in the middle of the room, as it does on /radio, instead of on the mini-player's button.
+const bigScreenScene = () => {
+  const side = Math.min(innerWidth, innerHeight) * 0.34;
+  const left = (innerWidth - side) / 2;
+  const top = (innerHeight - side) / 2 - 30;
+  return { mode: 'radio', cover: { left, top, width: side, height: side, right: left + side, bottom: top + side }, bottomInset: $('minibar')?.offsetHeight ?? 70 };
+};
+
 const stage = new Stage($('stage'), {
   settings: () => settings.effective,
-  scene: () => sceneFn() || ambientScene(),
+  scene: () => sceneFn() || (document.body.classList.contains('theatre') ? bigScreenScene() : ambientScene()),
   reducedMotion: reduced.matches,
 });
 reduced.addEventListener?.('change', (e) => { stage.reducedMotion = e.matches; });
@@ -161,8 +170,9 @@ async function boot() {
       { name: 'radio', pattern: /^radio$/, load: () => import('./pages/radio.js') },
       { name: 'ondes', pattern: /^(?:ondes|echoes)$/, load: () => import('./pages/ondes.js') },
       { name: 'playlists', pattern: /^playlists$/, load: () => import('./pages/playlists.js') },
-      // Two Atlases (2026-11-01): Zone's says where the tower broadcasts from; Echo's is the map of the places.
-      { name: 'zone', pattern: /^zone$/, load: () => import('./pages/broadcast.js') },
+      // The Antenna (2026-11-10): the streams and the telegraph line, in the window that was Zone's Atlas.
+      // /zone, that window's address until then, still opens it. The one Atlas left is Echo's.
+      { name: 'antenna', pattern: /^(?:antenna|zone)$/, load: () => import('./pages/antenna.js') },
       { name: 'atlas', pattern: /^atlas$/, load: () => import('./pages/atlas.js') },
       // A text keeps its address; the list that was here is the Livre miroir's first page since 2026-11-03,
       // and /echo/lectures alone leads to the Archive, where the book is (ecrits.js).

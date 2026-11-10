@@ -12,7 +12,7 @@ import { createServer } from 'node:http';
 import config, { ROOT } from './config.js';
 import { scanLibrary } from './lib/library.js';
 import { Station } from './lib/schedule.js';
-import { ChannelSet, DEFAULT_CHANNEL_SPEC } from './lib/channels.js';
+import { ChannelSet, DEFAULT_CHANNEL_SPEC, withStreams } from './lib/channels.js';
 import { DailyStation, DEFAULT_PROGRAMME } from './lib/programme.js';
 import fs from 'node:fs';
 import { Listeners } from './lib/listeners.js';
@@ -20,6 +20,7 @@ import { RateLimiter, rateLimit, isLoopback } from './lib/ratelimit.js';
 import { apiRouter } from './routes/api.js';
 import { attachDevReload } from './lib/devReload.js';
 import { Collections, isPrivatePath } from './lib/collections.js';
+import { Telegraph } from './lib/telegraph.js';
 
 const VERSION = '0.1.0';
 
@@ -33,7 +34,9 @@ const VERSION = '0.1.0';
 function readChannelSpec() {
   const file = config.channelsFile;
   try {
-    if (file && fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
+    // A tower with a channels.json of its own also carries the two streams, Chill and Energy, unless that
+    // file defines them itself or says `"streams": false` (channels.js STREAMS). The default dial stays as it is.
+    if (file && fs.existsSync(file)) return withStreams(JSON.parse(fs.readFileSync(file, 'utf8')));
   } catch (err) {
     console.warn(`[channels] ${file}: ${err.message} — using the default channels`);
   }
@@ -62,6 +65,8 @@ const channels = new ChannelSet({
 });
 const listeners = new Listeners({ ttlMs: config.listenerTtlMs });
 const collections = new Collections({ dir: config.collectionsDir });
+// The telegraph line: the chat room. Off (null) with TELEGRAPH=0.
+const telegraph = config.telegraph ? new Telegraph({ logFile: config.telegraphLog }) : null;
 
 const state = {
   version: VERSION,
@@ -139,7 +144,7 @@ export function createApp({ devReload = false } = {}) {
     const limiter = new RateLimiter({ capacity: config.rateBurst, refillPerSec: config.ratePerSecond > 0 ? config.ratePerSecond : 5 });
     app.use('/api', rateLimit(limiter, { skip: (req) => isLoopback(req.ip) }));
   }
-  app.use('/api', apiRouter({ station, listeners, config, state, rescan, collections, channels }));
+  app.use('/api', apiRouter({ station, listeners, config, state, rescan, collections, channels, telegraph }));
 
   // The files behind the University / Photos / Crates pages. Read-only, and
   // narrower than express.static on its own: `_review/` and `_incoming/` are
@@ -220,6 +225,11 @@ export function createApp({ devReload = false } = {}) {
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
+    // A body the parser turned down (too large, not JSON) is the sender's mistake, and says so:
+    // on a public write endpoint (the telegraph line) it must not read as the tower failing.
+    if (err?.status >= 400 && err.status < 500) {
+      return res.status(err.status).json({ error: err.type === 'entity.too.large' ? 'too_large' : 'bad_request', detail: err.message });
+    }
     console.error('[error]', err);
     res.status(500).json({ error: 'internal', detail: err.message });
   });
@@ -227,7 +237,7 @@ export function createApp({ devReload = false } = {}) {
   return app;
 }
 
-export { station, channels, listeners, state, rescan, collections };
+export { station, channels, listeners, state, rescan, collections, telegraph };
 
 // A manually-built `file://${resolved}` string does not percent-encode the
 // path, but import.meta.url always does — so this comparison silently failed

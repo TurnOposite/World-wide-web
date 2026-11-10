@@ -93,13 +93,19 @@ const RULES = [
     'low poly ambient', 'lost videogame mall', 'god on the code',
     'liminal stages', 'utopian scholastic', '幻街', 'zodiak'],
 
+  // Ortis, 2026-11-10, reading the labels: alf, 2 Mello and anything « Jet Set »
+  // are game music; Moonchild — laid-back jazz and pop — is not. Moonchild
+  // landed here because `ost` was a plain substring and « Little Ghost » holds
+  // it; so did every « lost », « ghost », « post » and « almost » with no
+  // earlier rule. `ost` and `alf` are whole words now.
   ['vgm',
     'silph skyline', 'hyrule', 'zelda', 'ocarina', 'kakariko', 'pokemon', 'pokémon',
     'nintendo', 'mario', 'balatro', 'warframe', 'bomb rush cyberfunk', 'cyberfunk',
     'orre region', 'snowpoint', 'video game', 'videogame', 'game music', '3ds',
     'town of zoz', 'skyloft', 'twilight princess', 'majora', 'chrono', 'final fantasy',
-    'sonic', 'metroid', 'castlevania', 'undertale', 'katamari', 'ost', 'soundtrack',
-    /\bvgm\b/],
+    'sonic', 'metroid', 'castlevania', 'undertale', 'katamari', 'soundtrack',
+    '2 mello', '2mello', 'jet set', 'funky game jams',
+    /\bost\b/, /\balf\b/, /\bvgm\b/],
 
   ['dnb-jungle',
     'atmospheric dnb', 'ambient jungle', 'liquid dnb', 'liquid db', 'jungle',

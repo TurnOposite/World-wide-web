@@ -51,7 +51,7 @@ const dateFr = (d = new Date()) => d.toLocaleDateString('fr-FR', { weekday: 'lon
 /** The Zone / Média navigation line at the top of the paper. */
 export function znav(current = 'echo') {
   const on = (k) => (current === k ? ' class="on" aria-current="page"' : '');
-  return `<nav class="echo-znav" aria-label="Rubriques"><span class="zl">Zone</span><a href="radio" data-link>Radio</a><a href="zone" data-link>Atlas</a><span class="sep" aria-hidden="true"></span><span class="zl">Média</span><a href="echo" data-link${on('echo')}>Echo</a><a href="echo/articles" data-link${on('articles')}>Articles</a><a href="portfolio" data-link${on('portfolio')}>Archive</a><a href="atlas" data-link>Atlas</a></nav>`;
+  return `<nav class="echo-znav" aria-label="Rubriques"><span class="zl">Zone</span><a href="radio" data-link>Radio</a><a href="antenna" data-link>Antenna</a><span class="sep" aria-hidden="true"></span><span class="zl">Média</span><a href="echo" data-link${on('echo')}>Echo</a><a href="echo/articles" data-link${on('articles')}>Articles</a><a href="portfolio" data-link${on('portfolio')}>Archive</a><a href="atlas" data-link>Atlas</a></nav>`;
 }
 
 /** Nameplate: the full masthead on the front page, a small link back on the others. */
@@ -83,12 +83,16 @@ export function frame(inner, { current = 'echo', full = false, sides = 3, tag } 
  * Ash drifting down and a few embers rising, on a canvas. Returns stop().
  * `slow` halves the speed (article pages). Paused while off-screen or hidden.
  * `ink` is the world's paper ground: dark flakes, fewer, Gazette-red embers.
+ * Ortis, 2026-11-10: « I like that there is ash falling down on the Echo news
+ * side — just have the black particles trickle down a tiny bit more; it has to
+ * stay very discreet ». So on the paper the flakes are a fifth more numerous,
+ * a touch darker and fall a little faster; the embers are as they were.
  * No canvas (a page in the world's window) is nothing to run.
  */
 export function ash(canvas, { slow = false, ink = false, reduced = matchMedia('(prefers-reduced-motion: reduce)').matches } = {}) {
   const ctx = canvas?.getContext('2d');
   if (!ctx) return () => {};
-  const ASH = ink ? 'rgba(40,37,34,.42)' : 'rgba(200,196,190,.55)';
+  const ASH = ink ? 'rgba(40,37,34,.5)' : 'rgba(200,196,190,.55)';
   const EMBER = ink ? 'rgba(168,18,28,.8)' : 'rgba(255,72,40,.9)';
   const k = slow ? 0.5 : 1;
   let W = 0, H = 0, raf = 0, visible = true, ps = [];
@@ -98,7 +102,7 @@ export function ash(canvas, { slow = false, ink = false, reduced = matchMedia('(
       x: Math.random() * W, y: init ? Math.random() * H : (e ? H + 12 : -12),
       r: e ? 1 + Math.random() * 1.6 : 0.9 + Math.random() * 2.4,
       vx: (Math.random() - 0.5) * 0.3,
-      vy: (e ? -1 : 1) * (0.18 + Math.random() * 0.45) * (e ? 1.4 : 1) * k,
+      vy: (e ? -1 : 1) * (0.18 + Math.random() * 0.45) * (e ? 1.4 : ink ? 1.2 : 1) * k,
       rot: Math.random() * 6.283, vr: (Math.random() - 0.5) * 0.03, a: 0.25 + Math.random() * 0.55, e, t: Math.random() * 100,
     };
   };
@@ -129,7 +133,7 @@ export function ash(canvas, { slow = false, ink = false, reduced = matchMedia('(
     if (!W || !H) return;
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const n = Math.min(110, Math.round(W * H / (ink ? 14000 : 9000)));
+    const n = Math.min(ink ? 132 : 110, Math.round(W * H / (ink ? 11600 : 9000)));
     ps = Array.from({ length: n }, () => spawn(true));
     draw(true);
   };

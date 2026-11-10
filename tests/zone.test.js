@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 import { originFromEnv, validTimeZone } from '../server/lib/origin.js';
 import { project, isPoint, resolveOrigin, resolveListener, coords, localTime } from '../site/js/pages/zone.js';
-import { project as atlasProject, pinPoint, towerSvg, originCardHtml, VIEW } from '../site/js/pages/atlas.js';
+import { project as atlasProject, pinPoint, towerSvg, VIEW } from '../site/js/pages/atlas.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/config.json'), 'utf8'));
@@ -76,17 +76,6 @@ test('the Atlas draws the origin at the projected x/y (Zone\'s rule since the tw
   const at = pinPoint(ams);
   assert.ok(at.inset);
   assert.match(towerSvg(ams), new RegExp(`class="core" cx="${at.x}" cy="${at.y}"`));
-});
-
-test('Zone\'s card, in the Atlas: the place, its coordinates, where the position comes from — or plainly none', () => {
-  const html = originCardHtml({ lat: -25.97, lon: 32.58, place: 'Maputo', timeZone: 'Africa/Maputo', source: 'tower' });
-  assert.match(html, /<p class="zone-place" id="aPlace">Maputo<\/p>/);
-  assert.match(html, /25\.97° S, 32\.58° E/);
-  assert.match(html, /id="aTime" hidden/, 'the time fills in once the page runs');
-  assert.match(html, /given by the tower itself/);
-  assert.match(originCardHtml({ lat: 1, lon: 1, place: '', source: 'config' }), /Somewhere[\s\S]*site’s settings/);
-  assert.doesNotMatch(originCardHtml({ lat: 1, lon: 1, place: '<b>x</b>', source: 'config' }), /<b>x/, 'escaped');
-  assert.match(originCardHtml(null), /Not set[\s\S]*rather than a guess/);
 });
 
 test('the listener point needs the flag AND a server-side position — never one without the other', () => {

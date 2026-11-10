@@ -8,6 +8,7 @@ import { stationPayload, schedulePayload, queuePayload, checkReorder } from '../
 import { resolveTrackPath } from '../lib/library.js';
 import { sendAudio } from '../lib/stream.js';
 import { RateLimiter } from '../lib/ratelimit.js';
+import { LIMITS as TELEGRAPH_LIMITS } from '../lib/telegraph.js';
 
 /**
  * Stream a request body into `file`, at most `max` bytes. Resolves with the
@@ -57,7 +58,7 @@ function receiveBody(req, file, max) {
  * @param {Function} ctx.rescan
  */
 export function apiRouter(ctx) {
-  const { station, listeners, config, state, collections, channels = null } = ctx;
+  const { station, listeners, config, state, collections, channels = null, telegraph = null } = ctx;
 
   /**
    * Which clock a request is asking about. No `channel` — the tower's
@@ -322,6 +323,50 @@ export function apiRouter(ctx) {
     const plan = station.planClearQueueOrder({ now, lockMs: config.queueLockSeconds * 1000 });
     station.applyQueueOverride(plan.override);
     res.json({ ok: true, cleared: plan.changed, full: plan.full, until: plan.until, slots: station.upcoming(now, config.lookahead) });
+  });
+
+  // --- the telegraph line ---------------------------------------------------
+  // The one chat room (server/lib/telegraph.js). Reading is open, like the
+  // rest of the station. Writing needs no key — it is what the room is for —
+  // so the fences are in the line itself: plain short text, no links, a
+  // budget per address. Sent with the station key, a message is marked as
+  // the station's own; taking one off the line always needs the key.
+  router.get('/telegraph', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!telegraph) return res.json({ ok: false, enabled: false, messages: [], removed: [] });
+    const since = Number(req.query.since);
+    res.json({ ok: true, enabled: true, now: Date.now(), limits: { text: TELEGRAPH_LIMITS.text, name: TELEGRAPH_LIMITS.name }, ...telegraph.since(Number.isFinite(since) ? since : 0) });
+  });
+
+  router.post('/telegraph', express.json({ limit: '4kb' }), (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!telegraph) return res.status(503).json({ error: 'telegraph_off', detail: 'The telegraph line is switched off on this tower.' });
+    // A key that comes along is checked like any other (and a wrong one costs from the same budget):
+    // « is this message the station's » must not become a cheaper way to guess the key.
+    let host = false;
+    if (req.get('x-station-key')) {
+      if (!requireKey(req, res)) return;
+      host = true;
+    }
+    const b = req.body && typeof req.body === 'object' ? req.body : {};
+    const out = telegraph.post({ name: b.name, icon: b.icon, text: b.text, stream: b.stream, who: req.ip || req.socket?.remoteAddress, host });
+    if (!out.ok) {
+      const { status, ok, ...rest } = out;
+      if (rest.retryAfter) res.set('Retry-After', String(rest.retryAfter));
+      return res.status(status).json(rest);
+    }
+    res.status(201).json(out);
+  });
+
+  router.post('/telegraph/remove', express.json({ limit: '1kb' }), (req, res) => {
+    if (!telegraph) return res.status(503).json({ error: 'telegraph_off', detail: 'The telegraph line is switched off on this tower.' });
+    if (!requireKey(req, res, { disabledError: 'telegraph_moderation_disabled', disabledDetail: 'Set STATION_KEY to take messages off the line.' })) return;
+    const out = telegraph.remove(Number(req.body?.id), { mute: req.body?.mute === true });
+    if (!out.ok) {
+      const { status, ok, ...rest } = out;
+      return res.status(status).json(rest);
+    }
+    res.json(out);
   });
 
   // --- operations ----------------------------------------------------------

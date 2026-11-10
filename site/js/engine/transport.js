@@ -271,7 +271,8 @@ class TowerClient extends Emitter {
 
   async setChannel(slug, { remember = true } = {}) {
     const list = this._channels?.channels || (await this.channels()).channels;
-    const ok = list.some((c) => c.slug === slug);
+    // A stream kept on the dial while it holds nothing (channels.js keepEmpty) cannot be tuned to.
+    const ok = list.some((c) => c.slug === slug && !c.empty);
     const before = this.channel;
     this.channel = ok ? slug : (this._channels?.default ?? null);
     if (remember) channelStore.set(this.channel);
@@ -363,6 +364,39 @@ class TowerClient extends Emitter {
     if (res.status === 503) return 'disabled';
     return 'unknown';
   }
+
+  /**
+   * The telegraph line — the tower's one chat room (server/lib/telegraph.js). What was said after
+   * `since` (a message id), and which messages were taken off lately. Asked for as it is: a message's
+   * text is never walked for addresses to rewrite (towerUrls).
+   */
+  async telegraph(since = 0) {
+    const res = await fetch(`${this.origin}/api/telegraph?since=${encodeURIComponent(since)}`, { cache: 'no-store' });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(body.detail || body.error || `status ${res.status}`), { status: res.status, code: body.error });
+    return body;
+  }
+
+  /** Say something on the line. With the booth unlocked, the key goes along and the message is marked as the station's. */
+  async telegraphSend({ name, icon, text, stream }) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (this.key) headers['x-station-key'] = this.key;
+    const res = await fetch(`${this.origin}/api/telegraph`, { method: 'POST', headers, body: JSON.stringify({ name, icon, text, stream }) });
+    const out = await res.json().catch(() => ({}));
+    if (res.status === 401 && out.error === 'bad_key') {
+      // The key this browser held is no longer the station's: lock, as a refused write does, and say so.
+      if (this.remembered) stationKeyStore.set(this.origin, null);
+      this.key = null;
+      this.refused = true;
+      this.emit('control', { doc: null, status: 'locked' });
+      throw new ControlError('The station refused the key this browser held, so the booth is locked again. Send your message once more.', { status: 401, code: out.error });
+    }
+    if (!res.ok) throw new ControlError(out.detail || out.error || `status ${res.status}`, { status: res.status, code: out.error });
+    return out.message;
+  }
+
+  /** Take a message off the line — the station key's call; `mute` also silences its sender for a day. */
+  telegraphRemove(id, { mute = false } = {}) { return this._post('/api/telegraph/remove', { id, mute }); }
 
   reorder(req) { return this._post('/api/queue/reorder', this.channel ? { ...req, channel: this.channel } : req); }
   clear() { return this._post('/api/queue/clear', this.channel ? { channel: this.channel } : {}); }

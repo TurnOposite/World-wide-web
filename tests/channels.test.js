@@ -23,7 +23,7 @@ import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
 import { Station, interleave } from '../server/lib/schedule.js';
-import { ChannelSet, DEFAULT_CHANNEL_SPEC, crateOf, expandSpec, matches, slugify } from '../server/lib/channels.js';
+import { ChannelSet, DEFAULT_CHANNEL_SPEC, STREAMS, crateOf, expandSpec, foldPath, inFolders, matches, slugify, withStreams } from '../server/lib/channels.js';
 import { CloudEngine, overridesOf } from '../site/js/engine/cloud.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -296,7 +296,11 @@ test('the server answers per channel, keeps its old answers without one, and nev
   try {
     const ch = await get('/api/channels');
     assert.equal(ch.default, 'mashup');
-    assert.deepEqual(ch.channels.map((c) => c.slug), ['games', 'mashup', 'crate-upbeat', 'crate-vgm', 'all']);
+    // Since 2026-11-10 a tower with a channels.json also carries the two streams; with no Chill or Energy
+    // folder they are on the dial as waiting, and asking for one plays the default channel.
+    assert.deepEqual(ch.channels.map((c) => c.slug), ['games', 'mashup', 'crate-upbeat', 'crate-vgm', 'all', 'chill', 'energy']);
+    assert.deepEqual(ch.channels.filter((c) => c.empty).map((c) => c.slug), ['chill', 'energy']);
+    assert.equal((await get('/api/station?channel=chill')).station.channel, 'mashup');
 
     const games = await get('/api/station?channel=games');
     assert.equal(games.station.channel, 'games');
@@ -315,4 +319,95 @@ test('the server answers per channel, keeps its old answers without one, and nev
   } finally {
     server.close();
   }
+});
+
+/* ------------------------------------------------------------ the streams -- */
+// Ortis, 2026-11-10: two streams beside Everything, filled by folders, drafted from the labels.
+const song = (relPath, genreSlug = 'unsorted', minutes = 4) => ({ id: slugify(relPath).slice(0, 12), title: relPath, artist: 'x', relPath, genreSlug, duration: minutes * 60 });
+
+test('a channel can name folders at any depth, compared the way the programme compares them', () => {
+  const t = song('Crates/Bandcamp/Snowpoint Lounge - 感情 ep/01 a.mp3');
+  assert.equal(foldPath('\\Crates\\Bandcamp/'), 'crates/bandcamp');
+  assert.equal(inFolders(t, ['crates/bandcamp/snowpoint_lounge  -  感情 EP']), true, 'case, underscores and runs of spaces do not matter');
+  assert.equal(inFolders(t, ['Crates/Band']), false, 'a folder, not a prefix of its name');
+  assert.equal(inFolders(t, ['Crates']), true);
+  assert.equal(inFolders({ id: 'x', duration: 60 }, ['Crates']), false, 'a track with no path (the static site) is in no folder');
+  assert.equal(matches(t, { folders: ['Crates/Bandcamp'] }), true);
+  assert.equal(matches(t, { folders: ['Chill'] }), false);
+  assert.equal(matches(t, { excludeFolders: ['Crates/Bandcamp'] }), false);
+});
+
+test("what a channel asks for is met in full — or, with match: 'any', by one kind", () => {
+  const jazzInCrates = song('Crates/Phone/a.mp3', 'jazz');
+  const dnbInChill = song('Chill/b.mp3', 'dnb-jungle');
+  const both = { folders: ['Chill'], genres: ['jazz'] };
+  assert.equal(matches(jazzInCrates, both), false, 'as before: every kind named');
+  assert.equal(matches(dnbInChill, both), false);
+  assert.equal(matches(jazzInCrates, { ...both, match: 'any' }), true, 'the label brings it in');
+  assert.equal(matches(dnbInChill, { ...both, match: 'any' }), true, 'so does the folder, whatever the label');
+  assert.equal(matches(song('Phone/c.mp3', 'vgm'), { ...both, match: 'any' }), false);
+  assert.equal(matches(dnbInChill, { ...both, match: 'any', excludeFolders: ['Chill'] }), false, 'an exclusion always holds');
+  assert.equal(matches(song('Chill/long.mp3', 'jazz', 90), { ...both, match: 'any', maxMinutes: 35 }), false, 'so does a length limit');
+  assert.equal(matches(jazzInCrates, { crates: ['Crates'], genres: ['jazz'] }), true, 'crates and genres together, as since 2026-10-07');
+});
+
+test('the file to publish carries the two streams beside Everything: empty they stay on the dial, marked; filled they play', () => {
+  const doc = JSON.parse(fs.readFileSync(path.join(ROOT, 'library/channels.programme.json'), 'utf8'));
+  assert.deepEqual(doc.channels.map((c) => c.slug), ['all', 'chill', 'energy']);
+  assert.equal(doc.default, 'all', 'Everything stays the station a visitor lands on');
+  const today = [
+    song('BarberBeats/undersaken - x.mp3', 'barber-beats'),
+    song('Crates/Phone/MICROMECHA - y.mp3', 'dnb-jungle'),
+    song('Phone long mixes/a long jazz mix.mp3', 'jazz', 120),
+  ];
+  const main = new Station(today, { epoch: EPOCH });
+  const set = new ChannelSet({ spec: doc, station: { epoch: EPOCH }, main }).setTracks(today);
+  // Ortis, 2026-11-10: « make the stream interface live now and build infra for their content, but no content for now ».
+  const dial = set.list();
+  assert.deepEqual(dial.map((c) => [c.slug, c.empty === true, c.trackCount]), [['all', false, 3], ['chill', true, 0], ['energy', true, 0]],
+    'no label fills a stream by itself: both are on the dial, empty');
+  assert.equal(dial[1].onAir, null);
+  assert.equal(set.has('chill'), false, 'an empty stream has no clock…');
+  assert.equal(set.get('chill'), null);
+  assert.equal(set.resolve('chill'), 'all', '…and whoever asks for it hears Everything');
+  assert.deepEqual(set.stations(), [main]);
+
+  // The content follows: his folders, and any folder or label he lists in channels.json.
+  const later = [...today, song('Chill/a new one.mp3', 'electronic'), song('Chill/second.mp3'), song('Energy/loud.mp3', 'jazz')];
+  set.setTracks(later);
+  const names = (slug) => set.get(slug).tracks.map((t) => t.relPath).sort();
+  assert.deepEqual(names('chill'), ['Chill/a new one.mp3', 'Chill/second.mp3'], 'what is in his Chill folder, whatever its label');
+  assert.deepEqual(names('energy'), ['Energy/loud.mp3']);
+  assert.deepEqual(set.list().map((c) => c.empty === true), [false, false, false]);
+  assert.equal(set.get('all'), main, "Everything is the tower's own programme, untouched");
+  const listed = structuredClone(doc);
+  Object.assign(listed.channels[1], { folders: ['Chill', 'BarberBeats'], genres: ['jazz'] });
+  const wider = new ChannelSet({ spec: listed, station: { epoch: EPOCH }, main }).setTracks(later);
+  assert.deepEqual(wider.get('chill').tracks.map((t) => t.relPath.split('/')[0]).sort(), ['BarberBeats', 'Chill', 'Chill', 'Phone long mixes'],
+    'a folder already on the tower, and a label, added to the list in channels.json');
+  assert.ok(!wider.get('chill').tracks.some((t) => t.relPath.startsWith('Energy/')), 'the jazz piece in Energy stays on Energy');
+  // Each stream is a station in its own right: the same answer for everyone on it.
+  const at = EPOCH + 86_400_000 * 300 + 12_345;
+  assert.equal(set.get('chill').at(at).track.id, new ChannelSet({ spec: doc, station: { epoch: EPOCH }, main }).setTracks(later).get('chill').at(at).track.id);
+  // A stream emptied again goes back to waiting; an ordinary channel with nothing in it is still left out.
+  set.setTracks(today);
+  assert.equal(set.list()[1].empty, true);
+  const plain = new ChannelSet({ spec: { channels: [{ slug: 'all', order: 'station' }, { slug: 'x', folders: ['Nowhere'] }] }, station: { epoch: EPOCH }, main }).setTracks(today);
+  assert.deepEqual(plain.list().map((c) => c.slug), ['all']);
+});
+
+test('the streams are the tower\'s own: a channels.json written before them gets both, one that defines them wins, one can refuse them', () => {
+  const doc = JSON.parse(fs.readFileSync(path.join(ROOT, 'library/channels.programme.json'), 'utf8'));
+  const plain = ({ _why, ...c }) => c;
+  assert.deepEqual(doc.channels.slice(1).map(plain), STREAMS.map((s) => ({ ...s })), 'the file to publish and the code say the same two streams');
+  const old = { default: 'all', programme: doc.programme, channels: [doc.channels[0]] }; // the live file of 2026-11-07
+  const got = withStreams(old);
+  assert.deepEqual(got.channels.map((c) => c.slug), ['all', 'chill', 'energy']);
+  assert.equal(got.programme, old.programme, 'nothing else in the file is touched');
+  assert.deepEqual(old.channels.map((c) => c.slug), ['all'], 'nor the spec it was given');
+  const mine = { channels: [{ slug: 'all', label: 'Everything' }, { slug: 'chill', label: 'My chill', folders: ['Mine'] }] };
+  assert.deepEqual(withStreams(mine).channels.map((c) => c.label), ['Everything', 'My chill', 'Energy'], 'his own Chill wins; Energy still joins');
+  assert.equal(withStreams({ streams: false, channels: old.channels }).channels.length, 1);
+  assert.equal(withStreams(doc), doc, 'a file that already has both is left as it is');
+  assert.equal(withStreams(null), null);
 });

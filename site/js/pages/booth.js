@@ -48,7 +48,8 @@ export async function mount(root, ctx) {
     <div class="page-head booth-head"><h1>Booth</h1>
       <p>The lights are yours — every effect in one place, kept in this browser. The music booth is under them.</p></div>
     <section class="panel booth-lights" aria-labelledby="bLightsH" data-fit-end>
-      <div class="panel-head"><h2 id="bLightsH">Lights</h2><span class="hint"><span class="kbd">V</span> the same lights from any page · <span class="kbd">F</span> full screen</span>
+      <div class="panel-head"><h2 id="bLightsH">Lights</h2><span class="hint booth-keys"><span class="kbd">V</span> the same lights from any page</span>
+        <button class="btn small primary" type="button" id="bBig">Visuals on the big screen</button>
         <button class="btn small" type="button" id="bToMusic">Music booth ↓</button></div>
       <div class="booth-lights-in">
         <div class="v-inline" id="bVisuals"></div>
@@ -67,6 +68,8 @@ export async function mount(root, ctx) {
       <div class="booth-desk" id="bDesk" hidden></div>
     </section>`;
   const $ = (id) => root.querySelector(`#${id}`);
+  // Ortis, 2026-11-10: a button, not « press F » — a phone has no F. The visualiser takes the whole screen; « Exit full screen » brings the Booth back.
+  $('bBig').addEventListener('click', () => ctx.theatre?.());
   $('bToMusic').addEventListener('click', () => { $('bMusicH').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('bKey')?.focus({ preventScroll: true }); });
 
   // ---- the lights: the visualiser's panel, laid out in the page, and the world's screen

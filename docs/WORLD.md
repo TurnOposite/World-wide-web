@@ -174,7 +174,7 @@ phone pass) run under `?classic=1`; everything else runs on bare addresses — w
 | Radio | Z-01 | `/radio` (and the home) | Zone |
 | Ondes | Z-02 | `/ondes` — scrolls inside its window | Zone |
 | Playlists | Z-06 | `/playlists` — scrolls inside its window | Zone |
-| Atlas (Zone's) | Z-03 | `/zone` — where the tower broadcasts from | Zone |
+| Antenna (Zone's Atlas until 2026-11-10) | Z-03 | `/antenna` — the streams' dial and the telegraph line; `/zone` still opens it | Zone |
 | Booth | Z-07 | `/booth` — the lights, then the music booth behind its key | Zone |
 | Une | E-01 | `/echo` | Echo |
 | Articles | E-02 | `/echo/<slug>` (its tag moves only the camera) — scrolls | Echo |

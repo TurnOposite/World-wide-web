@@ -157,10 +157,10 @@ try {
   await a.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
   const tabs = await a.$$eval('.tabs a', (els) => els.map((e) => e.textContent.trim()));
   // Since 2026-11-01 Zone's half is Radio, Ondes, Playlists, Atlas: the Zone page is part of the Atlas, the Portfolio off Zone's side.
-  // Two Atlases since 2026-11-01: Zone's (/zone) and the map of the places, among Echo's.
+  // One Atlas since 2026-11-10, Echo's: the window Zone's stood in is the Antenna (the streams, the telegraph line).
   // The Bibliothèque (the Portfolio) among Echo's since 2026-11-03, renamed the Archive that evening, in Archives' place;
   // Lectures went into the Livre miroir.
-  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Playlists,Atlas,Une,Articles,Archive,Atlas', tabs.join(', '));
+  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Playlists,Antenna,Une,Articles,Archive,Atlas', tabs.join(', '));
   check('…each under its own label', (await a.$$eval('.half-btn', (els) => els.map((e) => e.textContent.trim()))).join() === 'Zone,Echo');
   // The banner: two doors only; hover, focus, tap, Esc, outside tap.
   const open = () => a.$$eval('.half.open', (e) => e.map((x) => x.dataset.half).join());
@@ -268,7 +268,7 @@ try {
     queue: Boolean(document.querySelector('#rQueue .tracklist, #rQueue li')),
     link: Boolean(document.querySelector('#view a[href="ondes"]')),
   }));
-  check('Radio is the on-air card and the channels: no Ondes lists, no queue, nothing to scroll to', radioRest.lists.length === 0 && !radioRest.queue && !radioRest.link && Boolean(await a.$('#rTitle')),
+  check('Radio is the on-air card: no Ondes lists, no queue, nothing to scroll to', radioRest.lists.length === 0 && !radioRest.queue && !radioRest.link && Boolean(await a.$('#rTitle')),
     radioRest.lists.join(', ') || JSON.stringify(radioRest));
   await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); });
   await tab(a, 'ondes');
@@ -349,7 +349,7 @@ try {
   await pins[1].focus();
   const dossier = await a.textContent('#aDossier');
   check('Atlas: every place is a pin, and focusing one opens its dossier', pins.length >= 5 && /Paris/.test(dossier), `${pins.length} pins`);
-  // Two Atlases since 2026-11-01: this one is the map of the places; the tower's point is Zone's Atlas's (/zone).
+  // The one Atlas (2026-11-10): the map of the places. The tower's own point is not drawn in the world for now.
   check('Atlas (the map of the places): no tower point and no playlists on it', !(await a.$('.mapbox .tower-pin')) && !(await a.$('#view .sp-deck')));
   const places = await a.$$eval('.mapbox .pin', (ps) => ps.map((p) => p.getAttribute('aria-label')));
   // Geneva came off the map at Ortis's request (2026-10-13).
@@ -367,44 +367,33 @@ try {
   check('Atlas: Novo Hamburgo\'s postcard unfolds to the newspaper columns, and they open', nh.picture && nh.clips >= 20 && nh.stations === 4 && nh.pdf,
     `${nh.clips} columns, ${nh.stations} metro stops, ${nh.first}`);
 
-  /* ------------------------------------------------ Zone's Atlas: /zone -- */
-  // DESIGN-BRIEF §2 / roadmap #21, and Ortis on 2026-11-01 (evening): Zone's side keeps an Atlas of its own,
-  // where the tower broadcasts from. The tower's point sits where config.json says (measured on screen
-  // against the Atlas's own pinPoint: x = lon + 180, y = 90 − lat, or the Europe inset), the card names it,
-  // no listener point exists without a geo source, and no playlists stand on an Atlas any more.
+  /* ------------------------------------------------ the Antenna: /antenna -- */
+  // Ortis, 2026-11-10: « remove the Atlas from the Zone side… the streams and telegraph lines will use the window
+  // currently used by the atlas of the Zone side. Call that window Antenna. » The dial lives here now; the
+  // telegraph line runs through the tower, so on this site without one it says so and offers nothing to fill in.
+  // /zone, the window's address until then, still opens it.
   await a.evaluate(() => window.radioTower.router.go('zone'));
-  await a.waitForFunction(() => location.pathname === '/zone' && document.querySelector('#view #zMap .tower-pin') && document.getElementById('aPlace'), null, { timeout: 8000 }).catch(() => {});
-  const zone = await a.evaluate(async () => {
-    const { pinPoint } = await import(new URL('js/pages/atlas.js', document.baseURI).href);
-    const svg = document.querySelector('#zMap svg.world-map');
-    const core = svg?.querySelector('.tower-pin .core');
-    const o = window.radioTower.client.config.station?.origin;
-    if (!svg || !core || !o) return { svg: Boolean(svg), core: Boolean(core), origin: o || null };
-    const [vx, vy, vw, vh] = svg.getAttribute('viewBox').split(/\s+/).map(Number);
-    const s = svg.getBoundingClientRect();
-    const c = core.getBoundingClientRect();
-    const p = pinPoint(o);
-    // The map keeps its proportions (meet): find the drawn box inside the element before measuring.
-    const k = Math.min(s.width / vw, s.height / vh);
-    const ox = s.left + (s.width - vw * k) / 2;
-    const oy = s.top + (s.height - vh * k) / 2;
-    const want = { x: ox + (p.x - vx) * k, y: oy + (p.y - vy) * k };
-    const got = { x: c.left + c.width / 2, y: c.top + c.height / 2 };
-    return {
-      svg: true, core: true, origin: o, off: Math.hypot(got.x - want.x, got.y - want.y), waves: svg.querySelectorAll('.tower-pin .wave').length,
-      place: document.getElementById('aPlace')?.textContent, coords: document.querySelector('#zOrigin .zone-coords')?.textContent,
-      pins: svg.querySelectorAll('.pin').length, deck: Boolean(document.querySelector('#view .sp-deck')), listener: Boolean(document.querySelector('.zone-listener')),
-      playing: !document.getElementById('audio').paused, path: location.pathname, title: document.querySelector('#view h1')?.textContent,
-      menu: [...document.querySelectorAll('.half-zone .half-menu a')].map((x) => x.getAttribute('href')),
-      echoMenu: [...document.querySelectorAll('.half-echo .half-menu a')].map((x) => x.getAttribute('href')),
-    };
-  });
-  check('Zone\'s Atlas (/zone): the tower\'s point lands on the configured lat/lon, and its card names it', zone.off < 1.5 && zone.waves === 3 && zone.place === zone.origin?.place && zone.path === '/zone' && zone.title === 'Atlas',
-    zone.core ? `${zone.place} (${zone.origin.lat}, ${zone.origin.lon}) ${zone.off.toFixed(2)}px off, ${zone.coords}` : JSON.stringify(zone));
-  check('…only the tower: no places, no playlists, no listener point without a geo source, and the music plays on', zone.core && zone.pins === 0 && !zone.deck && !zone.listener && zone.playing,
-    JSON.stringify({ pins: zone.pins, deck: zone.deck, listener: zone.listener, playing: zone.playing }));
+  await a.waitForFunction(() => location.pathname === '/zone' && document.querySelector('#view #anDial button[data-ch]') && document.querySelector('#view .tg-log li'), null, { timeout: 8000 }).catch(() => {});
+  const oldAddr = await a.evaluate(() => ({ title: document.querySelector('#view h1')?.textContent, tab: document.title }));
+  await a.evaluate(() => window.radioTower.router.go('antenna'));
+  await a.waitForFunction(() => location.pathname === '/antenna' && document.querySelector('#view #anDial button[data-ch]') && document.querySelector('#view .tg-log li'), null, { timeout: 8000 }).catch(() => {});
+  const zone = await a.evaluate(() => ({
+    path: location.pathname, title: document.querySelector('#view h1')?.textContent,
+    dial: [...document.querySelectorAll('#view #anDial button[data-ch]')].map((x) => x.dataset.ch),
+    on: document.querySelectorAll('#view #anDial button[aria-pressed="true"]').length,
+    line: document.querySelector('#view .tg-log')?.textContent || '',
+    join: Boolean(document.querySelector('#view .tg-join, #view .tg-say, #view .tg-joinform')),
+    map: Boolean(document.querySelector('#view svg.world-map, #view .tower-pin')), deck: Boolean(document.querySelector('#view .sp-deck')),
+    playing: !document.getElementById('audio').paused,
+    menu: [...document.querySelectorAll('.half-zone .half-menu a')].map((x) => x.getAttribute('href')),
+    echoMenu: [...document.querySelectorAll('.half-echo .half-menu a')].map((x) => x.getAttribute('href')),
+  }));
+  check('the Antenna (/antenna): the streams\' dial, one marked on air here; /zone, its old address, opens the same window', zone.path === '/antenna' && zone.title === 'Antenna'
+    && zone.dial.length >= 2 && zone.on === 1 && oldAddr.title === 'Antenna', JSON.stringify({ ...zone, line: undefined, oldAddr }));
+  check('…the telegraph line says it runs through the tower, and offers nothing to fill in without one', /through the tower/.test(zone.line) && !zone.join, zone.line);
+  check('…no map and no playlists in it, and the music plays on', !zone.map && !zone.deck && zone.playing, JSON.stringify({ map: zone.map, deck: zone.deck, playing: zone.playing }));
   // Since 2026-11-03 (evening): Echo's menu is the Une, Articles (its own list now), the Archive, the map's Atlas.
-  check('the menus: Zone\'s is Radio, Ondes, Playlists and its Atlas; Echo\'s is the Une, Articles, the Archive and the map\'s Atlas', zone.menu?.join() === 'radio,ondes,playlists,zone' && zone.echoMenu?.join() === 'echo,echo/articles,portfolio,atlas',
+  check('the menus: Zone\'s is Radio, Ondes, Playlists and the Antenna; Echo\'s is the Une, Articles, the Archive and the Atlas', zone.menu?.join() === 'radio,ondes,playlists,antenna' && zone.echoMenu?.join() === 'echo,echo/articles,portfolio,atlas',
     JSON.stringify({ zone: zone.menu, echo: zone.echoMenu }));
 
   /* --------------------------------------------------------- listener B -- */
@@ -425,14 +414,19 @@ try {
   // must land this listener on that channel's track *and* second, touch no
   // one else, and be remembered — then B goes back to the default for the
   // booth checks below, which expect both listeners on the same channel.
-  await b.waitForSelector('#rChannels button[data-ch]', { timeout: 8000 }).catch(() => {});
-  const dial = await b.$$eval('#rChannels button[data-ch]', (bs) => bs.map((x) => ({ slug: x.dataset.ch, on: x.getAttribute('aria-pressed') === 'true' })));
+  // The dial stands in the Antenna since 2026-11-10; /radio names the stream on air and leads there.
+  await b.waitForFunction(() => !document.getElementById('rStream')?.hidden, null, { timeout: 8000 }).catch(() => {});
+  const lead = await b.evaluate(() => { const e = document.getElementById('rStream'); return { shown: Boolean(e) && !e.hidden, text: e?.textContent.trim(), href: e?.getAttribute('href'), dial: Boolean(document.querySelector('#view .dial')) }; });
+  check('/radio names the stream on air and leads to the Antenna; the dial itself is no longer on it', lead.shown && /^stream\s+\S/.test(lead.text) && lead.href === 'antenna' && !lead.dial, JSON.stringify(lead));
+  await b.click('#rStream');
+  await b.waitForSelector('#anDial button[data-ch]', { timeout: 8000 }).catch(() => {});
+  const dial = await b.$$eval('#anDial button[data-ch]', (bs) => bs.map((x) => ({ slug: x.dataset.ch, on: x.getAttribute('aria-pressed') === 'true' })));
   const homeCh = dial.find((d) => d.on)?.slug;
   check('the dial offers every channel and marks the one on air here', dial.length >= 2 && dial.filter((d) => d.on).length === 1 && homeCh === 'mashup',
     dial.map((d) => d.slug + (d.on ? '*' : '')).join(' '));
   const target = dial.find((d) => !d.on && d.slug !== 'all')?.slug || dial.find((d) => !d.on)?.slug;
   if (target) {
-    await b.click(`#rChannels button[data-ch="${target}"]`);
+    await b.click(`#anDial button[data-ch="${target}"]`);
     await b.waitForFunction((ch) => window.radioTower.player.data?.station?.channel === ch, target, { timeout: 8000 }).catch(() => {});
     await b.waitForFunction(() => { const au = document.getElementById('audio'); return !au.paused && au.readyState >= 2; }, null, { timeout: 8000 }).catch(() => {});
     await b.waitForTimeout(400);
@@ -576,9 +570,9 @@ try {
   await a.click('.echo-znav a[href="echo"]').catch(() => tab(a, 'echo'));
   await a.waitForSelector('.echo-znav', { timeout: 5000 });
   // The Portfolio left Zone's side (2026-11-01), came back on Echo's as the Bibliothèque (11-03) and became the Archive that evening.
-  // The Atlas is two since 11-01: Zone's (/zone) beside Radio, the map's (/atlas) among Echo's.
+  // One Atlas since 11-10, the map's (/atlas) among Echo's; beside Radio stands the Antenna.
   const rubriques = await a.$$eval('.echo-znav a', (as) => as.map((x) => x.getAttribute('href')));
-  check('Echo\'s rubriques: Zone is Radio and its Atlas; Média is the Une, Articles, the Archive and the map\'s Atlas', rubriques.join() === 'radio,zone,echo,echo/articles,portfolio,atlas', rubriques.join());
+  check('Echo\'s rubriques: Zone is Radio and the Antenna; Média is the Une, Articles, the Archive and the Atlas', rubriques.join() === 'radio,antenna,echo,echo/articles,portfolio,atlas', rubriques.join());
   await a.click('#view a[href="portfolio"]');
   await a.waitForSelector('.room .book', { timeout: 8000 });
   const books = (await a.$$('.room .book')).length;
@@ -1014,9 +1008,9 @@ try {
     JSON.stringify(opened));
 
   // Every route answers on a cold link, already in its district (no flight), the page live in its window.
-  // Since 2026-11-01 /zone is Zone's Atlas and /atlas Echo's; since 11-03 the Portfolio is Echo's Archive, every room in its window;
+  // Since 2026-11-10 /antenna is the Antenna (and /zone, its old address, still lands in that window); /atlas is Echo's; since 11-03 the Portfolio is Echo's Archive, every room in its window;
   // Articles has its list, a clipping and a text open in it; the old Lectures and Archives addresses lead to the Archive.
-  const coldRoutes = [['', 'radio'], ['radio', 'radio'], ['ondes', 'ondes'], ['echoes', 'ondes'], ['zone', 'zone'], ['atlas', 'atlas'], ['portfolio', 'portfolio'],
+  const coldRoutes = [['', 'radio'], ['radio', 'radio'], ['ondes', 'ondes'], ['echoes', 'ondes'], ['antenna', 'zone'], ['zone', 'zone'], ['atlas', 'atlas'], ['portfolio', 'portfolio'],
     ['portfolio/photos', 'portfolio'], ['playlists', 'playlists'], ['booth', 'booth'], ['echo', 'une'], ['echo/dont-shoot-the-pianist', 'articles'],
     ['echo/articles', 'articles'], ['echo/presse/2024-07-19-p1', 'articles'], ['echo/lectures/voyages', 'articles'],
     ['echo/lectures', 'portfolio'], ['ecrits', 'portfolio'], ['echo/archives', 'portfolio'], ['nulle-part', null]];
@@ -1439,7 +1433,7 @@ try {
 
   /* ------------------------------------------------------------- phone -- */
   // The classic shell's phone pass, kept one release: ?classic=1 once, then every cold load in this tab stays classic.
-  const PHONE_ROUTES = ['', 'radio', 'ondes', 'playlists', 'atlas', 'zone', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo/lectures', 'echo/lectures/voyages', 'echo',
+  const PHONE_ROUTES = ['', 'radio', 'ondes', 'playlists', 'atlas', 'antenna', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo/lectures', 'echo/lectures/voyages', 'echo',
     'echo/dont-shoot-the-pianist', 'echo/articles', 'echo/presse/2024-07-22-p12', 'echo/archives', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth'];
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const m = await phone.newPage();
@@ -1588,18 +1582,76 @@ try {
     }));
     check('…and its Ondes page reads Up next and the next hours from the tower', tEcho.next >= 1 && tEcho.guide >= 5, tEcho.empty || `${tEcho.next} next, ${tEcho.guide} in the guide`);
 
-    // Zone on a tower (Zone's Atlas, /zone, since the evening of 2026-11-01): the tower's own origin (STATION_LAT/LON/PLACE,
-    // set by build-test.sh) wins over config.json's; a tower that names none leaves config.json's in place.
-    await t.evaluate(() => window.radioTower.router.go('zone'));
-    await t.waitForFunction(() => document.querySelector('#zMap .tower-pin') && document.getElementById('aPlace')
-      && (window.radioTower.client.mode !== 'tower' || document.getElementById('aSource')?.textContent.includes('tower')), null, { timeout: 5000 }).catch(() => {});
-    const tz = await t.evaluate(() => {
-      const g = document.querySelector('#zMap .tower-pin');
-      return { lat: Number(g?.dataset.lat), lon: Number(g?.dataset.lon), place: document.getElementById('aPlace')?.textContent, cfg: window.radioTower.client.config.station?.origin };
+    // The Antenna on a tower (2026-11-10): the telegraph line. A listener joins with a name and an icon from the bank,
+    // says something, and it is on the tower's line for everyone; what a stranger types stays text; and the browser
+    // keeps who they are only when asked.
+    await t.evaluate(() => { try { localStorage.removeItem('gt.telegraph.me'); } catch { /* nothing kept */ } window.radioTower.router.go('antenna'); });
+    await t.waitForSelector('#view .tg-join', { timeout: 8000 }).catch(() => {});
+    const bank = await t.evaluate(async () => (await (await fetch(new URL('data/telegraph.json', document.baseURI))).json()).icons?.length || 0);
+    await t.click('#view .tg-join').catch(() => {});
+    await t.waitForSelector('#tgName', { timeout: 4000 }).catch(() => {});
+    const form = await t.evaluate(() => ({ picks: document.querySelectorAll('.tg-pick input').length, keep: document.getElementById('tgKeep')?.checked, focus: document.activeElement?.id }));
+    check('the telegraph line: joining asks for a name and one of the bank\'s icons, and « remember me » starts unticked', bank >= 1 && form.picks === bank && form.keep === false && form.focus === 'tgName', JSON.stringify({ bank, ...form }));
+    const said = `selftest ${Date.now()} <img src=x onerror="window.__tgHit=1"> https://example.test/x`;
+    await t.fill('#tgName', 'Self <b>test</b>').catch(() => {});
+    await t.click('.tg-pick:nth-of-type(2) input', { force: true }).catch(() => {});
+    await t.click('.tg-joinform button[type=submit]').catch(() => {});
+    await t.waitForSelector('#tgText', { timeout: 4000 }).catch(() => {});
+    await t.fill('#tgText', said).catch(() => {});
+    await t.press('#tgText', 'Enter').catch(() => {});
+    await t.waitForFunction(() => [...document.querySelectorAll('.tg-msg .tg-text')].some((p) => p.textContent.includes('selftest')), null, { timeout: 6000 }).catch(() => {});
+    const line = await t.evaluate(() => {
+      const li = [...document.querySelectorAll('.tg-msg')].find((x) => x.querySelector('.tg-text')?.textContent.includes('selftest'));
+      return {
+        text: li?.querySelector('.tg-text')?.textContent, name: li?.querySelector('.tg-name')?.textContent, face: li?.querySelector('img.tg-face')?.getAttribute('src') || null,
+        markup: document.querySelectorAll('.tg-log img:not(.tg-face), .tg-log b:not(.tg-name), .tg-log a').length, hit: window.__tgHit === 1,
+        kept: localStorage.getItem('gt.telegraph.me'), box: document.getElementById('tgText')?.value, who: document.querySelector('.tg-who')?.textContent,
+      };
     });
-    const so = server.station?.origin;
-    const wantZ = so || tz.cfg;
-    check(`Zone on a tower shows ${so ? 'the tower\'s own origin, not config.json\'s' : 'config.json\'s origin (this tower names none)'}`, Boolean(wantZ) && tz.lat === wantZ.lat && tz.lon === wantZ.lon && tz.place === wantZ.place, `${tz.place} (${tz.lat}, ${tz.lon})`);
+    const onTower = (await (await fetch(`${towerUrl}/api/telegraph`)).json()).messages?.find((x) => x.text.startsWith('selftest'));
+    check('…a message sent from the page is on the tower\'s line, under that name and icon', Boolean(onTower) && onTower.name === 'Self <b>test</b>' && /^[\w.-]+$/.test(onTower.icon || '') && line.face?.endsWith(onTower.icon)
+      && line.box === '', JSON.stringify({ onTower, face: line.face, box: line.box }));
+    check('…what a stranger typed is shown as text — no markup, no link, nothing run — and the link is gone', line.text === onTower?.text && /<img src=x/.test(line.text || '') && /\[link\]/.test(line.text || '')
+      && !/example\.test/.test(line.text || '') && line.markup === 0 && !line.hit && line.name === 'Self <b>test</b>', JSON.stringify(line));
+    check('…and the browser keeps nothing about them unless asked', line.kept === null && /On the line as/.test(line.who || ''), JSON.stringify({ kept: line.kept, who: line.who }));
+    // A second listener, who has not joined, reads it within a poll or two.
+    const t2 = await (await browser.newContext()).newPage();
+    watch(t2, 'tower, second listener');
+    await t2.goto(`${dev}antenna?tower=${encodeURIComponent(towerUrl)}`, { waitUntil: 'domcontentloaded' });
+    const heard = await t2.waitForFunction(() => [...document.querySelectorAll('.tg-msg .tg-text')].some((p) => p.textContent.includes('selftest')), null, { timeout: 12000 }).then(() => true).catch(() => false);
+    check('…another listener, who has not joined, reads it too', heard);
+    await t2.context().close();
+
+    // The phone (Ortis, 2026-11-10: « people have to scroll down to see the music name »): on /radio the title and
+    // Tune in are on the first screen, the tagline, the loop and sync figures and Resync are not shown; in the Booth
+    // a button puts the visuals on the big screen (a phone has no F).
+    const pctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    const ph = await pctx.newPage();
+    watch(ph, 'tower, phone');
+    await ph.goto(`${dev}radio?tower=${encodeURIComponent(towerUrl)}`, { waitUntil: 'domcontentloaded' });
+    await ph.waitForFunction(() => window.radioTower?.world?.current === 'radio' && window.radioTower.player?.onAir && !window.radioTower.world.camera.moving, null, { timeout: 15000 }).catch(() => {});
+    await ph.waitForTimeout(400);
+    const fold = await ph.evaluate(() => {
+      const floor = (document.getElementById('minibar')?.getBoundingClientRect().top ?? innerHeight);
+      const r = (id) => document.getElementById(id)?.getBoundingClientRect();
+      const shown = (el) => Boolean(el) && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().height > 0;
+      return {
+        title: document.getElementById('rTitle')?.textContent, titleBottom: Math.round(r('rTitle')?.bottom ?? 9999), tuneBottom: Math.round(r('rTune')?.bottom ?? 9999), floor: Math.round(floor),
+        extras: [...document.querySelectorAll('#w-radio .radio-extra')].filter(shown).map((e) => e.id || e.className), count: document.querySelectorAll('#w-radio .radio-extra').length,
+        listeners: shown(document.getElementById('rMode')),
+      };
+    });
+    check('on a phone, /radio shows the title and Tune in on the first screen', Boolean(fold.title) && fold.titleBottom < fold.floor && fold.tuneBottom <= fold.floor, JSON.stringify(fold));
+    check('…without the tagline, the loop and sync figures or Resync; the listener count stays', fold.count === 4 && fold.extras.length === 0 && fold.listeners, JSON.stringify(fold));
+    await ph.evaluate(() => window.radioTower.router.go('booth'));
+    await ph.waitForSelector('#bBig', { timeout: 8000 }).catch(() => {});
+    await ph.waitForFunction(() => !window.radioTower.world.camera.moving, null, { timeout: 5000 }).catch(() => {});
+    await ph.click('#bBig').catch(() => {});
+    const big = await ph.evaluate(() => ({ theatre: document.body.classList.contains('theatre'), exit: Boolean(document.querySelector('.theatre-exit')), keys: getComputedStyle(document.querySelector('.booth-keys')).display }));
+    await ph.click('.theatre-exit').catch(() => {});
+    const stillBig = await ph.evaluate(() => document.body.classList.contains('theatre'));
+    check('on a phone, the Booth\'s button puts the visuals on the big screen, and « Exit » brings the Booth back', big.theatre && big.exit && big.keys === 'none' && !stillBig, JSON.stringify({ ...big, stillBig }));
+    await pctx.close();
 
     // The live site's set-up (config.json: tower mode, the world on): the world's Radio plays the tower's programme and
     // its Ondes window reads the guide from the tower.

@@ -87,6 +87,15 @@ export const config = {
   rateBurst: envInt('RATE_BURST', 300),
   ratePerSecond: Number(process.env.RATE_PER_SECOND ?? 5),
 
+  // The telegraph line (server/lib/telegraph.js): the one chat room, for
+  // whoever is tuned in. On unless TELEGRAPH=0. The line is kept in a log
+  // beside the scan cache (so a code update never touches it) unless
+  // TELEGRAPH_LOG says where, or `none` for memory only.
+  telegraph: process.env.TELEGRAPH !== '0',
+  telegraphLog: process.env.TELEGRAPH_LOG === 'none'
+    ? null
+    : path.resolve(process.env.TELEGRAPH_LOG || path.join(path.dirname(process.env.CACHE_FILE || path.join(ROOT, '.cache', 'library.json')), 'telegraph.jsonl')),
+
   // Rescan the library automatically every N minutes. 0 disables.
   autoRescanMinutes: envInt('AUTO_RESCAN_MINUTES', 30),
 

@@ -18,12 +18,13 @@
  * No listener point: a static site has no server-side geo-IP, and the brief
  * forbids guessing ("never guess a location").
  *
- * Two Atlases since the evening of 2026-11-01 (Ortis): this one, the map of
- * the places, the work and the press — the academic and professional side —
- * stands on Echo's side of the world, without the playlists it held that
- * afternoon; Zone's Atlas (pages/broadcast.js, /zone) says where the tower
- * broadcasts from, and will one day carry a playlist per place. This module
- * still draws the map for both (mapSvg, towerSvg, originCardHtml).
+ * One Atlas since 2026-11-10 (Ortis: « remove the Atlas from the Zone side,
+ * its weird having two anyways »): this one, on Echo's side of the world —
+ * the map of the places, the work and the press. The window Zone's stood in
+ * is the Antenna (pages/antenna.js). The tower's own point is not drawn in
+ * the world for now (« forget about emitting from somewhere »): mapSvg still
+ * takes an origin, which the classic front page passes, and pages/zone.js
+ * still holds the rule that finds it.
  */
 import { esc } from '../ui/util.js';
 import { postcardSvg } from '../ui/postcards.js';
@@ -111,19 +112,6 @@ export function towerSvg(origin) {
   return `<g class="tower-pin" data-lat="${origin.lat}" data-lon="${origin.lon}" role="img" aria-label="Radio Tower broadcasts from ${esc(origin.place || coords(origin))}">
       <circle class="wave" cx="${x}" cy="${y}" r="3"/><circle class="wave" cx="${x}" cy="${y}" r="3"/><circle class="wave" cx="${x}" cy="${y}" r="3"/>
       <circle class="core" cx="${x}" cy="${y}" r=".8"/></g>`;
-}
-
-/** Zone's card: the tower's place, its coordinates, the time there — or, with no position, that there is none. */
-export function originCardHtml(o) {
-  if (!o) {
-    return `<h2>Origin</h2><p class="zone-place">Not set</p>
-      <p class="hint">Neither the tower nor the site says where it is, so the map shows no point rather than a guess.</p>`;
-  }
-  return `<h2>Broadcasting from</h2>
-    <p class="zone-place" id="aPlace">${esc(o.place || 'Somewhere')}</p>
-    <p class="zone-coords">${esc(coords(o))}</p>
-    <p class="zone-time" id="aTime" hidden>Local time <b></b></p>
-    <p class="hint" id="aSource">${o.source === 'tower' ? 'Position given by the tower itself.' : 'Position from the site’s settings.'}</p>`;
 }
 
 /** A dossier link is a path on this site or an https URL — never javascript: or data:. */

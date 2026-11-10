@@ -109,7 +109,7 @@ an id (`atlas`, `v1`). Any of them, any case:
 
 | Link | Leads to |
 |---|---|
-| `go/E-05`, `go/atlas` (and the retired `go/Z-04`) | the Atlas of the places, wherever its window is · `go/Z-03`, `go/zone`: Zone's Atlas |
+| `go/E-05`, `go/atlas` (and the retired `go/Z-04`) | the Atlas of the places, wherever its window is · `go/Z-03`, `go/zone`: the Antenna (Zone's Atlas until 2026-11-10) |
 | `go/E-02/<slug>` | an Echo article · `go/E-03/<slug>` a text in Lectures · `go/Z-05/photos` a Portfolio room (Z-05 is off the map since 2026-11-01; the link still lands) |
 | `go/P-01`, `go/v1` | Version 1 in its window |
 | `go/v1/atlas` | the v1 site's own Atlas, full screen |

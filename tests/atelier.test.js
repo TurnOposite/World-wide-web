@@ -159,7 +159,8 @@ test('short links: codes, ids, articles, rooms, the past in its window or full s
   assert.equal(resolveRef('atlas', pages).to, 'atlas');
   // The map's Atlas was Z-04 until it moved to Echo (2026-11-01): a link handed out before still lands on it.
   assert.deepEqual(resolveRef('Z-04', pages), { kind: 'route', to: 'atlas' });
-  assert.deepEqual(resolveRef('Z-03', pages), { kind: 'route', to: 'zone', page: byIdIn(pages, 'zone') }, 'Z-03 is Zone\'s Atlas again');
+  assert.deepEqual(resolveRef('Z-03', pages), { kind: 'route', to: 'antenna', page: byIdIn(pages, 'zone') }, 'Z-03 is the Antenna (Zone\'s Atlas until 2026-11-10): the code kept, the address new');
+  assert.equal(resolveRef('zone', pages).to, 'antenna', 'go/zone, the window\'s id, lands there too');
   assert.equal(resolveRef('E-02/dont-shoot-the-pianist', pages).to, 'echo/dont-shoot-the-pianist');
   // Articles has its own address since 2026-11-03: the list of every article and of the press.
   assert.equal(resolveRef('E-02', pages).to, 'echo/articles');
@@ -360,7 +361,7 @@ test('the Atelier saves only a sound map, one page per line, from this machine o
 test('npm run layout: move, nudge, size, tilt, tag, swap, online — one line each, on the map the file holds', () => {
   const pages = all();
   assert.match(edit(pages, ['move', 'E-05', '1200', '900']), /E-05 Atlas → 1200, 900/);
-  assert.equal(findPage(pages, 'Z-03').id, 'zone', 'a code finds its page; the id « atlas » finds Echo\'s Atlas, not Zone\'s of the same title');
+  assert.equal(findPage(pages, 'Z-03').id, 'zone', 'a code finds its page; the id « atlas » finds Echo\'s Atlas');
   assert.deepEqual([findPage(pages, 'atlas').x, findPage(pages, 'atlas').y], [1200, 900]);
   edit(pages, ['nudge', 'atlas', '+10', '-20']);
   assert.deepEqual([findPage(pages, 'atlas').x, findPage(pages, 'atlas').y], [1210, 880]);

@@ -3827,3 +3827,48 @@ tower is Ortis's call; `behold-import\snowpoint-dupes.mjs` does it.
 **Revisit if** a new snowpoint lounge album is downloaded (it joins the albums until its folder is added to the
 lane: a lane matched on the artist would catch it by itself, at the cost of also catching anything merely tagged
 with the name), or if 3 hours a day turns out to be too much or too little.
+
+## 2026-11-10 - A chat on a station that had no listener state; streams that ship empty; one Atlas
+
+**Context.** Until today nothing a listener did reached the tower except a count, and BRIEF rule 5 reads « no
+accounts, no tracking, no cookies ». Ortis asked for a chat, with a picture to choose and the choice remembered if
+the listener wants it, and said « yes do keep it » of the log. He asked for mood streams, then for their dial
+live with no content, and for the Antenna in place of Zone's Atlas.
+
+**Decision.**
+
+1. **The telegraph line is allowed, inside rule 5 as far as it goes, and this entry is the exception where it
+   does not.** No account: a name typed for the visit. No cookie. Nothing identifying is stored by the tower: the
+   log holds what was said and under which name and icon, never an address; the address is used in memory, as a
+   salted hash, for the flood budget and the day's silence, and the salt dies with the process. The browser keeps
+   a name and an icon only when the listener ticks « Remember me on this device » (unticked by default), and
+   « leave » forgets them. What changes for good: the tower now stores text written by strangers, and Ortis is
+   its publisher.
+2. **So it is fenced from day one**: 240 characters, plain text (the page builds with `textContent`; a test pins
+   that no message reaches `innerHTML`), links replaced, four messages then one every three seconds per address,
+   no repeating oneself, removal and a day's silence behind the station key, `TELEGRAPH=0` to close it. A wrong
+   key sent with a message is refused through the same budget as any other write, so marking the station's own
+   messages is not a cheaper way to guess the key.
+3. **Polling, not a socket**: the page asks every four seconds while the Antenna is open and the tab in view. No
+   new dependency, nothing held open on the tower, and the station's clock still knows nothing of listeners.
+4. **One room, not one per stream** (he floated both, then chose one): with a handful of listeners, a room per
+   stream is three empty rooms. Each message carries the stream its sender was on.
+5. **The streams are code, their content is data.** `STREAMS` gives every tower with a channels.json the two
+   streams without a publish; `keepEmpty` keeps an empty one on the dial, marked, where any other empty channel
+   is left out; a channels.json that defines `chill` or `energy` wins, and `"streams": false` refuses both. They
+   ship empty because he asked for the labels to be revised before anything is sorted by them, and said the
+   labels do not say how energetic a piece is.
+6. **A stream is a plain shuffle**, not the daily programme: no long-mix spacing, no favourites. Decide whether a
+   stream needs lanes once one has content.
+7. **The Antenna keeps the window's id (`zone`) and code (Z-03)**: the published map, a draft in the Atelier and
+   every go/Z-03 handed out still find it. Its address is /antenna; /zone answers too.
+8. **The icons' list is made at every build and is not a gate**: `site/data/telegraph.json` is committed (a test
+   holds it to the folder), but the build writes it again, so a picture dropped in and published without running
+   anything still reaches the site.
+
+**Left open.** How long the log is kept (today: two files of 5 MB, then the oldest goes). Moderation
+at scale (a word list, reports) is not designed: nobody is on the line yet. The tempo slider
+needs a BPM per track, measured on the laptop. The line in the mini-player on a phone.
+
+**Revisit if** the line is abused (close it with `TELEGRAPH=0`, then decide), or if the count of listeners makes a
+room per stream worth having.

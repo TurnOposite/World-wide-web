@@ -1,15 +1,21 @@
 /**
  * /radio — the station.
  *
- * On air (cover, title, progress, Tune in) and the channels. What just
- * played and the programme for the next hours moved to /ondes (pages/ondes.js,
- * 2026-10-19); the queue below the card went on 2026-11-01 (Ortis: a window
- * shows its page whole, no scrolling inside) — what is next is Ondes', and
- * rearranging it is the Booth's. The full-page visualiser is the backdrop of
- * this whole page; this module only tells it where the cover is.
+ * On air: cover, title, progress, Tune in. What just played and the
+ * programme for the next hours moved to /ondes (pages/ondes.js, 2026-10-19);
+ * the queue below the card went on 2026-11-01 (Ortis: a window shows its
+ * page whole, no scrolling inside) — what is next is Ondes', and rearranging
+ * it is the Booth's. The dial went to the Antenna on 2026-11-10
+ * (pages/antenna.js), where the streams live; this page names the stream on
+ * air and leads there. The full-page visualiser is the backdrop of this
+ * whole page; this module only tells it where the cover is.
+ *
+ * On a phone (Ortis, 2026-11-10: « people have to scroll down to see the
+ * music name ») the tagline, the loop and sync figures and Resync are not
+ * shown, and the cover sits beside the title instead of above it: site.css,
+ * `.radio-extra`.
  */
 import { esc, fmt, fmtSpan, coverSvg } from '../ui/util.js';
-import { ChannelDial } from '../ui/channels.js';
 
 export const title = 'Radio';
 
@@ -17,15 +23,14 @@ export function mount(root, ctx) {
   const { player, client, stage, setScene } = ctx;
   root.innerHTML = `
     <div class="radio-head">
-      <span class="eyebrow">Radio Tower · ${esc(player.station?.tagline || 'One signal. Everyone on the same second.')}</span>
+      <span class="eyebrow radio-extra">Radio Tower · ${esc(player.station?.tagline || 'One signal. Everyone on the same second.')}</span>
       <div class="meters">
         <span class="pill" id="rMode"></span>
-        <span class="pill" id="rLoop" title="Where the station is in its loop">loop –</span>
-        <span class="pill" id="rSync" title="How closely your playback matches the station">sync –</span>
+        <a class="pill pill-link" id="rStream" href="antenna" data-link hidden title="The streams are in the Antenna"></a>
+        <span class="pill radio-extra" id="rLoop" title="Where the station is in its loop">loop –</span>
+        <span class="pill radio-extra" id="rSync" title="How closely your playback matches the station">sync –</span>
       </div>
     </div>
-
-    <section class="channels" id="rChannels" aria-label="Channels" hidden></section>
 
     <section class="onair" aria-live="polite">
       <div class="cover" id="rCover">${coverSvg(72)}</div>
@@ -44,7 +49,7 @@ export function mount(root, ctx) {
           </button>
           <label class="vol"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 010 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             <input type="range" id="rVol" min="0" max="100" aria-label="Volume"></label>
-          <button class="btn" id="rResync" type="button" title="Jump back to the live position">Resync</button>
+          <button class="btn radio-extra" id="rResync" type="button" title="Jump back to the live position">Resync</button>
           <button class="btn" id="rVisuals" type="button" aria-expanded="false">Visuals</button>
         </div>
         <p class="status-line" id="rStatus">Playback starts where the tower is — you can't rewind a radio.</p>
@@ -155,8 +160,20 @@ export function mount(root, ctx) {
   player.addEventListener('status', onStatus);
   player.addEventListener('playing', onPlaying);
 
-  // Up next, Just played and the guide for the next hours live on /ondes; the queue's editor in the Booth.
-  const dial = new ChannelDial({ root: $('rChannels'), client, label: 'Channels' });
+  // Up next, Just played and the guide for the next hours live on /ondes; the queue's editor in the Booth;
+  // the streams in the Antenna. With more than one on air, the head names the one playing and leads there.
+  let alive = true;
+  const paintStream = async () => {
+    if (typeof client.channels !== 'function') return;
+    const { channels = [], current } = await client.channels();
+    if (!alive) return;
+    const el = $('rStream');
+    const on = channels.find((c) => c.slug === (client.channel ?? current));
+    el.hidden = channels.length < 2 || !on;
+    if (!el.hidden) el.innerHTML = `stream <b>${esc(on.label)}</b> <span aria-hidden="true">›</span>`;
+  };
+  const offCh = client.on?.('channel', paintStream);
+  paintStream();
 
   setPlaying(player.playing);
   paintStation();
@@ -164,7 +181,8 @@ export function mount(root, ctx) {
 
   return () => {
     document.body.classList.remove('on-radio');
-    dial.destroy();
+    alive = false;
+    offCh?.();
     player.removeEventListener('station', paintStation);
     player.removeEventListener('tick', onTick);
     player.removeEventListener('drift', onDrift);

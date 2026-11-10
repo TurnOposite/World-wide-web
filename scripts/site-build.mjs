@@ -76,7 +76,7 @@ export function routes(texts, echo = [], pages = [], clips = []) {
     ...[...RETIRED.keys()].map((c) => `go/${c.toUpperCase()}`).filter((r) => !pages.some((p) => `go/${p.code}` === r)),
     'radio', 'atlas', 'ecrits', 'portfolio', 'booth',
     'ondes', 'echoes', 'playlists',
-    'zone',
+    'antenna', 'zone',
     'portfolio/library', 'portfolio/photos', 'portfolio/crates',
     ...texts.map((t) => `ecrits/${t.slug}`),
     'echo/lectures', ...texts.map((t) => `echo/lectures/${t.slug}`),
@@ -110,7 +110,7 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   const log = (...a) => { if (!quiet) console.log(...a); };
 
   // 1. generated inputs
-  for (const s of ['site-sync.mjs', 'site-texts.mjs', 'site-echo.mjs', 'site-collections.mjs']) {
+  for (const s of ['site-sync.mjs', 'site-texts.mjs', 'site-echo.mjs', 'site-collections.mjs', 'site-telegraph.mjs']) {
     execFileSync(process.execPath, [path.join(ROOT, 'scripts', s)], { stdio: quiet ? 'ignore' : 'inherit' });
   }
 

@@ -224,3 +224,17 @@ test('a track with unreadable metadata is kept, not silently dropped', () => {
   const { unique } = dedupeTracks(tracks);
   assert.equal(unique.length, 2);
 });
+
+// Ortis, 2026-11-10, reading the labels: « alf is VGM, and some things with nintendo or 2 Mello or Jet Set in the
+// name are VGM, but Moonchild (very laid back jazz n pop) certainly isn't ».
+test('game music is named, not guessed from three letters: `ost` and `alf` are whole words', () => {
+  assert.equal(g('Crates/Bandcamp/Moonchild - Little Ghost/03 The Other Side.mp3', { artist: 'Moonchild', album: 'Little Ghost' }), 'jazz', 'a ghost is not an OST');
+  assert.equal(g('Phone/almost lost at the post office.mp3'), 'unsorted');
+  assert.equal(g('Phone/Some Game OST - Title Theme.mp3'), 'vgm', 'an OST still is');
+  assert.equal(g('Phone long mixes/FUNKY GAME JAMS vol. 5 ~ MEGAMIX ~.mp3', { artist: 'alf 🌙' }), 'vgm');
+  assert.equal(g('Phone/electro cafe title theme.mp3', { artist: 'alf 🌙' }), 'vgm');
+  assert.equal(g('Phone/half past alfa.mp3'), 'unsorted', 'alf inside a word is not alf');
+  assert.equal(g('Phone long mixes/2 Mello - Memories Of Tokyo-To.mp3'), 'vgm');
+  assert.equal(g('Phone/An Ode To Jet Set Radio.mp3'), 'vgm');
+  assert.equal(g('Phone/Nintendo eShop theme.mp3'), 'vgm');
+});

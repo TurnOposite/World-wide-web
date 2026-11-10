@@ -3154,3 +3154,44 @@ Ortis's request in one change (DECISIONS, same date, « Lectures into the Livre 
   image: the room builds `/api/track/<id>/art` (and the picked covers' `/collections/…`) as bare paths, which on
   Vercel ask the website, not the tower (the tower client only rewrites the API's own `…Url` fields). `onTower` in
   `rooms/crates.js` puts the tower's origin in front; one more test in `tests/crates.test.js`.
+
+## 2026-11-10 - The Antenna: the streams' dial and the telegraph line; the phone's /radio; the labels (Claude, for Ortis)
+
+Asked for in one day, in three messages: a chat « for the people on board », a way to choose the vibe, a phone
+that shows the music's name without scrolling; then « the single chat room idea, with icons to select when asked
+to join the telegraph line, coming from a folder I'll fill with pics later », « two streams for now, one chill
+and the other more energetic (keep the everything one) », « remove the Atlas from the Zone side… call that window
+Antenna »; then « make the stream interface live now and build infra for their content but no content for now ».
+The plan it came out of is `docs/plans/PLAN-chat-and-moods.md`.
+
+- **The Antenna** (`site/js/pages/antenna.js`, /antenna; /zone still opens it) stands in the window Zone's Atlas
+  held: same place on the map, same code Z-03, 80 taller upwards. Zone's Atlas is gone (`pages/broadcast.js`, its
+  origin card, the old `/zone` styles); the one Atlas is Echo's. Where the tower broadcasts from is drawn nowhere
+  in the world for now; `pages/zone.js` keeps the rule.
+- **The streams.** Chill and Energy stand on the dial beside Everything, empty, marked « no music yet », and
+  cannot be tuned to. They are the tower's own (`STREAMS` in `server/lib/channels.js`), added to a channels.json
+  that does not define them, so nothing had to be published for them to appear. What fills them: a `Chill` or an
+  `Energy` folder at the top of the library, or, in channels.json, any `folders` (at any depth), `genres` with
+  `match: "any"`, and `excludeFolders`. The dial left /radio for the Antenna; /radio names the stream on air.
+- **The telegraph line** (`server/lib/telegraph.js`, `site/js/ui/telegraph.js`): one room. `GET /api/telegraph`,
+  `POST /api/telegraph`, `POST /api/telegraph/remove` (station key). A name and an icon from the bank
+  (`site/assets/telegraph/`, twelve placeholder drawings; the build lists the folder, so replacing them is
+  dropping pictures in). Kept in the browser only if the listener ticks the box. The line is kept on the tower in
+  `telegraph.jsonl` beside the scan cache: time, name, icon, text, stream, no address.
+- **The phone's /radio**: the tagline, the loop and sync figures and Resync are not shown, and the cover is sized
+  by the screen's height. On a 390×844 screen the title and Tune in are above the mini-player; on 375×667 the
+  title is, Tune in is a short scroll away (the mini-player's own button is always there).
+- **The Booth**: « Visuals on the big screen » instead of the F hint. From a page with no scene of its own the
+  figure now hangs in the middle of the room, as on /radio.
+- **Echo's ash**: on the paper a fifth more flakes, a touch darker, falling a little faster.
+- **The labels**: `ost` and `alf` are whole words in the game-music rule, and `2 Mello`, `Jet Set` and
+  `funky game jams` are in it; Moonchild's « Little Ghost » is jazz again. Labels are read at each scan, so the
+  tower's change at its next one. The live programme does not use them.
+- **A body the parser refuses** (too large, not JSON) is answered 413 or 400, not 500.
+- **Checked**: `bash scripts/build-test.sh` in the cloud container — unit tests, the 43 browser checks of the
+  Pi-era player, the site smoke with the new checks (the Antenna without a tower; on a tower: join, send, a
+  second listener reads it, markup stays text; the phone's first screen; the Booth's button), the Atelier.
+  Looked at in Chromium at 390×844, 375×667, 1100×700, 1280×720, 1366×768, 1440×900 and 1920×1080. **Not
+  checked**: a real phone, iOS Safari, and the line under real traffic.
+- **Not done, on purpose**: no content in the streams; no tempo slider (no track carries a BPM); the line is only
+  in the Antenna (nothing in the mini-player); the Pi kit's move to `archive/` is the next commit.

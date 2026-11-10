@@ -24,6 +24,10 @@
  *   all     everything, as the station always played it (legacy; the DJ's
  *           command-line booth and the Pi's own page still use this one)
  *
+ * Since 2026-11-10 a channel can also name `folders` at any depth, and say
+ * `match: 'any'` (see matches) — the two streams beside Everything, Chill
+ * and Energy, are channels of that kind.
+ *
  * The spec is data (library/channels.json on a server, `channels` in
  * site/station/library.json on the static site). A channel with no tracks is
  * not listed — the long-mix channel appears the day a long mix is online.
@@ -97,16 +101,93 @@ export function cratesOf(t) {
   return [home, ...extra.filter((c) => slugify(c) !== slugify(home))];
 }
 
-/** Does a track pass a channel's filter? */
+/**
+ * A folder as the filters compare it — the daily programme's folding
+ * (programme.js fold: accents, case, runs of spaces and underscores), written
+ * out here so this file stays whole when the site copies it.
+ */
+export function foldPath(s) {
+  return String(s ?? '').normalize('NFKC').normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().replace(/\\/g, '/').replace(/[\s_]+/g, ' ').replace(/^\/+|\/+$/g, '').trim();
+}
+
+/** Is a track inside one of these folders, at any depth? `Crates/Bandcamp/an album` is a folder like `Chill`. */
+export function inFolders(t, folders) {
+  const rel = foldPath(t?.relPath);
+  if (!rel) return false;
+  return folders.some((raw) => {
+    const f = foldPath(raw);
+    return Boolean(f) && (rel === f || rel.startsWith(`${f}/`));
+  });
+}
+
+/**
+ * Does a track pass a channel's filter?
+ *
+ * The length limits and the exclusions always hold. Of what a channel asks
+ * for — `crates` (top-level folders), `folders` (any depth), `genres` — a
+ * track must meet every kind named, or, with `match: 'any'`, at least one:
+ * that is how a stream is drafted from the genre labels and then filled by
+ * hand, folder by folder (Ortis, 2026-11-10: « folders for the streams, but
+ * help me fill them based on the labels »).
+ */
 export function matches(t, ch) {
   const mins = (t.duration || 0) / 60;
   if (Number.isFinite(ch.minMinutes) && mins < ch.minMinutes) return false;
   if (Number.isFinite(ch.maxMinutes) && mins >= ch.maxMinutes) return false;
   const crates = cratesOf(t).map(slugify);
-  if (Array.isArray(ch.crates) && ch.crates.length && !ch.crates.some((c) => crates.includes(slugify(c)))) return false;
   if (Array.isArray(ch.excludeCrates) && ch.excludeCrates.some((c) => crates.includes(slugify(c)))) return false;
-  if (Array.isArray(ch.genres) && ch.genres.length && !ch.genres.includes(t.genreSlug)) return false;
-  return true;
+  if (Array.isArray(ch.excludeFolders) && ch.excludeFolders.length && inFolders(t, ch.excludeFolders)) return false;
+  const asked = [];
+  if (Array.isArray(ch.crates) && ch.crates.length) asked.push(ch.crates.some((c) => crates.includes(slugify(c))));
+  if (Array.isArray(ch.folders) && ch.folders.length) asked.push(inFolders(t, ch.folders));
+  if (Array.isArray(ch.genres) && ch.genres.length) asked.push(ch.genres.includes(t.genreSlug));
+  if (!asked.length) return true;
+  return ch.match === 'any' ? asked.some(Boolean) : asked.every(Boolean);
+}
+
+/**
+ * The two streams beside Everything (Ortis, 2026-11-10: « one chill as fuck and the other more energetic — keep
+ * the Everything one »). They are the tower's own, so that a tower whose channels.json was written before them
+ * carries them from the first restart; a channels.json that defines `chill` or `energy` itself wins, and
+ * `"streams": false` there switches both off.
+ *
+ * They ship empty, on purpose (the same evening: « make the stream interface live now and build infra for
+ * their content, but no content for now »). Each is the folder of its name at the top of the library — what is
+ * dropped in `Chill` plays on Chill and never on Energy, and the other way round — and `keepEmpty` keeps a
+ * stream with nothing in it on the dial, shown as waiting, instead of leaving it out as an empty channel is.
+ * Filling them from the albums already on the tower is done in channels.json, where a stream can list any
+ * folders, name genres with `match: 'any'`, and exclude folders: he wants the labels revised before that.
+ */
+export const STREAMS = Object.freeze([
+  Object.freeze({
+    slug: 'chill',
+    label: 'Chill',
+    blurb: 'Slow and quiet. For working, reading, or nothing at all.',
+    order: 'shuffle',
+    match: 'any',
+    folders: ['Chill'],
+    excludeFolders: ['Energy'],
+    keepEmpty: true,
+  }),
+  Object.freeze({
+    slug: 'energy',
+    label: 'Energy',
+    blurb: 'Faster and louder.',
+    order: 'shuffle',
+    match: 'any',
+    folders: ['Energy'],
+    excludeFolders: ['Chill'],
+    keepEmpty: true,
+  }),
+]);
+
+/** A spec with the streams it does not define itself added after its own channels — unless it says `streams: false`. */
+export function withStreams(spec) {
+  if (!spec || spec.streams === false) return spec;
+  const have = new Set((spec.channels || []).map((c) => c?.slug));
+  const add = STREAMS.filter((s) => !have.has(s.slug));
+  return add.length ? { ...spec, channels: [...(spec.channels || []), ...add] } : spec;
 }
 
 /**
@@ -178,6 +259,7 @@ export class ChannelSet {
     this.main = main;
     this._stations = new Map(); // slug -> Station
     this._list = [];
+    this._all = []; // _list, plus the channels kept on the dial while they hold nothing (keepEmpty), in the spec's order
     this._bySlug = new Map();
   }
 
@@ -191,16 +273,22 @@ export class ChannelSet {
     const usable = (tracks || []).filter((t) => Number.isFinite(t.duration) && t.duration > 0);
     const expanded = expandSpec(usable, this.spec);
     const list = [];
+    const all = [];
     const alive = new Set();
     for (const ch of expanded) {
       if (ch.order === 'station') {
         if (!this.main) continue;
         alive.add(ch.slug);
         list.push({ ...ch, station: this.main });
+        all.push(list.at(-1));
         continue;
       }
       const picked = usable.filter((t) => matches(t, ch));
-      if (!picked.length) continue;
+      if (!picked.length) {
+        // Nothing to play is no channel — except one the spec keeps on the dial to say it is coming (the streams).
+        if (ch.keepEmpty === true) all.push({ ...ch, station: null });
+        continue;
+      }
       let st = this._stations.get(ch.slug);
       if (!st || st.order !== ch.order) {
         st = new Station([], { ...this.stationOpts, order: ch.order });
@@ -211,9 +299,11 @@ export class ChannelSet {
       this._stations.set(ch.slug, st);
       alive.add(ch.slug);
       list.push({ ...ch, station: st });
+      all.push(list.at(-1));
     }
     for (const slug of [...this._stations.keys()]) if (!alive.has(slug)) this._stations.delete(slug);
     this._list = list;
+    this._all = all;
     this._bySlug = new Map(list.map((c) => [c.slug, c]));
     return this;
   }
@@ -236,10 +326,15 @@ export class ChannelSet {
   /** Every station this set owns, for whoever needs to visit them all. */
   stations() { return this._list.map((c) => c.station); }
 
-  /** The public description of every channel — what /api/channels returns. */
+  /**
+   * The public description of every channel — what /api/channels returns. One kept while empty is described
+   * too, marked `empty`: it has no clock, cannot be tuned to (has, get and resolve do not know it), and a
+   * listener who asks for it gets the default channel.
+   */
   list({ now = Date.now() } = {}) {
-    return this._list.map((c) => {
+    return this._all.map((c) => {
       const st = c.station;
+      if (!st) return { slug: c.slug, label: c.label || c.slug, blurb: c.blurb || null, kind: c.kind || 'custom', order: c.order, trackCount: 0, seconds: 0, onAir: null, empty: true };
       const cur = st.at(now);
       return {
         slug: c.slug,

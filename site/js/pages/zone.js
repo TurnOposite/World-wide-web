@@ -6,6 +6,11 @@
  * the playlists, and /zone opens it. What stays here is which point to draw
  * and how to tell its time; the Atlas imports it.
  *
+ * Since 2026-11-10 no window of the world draws the point: Zone's Atlas gave
+ * its window to the Antenna, and Ortis set « emitting from somewhere » aside
+ * for now. The rules stay, tested, for the day it comes back; the classic
+ * front page's small map is the one place the point still shows.
+ *
  * The origin is configuration. A tower that names one (STATION_LAT / LON /
  * PLACE in its env, surfaced in /api/station → station.origin) wins; else
  * the site's own config.json → station.origin. Neither → no point, and the

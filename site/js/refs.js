@@ -3,7 +3,7 @@
  * can point at another without knowing where it lives (docs/ATELIER.md):
  *
  *   E-05 · atlas          the Atlas of the places, wherever its window is on the map
- *   Z-03 · zone           Zone's Atlas: where the tower broadcasts from
+ *   Z-03 · zone           the Antenna: the streams and the telegraph line (Zone's Atlas until 2026-11-10)
  *   E-02/<slug>           an Echo article        E-03/<slug>  a text of the Livre miroir (E-03 left the map)
  *   E-04/crates           a room of the Archive  (Z-05, E-06: its old codes, RETIRED)
  *   P-01 · v1             the v1 version, in its window on the world
@@ -19,6 +19,8 @@
 /** Old names of today's pages, and the reverse: what a route was called in an older version. */
 export const RENAMED = [
   ['echoes', 'ondes'],
+  // The window that was Zone's Atlas is the Antenna since 2026-11-10; its old address still opens it.
+  ['zone', 'antenna'],
   ['ecrits', 'echo/lectures'],
 ];
 
@@ -135,7 +137,7 @@ export function pointHome(value, own = () => false) {
  * they only redirect — nor, since 2026-11-03, /echo/archives, whose address only leads to the Archive. The
  * texts keep their addresses under /echo/lectures; its list is gone into the Livre miroir.
  */
-export const TODAY = ['', 'radio', 'ondes', 'zone', 'atlas', 'portfolio', 'playlists', 'booth', 'echo', 'echo/articles', 'echo/presse', 'echo/lectures'];
+export const TODAY = ['', 'radio', 'ondes', 'antenna', 'atlas', 'portfolio', 'playlists', 'booth', 'echo', 'echo/articles', 'echo/presse', 'echo/lectures'];
 
 /** The first segments of the site's own addresses, old names included, and the past's windows. */
 const HEADS = new Set([...TODAY, ...RENAMED.map(([old]) => old), 'versions'].map((r) => r.split('/')[0]).filter(Boolean));

@@ -24,6 +24,18 @@ Oracle server at `https://129-151-227-129.sslip.io` —
 **[`docs/LIVE.md`](./docs/LIVE.md)** (one channel, the daily programme since
 2026-10-14; rate limits on the public API).
 
+**New since 2026-11-10 — the Antenna: the streams and the telegraph line.**
+The window that was Zone's Atlas is the Antenna (`site/js/pages/antenna.js`,
+/antenna). It holds the dial — Everything, and two streams, Chill and Energy,
+that ship empty and are filled by folders (`STREAMS` in
+`server/lib/channels.js`; `folders`, `match: "any"`, `keepEmpty`) — and the
+telegraph line, the one chat room (`server/lib/telegraph.js`,
+`site/js/ui/telegraph.js`; icons in `site/assets/telegraph/`). It is the
+first thing listeners write to the tower: read the 2026-11-10 entry of
+`docs/DECISIONS.md` before touching it, and
+[`docs/plans/PLAN-chat-and-moods.md`](./docs/plans/PLAN-chat-and-moods.md)
+for what is next.
+
 **New since 2026-10-14 — the daily programme, and colours from the cover.**
 The tower no longer shuffles one loop: a day runs from 05:00 Paris time,
 favourites daily, the loop every two days, the albums mixed in turn, long

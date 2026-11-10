@@ -66,7 +66,7 @@ test('?classic=1 and ?world=1 are each remembered for the tab; a new tab starts 
   assert.equal(worldWanted({ search: '', storage: broken }), false);
 });
 
-test('nine districts — two Atlases, Zone\'s (Z-03, where the tower broadcasts from) and Echo\'s (E-05, the map of the places), the Archive on Echo, each on its own half, none overlapping', () => {
+test('nine districts — the Antenna on Zone (Z-03: the streams and the telegraph line, where Zone\'s Atlas stood), one Atlas, Echo\'s (E-05), the Archive on Echo, each on its own half, none overlapping', () => {
   assert.equal(DISTRICTS.length, 9);
   // In the order a visitor meets them (Ortis, 2026-11-01): Zone's five, then Echo's four — since 2026-11-03 (evening)
   // Une, Articles, the Archive (the Bibliothèque renamed, in Archives' place and with its code), Atlas.
@@ -74,8 +74,12 @@ test('nine districts — two Atlases, Zone\'s (Z-03, where the tower broadcasts 
   assert.equal(new Set(DISTRICTS.map((d) => d.id)).size, 9);
   assert.equal(byId('lectures'), null, 'Lectures\' window went into the Livre miroir');
   assert.equal(byId('archives'), null, 'Archives went into Articles and the Archive');
-  assert.equal(byId('zone').title, 'Atlas', 'Zone\'s Atlas is called Atlas');
-  assert.equal(byId('atlas').title, 'Atlas', '…and so is Echo\'s');
+  // Ortis, 2026-11-10: « remove the Atlas from the Zone side, its weird having two anyways… call that window Antenna ».
+  // The window keeps its place on the map (id `zone`, code Z-03) and takes the address /antenna.
+  assert.equal(byId('zone').title, 'Antenna', 'the window that was Zone\'s Atlas is the Antenna');
+  assert.equal(byId('zone').route, 'antenna');
+  assert.ok(!byId('zone').scroll, 'the Antenna shows its page whole: the line\'s list scrolls, not the window');
+  assert.deepEqual(DISTRICTS.filter((d) => d.title === 'Atlas').map((d) => d.id), ['atlas'], 'one Atlas is left, Echo\'s');
   assert.equal(byId('zone').half, 'zone');
   assert.equal(byId('atlas').half, 'echo', 'the map of the places stands on Echo\'s side');
   // The bookshelf left Zone's side on 11-01 and has its window on Echo's since 11-03 (Ortis: « it got removed completely »).
@@ -106,7 +110,7 @@ test('every route lands in a district, and every district with a page names a ro
   const served = new Set(['', ...routes([], [])]);
   for (const d of DISTRICTS) if (d.route !== null) assert.ok(served.has(d.route), `${d.id} → /${d.route}`);
   const expect = {
-    home: 'radio', radio: 'radio', ondes: 'ondes', zone: 'zone', atlas: 'atlas',
+    home: 'radio', radio: 'radio', ondes: 'ondes', antenna: 'zone', atlas: 'atlas',
     playlists: 'playlists', booth: 'booth', articles: 'articles', portfolio: 'portfolio',
     // Since 2026-11-03 (evening): the texts' list leads to the Archive (the Livre miroir), Archives' address too.
     lectures: 'portfolio', ecrits: 'portfolio', archives: 'portfolio',
@@ -118,8 +122,9 @@ test('every route lands in a district, and every district with a page names a ro
   assert.equal(districtFor('lectures', { slug: 'voyages' }), 'articles', '…and a text of the Livre miroir');
   assert.equal(districtFor('ecrits', { slug: 'voyages' }), 'articles');
   assert.equal(districtFor('missing', {}), null, 'a page that does not exist leaves the camera where it is');
+  assert.ok(served.has('zone'), 'the Antenna\'s old address, /zone, still answers on a cold load');
   // Every route name main.js declares is mapped (a new route must be placed on the map)…
-  for (const name of ['home', 'radio', 'ondes', 'playlists', 'atlas', 'lectures', 'zone', 'ecrits', 'archives', 'articles', 'presse', 'echo', 'booth', 'portfolio']) {
+  for (const name of ['home', 'radio', 'ondes', 'playlists', 'atlas', 'lectures', 'antenna', 'ecrits', 'archives', 'articles', 'presse', 'echo', 'booth', 'portfolio']) {
     assert.ok(districtFor(name, {}), name);
   }
   // Every room of the Portfolio opens in its window, not only the Bibliothèque.
