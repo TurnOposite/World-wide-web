@@ -27,7 +27,7 @@ No scheduled task continues this: all seven on the account were switched off on 
 | Echo's ash, a little more | **Built** |
 | The Antenna in place of Zone's Atlas | **Built**; Zone's Atlas removed |
 | Labels: alf, 2 Mello, Jet Set are game music, Moonchild is not | **Built** (rules); the rest of the review waits for his sheet |
-| The Pi kit to an archive folder | Step 0a |
+| The Pi kit to an archive folder | **Done**: `archive/pi-kit/` |
 
 ## Step 0: the clean-up, tested in a vacuum
 
@@ -48,9 +48,9 @@ failures outside the candidate's own tests, which is the real measure of how tan
 Not tested: the full browser stages after each removal (only unit tests and the build were run on
 the copies). Whoever does a removal runs the whole self-test.
 
-- [ ] 0a. Pi kit to `archive/pi-kit/` — open (Ortis, 2026-11-10: « move the pi kit to a local folder archive for reference », not the site's Archive window)
+- [x] 0a. Pi kit to `archive/pi-kit/` (2026-11-10; its README says what was where and how to bring it back)
 - [ ] 0b. Re-aim stage 6 at the site in tower mode, then remove the Pi-era pages — open
-- [ ] 0c. `CLAUDE.md` opening paragraph — after 0a
+- [x] 0c. `CLAUDE.md` opening paragraph and deployment section
 
 ## Step 1: the phone
 
@@ -100,3 +100,4 @@ folders `Greetings`, `Breaking cores` and `Electronic Dance Martin` held no audi
 | 2026-11-10 | Claude, with Ortis | Scan of `fc9faa7`; baseline self-test green; five removals tried in copies; library measured; first plan |
 | 2026-11-10 | Claude, with Ortis | His decisions: Pi retired; streams by folders after the labels are revised; streams beside Everything; chat yes, a bank of pictures, remembering is the listener's choice |
 | 2026-11-10 | Claude, with Ortis | Built and pushed: the Antenna (dial + telegraph line), empty Chill and Energy, the phone's /radio, the Booth's button, the ash, the label fixes. Zone's Atlas removed |
+| 2026-11-10 | Claude, with Ortis | The Pi kit moved to `archive/pi-kit/` (46 files, as its own commit) |

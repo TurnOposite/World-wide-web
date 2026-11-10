@@ -1,20 +1,24 @@
 # Radio Tower
 
-A Raspberry Pi that hosts a website playing music. One synced stream — everyone
-who opens it hears the same track at the same second, no account required.
+A website playing music from a small server. One synced stream — everyone who
+opens it hears the same track at the same second, no account required. It
+began on a Raspberry Pi; the Pi was retired on 2026-11-10 and its kit is kept,
+not run, in [`archive/pi-kit/`](./archive/pi-kit/README.md). The station lives
+on the Oracle server and the site on Vercel ([`docs/LIVE.md`](./docs/LIVE.md)).
 
 ## Coming back after a break?
 
 **→ [`docs/PICK-UP-AGAIN.md`](./docs/PICK-UP-AGAIN.md)** is one page and assumes
-you remember nothing: how to check the code still works, how to get the Pi onto
-a Wi-Fi network it has never seen (no SSH, no monitor — see
-[`pi/NEW-NETWORK.md`](./pi/NEW-NETWORK.md)), and what is actually left to do.
-Written 2026-08-28 when the project went on hold. Read it before the rest.
+you remember nothing — but it was written 2026-08-28, for the Pi, when the
+project went on hold. For the station as it runs today start with
+[`docs/LIVE.md`](./docs/LIVE.md); the Pi paths it names are now under
+`archive/pi-kit/`.
 
 **New since 2026-09-23:** the tower can be plugged in *anywhere* and come
 back online on your own domain by itself (setup hotspot + phone page for a
 Wi-Fi it has never seen, a Cloudflare Tunnel token on the SD card, a
-watchdog) — **[`pi/anywhere/README.md`](./pi/anywhere/README.md)**. And the
+watchdog) — **[`archive/pi-kit/pi/anywhere/README.md`](./archive/pi-kit/pi/anywhere/README.md)**
+(archived with the Pi kit, 2026-11-10). And the
 site has three new rooms — **Library** (essays on a bookshelf, the thesis,
 the network-map room), **Photos**, **Crates** — fed by
 [`collections/collection.json`](./collections/collection.json).
@@ -150,14 +154,11 @@ node dj.mjs clear                  # back to the station clock
 node --test test.mjs               # the booth's own 11 tests
 ```
 
-Deployment: `pi/install.sh` is the maintained installer (installs to
-`/opt/radio-tower` with a systemd unit) — `pi/README.md` is the from-scratch,
-blank-SD-card walkthrough. `scripts/setup-pi.sh` is a thin compatibility
-wrapper around it for a repo already on the Pi (see `docs/DECISIONS.md`
-2026-08-18, "Reconciling the two Pi installers" — do not re-add logic there,
-it should stay a one-line `exec` into `pi/install.sh`). `scripts/setup-tunnel.sh`
-handles the Cloudflare Tunnel (`quick` for an ephemeral URL, `named
-yourdomain.com` for a permanent one).
+Deployment: the site deploys from `main` on Vercel once GitHub's self-test
+passes; the tower takes `main` every night (`deploy/cloud/update.sh`), or at
+once with `npm run fire` — [`docs/LIVE.md`](./docs/LIVE.md) and
+[`docs/ATELIER.md`](./docs/ATELIER.md). The Pi's installer and tunnel scripts
+are in `archive/pi-kit/`.
 
 ## Conventions
 
@@ -166,8 +167,9 @@ yourdomain.com` for a permanent one).
   If you reach for a bundler, you have left the design of this project.
 - **Dependencies are a cost.** Two runtime deps today (`express`,
   `music-metadata`). Adding a third needs a line in `docs/DECISIONS.md` saying why.
-- **The Pi is the target.** Pi Zero 2 W: 512MB RAM, slow USB reads. No transcoding
-  per request, no second copy of the library in memory.
+- **A small machine is the target.** The rule was written for a Pi Zero 2 W
+  (512MB RAM, slow USB reads) and is kept as a discipline on the cloud tower:
+  no transcoding per request, no second copy of the library in memory.
 - **Comments explain *why*, not *what*.** The code says what it does.
 - **Never commit audio.** `music/` is gitignored; real libraries live at `MUSIC_DIR`.
 - **Append to `docs/DECISIONS.md` and `docs/WORKLOG.md`.** Never rewrite history there.
@@ -202,7 +204,8 @@ they travel with the folder rather than living in one conversation:
 > `tower-anywhere`, `tower-curate`, `/tower-online`, `/tower-curate`) were
 > written from Cowork, which may not write into `.claude/`. Until Ortis runs
 > the three copy commands in
-> [`claude-tooling-to-install/README.md`](./claude-tooling-to-install/README.md),
+> [`archive/pi-kit/claude-tooling-to-install/README.md`](./archive/pi-kit/claude-tooling-to-install/README.md)
+> (archived with the Pi kit on 2026-11-10, never installed),
 > they live there instead.
 
 The account-level plugins (`engineering`, `desktop-commander`, `wix`, `canva`,
@@ -219,10 +222,8 @@ those lists are the specific instruction, this paragraph is the general one.
 | | |
 |---|---|
 | `dj/` | **the booth.** Standalone, zero dependencies, its own `CLAUDE.md` and its own permission fence. `cd dj && claude` runs the DJ on its own; it cannot write to `server/`, `public/`, `scripts/`, `tests/`, `docs/` or `music/`. It changes the *programme*, never the station |
-| `usb/` | rebuilding the USB stick so `pi/install.sh` cannot adopt the wrong library. Dry-run by default. See `docs/guides/USB-CLEANUP.md` |
-| `split/` | cutting the long mixes into tracks with ffmpeg. Proposes; refuses to write into `MUSIC_DIR`. ffmpeg is **not** a runtime dependency — this is offline tooling, like `usb/` |
 | `collections/` | **the rooms' content.** `collection.json` is the only thing that decides what is published; `_review/` and `_incoming/` are working folders the server refuses to serve. Personal material — see the `tower-curate` skill before adding anything |
-| `archive/` | build debris kept rather than deleted (the old architecture PDF, the superseded SD-card zip). Nothing here is referenced by code |
+| `archive/` | kept for reference, never run: `pi-kit/` — the Raspberry Pi's installer, network kit, USB and mix-splitting tools and their tests, moved there on 2026-11-10 (its `README.md` says what was where). Nothing here is referenced by code, and it is not the site's Archive window |
 
 The division: **`tower-builder` changes the station. `tower-dj` changes what it
 is playing.** If a DJ session finds something that needs a server change, it

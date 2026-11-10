@@ -1,5 +1,9 @@
 # Picking Radio Tower back up
 
+> **2026-11-10:** the Pi is retired and this page is history. Its kit moved to
+> [`../archive/pi-kit/`](../archive/pi-kit/README.md): where this page says `pi/…`, `usb/…`, `split/…` or
+> `scripts/setup-*.sh`, read `archive/pi-kit/…`. For the station as it runs now: [`LIVE.md`](./LIVE.md).
+
 > **Since 2026-10-08 the radio runs in the cloud, not on the Pi** — the site on
 > Vercel, the music on an Oracle server. Start with **[`LIVE.md`](./LIVE.md)**;
 > this page is still right about the Pi.

@@ -124,15 +124,11 @@ Radio Tower/
 │  ├─ lib/listeners.js     anonymous listener counting
 │  └─ routes/api.js        the HTTP surface
 ├─ public/               ← the player (no build step, edit and reload)
-├─ pi/                   ← the maintained Pi installer — start here for a real device
-│  ├─ README.md            blank-SD-card walkthrough, no prior Pi experience assumed
-│  ├─ install.sh            the installer itself; run once over SSH
-│  ├─ NETWORK.md, TROUBLESHOOTING.md, CHECKLIST.md
+├─ archive/pi-kit/       ← the Raspberry Pi kit (pi/, usb/, split/, setup-pi.sh, setup-tunnel.sh and
+│                          their tests), retired 2026-11-10 and kept for reference; its README says what was where
 ├─ scripts/
 │  ├─ build-test.sh        the self-test the build agent runs
 │  ├─ browser-smoke.mjs    real-browser checks
-│  ├─ setup-pi.sh          thin wrapper around pi/install.sh, for a repo already on the Pi
-│  ├─ setup-tunnel.sh      Cloudflare Tunnel, quick or named
 │  ├─ scan.js              library report
 │  └─ healthcheck.js       one-screen status
 ├─ deploy/               ← systemd unit, env template, tunnel config

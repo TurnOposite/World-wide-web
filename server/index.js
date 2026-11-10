@@ -250,7 +250,7 @@ const isMain = process.argv[1] && import.meta.url === pathToFileURL(path.resolve
 
 if (isMain) {
   // Hot reload for public/, dev only. Nothing in the deploy path sets
-  // NODE_ENV except the systemd unit (deploy/radiotower.service), which now
+  // NODE_ENV except the systemd unit (deploy/cloud/install.sh writes it), which
   // sets NODE_ENV=production explicitly so this stays off on a real station.
   const devReload = process.env.NODE_ENV !== 'production';
   const app = createApp({ devReload });

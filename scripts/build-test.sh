@@ -72,16 +72,14 @@ while IFS= read -r f; do
 done < <(find server public scripts tests -name '*.js' -o -name '*.mjs' 2>/dev/null | grep -v node_modules)
 [[ $SYNTAX_FAIL -eq 0 ]] && ok "all JavaScript parses"
 
-# The Pi installers (pi/install.sh, scripts/setup-pi.sh) never had even a
-# syntax check — see roadmap #0, "259 lines of untested shell standing
-# between Ortis and a working station". This won't catch most of what could
-# go wrong there (that needs root or a real Pi; tests/pi-install.test.js
-# covers what's testable without either), but a bad edit that doesn't even
-# parse should never reach him silently.
+# Shell that runs unattended on the tower (deploy/cloud: first boot, install,
+# the nightly update) and this script itself: a bad edit that does not even
+# parse should never reach the server silently. Until 2026-11-10 this line
+# read the Pi's installers; they are in archive/pi-kit/ now, kept, not run.
 SHELL_SYNTAX_FAIL=0
 while IFS= read -r f; do
   bash -n "$f" 2>/dev/null || { bad "syntax error in $f"; SHELL_SYNTAX_FAIL=1; }
-done < <(find scripts pi -name '*.sh' 2>/dev/null)
+done < <(find scripts deploy -name '*.sh' 2>/dev/null)
 [[ $SHELL_SYNTAX_FAIL -eq 0 ]] && ok "all shell scripts parse"
 
 if [[ -d node_modules ]]; then

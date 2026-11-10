@@ -97,9 +97,8 @@ nothing). Every push is tested (`.github/workflows/ci.yml`) and redeploys the
 site; the server pulls new code nightly. The older GitHub Pages route is in
 [`docs/GO-LIVE.md`](docs/GO-LIVE.md).
 
-On a Raspberry Pi instead: [`pi/README.md`](pi/README.md) from a blank SD card,
-[`pi/anywhere/README.md`](pi/anywhere/README.md) to keep it online on any
-network and your own domain.
+It began on a Raspberry Pi. The Pi was retired on 2026-11-10; its installer and
+network kit are kept for reference in [`archive/pi-kit/`](archive/pi-kit/README.md).
 
 ## The self-test
 
@@ -127,8 +126,9 @@ server/           the Express station; lib/schedule.js is the heart of both
 public/           the Pi's original player pages
 collections/      the portfolio's content and its manifest
 writing/          the Globe Trotter texts, verbatim
-scripts/          self-test, site build/serve/smoke, Pi tooling
-pi/  deploy/      Raspberry Pi installer, networking, tunnel
+scripts/          self-test, site build/serve/smoke, fire
+deploy/           the cloud tower's installer and updater, the env template
+archive/pi-kit/   the retired Raspberry Pi kit, for reference
 dj/               the DJ booth as a CLI
 docs/             architecture, the cloud plan, decisions, roadmap, worklog
 .github/          CI and the Pages deploy

@@ -3195,3 +3195,36 @@ The plan it came out of is `docs/plans/PLAN-chat-and-moods.md`.
   checked**: a real phone, iOS Safari, and the line under real traffic.
 - **Not done, on purpose**: no content in the streams; no tempo slider (no track carries a BPM); the line is only
   in the Antenna (nothing in the mini-player); the Pi kit's move to `archive/` is the next commit.
+
+## 2026-11-10 (later) - The Pi kit goes to `archive/pi-kit/` (Claude, for Ortis)
+
+- Ortis: « pi is retired yes », then « move the pi kit to a local folder archive for reference (not the archive
+  window in the site) ». 46 files moved with `git mv`, nothing edited inside: `pi/`, `usb/`, `split/`,
+  `claude-tooling-to-install/`, `scripts/setup-pi.sh`, `scripts/setup-tunnel.sh`, `deploy/radiotower.service`,
+  `deploy/cloudflared-config.yml` and the four `tests/pi-*.test.js` (51 tests, no longer part of `npm test`).
+  `archive/pi-kit/README.md` says what was where and how to bring it back.
+- `scripts/build-test.sh` now syntax-checks the shell that does run unattended: `scripts/` and `deploy/cloud/`.
+- `CLAUDE.md` no longer opens on « A Raspberry Pi that hosts… »; `README.md`, `BRIEF.md`'s tree, `docs/README.md`
+  and `docs/PICK-UP-AGAIN.md` point to the new place. DECISIONS, WORKLOG and the handoffs keep the old paths:
+  they are history.
+- Tried in a copy before (step 0 of the plan): with the kit gone every other unit test passed and the site built.
+- **Not touched**: the Pi-era player in `public/` (stage 6 of the self-test still drives it: step 0b of the
+  plan), `.claude/skills/tower-deploy` and the agents that mention the Pi.
+
+## 2026-11-10 (night) - A close that lands on a reopened Livre miroir; what the self-test said on the way (Claude, for Ortis)
+
+- **Found by the self-test, in code this work did not touch.** « the old /echo/lectures address leads to the
+  Archive, the Livre miroir open » failed in 3 of 4 full runs on the new tree, with the book open and its `#miroir`
+  gone from the address. A dialog's `close` event arrives a moment after `close()`: when the book is closed and
+  taken down again in the same breath, the event lands on a book that is open again and strips its address, its
+  water and its classes. The race was already there; the heavier pages only made it frequent. `mirror-book.js` now
+  ignores a `close` that finds the book open. The check also says what it saw when it fails.
+- **Still possible, not fixed:** leaving the Archive *with the book open* straight for `/echo/lectures` can end
+  with the book shut (the close's own handler removes the `#miroir` the new address carries, before the shelf
+  reads it). Nobody has a link that does this; the fix is to drop the address when the reader closes the book, not
+  when the event arrives.
+- **Checks that failed once and passed on the next run, each in code this work did not change** (six full runs
+  tonight): the Pi-era player's « the server recorded the override » (1 of 6) and the cloud Booth's « the reorder
+  is committed through the contents API » with its follow-up (1 of 6). At the commit before this work, one of
+  three runs of the site smoke alone failed on « Playlists: a card loads its playlist ». The last full run on the
+  final tree was green: 43/43, 165/165, 26/26.

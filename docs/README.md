@@ -3,6 +3,10 @@
 The index exists so an agent picks the *current* document instead of the first
 one whose name looked right. If you add a doc, add a line here.
 
+**The Pi kit moved on 2026-11-10** (the Pi is retired): `pi/`, `usb/`, `split/`, the two set-up scripts and
+their tests are in [`../archive/pi-kit/`](../archive/pi-kit/README.md), kept for reference. The links below
+point there; where an older document says `pi/…`, read `archive/pi-kit/pi/…`.
+
 Nothing in this folder was moved to create this index. Paths cited in
 `DECISIONS.md` and `WORKLOG.md` are still true — that history is append-only
 (`BRIEF.md` rule, and `CLAUDE.md` "Conventions"), and a tidy that made it lie
@@ -34,9 +38,9 @@ Where two documents overlap, this column says which one wins.
 | Identity, mark, colour, navigation, the Zone tab | **[`DESIGN-BRIEF.md`](./DESIGN-BRIEF.md)** | `IDENTITY-OPTIONS.md` is the menu that was chosen *from*. Do not edit it to match the outcome |
 | Where each window stands, the versions of the past, short links, publishing at once | **[`ATELIER.md`](./ATELIER.md)** | `WORLD.md`'s district table is the map *as designed*; `site/data/layout.json` is the map as arranged |
 | The redesign as one world (Zone ⇄ Echo, the camera, the tags), its phases and its flag | **[`WORLD.md`](./WORLD.md)** | Its last phase (5b, branch `claude/rework`) makes the world the default; until that branch is merged the classic shell is what is live, and after it the classic shell answers `?classic=1` for one release. `DESIGN-BRIEF.md` still rules the identity |
-| Deploying to the Pi | **[`../pi/README.md`](../pi/README.md)** (blank card) and [`DEPLOY.md`](./DEPLOY.md) | — |
-| Plugging the tower in anywhere — unknown Wi-Fi, your domain, keeping it live | **[`../pi/anywhere/README.md`](../pi/anywhere/README.md)** and [`../pi/anywhere/DOMAIN.md`](../pi/anywhere/DOMAIN.md) | `../scripts/setup-tunnel.sh named` (interactive login on the Pi) is the older route to a domain |
-| Moving the tower to a new Wi-Fi network | **[`../pi/NEW-NETWORK.md`](../pi/NEW-NETWORK.md)** — the card-edit route, no SSH needed | `../pi/NETWORK.md` §"Scenario C" is the older, SSH-only answer and assumes you can already reach the Pi |
+| Deploying to the Pi | **[`../pi/README.md`](../archive/pi-kit/pi/README.md)** (blank card) and [`DEPLOY.md`](./DEPLOY.md) | — |
+| Plugging the tower in anywhere — unknown Wi-Fi, your domain, keeping it live | **[`../pi/anywhere/README.md`](../archive/pi-kit/pi/anywhere/README.md)** and [`../pi/anywhere/DOMAIN.md`](../archive/pi-kit/pi/anywhere/DOMAIN.md) | `../scripts/setup-tunnel.sh named` (interactive login on the Pi) is the older route to a domain |
+| Moving the tower to a new Wi-Fi network | **[`../pi/NEW-NETWORK.md`](../archive/pi-kit/pi/NEW-NETWORK.md)** — the card-edit route, no SSH needed | `../pi/NETWORK.md` §"Scenario C" is the older, SSH-only answer and assumes you can already reach the Pi |
 | Why design asks did not land, and how to write the next one | **[`DESIGN-POSTMORTEM.md`](./DESIGN-POSTMORTEM.md)** | `prompts/PROMPT-cache-and-stage-defaults.md` Jobs 2–3 are superseded by it |
 | Updating a Pi that is already running | **[`RUNBOOK-update-2026-08-19.md`](./RUNBOOK-update-2026-08-19.md)** | the bundle's own `UPDATE-ME.txt` is wrong in three ways — see §3 of the runbook |
 | Where the project stood on 2026-08-19 | **[`guides/STATE-OF-THE-STATION-2026-08-19.md`](./guides/STATE-OF-THE-STATION-2026-08-19.md)** | `HANDOFF-2026-08-19.md` is a mid-day snapshot; its test counts were later found wrong (`DECISIONS.md` line 1402) |
@@ -81,8 +85,8 @@ that path.
 | | |
 |---|---|
 | [`../dj/CLAUDE.md`](../dj/CLAUDE.md) | the DJ booth's brief. Standalone: `cd dj && claude` |
-| [`../usb/README.md`](../usb/README.md) | the USB rebuild kit |
-| [`../split/README.md`](../split/README.md) | cutting the long mixes into tracks — the highest-value fix to how the station sounds |
-| [`../pi/`](../pi/) | blank-SD-card walkthrough, network notes, troubleshooting, `install.sh` |
+| [`../usb/README.md`](../archive/pi-kit/usb/README.md) | the USB rebuild kit |
+| [`../split/README.md`](../archive/pi-kit/split/README.md) | cutting the long mixes into tracks — the highest-value fix to how the station sounds |
+| [`../pi/`](../archive/pi-kit/pi/) | blank-SD-card walkthrough, network notes, troubleshooting, `install.sh` |
 | [`../.claude/`](../.claude/) | the project's own agents, skills and commands |
 | `../archive/` | build debris kept rather than deleted: the old architecture PDF, the superseded SD-card zip |
