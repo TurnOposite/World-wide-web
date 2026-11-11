@@ -73,8 +73,7 @@ async function index(root) {
   const { articles, groups } = await load();
   document.title = 'Articles — Echo';
   root.innerHTML = frame(`<section class="echo-articles">
-      <p class="echo-kicker">Articles</p>
-      <h1>Articles</h1>
+      <h1 class="echo-quiet">Articles</h1>
       ${articles.length ? `<div class="echo-grid">${articles.map(card).join('')}</div>` : ''}
       ${groups.map(groupHtml).join('')}
       <p class="echo-foot"><a class="back" href="echo" data-link>← Retour à la une</a><a href="echo/feed.xml" type="application/atom+xml">Le fil Atom</a></p>

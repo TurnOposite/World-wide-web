@@ -3254,3 +3254,13 @@ The plan it came out of is `docs/plans/PLAN-chat-and-moods.md`.
 - **Assumption, stated**: « take all the playable characters from there » was read as « the options are a cast
   of characters », and the cast was invented. If he wanted those exact characters, that part is not done and
   will not be by this route.
+
+## 2026-11-11 (02:30) - Articles said « Articles » five times; the first article's title was under the fold (Claude, for Ortis)
+
+- Ortis, from a screenshot of /echo/articles: the frame, the window's tag, the menu, a kicker and a headline all
+  said Articles, and with a screen-high picture under them the article's title needed a scroll.
+- `pages/articles.js`: the kicker is gone; the headline stays in the page for screen readers and the outline but is
+  no longer drawn (`.echo-quiet`). `site.css`: a single article shows its picture beside its title on a desktop
+  (it was a full-width 3:2 picture above it) and a 16:9 picture capped at 30 % of the screen on a phone; the
+  second rule under the masthead is gone. Title on the first screen at 1522×672 and at 390×844.
+- With two or more articles the two-column grid is unchanged.
