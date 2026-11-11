@@ -78,9 +78,13 @@
 <!-- The mini-player follows the reader from page to page: the router swaps
      <main>, never this, and never the <audio> below. -->
 <aside class="minibar" id="minibar" aria-label="Radio Tower, en direct">
+  <span class="mb-start">
   <button class="mb-tune" id="mbTune" aria-label="Tune in">
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path class="i-play" d="M7 5l12 7-12 7z" fill="currentColor"/><path class="i-pause" d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>
   </button>
+  <!-- Who this listener is on the telegraph line, once they have chosen (ui/cast.js): shown here on every page. -->
+  <a class="mb-me" id="mbMe" href="antenna" data-link hidden></a>
+  </span>
   <canvas class="mb-spec" id="mbSpec" width="120" height="32" aria-hidden="true"></canvas>
   <a class="mb-meta" href="radio" data-link>
     <span class="mb-live"><span class="dot"></span><span id="mbBadge">ON AIR</span></span>

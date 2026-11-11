@@ -3872,3 +3872,40 @@ needs a BPM per track, measured on the laptop. The line in the mini-player on a 
 
 **Revisit if** the line is abused (close it with `TELEGRAPH=0`, then decide), or if the count of listeners makes a
 room per stream worth having.
+
+## 2026-11-11 - The cast: a character select for the telegraph line and the mini-player
+
+**Asked** (Ortis, 01:41): an avatar in the mini-player, and the line's customisation remade as a fighting-game
+character select — « slide for a different character, and once selected swipe again for a few clothes colour
+changes » — with a published game's playable characters as the options.
+
+**Decided.**
+
+1. **The gesture is taken, the characters are not.** A game's characters and sprites belong to its makers, and
+   this site is public: they are not drawn, copied or downloaded here. The cast is the station's own — the
+   Operator, the Keeper, the Courier, the Archivist, the Night Driver, the Crate Digger, Ash (from the Echo
+   side) and Relay (the tower's machine). If Ortis draws or commissions his own, they replace these.
+2. **A sprite is data, not a file** (`site/js/ui/cast.js`): one shared 16 × 20 body, each character's rows laid
+   over it, four looks each from a shared wardrobe. Drawn to an SVG address once per choice, so a face on the
+   line is one `<img>`. No image files, no dependency, nothing to build.
+3. **A choice travels as an icon name** — `cast.<character>.<look>` — which the tower already accepts
+   (`cleanIcon`): no server change, no migration, and a tower still on yesterday's code carries it. A name the
+   page does not know (a character added later, read by an old tab) falls back to the sender's initial.
+4. **One gesture, two steps.** Sliding (a drag, the arrows, ← →, a thumb) changes who; « Choose » then makes the
+   same slide change their clothes. Each character keeps the look last tried on. The stage keeps the page's
+   up-and-down scroll and tells the world the gesture is taken (`touch-action: pan-y`, `world.js ownsSwipe`), so
+   a slide on a phone never changes side.
+5. **The picture bank stays**, after the cast on the same reel: the folder Ortis said he would fill is still
+   where his own pictures go, and they need no code.
+6. **The mini-player shows the character only once one is chosen**, beside the button, leading to the Antenna.
+   Nobody chosen, nothing shown: the bar is unchanged for a listener who never joins. On a phone the clock
+   steps aside for it. On air it nods — two steps, two pixels.
+7. **On a phone the form reads name → character → remember → Join**: Join used to sit above the choice.
+
+**The three checks that failed now and then** (WORKLOG, 2026-11-10 night) each read the page at a fixed moment
+while the fixture's half-minute tracks kept changing under them. None was made easier: the Pi-era drag now counts
+only when the tower holds an override *and* the rows are the same tracks (it used to accept a list that had merely
+slid); the cloud Booth's move is retried when the row in hand was redrawn away, and still needs a commit; the
+Playlists card is given up to 6 s for the same six things to hold together, and says which is missing.
+
+**Revisit if** Ortis has his own sprites (swap `CAST`), or wants more than four looks, or a character per stream.

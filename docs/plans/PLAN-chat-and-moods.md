@@ -73,7 +73,7 @@ How a stream gets its music (all of it works today, `tests/channels.test.js`):
 Copying a file into `Chill\` duplicates it on the tower; listing its folder in channels.json does not.
 
 - [x] 2c. The dial, in the Antenna; /radio names the stream on air
-- [ ] 2a. Ortis's corrected label sheet (`Radio-Tower_labels-and-streams_2026-11-10.xlsx`; he filled part of it) — **needs Ortis**. Then turn the corrections into rules in `server/lib/genre.js`, with tests
+- [ ] 2a. Ortis's corrected label sheet: **read 2026-11-11** — 59 of 529 rows, written out in [`LABELS-ortis-2026-11-11.md`](./LABELS-ortis-2026-11-11.md). He uses eight labels the tower does not have (Slushwave, Funk, Hyperpop, Bossa nova, Hip-hop, Breakcore, Beat tape, Pop): **needs Ortis** — new labels, or folded into the old ones? Then one rule per row in `server/lib/genre.js`, each with a test, and `npm run scan` on his laptop
 - [ ] 2b. From the corrected labels, write the two folder lists into a copy of `channels.json`; print tracks, hours and the 20 most surprising members of each; he approves; he publishes — after 2a
 - [ ] 2g. Does a stream need the programme's lanes (long mixes apart, favourites)? Today it is a plain shuffle — decide once one has content
 - [ ] 2e. BPM: an offline measure in the library bot (no runtime dependency), a `_bpm.json` beside the music, `bpm` on each track, `minBpm` / `maxBpm` on a channel — after 2b
@@ -88,7 +88,9 @@ folders `Greetings`, `Breaking cores` and `Electronic Dance Martin` held no audi
 ## Step 3: the telegraph line
 
 - [x] 3a/3b. Names, icons, text, the fences, the station key's removal (see `docs/DECISIONS.md`, 2026-11-10)
-- [ ] 3d. His own pictures in `site/assets/telegraph/` (square, under 60 KB each; `README.md` there) — **needs Ortis**
+- [x] 3g. The cast (2026-11-11): a character select — slide for who, slide again for their clothes — eight characters of the station's own, four looks each (`site/js/ui/cast.js`); the character in the mini-player. A published game's characters are not used (`docs/DECISIONS.md`, 2026-11-11)
+- [ ] 3h. More of the cast's customisation, if he wants it: more looks, a hat or a prop to swap, his own sprites in place of these — **needs Ortis**
+- [ ] 3d. His own pictures in `site/assets/telegraph/` (square, under 60 KB each; `README.md` there): they follow the cast on the reel — **needs Ortis**
 - [ ] 3e. How long the log is kept — **needs Ortis** (today: two files of 5 MB)
 - [ ] 3f. Who is on the line (names of those tuned in), reactions to the track on air — open
 - [ ] 3c. A game layer (time tuned in beside the name) — only if the line is used
@@ -101,3 +103,4 @@ folders `Greetings`, `Breaking cores` and `Electronic Dance Martin` held no audi
 | 2026-11-10 | Claude, with Ortis | His decisions: Pi retired; streams by folders after the labels are revised; streams beside Everything; chat yes, a bank of pictures, remembering is the listener's choice |
 | 2026-11-10 | Claude, with Ortis | Built and pushed: the Antenna (dial + telegraph line), empty Chill and Energy, the phone's /radio, the Booth's button, the ash, the label fixes. Zone's Atlas removed |
 | 2026-11-10 | Claude, with Ortis | The Pi kit moved to `archive/pi-kit/` (46 files, as its own commit) |
+| 2026-11-11 | Claude, with Ortis | Fired `c19227b` to the tower. The cast and the mini-player's character. The three flaky checks fixed at their cause. His label sheet read: 59 rows, eight new labels to decide |

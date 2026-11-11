@@ -27,6 +27,7 @@ would cost more than the tidiness is worth.
 | How did it go on GitHub Pages? (retired 2026-10-02) | [`GO-LIVE.md`](./GO-LIVE.md) — historical |
 | Is this still heading the right way? | [`PLANNING.md`](./PLANNING.md) |
 | What is planned for the telegraph line, the streams and the phone, and what is the next step? | [`plans/PLAN-chat-and-moods.md`](./plans/PLAN-chat-and-moods.md) — started 2026-11-10, with a log |
+| What did Ortis say about the genre labels, row by row? | [`plans/LABELS-ortis-2026-11-11.md`](./plans/LABELS-ortis-2026-11-11.md) — 59 rows of his sheet, and what they ask for. Not yet rules |
 | How do I move pages around, put an old version online, link to a page, publish now? | [`ATELIER.md`](./ATELIER.md) — the map as data, the past, short links, `fire` (2026-10-26) |
 
 ## Current authorities

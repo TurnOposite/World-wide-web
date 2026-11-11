@@ -223,6 +223,16 @@ input[type=range]{accent-color:var(--signal)}
   min-height:var(--mb-h);padding:10px var(--gutter) calc(10px + env(safe-area-inset-bottom,0px));
   background:var(--bg-glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid var(--line)}
 .mb-tune{width:42px;height:42px;border-radius:50%;border:0;background:var(--signal);color:var(--signal-ink);display:grid;place-items:center;cursor:pointer}
+.mb-start{display:flex;align-items:center;gap:10px}
+.mb-me{display:block;line-height:0;border-radius:10px;border:1px solid var(--line);background:linear-gradient(180deg,#2a3340,#1a212a);overflow:hidden;text-decoration:none}
+.mb-me[hidden]{display:none}
+.mb-me:hover,.mb-me:focus-visible{border-color:var(--signal)}
+.mb-face{display:block;width:34px;height:34px;object-fit:cover}
+.mb-letter{display:grid;place-items:center;font:700 14px/1 var(--font);color:var(--text-dim)}
+/* On air, the character nods along: two steps, a pixel's worth — a sprite, not a dancer. */
+.minibar.playing .mb-me .cast-face{animation:mb-bop .56s steps(2,jump-none) infinite}
+@keyframes mb-bop{from{transform:translateY(0)}to{transform:translateY(-2px)}}
+body.on-echo .mb-me{border-color:#3a3a3d}
 .mb-tune .i-pause{display:none}
 .playing .mb-tune .i-play{display:none}.playing .mb-tune .i-pause{display:inline}
 .mb-spec{width:120px;height:32px;display:block}
@@ -949,14 +959,41 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .tg-jwho{display:grid;gap:10px;min-width:0}
 .tg-jwho>label:first-child{font-size:12.5px;color:var(--text-dim)}
 .tg-joinform>.hint{grid-column:1/-1}
-.tg-icons{border:0;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px;max-height:168px;overflow-y:auto}
-.tg-icons legend{font-size:12.5px;color:var(--text-dim);padding:0;margin-bottom:6px}
-.tg-pick{position:relative;display:block;cursor:pointer;line-height:0}
-.tg-pick input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
-.tg-pick img{width:44px;height:44px;border-radius:11px;object-fit:cover;border:2px solid transparent;opacity:.72;transition:opacity .15s,border-color .15s}
-.tg-pick input:checked+img{border-color:var(--signal);opacity:1}
-.tg-pick input:focus-visible+img{outline:2px solid var(--signal);outline-offset:2px}
-.tg-pick:hover img{opacity:1}
+/* The character select (ui/cast.js): one in hand, its neighbours waiting at the sides; slide, or the arrows. */
+.cast{display:grid;gap:8px;min-width:0;justify-items:center}
+.cast-legend{margin:0;font-size:12.5px;color:var(--text-dim);justify-self:start}
+.cast-stage{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px;width:100%;max-width:340px;border-radius:14px;
+  background:linear-gradient(180deg,#2a3340 0,#1d242d 62%,#141a21 62%,#141a21 100%);border:1px solid var(--line);padding:10px 6px 8px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.cast-stage:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.cast-arrow{width:34px;height:44px;border:0;border-radius:10px;background:none;color:var(--text-dim);font:400 26px/1 var(--font);cursor:pointer}
+.cast-arrow:hover,.cast-arrow:focus-visible{color:var(--signal);background:rgba(255,255,255,.06)}
+.cast-reel{display:flex;align-items:flex-end;justify-content:center;gap:14px;min-height:112px;overflow:hidden;cursor:grab;touch-action:pan-y}
+.cast-reel:active{cursor:grabbing}
+.cast-reel img{display:block;flex:none;pointer-events:none}
+.cast-side{opacity:.34;filter:saturate(.6)}
+.cast-pic{border-radius:14px;object-fit:cover}
+.cast-side.cast-pic{border-radius:8px}
+.cast-now.from-right{animation:cast-in-r .18s ease-out}
+.cast-now.from-left{animation:cast-in-l .18s ease-out}
+@keyframes cast-in-r{from{transform:translateX(26px);opacity:.3}to{transform:none;opacity:1}}
+@keyframes cast-in-l{from{transform:translateX(-26px);opacity:.3}to{transform:none;opacity:1}}
+.cast-name{margin:0;font-size:13.5px;text-align:center;min-height:2.6em;max-width:36ch}
+.cast-line{color:var(--text-faint)}
+.cast-ctl{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;min-height:34px}
+.cast-looks{display:flex;gap:8px}
+.cast-look{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0;
+  background:radial-gradient(circle at 50% 50%,var(--sw2) 0 28%,var(--sw) 30% 100%)}
+.cast-look[aria-pressed=true]{border-color:var(--text);box-shadow:0 0 0 2px var(--bg-raise)}
+.cast-look:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.cast-strip{display:flex;gap:6px;max-width:100%;overflow-x:auto;padding:2px 2px 6px}
+.cast-strip[hidden]{display:none}
+.cast-thumb{flex:none;line-height:0;padding:0;border:2px solid transparent;border-radius:9px;background:var(--bg-raise-2);cursor:pointer;opacity:.7;overflow:hidden}
+.cast-thumb img{display:block;width:30px;height:30px;object-fit:cover}
+.cast-thumb[aria-pressed=true]{border-color:var(--signal);opacity:1}
+.cast-thumb:hover{opacity:1}
+.cast-thumb:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.tg-icons{min-width:0}
+.cast-face{background:linear-gradient(180deg,#2a3340,#1a212a)}
 .tg-keep{font-size:13.5px;color:var(--text)}
 .tg-joinform .hint{margin:0;max-width:62ch}
 .pill-link{text-decoration:none;cursor:pointer}
@@ -989,5 +1026,13 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
   .tg-log{height:max(150px,calc(var(--w-room,560px) - 344px))}
   .tg-sub{display:none}
   .tg-joinform{grid-template-columns:1fr}
-  .tg-icons{max-height:118px}
+  /* The phone: who, then their character, then the buttons — Join is under the choice, not above it. */
+  .tg-jwho{display:contents}
+  .tg-joinform>.tg-icons{order:1}
+  .tg-jwho>.tg-keep{order:2}
+  .tg-jwho>.v-row{order:3;margin-top:0}
+  .tg-joinform>.hint{order:4}
+  .cast-reel{min-height:104px}
+  .cast-name{min-height:0}
+  .minibar.has-me .mb-time{display:none}
 }

@@ -40,6 +40,13 @@ first thing listeners write to the tower: read the 2026-11-10 entry of
 [`docs/plans/PLAN-chat-and-moods.md`](./docs/plans/PLAN-chat-and-moods.md)
 for what is next.
 
+**New since 2026-11-11 — the cast.** Joining the telegraph line is a character
+select (`site/js/ui/cast.js`): eight characters of the station's own as pixel
+grids in code, four looks each; slide to choose who, slide again to change
+their clothes. The choice is an icon name (`cast.<character>.<look>`), so the
+tower is unchanged; the mini-player shows it on every page. The characters
+are original on purpose — `docs/DECISIONS.md`, 2026-11-11.
+
 **New since 2026-10-14 — the daily programme, and colours from the cover.**
 The tower no longer shuffles one loop: a day runs from 05:00 Paris time,
 favourites daily, the loop every two days, the albums mixed in turn, long

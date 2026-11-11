@@ -3,9 +3,10 @@
  * 2026-11-10). The tower keeps the line (server/lib/telegraph.js); this is
  * the listener's end of it.
  *
- * Joining is choosing a name and an icon from the bank
- * (site/assets/telegraph/, listed in data/telegraph.json). They last the
- * visit. The browser keeps them only if the listener ticks « Remember me on
+ * Joining is choosing a name and a character from the cast (ui/cast.js: slide
+ * to choose who, slide again to change their clothes — Ortis, 2026-11-11) or
+ * a picture from the bank (site/assets/telegraph/, listed in
+ * data/telegraph.json). They last the visit. The browser keeps them only if the listener ticks « Remember me on
  * this device » — his rule: « let people decide if they want to save that
  * info » — and « Leave » forgets them either way.
  *
@@ -15,6 +16,7 @@
  * The top of this file is pure (no DOM) so node:test can check it.
  */
 import { clock } from './util.js';
+import { CastPicker, castFace, castIcon, castLabel, CAST } from './cast.js';
 
 export const IDENTITY_KEY = 'gt.telegraph.me';
 /** How often the line is read while its window is open and the tab is in view. */
@@ -54,6 +56,10 @@ export const initial = (name) => ([...String(name || '?').trim()][0] || '?').toU
 export const identity = {
   _me: null,
   _read: false,
+  _heard: new Set(),
+  /** Told whenever who the listener is changes (the mini-player shows them): returns the way to stop listening. */
+  on(fn) { this._heard.add(fn); return () => this._heard.delete(fn); },
+  _tell() { for (const fn of this._heard) { try { fn(this._me); } catch { /* a listener's trouble is its own */ } } },
   get(storage = safeStorage()) {
     if (!this._read) {
       this._read = true;
@@ -67,12 +73,14 @@ export const identity = {
     this._read = true;
     this._me = { ...ok, kept: Boolean(remember) };
     try { if (remember) storage?.setItem(IDENTITY_KEY, JSON.stringify(ok)); else storage?.removeItem(IDENTITY_KEY); } catch { this._me.kept = false; }
+    this._tell();
     return this._me;
   },
   leave(storage = safeStorage()) {
     this._me = null;
     this._read = true;
     try { storage?.removeItem(IDENTITY_KEY); } catch { /* nothing to forget */ }
+    this._tell();
   },
 };
 function safeStorage() { try { return globalThis.localStorage ?? null; } catch { return null; } }
@@ -141,8 +149,10 @@ export class TelegraphLine {
     return file && this.icons.some((i) => i.file === file) ? new URL(`assets/telegraph/${file}`, document.baseURI).href : null;
   }
 
-  /** A sender's picture: their icon when the bank has it, else their initial in a circle. */
+  /** A sender's picture: their character, or their icon when the bank has it, else their initial in a circle. */
   face(name, icon, cls = 'tg-face') {
+    const cast = castFace(icon, cls);
+    if (cast) return cast;
     const url = this.iconUrl(icon);
     if (url) {
       const img = h('img', cls);
@@ -152,6 +162,7 @@ export class TelegraphLine {
       img.height = 28;
       img.loading = 'lazy';
       img.decoding = 'async';
+      img.dataset.icon = icon;
       return img;
     }
     const s = h('span', `${cls} tg-letter`, initial(name));
@@ -276,7 +287,7 @@ export class TelegraphLine {
       const b = h('button', 'btn primary tg-join', 'Join the telegraph line');
       b.type = 'button';
       b.addEventListener('click', () => { this.joining = true; this.paintFoot(); this.foot.querySelector('#tgName')?.focus(); });
-      foot.append(b, h('span', 'hint tg-joinhint', 'A name and an icon, nothing else. No account.'));
+      foot.append(b, h('span', 'hint tg-joinhint', 'A name and a character, nothing else. No account.'));
       return;
     }
     if (!me || this.joining) { this._joinForm(me); return; }
@@ -321,34 +332,18 @@ export class TelegraphLine {
     name.maxLength = this.limits.name;
     name.value = me?.name || '';
     name.placeholder = 'e.g. Night owl';
-    const set = h('fieldset', 'tg-icons');
-    set.append(h('legend', '', 'Your icon'));
-    const want = me?.icon && this.icons.some((i) => i.file === me.icon) ? me.icon : this.icons[0]?.file;
-    this.icons.forEach((ic, i) => {
-      const lab = h('label', 'tg-pick');
-      const r = h('input');
-      r.type = 'radio';
-      r.name = 'tgIcon';
-      r.value = ic.file;
-      r.checked = ic.file === want || (!want && i === 0);
-      r.setAttribute('aria-label', ic.label);
-      const img = h('img');
-      img.src = new URL(`assets/telegraph/${ic.file}`, document.baseURI).href;
-      img.alt = '';
-      img.width = 44;
-      img.height = 44;
-      img.loading = 'lazy';
-      lab.append(r, img);
-      set.append(lab);
-    });
-    if (!this.icons.length) set.append(h('p', 'hint', 'No icons in the bank yet: your initial will stand for you.'));
+    // The character select (ui/cast.js): the cast first, then whatever pictures the bank holds.
+    const set = h('div', 'tg-icons');
+    const pictures = this.icons.map((ic) => ({ file: ic.file, label: ic.label, url: new URL(`assets/telegraph/${ic.file}`, document.baseURI).href }));
+    const known = me?.icon && (castLabel(me.icon) || pictures.some((x) => x.file === me.icon)) ? me.icon : castIcon(CAST[0].id, 0);
+    const picker = new CastPicker({ root: set, value: me ? known : null, pictures });
     const keepL = h('label', 'v-follow tg-keep');
     const keep = h('input');
     keep.type = 'checkbox';
     keep.id = 'tgKeep';
     keep.checked = Boolean(me?.kept);
     keepL.append(keep, ' Remember me on this device');
-    const note = h('p', 'hint', 'Unticked, your name and icon last until you close or reload this page. What you say on the line is kept by the tower, with the name and icon you said it under.');
+    const note = h('p', 'hint', 'Unticked, your name and character last until you close or reload this page. What you say on the line is kept by the tower, with the name and character you said it under.');
     const row = h('div', 'v-row');
     const go = h('button', 'btn primary', me ? 'Save' : 'Join');
     go.type = 'submit';
@@ -356,13 +351,13 @@ export class TelegraphLine {
     no.type = 'button';
     no.addEventListener('click', () => { this.joining = false; this.paintFoot(); });
     row.append(go, no);
-    // Two columns on a desktop (site.css): who you are and the buttons on the left, the bank on the right.
+    // Two columns on a desktop (site.css): who you are and the buttons on the left, the character select on the right.
     const who = h('div', 'tg-jwho');
     who.append(nameL, name, keepL, row);
     form.append(who, set, note);
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const icon = form.querySelector('input[name="tgIcon"]:checked')?.value || null;
+      const icon = picker.value;
       const ok = identity.set({ name: name.value, icon }, { remember: keep.checked });
       if (!ok) { name.focus(); return; }
       this.joining = false;

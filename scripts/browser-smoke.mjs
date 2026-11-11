@@ -271,7 +271,16 @@ try {
       await page.waitForTimeout(1600);
       if (/too close/i.test((await page.textContent('#queueStatus')) || '')) { await page.waitForTimeout(1500); continue; }
       const now = await page.$$eval('.q-item[data-movable="1"] .t', (n) => n.map((x) => x.textContent));
-      if (JSON.stringify(now) !== JSON.stringify(before)) after = now;
+      // 2026-11-11: « the server recorded the override » failed 1 full run in 6, after « dragging reorders the
+      // queue — Night Shift -> Carrier Wave » had passed: the *first* movable row had changed, which a drag of
+      // the second never does. A track had ended during the drag, the list had slid by one, and the comment
+      // above (« a DOM that changed only because time passed is not a reorder ») was not yet enforced. It is
+      // now: an attempt counts only when the server holds an override *and* the rows are the same tracks as
+      // before. Anything else is the programme moving under the pointer — put back, and tried again.
+      const recorded = await page.evaluate(async () => Boolean((await (await fetch('/api/queue', { cache: 'no-store' })).json()).override));
+      const sameTracks = JSON.stringify([...now].sort()) === JSON.stringify([...before].sort());
+      if (recorded && sameTracks && JSON.stringify(now) !== JSON.stringify(before)) { after = now; break; }
+      if (recorded && await page.isVisible('#queueReset')) { await page.click('#queueReset'); await page.waitForTimeout(1500); }
     }
 
     check('dragging reorders the queue', Boolean(after),

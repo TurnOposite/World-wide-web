@@ -21,3 +21,8 @@ again from this folder each time the site is built.
 
 The twelve `NN-*.svg` here are placeholders drawn on 2026-11-10 so the line
 could open; replace them freely.
+
+Since 2026-11-11 the join form is a character select: the station's own cast
+(`site/js/ui/cast.js`, drawn in code, not files) comes first on the reel, and
+the pictures in this folder follow it. A file whose name starts with `cast.`
+would be read as one of the cast: do not name a picture that way.

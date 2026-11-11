@@ -36,6 +36,20 @@ test('who a listener is: a real name, an icon that is a plain file name or none'
   assert.equal(initial(''), '?');
 });
 
+test('whoever shows the listener (the mini-player) is told when they join, change or leave', () => {
+  const s = store();
+  const heard = [];
+  const stop = identity.on((me) => heard.push(me && `${me.name}/${me.icon}`));
+  identity.set({ name: 'Ada', icon: 'cast.operator.2' }, {}, s);
+  identity.set({ name: 'Ada', icon: 'cast.relay.0' }, {}, s);
+  assert.equal(identity.set({ name: '   ' }, {}, s), null, 'a name that is not one changes nothing');
+  identity.leave(s);
+  stop();
+  identity.set({ name: 'Bo', icon: null }, {}, s);
+  identity.leave(s);
+  assert.deepEqual(heard, ['Ada/cast.operator.2', 'Ada/cast.relay.0', null]);
+});
+
 test('the browser keeps a listener only when asked, and leaving forgets them', () => {
   const s = store();
   identity._me = null; identity._read = false;

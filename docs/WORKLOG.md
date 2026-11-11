@@ -3228,3 +3228,29 @@ The plan it came out of is `docs/plans/PLAN-chat-and-moods.md`.
   is committed through the contents API » with its follow-up (1 of 6). At the commit before this work, one of
   three runs of the site smoke alone failed on « Playlists: a card loads its playlist ». The last full run on the
   final tree was green: 43/43, 165/165, 26/26.
+
+## 2026-11-11 - The cast and the mini-player's character; the three flaky checks; his label sheet read (Claude, for Ortis)
+
+- **Fired**: `c19227b` was taken by the tower at 01:47 Paris time from his laptop (`fire --yes --skip-tests`, 13 s):
+  the Antenna's streams and the telegraph line were live from then on.
+- **The cast** (`site/js/ui/cast.js`, new): eight characters of the station's own, four looks each, as pixel grids
+  in code. The line's join form is a character select — slide to choose who, « Choose », slide to change their
+  clothes — with the bank's pictures after the cast. Faces on the line and the listener's own are the character's
+  head and shoulders. A published game's characters were asked for and are not used: DECISIONS, today.
+- **The mini-player** shows the listener's character beside the button once they have one (`#mbMe`,
+  `ui/minibar.js`), on every page, leading to the Antenna; `identity.on()` tells it when they join, change or leave.
+- **Phone**: the join form is name → character → remember → Join.
+- **The flaky checks**, read from the three failing logs rather than re-run until red: all three were the
+  fixture's programme advancing under a check that looked once. `browser-smoke.mjs` (the drag), `site-smoke.mjs`
+  (the cloud Booth's move; the Playlists card). What each asks for is unchanged or stricter: DECISIONS, today.
+- **His label sheet**: copied from Downloads into `Radio Tower\Claude outputs\plan-chat-moods-2026-11-10\`
+  (`…_filled-by-Ortis.xlsx`; the original is still in Downloads). 59 of 529 rows filled, all labels, no stream.
+  Written out in `docs/plans/LABELS-ortis-2026-11-11.md` with what it asks for. **No rule in `genre.js` was
+  changed**: he uses eight labels the tower does not have, and the rules read paths the sheet does not hold —
+  that step needs his word on the new labels and `npm run scan` on the real library.
+- Tests: `tests/site-cast.test.js` (6), one more in `tests/site-telegraph.test.js`; the tower part of the site
+  smoke now slides the reel with the mouse, dresses the character, and reads the choice back from the tower, the
+  line and the mini-player.
+- **Assumption, stated**: « take all the playable characters from there » was read as « the options are a cast
+  of characters », and the cast was invented. If he wanted those exact characters, that part is not done and
+  will not be by this route.

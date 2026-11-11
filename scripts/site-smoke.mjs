@@ -44,6 +44,7 @@ import { fileURLToPath } from 'node:url';
 import { createSiteServer } from './site-serve.mjs';
 import { build } from './site-build.mjs';
 import { liveCheck } from './cloud-live-check.mjs';
+import { CAST, castIcon } from '../site/js/ui/cast.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const towerUrl = process.argv[2]?.startsWith('http') ? process.argv[2] : null;
@@ -225,7 +226,7 @@ try {
   await a.waitForSelector('#visualsPanel:not([hidden])', { timeout: 3000 });
   await a.click('#visualsPanel [data-look="canopy"]');
   await a.waitForTimeout(6000);
-  const cm = await a.evaluate(() => {
+  const readMap = () => a.evaluate(() => {
     const map = window.radioTower.stage.callmap;
     const pts = map ? map.layout() : [];
     return {
@@ -234,9 +235,17 @@ try {
       playing: !document.getElementById('audio').paused, path: location.pathname,
     };
   });
+  // 2026-11-11: failed once in fifteen runs with « 25 calls, 4 kinds » — everything the map is asked for was
+  // there. The one thing read at a single instant is whether the audio is playing, and the fixture changes
+  // track every half minute: the read had landed in the blink between two files. Same conditions, together,
+  // given up to 6 s more; and the line now says which one is missing.
+  const mapOk = (m) => ({ exists: m.exists, live: !m.demo, calls: m.calls >= 6, kinds: m.kinds >= 2, inCube: m.inCube, playing: m.playing, path: m.path === '/radio' });
+  let cm = await readMap();
+  for (let waited = 0; waited < 6000 && !Object.values(mapOk(cm)).every(Boolean); waited += 200) { await a.waitForTimeout(200); cm = await readMap(); }
+  const cmOk = mapOk(cm);
   check('Canopy maps the music live on the radio page: calls on the onsets, sorted into kinds, inside the cube',
-    cm.exists && !cm.demo && cm.calls >= 6 && cm.kinds >= 2 && cm.inCube && cm.playing && cm.path === '/radio',
-    `${cm.calls} calls, ${cm.kinds} kinds`);
+    Object.values(cmOk).every(Boolean),
+    `${cm.calls} calls, ${cm.kinds} kinds${Object.values(cmOk).every(Boolean) ? '' : ` — missing: ${Object.keys(cmOk).filter((k) => !cmOk[k]).join(', ')}`}`);
   await a.click('#visualsPanel [data-canopy="front"]');
   await a.waitForTimeout(700);
   const front = await a.evaluate(() => {
@@ -320,11 +329,19 @@ try {
     `${pl.picks.length} cards, ${pl.iframes.join()}, asked ${spotifyAsked.length}`);
   const picked = pl.picks.find((p, i) => i >= 2 && !p.on);
   await a.click(`#view .sp-pick[data-id="${picked.id}"]`);
-  await a.waitForTimeout(800);
-  const pl2 = await deckState();
-  check('Playlists: a card loads its playlist into the same player, and the radio plays on', pl2.iframes.length === 1 && pl2.iframes[0].startsWith(SPOTIFY + picked.id) && asked(picked.id)
-    && pl2.now === picked.title && pl2.open === `https://open.spotify.com/playlist/${picked.id}` && pl2.picks.filter((p) => p.on).map((p) => p.id).join() === picked.id && pl2.playing,
-    `${picked.title} → ${pl2.iframes.join()}`);
+  // 2026-11-11: this check failed 1 run in 3 on untouched code. It read the page a fixed 800 ms after the click,
+  // and two things it asks for are not instant: the frame's request reaching the stub, and — the fixture's tracks
+  // being half a minute long — the radio being between two tracks at that very moment (paused for a blink while
+  // the next file loads). The same things must still hold, together; they are given up to 6 s to.
+  const swapped = (d) => ({
+    frame: d.iframes.length === 1 && d.iframes[0].startsWith(SPOTIFY + picked.id), asked: asked(picked.id), title: d.now === picked.title,
+    open: d.open === `https://open.spotify.com/playlist/${picked.id}`, card: d.picks.filter((p) => p.on).map((p) => p.id).join() === picked.id, playing: d.playing,
+  });
+  let pl2 = await deckState();
+  for (let waited = 0; waited < 6000 && !Object.values(swapped(pl2)).every(Boolean); waited += 150) { await a.waitForTimeout(150); pl2 = await deckState(); }
+  const sw = swapped(pl2);
+  check('Playlists: a card loads its playlist into the same player, and the radio plays on', Object.values(sw).every(Boolean),
+    `${picked.title} → ${pl2.iframes.join()}${Object.values(sw).every(Boolean) ? '' : ` — missing: ${Object.keys(sw).filter((k) => !sw[k]).join(', ')}`}`);
   const vign = await a.evaluate(() => ({ cards: document.querySelectorAll('#view .sp-pick .pl-cover').length, imgs: document.querySelectorAll('#view .sp-pick .pl-cover img').length }));
   check('Playlists: every card has its vignette, and the covers are Ortis\'s photos from Spotify\'s CDN', vign.cards === pl.picks.length && vign.imgs >= 40 && coversAsked.length > 0,
     `${vign.cards} vignettes, ${vign.imgs} covers, ${coversAsked.length} asked`);
@@ -460,13 +477,22 @@ try {
   const movable = await booth.$$('#bQueue li[data-movable="1"]');
   check('with a token, the movable part of the queue gets handles', movable.length >= 2, `${movable.length} movable`);
   const lockedCount = await booth.$$eval('#bQueue li.locked', (els) => els.length);
-  const beforeIds = await b.evaluate(() => window.radioTower.client.engine.get('/api/queue').body.slots.map((s) => s.id));
-  if (movable.length >= 2) {
-    await movable[1].focus();
+  let beforeIds = await b.evaluate(() => window.radioTower.client.engine.get('/api/queue').body.slots.map((s) => s.id));
+  // 2026-11-11: this failed 1 full run in 6 with « 0 commit(s) ». The row was found, then focused, then moved — and
+  // the list is redrawn whenever the programme advances (a track ends every half minute on the fixture), so now
+  // and then the row in hand was no longer on the page, the key went nowhere and nothing was committed. As in
+  // browser-smoke's drag: the programme moving under the hand is a reason to try again, not a pass and not a
+  // failure. The last movable row is the one moved (the first is the one about to cross the fence), found and
+  // moved in one step on the page, and what counts is a commit reaching « GitHub ».
+  const putsBefore = devServer.fakeGithub.puts;
+  for (let attempt = 0; attempt < 4 && devServer.fakeGithub.puts === putsBefore && movable.length >= 2; attempt++) {
+    beforeIds = await b.evaluate(() => window.radioTower.client.engine.get('/api/queue').body.slots.map((s) => s.id));
+    await booth.evaluate(() => { const rows = document.querySelectorAll('#bQueue li[data-movable="1"]'); rows[rows.length - 1]?.focus(); });
     await booth.keyboard.press('ArrowUp');
-    await booth.waitForFunction(() => /On air/.test(document.querySelector('#bQueue .qstate')?.textContent || ''), null, { timeout: 8000 }).catch(() => {});
+    for (let waited = 0; waited < 6000 && devServer.fakeGithub.puts === putsBefore; waited += 150) await booth.waitForTimeout(150);
   }
-  const puts = devServer.fakeGithub.puts;
+  await booth.waitForFunction(() => /On air/.test(document.querySelector('#bQueue .qstate')?.textContent || ''), null, { timeout: 8000 }).catch(() => {});
+  const puts = devServer.fakeGithub.puts - putsBefore;
   const committed = JSON.parse(devServer.fakeGithub.text);
   // One override per channel since 2026-10-07: the booth edits the channel it is tuned to.
   const boothCh = await booth.evaluate(() => window.radioTower.client.channel);
@@ -1591,11 +1617,30 @@ try {
     const bank = await t.evaluate(async () => (await (await fetch(new URL('data/telegraph.json', document.baseURI))).json()).icons?.length || 0);
     await t.click('#view .tg-join').catch(() => {});
     await t.waitForSelector('#tgName', { timeout: 4000 }).catch(() => {});
-    const form = await t.evaluate(() => ({ picks: document.querySelectorAll('.tg-pick input').length, keep: document.getElementById('tgKeep')?.checked, focus: document.activeElement?.id }));
-    check('the telegraph line: joining asks for a name and one of the bank\'s icons, and « remember me » starts unticked', bank >= 1 && form.picks === bank && form.keep === false && form.focus === 'tgName', JSON.stringify({ bank, ...form }));
+    const form = await t.evaluate(() => ({ picks: document.querySelectorAll('.cast-strip .cast-thumb').length, step: document.querySelector('.cast')?.dataset.step, keep: document.getElementById('tgKeep')?.checked, focus: document.activeElement?.id }));
+    check('the telegraph line: joining asks for a name and a character — the cast, then the bank\'s pictures — and « remember me » starts unticked', bank >= 1 && form.picks === CAST.length + bank && form.step === 'who' && form.keep === false && form.focus === 'tgName', JSON.stringify({ bank, cast: CAST.length, ...form }));
     const said = `selftest ${Date.now()} <img src=x onerror="window.__tgHit=1"> https://example.test/x`;
     await t.fill('#tgName', 'Self <b>test</b>').catch(() => {});
-    await t.click('.tg-pick:nth-of-type(2) input', { force: true }).catch(() => {});
+    // The character select (Ortis, 2026-11-11): a slide changes who; once chosen, the same slide changes their clothes.
+    const slide = async () => {
+      const r = await t.evaluate(() => { const b = document.querySelector('.cast-reel').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; });
+      await t.mouse.move(r.x + 30, r.y);
+      await t.mouse.down();
+      for (let i = 1; i <= 6; i++) await t.mouse.move(r.x + 30 - i * 14, r.y + 1);
+      await t.mouse.up();
+      await t.waitForTimeout(120);
+    };
+    const castNow = () => t.evaluate(() => ({ step: document.querySelector('.cast')?.dataset.step, name: document.querySelector('.cast-name b')?.textContent, label: document.querySelector('.cast-stage')?.getAttribute('aria-label'), pressed: document.querySelector('.cast-look[aria-pressed="true"]')?.dataset.look ?? null }));
+    const c0 = await castNow();
+    await slide();
+    const c1 = await castNow();
+    await t.click('.cast-choose').catch(() => {});
+    const c2 = await castNow();
+    await slide();
+    const c3 = await castNow();
+    const wantIcon = castIcon(CAST[1].id, 1);
+    check('…the character select: a slide brings the next character; once chosen, a slide changes their clothes and not who they are', c0.name === CAST[0].name && c0.step === 'who' && c1.name === CAST[1].name && c1.step === 'who'
+      && c2.step === 'look' && c2.pressed === '0' && c3.step === 'look' && c3.name === CAST[1].name && c3.pressed === '1' && c3.label !== c2.label, JSON.stringify([c0, c1, c2, c3]));
     await t.click('.tg-joinform button[type=submit]').catch(() => {});
     await t.waitForSelector('#tgText', { timeout: 4000 }).catch(() => {});
     await t.fill('#tgText', said).catch(() => {});
@@ -1604,14 +1649,16 @@ try {
     const line = await t.evaluate(() => {
       const li = [...document.querySelectorAll('.tg-msg')].find((x) => x.querySelector('.tg-text')?.textContent.includes('selftest'));
       return {
-        text: li?.querySelector('.tg-text')?.textContent, name: li?.querySelector('.tg-name')?.textContent, face: li?.querySelector('img.tg-face')?.getAttribute('src') || null,
+        text: li?.querySelector('.tg-text')?.textContent, name: li?.querySelector('.tg-name')?.textContent, face: li?.querySelector('img.tg-face')?.dataset.icon || null, faceSrc: (li?.querySelector('img.tg-face')?.getAttribute('src') || '').slice(0, 19),
+        bar: { hidden: document.getElementById('mbMe')?.hidden, icon: document.querySelector('#mbMe img')?.dataset.icon || null, href: document.getElementById('mbMe')?.getAttribute('href') },
         markup: document.querySelectorAll('.tg-log img:not(.tg-face), .tg-log b:not(.tg-name), .tg-log a').length, hit: window.__tgHit === 1,
         kept: localStorage.getItem('gt.telegraph.me'), box: document.getElementById('tgText')?.value, who: document.querySelector('.tg-who')?.textContent,
       };
     });
     const onTower = (await (await fetch(`${towerUrl}/api/telegraph`)).json()).messages?.find((x) => x.text.startsWith('selftest'));
-    check('…a message sent from the page is on the tower\'s line, under that name and icon', Boolean(onTower) && onTower.name === 'Self <b>test</b>' && /^[\w.-]+$/.test(onTower.icon || '') && line.face?.endsWith(onTower.icon)
-      && line.box === '', JSON.stringify({ onTower, face: line.face, box: line.box }));
+    check('…a message sent from the page is on the tower\'s line, under that name and that character in those clothes', Boolean(onTower) && onTower.name === 'Self <b>test</b>' && onTower.icon === wantIcon && line.face === onTower.icon
+      && line.faceSrc === 'data:image/svg+xml,' && line.box === '', JSON.stringify({ onTower, wantIcon, face: line.face, box: line.box }));
+    check('…and the mini-player shows who they are, on every page, leading back to the Antenna', line.bar.hidden === false && line.bar.icon === wantIcon && line.bar.href === 'antenna', JSON.stringify(line.bar));
     check('…what a stranger typed is shown as text — no markup, no link, nothing run — and the link is gone', line.text === onTower?.text && /<img src=x/.test(line.text || '') && /\[link\]/.test(line.text || '')
       && !/example\.test/.test(line.text || '') && line.markup === 0 && !line.hit && line.name === 'Self <b>test</b>', JSON.stringify(line));
     check('…and the browser keeps nothing about them unless asked', line.kept === null && /On the line as/.test(line.who || ''), JSON.stringify({ kept: line.kept, who: line.who }));
