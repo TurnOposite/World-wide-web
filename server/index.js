@@ -20,7 +20,7 @@ import { RateLimiter, rateLimit, isLoopback } from './lib/ratelimit.js';
 import { apiRouter } from './routes/api.js';
 import { attachDevReload } from './lib/devReload.js';
 import { Collections, isPrivatePath } from './lib/collections.js';
-import { Telegraph } from './lib/telegraph.js';
+import { Telegraph, dailyReset } from './lib/telegraph.js';
 
 const VERSION = '0.1.0';
 
@@ -66,7 +66,10 @@ const channels = new ChannelSet({
 const listeners = new Listeners({ ttlMs: config.listenerTtlMs });
 const collections = new Collections({ dir: config.collectionsDir });
 // The telegraph line: the chat room. Off (null) with TELEGRAPH=0.
-const telegraph = config.telegraph ? new Telegraph({ logFile: config.telegraphLog }) : null;
+// It empties every morning at config.telegraphReset (05:00 Paris), unless TELEGRAPH_RESET=off.
+const telegraph = config.telegraph
+  ? new Telegraph({ logFile: config.telegraphLog, dayStart: dailyReset(config.telegraphReset, config.telegraphResetZone) })
+  : null;
 
 const state = {
   version: VERSION,

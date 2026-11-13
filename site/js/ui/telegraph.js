@@ -45,6 +45,9 @@ export function mergeMessages(have, incoming = [], removed = [], keep = KEEP) {
   return [...byId.values()].sort((a, b) => a.id - b.id).slice(-keep);
 }
 
+/** Only what was said since the room's day began (`day`, from the tower); everything when the tower gives none. */
+export const sinceDay = (messages, day) => (Number.isFinite(day) ? messages.filter((m) => !(m.t < day)) : messages);
+
 /** The first letter of a name, for a listener whose icon the bank does not hold. */
 export const initial = (name) => ([...String(name || '?').trim()][0] || '?').toUpperCase();
 
@@ -124,7 +127,7 @@ export class TelegraphLine {
 
     root.classList.add('tg');
     root.innerHTML = `
-      <div class="tg-head"><h2 id="tgH">Telegraph line</h2><span class="hint tg-sub">One room for everyone tuned in, whatever the stream.</span></div>
+      <div class="tg-head"><h2 id="tgH">Telegraph line</h2><span class="hint tg-sub">One room for everyone tuned in, whatever the stream. It empties every morning at 5.</span></div>
       <ol class="tg-log" id="tgLog" aria-labelledby="tgH" aria-live="polite" tabindex="0"></ol>
       <div class="tg-foot" id="tgFoot"></div>`;
     this.log = root.querySelector('#tgLog');
@@ -179,7 +182,8 @@ export class TelegraphLine {
       if (out.enabled === false) { this.state = 'off'; this.paint(); return; }
       if (out.limits) this.limits = { ...this.limits, ...out.limits };
       const before = this.messages;
-      this.messages = mergeMessages(before, out.messages, out.removed);
+      // The room empties every morning (05:00 Paris): a page left open overnight lets yesterday go too.
+      this.messages = sinceDay(mergeMessages(before, out.messages, out.removed), out.day);
       this.latest = Math.max(this.latest, ...this.messages.map((m) => m.id), 0);
       const was = this.state;
       this.state = 'open';

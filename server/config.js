@@ -92,6 +92,10 @@ export const config = {
   // beside the scan cache (so a code update never touches it) unless
   // TELEGRAPH_LOG says where, or `none` for memory only.
   telegraph: process.env.TELEGRAPH !== '0',
+  // When the line empties every day (Ortis, 2026-11-13): 05:00 in Paris, the
+  // programme's own day boundary. TELEGRAPH_RESET=off keeps everything said.
+  telegraphReset: process.env.TELEGRAPH_RESET || '05:00',
+  telegraphResetZone: process.env.TELEGRAPH_RESET_TZ || 'Europe/Paris',
   telegraphLog: process.env.TELEGRAPH_LOG === 'none'
     ? null
     : path.resolve(process.env.TELEGRAPH_LOG || path.join(path.dirname(process.env.CACHE_FILE || path.join(ROOT, '.cache', 'library.json')), 'telegraph.jsonl')),

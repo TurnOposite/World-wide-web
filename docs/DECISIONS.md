@@ -3909,3 +3909,38 @@ slid); the cloud Booth's move is retried when the row in hand was redrawn away, 
 Playlists card is given up to 6 s for the same six things to hold together, and says which is missing.
 
 **Revisit if** Ortis has his own sprites (swap `CAST`), or wants more than four looks, or a character per stream.
+
+## 2026-11-13 - The line empties at 05:00; the Livre miroir turns back; the same song twice is a warning, not a rule; one backlog
+
+**Asked** (Ortis, 12:56): « make it that chat disappears every 24 hours … the 5 a.m. limit is a good reset
+time »; from the pond, « you can go back to the double page before »; of the six Snowpoint copies, « I love
+Snowpoint Lounge … have them play. Just do warn me if they ever play like twice the same song over »; and
+« you should be filing somewhere all the ideas that are not implemented … somewhere that Claude Code can access
+as well ».
+
+**Decided.**
+
+1. **The room empties at the broadcast day's turn, not 24 hours after each message.** One moment for everyone
+   (« the 5 a.m. limit »), and the same one as the programme's: `dailyReset` reuses `makeCalendar`, so summer
+   time moves both together. What was said before 05:00 is no longer served nor read back at a restart; the
+   tower's answer carries `day` (when today began) and a page left open overnight drops what came before it.
+2. **The log on the tower is kept.** On 2026-11-10 he said « yes do keep it » of the log; today's words are about
+   what people see. So the room starts over and the private record does not. Read the other way, it is one
+   setting (`TELEGRAPH_LOG=none`) — told to him, his call.
+3. **The way back mirrors the way forward**: over the water, the left-hand page's outer edge and bottom corner
+   answer the pointer as the right one did before the turn, and a click lays the leaf back. Nothing says so,
+   as nothing said the page turns. ← and → turn it for a keyboard; a button at that edge takes Tab once the
+   page has turned. Its layer is `.mb-return`: `.mb-back` was already the cover's back face.
+4. **The Snowpoint twins stay, and a repeat is a warning, not a rule.** `scripts/repeats.mjs` reads only the
+   public API (the library, then the schedule 48 h at a time) and calls two files one recording by artist,
+   length and title (the rule is in the file, measured on the 2026-11-07 library: it finds the six copies and
+   the remastered albums, and pairs no two different songs). A weekly GitHub run fails when anything comes
+   round within 3 hours, so GitHub's own email is the warning — no new service, no usage spent.
+5. **The day-boundary repeats it found are not fixed today**: changing `buildDay` re-deals the day on air at the
+   moment the tower takes the code. It is BACKLOG U2/B2, for his word and a start at a day boundary.
+6. **`docs/BACKLOG.md` is the one to-do list** for every surface (Claude Code reads CLAUDE.md, which points to
+   it; a cloud agent clones the repository; the claude.ai Project keeps a copy). ROADMAP.md keeps the older
+   ranked items and now says so at its top; the plan for the streams and the line keeps its steps.
+
+**Revisit if** he wants the log gone too (`TELEGRAPH_LOG=none`), or the weekly warning turns into noise (the
+day-boundary fix should silence most of it).

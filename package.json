@@ -15,6 +15,7 @@
     "test": "node --test \"tests/*.test.js\"",
     "healthcheck": "node scripts/healthcheck.js",
     "selftest": "bash scripts/build-test.sh",
+    "repeats": "node scripts/repeats.mjs",
     "collections": "node scripts/collections.mjs",
     "site:sync": "node scripts/site-sync.mjs",
     "cloud:check": "node scripts/cloud-library.mjs check",

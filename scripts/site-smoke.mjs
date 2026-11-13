@@ -718,6 +718,37 @@ try {
     mirror.onTop && mirror.open && mirror.paras === 5 && mirror.first === 'Quelques projets' && mirror.hash === '#miroir' && mirror.inert && mirror.quiet, JSON.stringify(mirror));
   check('…the right-hand page lifts under the pointer, its bottom corner most; a click turns it, and under it the pond of the six texts',
     mirror.lift?.by === 'corner' && mirror.lift.curl > 30 && mirror.lift.m13 !== 0 && mirror.turned && mirror.poolOpen && mirror.stones === 6 && mirror.water && mirror.wide, JSON.stringify({ lift: mirror.lift, turned: mirror.turned, stones: mirror.stones, water: mirror.water, wide: mirror.wide, under: mirror.under }));
+  // And back (2026-11-13): over the water, the left-hand page's bottom corner curls under the pointer; a click turns the
+  // leaf back and the introduction is there again, its page ready to turn once more. Then the page is turned again.
+  let turnBack = { tried: false };
+  if (mirror.turned) {
+    const bb = await a.evaluate(() => { const r = document.querySelector('dialog.mirror-book .mb-book').getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
+    const bx = bb.x + bb.w / 2 * 0.06;
+    const by = bb.y + bb.h * 0.95;
+    await a.mouse.move(bx + 30, by - 60, { steps: 2 });
+    await a.mouse.move(bx, by, { steps: 3 });
+    await a.waitForTimeout(450);
+    turnBack = { tried: true, ...(await a.evaluate(() => {
+      const d = document.querySelector('dialog.mirror-book');
+      return { by: d.dataset.back || null, curl: parseFloat(getComputedStyle(d.querySelector('.mb-return'), '::after').width) };
+    })) };
+    await a.mouse.click(bx, by);
+    await a.waitForFunction(() => { const d = document.querySelector('dialog.mirror-book'); return d && !d.classList.contains('is-turned') && !d.classList.contains('is-unturning'); }, null, { timeout: 4000 }).catch(() => {});
+    turnBack = { ...turnBack, ...(await a.evaluate(() => {
+      const d = document.querySelector('dialog.mirror-book');
+      const leaf = d.querySelector('.mb-leaf');
+      const m = new DOMMatrixReadOnly(getComputedStyle(leaf).transform);
+      return { turnedBack: !d.classList.contains('is-turned'), poolInert: d.querySelector('.mb-pool').inert, open: d.open,
+        flat: Math.abs(m.m11 - 1) < 0.02, intro: getComputedStyle(d.querySelector('.mb-intro')).visibility === 'visible' || getComputedStyle(d.querySelector('.mb-intro')).display === 'none',
+        backBtn: d.querySelector('.mb-return-edge').hidden };
+    })) };
+    // → turns it again (the keyboard's way), and the pond is there for the stone below.
+    await a.keyboard.press('ArrowRight');
+    await a.waitForFunction(() => document.querySelector('dialog.mirror-book.is-turned') && !document.querySelector('dialog.mirror-book .mb-pool').inert, null, { timeout: 4000 }).catch(() => {});
+    turnBack.again = await a.evaluate(() => document.querySelector('dialog.mirror-book').classList.contains('is-turned'));
+  }
+  check('…and back: over the water the left-hand page\'s corner curls under the pointer, a click turns the leaf back to the introduction, → turns it again',
+    turnBack.tried && turnBack.by === 'corner' && turnBack.curl > 30 && turnBack.turnedBack && turnBack.poolInert && turnBack.open && turnBack.flat && turnBack.intro && turnBack.backBtn && turnBack.again, JSON.stringify(turnBack));
   // A stone opens its text: the book closes behind it, the text is a reading page of Echo, back to the book.
   if (mirror.turned) {
     await a.click('dialog.mirror-book .mb-pond a.stone[href="echo/lectures/voyages"]', { force: true });

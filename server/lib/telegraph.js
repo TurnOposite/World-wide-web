@@ -24,6 +24,13 @@
  *     the sender was on — so a restart does not empty the room. No address.
  *     The file is capped: past `logMaxBytes` it becomes `<file>.1` and a new
  *     one starts, so the tower's disk holds two files at most.
+ *   - The room empties every morning (Ortis, 2026-11-13: « make it that chat
+ *     disappears every 24 hours … the 5 a.m. limit is a good reset time »).
+ *     At the broadcast day's turn — 05:00 Paris, the programme's own
+ *     boundary — what was said the day before leaves the room: it is no
+ *     longer served, nor read back at start. The log file is not touched by
+ *     this (it is the tower's private record, kept at his word of
+ *     2026-11-10); only what listeners see starts over.
  *
  * Messages only: who is tuned in is still the listener count, and the
  * station's clock knows nothing of any of this.
@@ -32,6 +39,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { RateLimiter } from './ratelimit.js';
+import { makeCalendar, minutesOf } from './programme.js';
 
 export const LIMITS = Object.freeze({ text: 240, name: 24, icon: 64, stream: 48 });
 
@@ -48,6 +56,17 @@ export function cleanText(input, max) {
 /** A link is not something a stranger gets to hand to the room. */
 export const stripLinks = (s) => String(s).replace(LINK, '[link]');
 
+/**
+ * When the room's day began, for a given time: the last `hhmm` in `timeZone` at or before `t`. Uses the
+ * programme's calendar, so the line and the programme turn over at the same moment, summer time included.
+ * `null` for anything unreadable (or « off »): a room that never empties.
+ */
+export function dailyReset(hhmm = '05:00', timeZone = 'Europe/Paris') {
+  if (minutesOf(hhmm) === null) return null;
+  const cal = makeCalendar({ timeZone, dayStarts: hhmm });
+  return (t) => cal.dayStart(cal.dayOf(t));
+}
+
 /** An icon is a file name from the site's bank (site/assets/telegraph/); anything else is no icon. */
 export function cleanIcon(input) {
   const s = String(input ?? '');
@@ -62,10 +81,13 @@ export class Telegraph {
    * @param {number} [o.logMaxBytes]  the log's size before it is set aside as <file>.1
    * @param {number} [o.muteMs]       how long a silenced sender stays silenced
    * @param {RateLimiter} [o.limiter] the budget per address
+   * @param {((t: number) => number)|null} [o.dayStart] when the room's day began, for a time (dailyReset);
+   *                                    null = the room never empties
    * @param {() => number} [o.now]    clock, for tests
    */
-  constructor({ keep = 200, logFile = null, logMaxBytes = 5 * 1048576, muteMs = 24 * 3600_000, limiter = null, now = Date.now } = {}) {
+  constructor({ keep = 200, logFile = null, logMaxBytes = 5 * 1048576, muteMs = 24 * 3600_000, limiter = null, dayStart = null, now = Date.now } = {}) {
     this.keep = keep;
+    this.dayStart = typeof dayStart === 'function' ? dayStart : null;
     this.logFile = logFile;
     this.logMaxBytes = logMaxBytes;
     this.muteMs = muteMs;
@@ -89,6 +111,14 @@ export class Telegraph {
     return crypto.createHmac('sha256', this._salt).update(String(who ?? '?')).digest('base64url').slice(0, 22);
   }
 
+  /** When this room's day began (0 for a room that never empties); what was said before it leaves the room. */
+  _prune(t) {
+    if (!this.dayStart) return 0;
+    const start = this.dayStart(t);
+    while (this.messages.length && this.messages[0].t < start) this._from.delete(this.messages.shift().id);
+    return start;
+  }
+
   _load() {
     if (!this.logFile) return;
     let raw;
@@ -105,7 +135,8 @@ export class Telegraph {
       if (Number.isFinite(m?.del)) gone.add(m.del);
       else if (Number.isFinite(m?.id) && typeof m.text === 'string') all.push(m);
     }
-    this.messages = all.filter((m) => !gone.has(m.id)).slice(-this.keep)
+    const since = this.dayStart ? this.dayStart(this.now()) : -Infinity;
+    this.messages = all.filter((m) => !gone.has(m.id) && !(m.t < since)).slice(-this.keep)
       .map((m) => ({ id: m.id, t: m.t, name: String(m.name || ''), icon: m.icon || null, text: m.text, stream: m.stream || null, host: m.host === true }));
     this.lastId = all.reduce((hi, m) => Math.max(hi, m.id), 0);
   }
@@ -137,6 +168,7 @@ export class Telegraph {
    */
   post({ name, icon, text, stream, who, host = false } = {}) {
     const t = this.now();
+    this._prune(t);
     const cleanName = cleanText(name, LIMITS.name);
     const cleanBody = stripLinks(cleanText(text, LIMITS.text));
     if (!cleanName) return { ok: false, status: 400, error: 'no_name', detail: 'Join the line with a name first.' };
@@ -165,11 +197,16 @@ export class Telegraph {
 
   /** The messages after `since` (an id), at most `limit` of them, oldest first; and what was taken off lately. */
   since(since = 0, limit = 100) {
+    const t = this.now();
+    const day = this._prune(t);
     const after = Number.isFinite(since) ? since : 0;
     const fresh = this.messages.filter((m) => m.id > after).slice(-limit);
-    const cutoff = this.now() - 3600_000;
+    const cutoff = t - 3600_000;
     this.removed = this.removed.filter((r) => r.t > cutoff).slice(-100);
-    return { messages: fresh, removed: this.removed.map((r) => r.id), latest: this.lastId };
+    // `day`: when this room's day began, so a page still showing yesterday's messages knows to let them go.
+    const out = { messages: fresh, removed: this.removed.map((r) => r.id), latest: this.lastId };
+    if (this.dayStart) out.day = day;
+    return out;
   }
 
   /** Take a message off the line (the station key's call); `mute` also silences whoever sent it. */

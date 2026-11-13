@@ -40,6 +40,17 @@ first thing listeners write to the tower: read the 2026-11-10 entry of
 [`docs/plans/PLAN-chat-and-moods.md`](./docs/plans/PLAN-chat-and-moods.md)
 for what is next.
 
+**→ The to-do list is [`docs/BACKLOG.md`](./docs/BACKLOG.md)** (since 2026-11-13):
+every request of Ortis's not on the site yet, what each waits on, and the
+order to take them in when he says to spend usage on it. Read it before
+choosing what to work on; add to it what you leave undone.
+
+**New since 2026-11-13.** The telegraph line empties every morning at 05:00
+Paris (`TELEGRAPH_RESET`, `dailyReset` in `server/lib/telegraph.js`; the
+tower's log is kept). The Livre miroir turns back from the pond to its
+introduction. `npm run repeats` (and a weekly GitHub run) warns when the same
+song — or two files of one recording — comes round within 3 hours.
+
 **New since 2026-11-11 — the cast.** Joining the telegraph line is a character
 select (`site/js/ui/cast.js`): eight characters of the station's own as pixel
 grids in code, four looks each; slide to choose who, slide again to change
@@ -90,7 +101,8 @@ Then skim, in order:
 
 1. [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — how the station clock works
 2. [`docs/DECISIONS.md`](./docs/DECISIONS.md) — why things are the way they are
-3. [`docs/ROADMAP.md`](./docs/ROADMAP.md) — what to build next
+3. [`docs/BACKLOG.md`](./docs/BACKLOG.md) — what Ortis asked for that is not built yet, in order;
+   [`docs/ROADMAP.md`](./docs/ROADMAP.md) — the older ranked engineering list
 4. [`docs/WORKLOG.md`](./docs/WORKLOG.md) — what previous runs already did
 5. [`docs/PLANNING.md`](./docs/PLANNING.md) — where this is heading, and whether
    that's still the right way

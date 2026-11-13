@@ -17,7 +17,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { identity, validIdentity, mergeMessages, initial, IDENTITY_KEY, KEEP } from '../site/js/ui/telegraph.js';
+import { identity, validIdentity, mergeMessages, sinceDay, initial, IDENTITY_KEY, KEEP } from '../site/js/ui/telegraph.js';
 import { iconBank, labelOf, manifest, DIR, OUT, MAX_BYTES, NAME } from '../scripts/site-telegraph.mjs';
 import { cleanIcon } from '../server/lib/telegraph.js';
 
@@ -85,6 +85,15 @@ test('the page shows each message once, in order, without those taken off, and o
   const many = Array.from({ length: KEEP + 30 }, (_, i) => m(i + 1));
   assert.equal(mergeMessages(many, []).length, KEEP);
   assert.equal(mergeMessages(many, [])[0].id, 31, 'the oldest go');
+});
+
+test('a page left open overnight lets yesterday go at the tower\'s 05:00', () => {
+  const day = Date.parse('2026-11-13T04:00:00Z');
+  const msgs = [{ id: 1, t: day - 60_000, text: 'last night' }, { id: 2, t: day + 60_000, text: 'this morning' }];
+  assert.deepEqual(sinceDay(msgs, day).map((m) => m.text), ['this morning']);
+  assert.equal(sinceDay(msgs, undefined).length, 2, 'a tower that gives no day (older code): everything stays');
+  assert.match(read('site/js/ui/telegraph.js'), /sinceDay\(mergeMessages\(/, 'the poll applies it to what it shows');
+  assert.match(read('site/js/ui/telegraph.js'), /empties every morning at 5/, 'and the line says so');
 });
 
 test('a stranger\'s text is put on the page as text, never as markup or a link', () => {

@@ -29,7 +29,7 @@ Object.assign(process.env, {
   AUTO_RESCAN_MINUTES: '0',
   STATION_KEY: KEY,
 });
-const { Telegraph, LIMITS, cleanText, cleanIcon, stripLinks } = await import('../server/lib/telegraph.js');
+const { Telegraph, LIMITS, cleanText, cleanIcon, stripLinks, dailyReset } = await import('../server/lib/telegraph.js');
 const { RateLimiter } = await import('../server/lib/ratelimit.js');
 
 function clock(start = 1_800_000_000_000) {
@@ -122,6 +122,54 @@ test('the line is kept: a restart reads it back, without what was taken off, and
   assert.ok(again.post({ name: 'Cy', text: 'third', who: 'c' }).message.id > b.id, 'ids go on from where the log ended');
 });
 
+test('the room empties at 05:00 Paris: the programme\'s own day boundary, summer time included', () => {
+  const at = dailyReset('05:00', 'Europe/Paris');
+  const iso = (t) => new Date(at(Date.parse(t))).toISOString();
+  assert.equal(iso('2026-11-13T03:59:59Z'), '2026-11-12T04:00:00.000Z', 'at 04:59 in Paris (winter) the day is still yesterday\'s');
+  assert.equal(iso('2026-11-13T04:00:00Z'), '2026-11-13T04:00:00.000Z', '05:00 in Paris is 04:00 UTC in winter');
+  assert.equal(iso('2026-11-13T22:30:00Z'), '2026-11-13T04:00:00.000Z');
+  assert.equal(iso('2026-07-01T03:00:00Z'), '2026-07-01T03:00:00.000Z', '…and 03:00 UTC in summer');
+  for (const off of ['off', '', 'never', '25:00']) assert.equal(dailyReset(off), null, `« ${off} » is a room that never empties`);
+});
+
+test('what was said yesterday leaves the room at 05:00, for a page left open and for a restart; the log keeps it', async () => {
+  const logFile = path.join(dir, 'daily', 'line.jsonl');
+  const now = clock(Date.parse('2026-11-13T03:58:00Z')); // 04:58 in Paris
+  const dayStart = dailyReset('05:00', 'Europe/Paris');
+  const t = line({ logFile, now, dayStart });
+  const late = t.post({ name: 'Owl', text: 'still up', who: 'owl' }).message;
+  const seen = t.since(0);
+  assert.deepEqual(seen.messages.map((m) => m.text), ['still up']);
+  assert.equal(seen.day, Date.parse('2026-11-12T04:00:00Z'), 'the room says when its day began');
+
+  now.advance(3 * 60_000); // 05:01 in Paris
+  const after = t.since(0);
+  assert.deepEqual(after.messages, [], 'at 05:00 the room is empty again');
+  assert.equal(after.day, Date.parse('2026-11-13T04:00:00Z'), '…and says its new day began at 05:00');
+  assert.deepEqual(t.since(late.id).messages, [], 'a page asking after yesterday\'s last message gets nothing old');
+  assert.equal(t._from.size, 0, 'who sent yesterday\'s messages is forgotten with them');
+  const fresh = t.post({ name: 'Lark', text: 'morning', who: 'lark' }).message;
+  assert.ok(fresh.id > late.id, 'ids keep going up across the morning');
+  assert.deepEqual(t.since(late.id).messages.map((m) => m.text), ['morning']);
+
+  await t.flushed();
+  const again = line({ logFile, now, dayStart });
+  assert.deepEqual(again.since(0).messages.map((m) => m.text), ['morning'], 'a restart after 05:00 does not bring yesterday back');
+  assert.ok(again.lastId >= fresh.id, 'and the ids still only go up');
+  const kept = fs.readFileSync(logFile, 'utf8');
+  assert.match(kept, /still up/, 'the tower\'s own log keeps what was said (Ortis, 2026-11-10); only the room starts over');
+});
+
+test('a room with no daily turn keeps everything, and says nothing of a day', () => {
+  const now = clock(Date.parse('2026-11-13T03:58:00Z'));
+  const t = line({ now });
+  t.post({ name: 'Owl', text: 'still up', who: 'owl' });
+  now.advance(48 * 3600_000);
+  const out = t.since(0);
+  assert.equal(out.messages.length, 1);
+  assert.equal('day' in out, false);
+});
+
 test('the log is capped: past its size it is set aside once, and a new one starts', async () => {
   const logFile = path.join(dir, 'capped', 'line.jsonl');
   const t = line({ logFile, logMaxBytes: 400, limiter: new RateLimiter({ capacity: 1000, refillPerSec: 1000 }) });
@@ -164,6 +212,8 @@ test('the tower: reading is open, writing needs no key, and the station\'s own m
   assert.equal(empty.enabled, true);
   assert.deepEqual(empty.messages, []);
   assert.deepEqual(empty.limits, { text: LIMITS.text, name: LIMITS.name });
+  assert.ok(Number.isFinite(empty.day) && empty.day <= Date.now() && Date.now() - empty.day < 25 * 3600_000,
+    'the tower\'s room empties daily (05:00 Paris by default) and says when today began');
 
   const sent = await post('/api/telegraph', { name: 'Ada', icon: 'moon.svg', text: 'hello <img src=x> https://x.example', stream: 'Chill' });
   assert.equal(sent.status, 201);

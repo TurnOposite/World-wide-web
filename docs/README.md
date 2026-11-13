@@ -20,7 +20,7 @@ would cost more than the tidiness is worth.
 | What is this project and what must not change? | [`../BRIEF.md`](../BRIEF.md) — **the constitution** |
 | How do listeners stay in sync? | [`ARCHITECTURE.md`](./ARCHITECTURE.md) |
 | Why is the code like this? | [`DECISIONS.md`](./DECISIONS.md) — append-only |
-| What should I build next? | [`ROADMAP.md`](./ROADMAP.md) — ranked |
+| What should I build next? | **[`BACKLOG.md`](./BACKLOG.md)** — every request of Ortis's not built yet, in order, since 2026-11-13; [`ROADMAP.md`](./ROADMAP.md) — the older ranked list |
 | What did previous runs do? | [`WORKLOG.md`](./WORKLOG.md) — append-only |
 | How does the site work without a server? | [`CLOUD.md`](./CLOUD.md) — the cloud edition, 2026-09-26 |
 | Where does it run right now, and how do I add music? | [`LIVE.md`](./LIVE.md) — Vercel + the Oracle server, **current since 2026-10-08** |

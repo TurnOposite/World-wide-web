@@ -619,6 +619,26 @@ dialog.mirror-book::backdrop{background:rgba(8,9,10,.74);backdrop-filter:blur(5p
 .mirror-book.is-turning .mb-recto::before{animation:mb-shade 1.1s ease-in forwards}
 .mirror-book.is-turning .mb-verso::before{animation:mb-shade 1.1s ease-out reverse forwards}
 @keyframes mb-shade{0%{opacity:0}100%{opacity:1}}
+/* the way back (2026-11-13): over the water, the left-hand page's outer edge and bottom corner curl as the right
+   one did; a click lays the leaf back over the spine. The layer never takes the pointer (mirror-book.js reads the
+   book's box); its button is for Tab, and only there once the page has turned. */
+.mirror-book .mb-return{position:absolute;top:0;bottom:0;left:0;width:50%;pointer-events:none;transform:translateZ(4px);--curl:0px}
+.mirror-book .mb-return::after{content:"";position:absolute;left:0;bottom:0;width:var(--curl);height:var(--curl);pointer-events:none;
+  border-radius:0 0 0 6px;
+  background:linear-gradient(45deg,#cfc5ad 0%,#bfb398 calc(50% - 1px),rgba(70,52,24,.35) 50%,#efe7d4 calc(50% + 1px),#fbf7ec 68%,#e3d9c2 100%);
+  box-shadow:5px -5px 12px rgba(30,20,6,.18);transition:width .3s cubic-bezier(.2,.8,.2,1),height .3s cubic-bezier(.2,.8,.2,1)}
+.mirror-book.is-turned[data-back="edge"] .mb-return{--curl:16px}
+.mirror-book.is-turned[data-back="corner"] .mb-return{--curl:64px}
+.mirror-book.is-turned .mb-return:has(.mb-return-edge:focus-visible){--curl:24px}
+.mirror-book .mb-return-edge{position:absolute;left:0;top:0;bottom:16%;width:8%;margin:0;padding:0;border:0;background:none;cursor:default;pointer-events:auto;-webkit-tap-highlight-color:transparent}
+.mirror-book .mb-return-edge:focus-visible{outline:none}
+.mirror-book:not(.is-turned) .mb-return-edge{pointer-events:none}
+/* …and the leaf comes back as slowly as it went, the shade crossing it the other way */
+.mirror-book.is-unturning .mb-leaf{transition:transform 1.1s cubic-bezier(.45,.05,.22,1)}
+.mirror-book.is-unturning .mb-edge,.mirror-book.is-unturning .mb-corner{pointer-events:none}
+.mirror-book.is-unturning .mb-verso::before{animation:mb-shade 1.1s ease-in forwards}
+.mirror-book.is-unturning .mb-recto::before{animation:mb-shade 1.1s ease-out reverse forwards}
+.mirror-book.still .mb-return::after{transition:none}
 /* the words: one sentence to a paragraph, spread down the page; a drop letter opens the book */
 .mirror-book .mb-text{position:absolute;inset:11% 11% 12%;display:flex;flex-direction:column;justify-content:space-evenly;
   font:400 clamp(15px,calc(var(--W) * .0205),24px)/1.5 "Libre Caslon Text",Georgia,serif;color:#2a2117;hyphens:auto;text-wrap:pretty}
@@ -637,6 +657,7 @@ dialog.mirror-book::backdrop{background:rgba(8,9,10,.74);backdrop-filter:blur(5p
   .mirror-book .mb-text-l{display:contents}
   .mirror-book .mb-text{inset:9% 9% 10%;font-size:clamp(14px,4.1vw,18px)}
   .mirror-book.is-turned .mb-leaf{visibility:hidden}
+  .mirror-book .mb-return{width:100%}
 }
 
 /* =====================================================================

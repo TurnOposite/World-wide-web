@@ -3264,3 +3264,29 @@ The plan it came out of is `docs/plans/PLAN-chat-and-moods.md`.
   (it was a full-width 3:2 picture above it) and a 16:9 picture capped at 30 % of the screen on a phone; the
   second rule under the masthead is gone. Title on the first screen at 1522×672 and at 390×844.
 - With two or more articles the two-column grid is unchanged.
+
+## 2026-11-13 - Review of two weeks; the line empties at 05:00; the Livre miroir turns back; repeats; the backlog (Claude, for Ortis)
+
+- **Review** (00:30, before this change): GitHub, the laptop clone and Vercel all on `a07484b`; the tower on air,
+  3,174 tracks, 0 listeners; the telegraph line held 2 messages, both of 11 November. Self-test on a fresh clone:
+  444 unit, 43/43 browser, 166/167 site (« …and the music did not stop to show it », green in two re-runs),
+  26/26 Atelier. Every request since 29 October not on the site went into **`docs/BACKLOG.md`**, with what each
+  waits on; CLAUDE.md, docs/README.md and ROADMAP.md point to it.
+- **The line empties at 05:00 Paris** (`dailyReset`, `TELEGRAPH_RESET`, `TELEGRAPH_RESET_TZ`): the room is
+  pruned at each read and post, a restart reads back only today, `GET /api/telegraph` gives `day`, and the page
+  drops what came before it (`sinceDay`). The log file is untouched. The line's subtitle says « It empties every
+  morning at 5. » Tests: three in `tests/telegraph.test.js`, one in `tests/site-telegraph.test.js`; with the
+  pruning switched off, two of them fail.
+- **The Livre miroir turns back** (`unturn`, `.mb-return`, `is-unturning`): the left page's edge and corner over
+  the water, a tap at the page's left edge on a phone, ← and →. New site-smoke check: the corner curls under the
+  pointer, a click brings the introduction back, → turns the page again. Looked at in Chromium at 1440×900 (the
+  corner curls) and 390×844 (a tap at the left edge brings the introduction back). On the way: the first layer
+  was named `.mb-back`, the cover's back face's class — caught by the screenshot, renamed.
+- **`scripts/repeats.mjs`** (`npm run repeats`), `tests/repeats.test.js` (6), `.github/workflows/repeats.yml`
+  (Mondays 06:41 UTC, and by hand). Run against the tower from the laptop, 14 days ahead
+  (`Radio Tower\Claude outputs\repeats-2026-11-13\repeats-14-days.txt`): 20 recordings on the tower under two
+  names; 3 Snowpoint twins within 3 h of each other (14/11, 15/11, 23/11); and **13 tracks played again across
+  05:00**, as close as 12 minutes — BACKLOG U2, not fixed (it re-deals the day on air).
+- **Oracle**: his screenshots show the Free Tier, the trial's credits suspended since 5 November. What a budget
+  alert does and does not do, and the one charge the tower can run up (egress past 10 TB), told to him; the
+  cap on it is BACKLOG B1.

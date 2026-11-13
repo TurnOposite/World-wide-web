@@ -1,5 +1,9 @@
 # Roadmap
 
+> **2026-11-13: for what to build next, start with [`BACKLOG.md`](./BACKLOG.md)** — the requests Ortis has
+> made that are not built yet, in order. This file keeps the older ranked engineering items (most of them
+> written for the Pi, retired 2026-11-10); « Next up » below is not the current queue.
+
 Ranked. The builder agent takes the highest unblocked item, does *one*, and ticks
 it off. Add what you discover; delete nothing — move finished items to the bottom
 with a date, and dropped ones to "Considered and dropped".

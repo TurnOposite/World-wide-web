@@ -91,7 +91,7 @@ folders `Greetings`, `Breaking cores` and `Electronic Dance Martin` held no audi
 - [x] 3g. The cast (2026-11-11): a character select — slide for who, slide again for their clothes — eight characters of the station's own, four looks each (`site/js/ui/cast.js`); the character in the mini-player. A published game's characters are not used (`docs/DECISIONS.md`, 2026-11-11)
 - [ ] 3h. More of the cast's customisation, if he wants it: more looks, a hat or a prop to swap, his own sprites in place of these — **needs Ortis**
 - [ ] 3d. His own pictures in `site/assets/telegraph/` (square, under 60 KB each; `README.md` there): they follow the cast on the reel — **needs Ortis**
-- [ ] 3e. How long the log is kept — **needs Ortis** (today: two files of 5 MB)
+- [x] 3e. How long the line lasts (2026-11-13, Ortis: « make it that chat disappears every 24 hours … the 5 a.m. limit is a good reset time »): the room empties at 05:00 Paris, the programme's day boundary. The tower's log is kept as he said on 11-10 (two files of 5 MB); `TELEGRAPH_RESET=off` keeps the room too
 - [ ] 3f. Who is on the line (names of those tuned in), reactions to the track on air — open
 - [ ] 3c. A game layer (time tuned in beside the name) — only if the line is used
 
@@ -104,3 +104,4 @@ folders `Greetings`, `Breaking cores` and `Electronic Dance Martin` held no audi
 | 2026-11-10 | Claude, with Ortis | Built and pushed: the Antenna (dial + telegraph line), empty Chill and Energy, the phone's /radio, the Booth's button, the ash, the label fixes. Zone's Atlas removed |
 | 2026-11-10 | Claude, with Ortis | The Pi kit moved to `archive/pi-kit/` (46 files, as its own commit) |
 | 2026-11-11 | Claude, with Ortis | Fired `c19227b` to the tower. The cast and the mini-player's character. The three flaky checks fixed at their cause. His label sheet read: 59 rows, eight new labels to decide |
+| 2026-11-13 | Claude, with Ortis | Review of every request since 29 Oct into `docs/BACKLOG.md`. The line empties at 05:00 (3e). The Livre miroir turns back. `scripts/repeats.mjs`: the same song twice within 3 h — Snowpoint twins, and 13 day-boundary repeats in the next 14 days (BACKLOG U2) |

@@ -1,0 +1,28 @@
+# Does the same song come round twice, close together, in the week ahead? (Ortis, 2026-11-13: « warn me if
+# they ever play like twice the same song over ».) Reads only the tower's public API (scripts/repeats.mjs).
+# A warning fails the run, and GitHub emails the repository's owner; the list is on the run's page.
+name: repeats
+
+on:
+  schedule:
+    # Mondays 06:41 UTC: after the tower's nightly update (~04:20 UTC), with the week ahead to read.
+    - cron: '41 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  repeats:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: The week ahead on the tower
+        run: |
+          set -o pipefail
+          node scripts/repeats.mjs --days 7 --within 180 | tee repeats.txt
+      - name: On the run's page
+        if: always()
+        run: |
+          { echo '### The same song, twice within 3 hours, in the week ahead'; echo; echo '```'; cat repeats.txt 2>/dev/null || echo 'The tower could not be read.'; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

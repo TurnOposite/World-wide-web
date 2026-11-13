@@ -11,6 +11,11 @@
  * texts engraved on stones at the bottom of it, dark until a hand moves over the water. A stone is a link
  * to the text, which opens in the Articles window.
  *
+ * And back (Ortis, 2026-11-13: « when you're in the pond, you can go back to the double page before »): over
+ * the water, the left-hand page's outer edge and bottom corner answer the same way, mirrored — the corner
+ * curls up under the pointer, a click turns the leaf back over and the introduction is there again. ← and →
+ * turn the page for a keyboard, and a hidden-until-turned button at that edge takes Tab.
+ *
  * The open book is a <dialog> on <body>, not inside the page: in the world the page sits in a scaled,
  * zoomed window, and the book should open at the reader's scale, over everything.
  */
@@ -120,6 +125,7 @@ function build(intro) {
         <div class="mb-page mb-right" aria-hidden="true"><span class="mb-run">Au fond de l’eau</span><span class="mb-folio">iv</span></div>
         <div class="mb-pool" inert><div class="mb-pond" role="group" aria-label="Les textes, au fond de l’eau"></div></div>
         <div class="mb-gutter" aria-hidden="true"></div>
+        <div class="mb-return"><button type="button" class="mb-return-edge" aria-label="Revenir à la page précédente" hidden></button></div>
         <div class="mb-sheet mb-intro"><div class="mb-text">${paras(left)}</div><span class="mb-run" aria-hidden="true">Livre miroir</span><span class="mb-folio" aria-hidden="true">i</span></div>
         <div class="mb-leaf">
           <div class="mb-sheet mb-recto">
@@ -141,7 +147,9 @@ function build(intro) {
   document.body.append(dialog);
   const leaf = dialog.querySelector('.mb-leaf');
   const recto = leaf.querySelector('.mb-recto');
-  const live = () => dialog.classList.contains('is-ready') && !dialog.classList.contains('is-turning') && !dialog.classList.contains('is-turned');
+  const has = (c) => dialog.classList.contains(c);
+  const live = () => has('is-ready') && !has('is-turning') && !has('is-turned') && !has('is-unturning');
+  const turned = () => has('is-turned') && !has('is-unturning');
   // Where on the page the pointer is: its bottom corner, its outer edge, or neither. Read from the page's own
   // box rather than from the zones laid over it: some browsers hit-test a 3D page as one piece, never its children.
   const zone = (e) => {
@@ -153,18 +161,43 @@ function build(intro) {
     if (fx >= 0.84 && fy >= 0.84) return 'corner';
     return fx >= 0.92 ? 'edge' : null;
   };
+  // Over the water, the way back: the left-hand page's outer edge and bottom corner, mirrored. On a phone the
+  // book is one page, and its left edge is the way back. Read from the book's box, as the forward zones are.
+  const backZone = (e) => {
+    if (!turned() || !e.target.closest?.('.mb-book')) return null;
+    const b = dialog.querySelector('.mb-book').getBoundingClientRect();
+    const wide = getComputedStyle(dialog.querySelector('.mb-left')).display !== 'none';
+    const fx = (e.clientX - b.left) / (wide ? b.width / 2 : b.width);
+    const fy = (e.clientY - b.top) / b.height;
+    if (fx < -0.02 || fx > 1 || fy < 0 || fy > 1.02) return null;
+    if (fx <= 0.16 && fy >= 0.84) return 'corner';
+    return fx <= 0.08 ? 'edge' : null;
+  };
   // The lift: the outer edge a little, the bottom corner more (rooms.css). Only a mouse can hover;
   // a keyboard lifts the edge by focusing it. A touch turns the page at once.
   dialog.addEventListener('pointermove', (e) => {
-    if (e.pointerType !== 'mouse' || !live()) return;
+    if (e.pointerType !== 'mouse') return;
+    if (turned()) {
+      const k = backZone(e);
+      if (k) dialog.dataset.back = k;
+      else delete dialog.dataset.back;
+      return;
+    }
+    if (!live()) return;
     const k = zone(e);
     if (k) leaf.dataset.lift = k;
     else delete leaf.dataset.lift;
+  });
+  dialog.addEventListener('keydown', (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key === 'ArrowRight' && live()) { e.preventDefault(); turn(); }
+    else if (e.key === 'ArrowLeft' && turned()) { e.preventDefault(); unturn(); }
   });
   leaf.addEventListener('pointerleave', () => { delete leaf.dataset.lift; });
   dialog.addEventListener('click', (e) => {
     if (e.target === dialog || e.target.closest('.mb-close')) { dialog.close(); return; }
     if (live() && (e.target.closest('.mb-edge, .mb-corner') || zone(e))) { turn(); return; }
+    if (turned() && (e.target.closest('.mb-return-edge') || backZone(e))) { unturn(); return; }
     // A stone opens its text: the router takes the link; the book closes behind it.
     if (e.target.closest('a.stone')) setTimeout(() => dialog.open && dialog.close(), 0);
   });
@@ -178,8 +211,10 @@ function build(intro) {
     timers = [];
     pond?.destroy();
     pond = null;
-    dialog.classList.remove('is-open', 'is-ready', 'is-turned', 'is-turning');
+    dialog.classList.remove('is-open', 'is-ready', 'is-turned', 'is-turning', 'is-unturning');
     delete leaf.dataset.lift;
+    delete dialog.dataset.back;
+    dialog.querySelector('.mb-return-edge').hidden = true;
     dialog.querySelector('.mb-pool').inert = true;
     dialog.querySelector('.mb-pond').innerHTML = '';
     if (location.hash === '#miroir') history.replaceState(null, '', location.pathname + location.search);
@@ -189,7 +224,7 @@ function build(intro) {
 
 /** Turn the right-hand page over: the pond is under it. */
 function turn() {
-  if (!dialog?.open || dialog.classList.contains('is-turning') || dialog.classList.contains('is-turned')) return;
+  if (!dialog?.open || ['is-turning', 'is-turned', 'is-unturning'].some((c) => dialog.classList.contains(c))) return;
   const leaf = dialog.querySelector('.mb-leaf');
   delete leaf.dataset.lift;
   dialog.classList.add('is-turning');
@@ -199,7 +234,24 @@ function turn() {
     dialog.classList.add('is-turned');
     const pool = dialog.querySelector('.mb-pool');
     pool.inert = false;
+    dialog.querySelector('.mb-return-edge').hidden = false;
     pool.querySelector('a.stone')?.focus({ preventScroll: true });
+  };
+  timers.push(setTimeout(done, dialog.classList.contains('still') ? 0 : 1150));
+}
+
+/** Turn the leaf back over the water: the introduction again, its page ready to turn once more. */
+function unturn() {
+  if (!dialog?.open || !dialog.classList.contains('is-turned') || dialog.classList.contains('is-unturning')) return;
+  delete dialog.dataset.back;
+  dialog.querySelector('.mb-pool').inert = true;
+  dialog.querySelector('.mb-return-edge').hidden = true;
+  dialog.classList.add('is-unturning');
+  dialog.classList.remove('is-turned');
+  const done = () => {
+    if (!dialog.open || !dialog.classList.contains('is-unturning')) return;
+    dialog.classList.remove('is-unturning');
+    dialog.querySelector('.mb-edge')?.focus({ preventScroll: true });
   };
   timers.push(setTimeout(done, dialog.classList.contains('still') ? 0 : 1150));
 }
@@ -235,3 +287,4 @@ export async function openMirror(from = null) {
 }
 openMirror.close = () => { if (dialog?.open) dialog.close(); };
 openMirror.turn = turn;
+openMirror.unturn = unturn;
