@@ -31,3 +31,6 @@ dist-tower/
 
 # The cloud tower address and station key (library/bot.mjs publish)
 library/tower.json
+
+# The phone ↔ desktop comparison (scripts/compare-phone.mjs): working pictures, re-made at will.
+docs/screenshots/compare-*/

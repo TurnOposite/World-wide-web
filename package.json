@@ -17,6 +17,7 @@
     "selftest": "bash scripts/build-test.sh",
     "repeats": "node scripts/repeats.mjs",
     "status": "node scripts/status.mjs",
+    "compare": "node scripts/compare-phone.mjs",
     "collections": "node scripts/collections.mjs",
     "site:sync": "node scripts/site-sync.mjs",
     "cloud:check": "node scripts/cloud-library.mjs check",
