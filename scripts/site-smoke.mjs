@@ -1701,6 +1701,83 @@ try {
     check('…another listener, who has not joined, reads it too', heard);
     await t2.context().close();
 
+    // « Tell me when someone writes » (Ortis, 2026-11-16: « phone notification for messages in antenna »). A listener
+    // who has not even joined can ask. Nothing is asked of the browser before the tap; the tap asks permission,
+    // registers the service worker and hands the tower a subscription made with the tower's own key; the next
+    // message then arrives at that browser's push service, encrypted to it. The push service is someone else's, so
+    // this run plays it: the page's subscription is a stand-in that points here (TOWER_PUSH_STUB, build-test.sh).
+    const pushStub = process.env.TOWER_PUSH_STUB;
+    if (!pushStub) {
+      console.log('SKIP  the line\'s notifications: no TOWER_PUSH_STUB (build-test.sh sets it, and tells the tower it may call it)');
+    } else {
+      const { generateKeys, decrypt, b64u } = await import('../server/lib/webpush.js');
+      const { randomBytes } = await import('node:crypto');
+      const { createServer } = await import('node:http');
+      const pushed = [];
+      const pushService = createServer((req, res) => {
+        const chunks = [];
+        req.on('data', (c) => chunks.push(c)).on('end', () => { pushed.push({ url: req.url, headers: req.headers, body: Buffer.concat(chunks) }); res.writeHead(201).end(); });
+      });
+      const up = await new Promise((resolve) => { pushService.once('error', () => resolve(false)); pushService.listen(Number(new URL(pushStub).port), '127.0.0.1', () => resolve(true)); });
+      if (!up) {
+        check('the line\'s notifications: the stand-in push service could start', false, `${pushStub} is taken (TEST_PUSH_PORT picks another)`);
+      } else {
+        const ua = generateKeys();
+        const auth = b64u(randomBytes(16));
+        const endpoint = `${pushStub}/push/selftest-${Date.now()}`;
+        const nctx = await browser.newContext();
+        await nctx.addInitScript((subscription) => {
+          window.__push = { asked: 0, subscribed: 0, sub: null };
+          Notification.requestPermission = async () => { window.__push.asked++; return 'granted'; };
+          const fake = { endpoint: subscription.endpoint, toJSON: () => subscription, unsubscribe: async () => { window.__push.sub = null; return true; } };
+          PushManager.prototype.subscribe = async function subscribe(o) {
+            Object.assign(window.__push, { subscribed: window.__push.subscribed + 1, keyBytes: o?.applicationServerKey?.length ?? null, visible: o?.userVisibleOnly === true, sub: fake });
+            return fake;
+          };
+          PushManager.prototype.getSubscription = async function getSubscription() { return window.__push.sub; };
+        }, { endpoint, keys: { p256dh: ua.publicKey, auth } });
+        const np = await nctx.newPage();
+        watch(np, 'tower, notifications');
+        await np.goto(`${dev}antenna?tower=${encodeURIComponent(towerUrl)}`, { waitUntil: 'domcontentloaded' });
+        await np.waitForSelector('#tgNotify', { timeout: 10000 }).catch(() => {});
+        const idle = await np.evaluate(async () => ({ label: document.getElementById('tgNotify')?.textContent ?? null, pressed: document.getElementById('tgNotify')?.getAttribute('aria-pressed'), asked: window.__push.asked, subscribed: window.__push.subscribed,
+          registered: (await navigator.serviceWorker.getRegistrations()).length, joined: Boolean(document.getElementById('tgText')) }));
+        await np.click('#tgNotify').catch(() => {});
+        await np.waitForFunction(() => document.getElementById('tgNotify')?.getAttribute('aria-pressed') === 'true', null, { timeout: 12000 }).catch(() => {});
+        const asked = await np.evaluate(async () => {
+          const reg = (await navigator.serviceWorker.getRegistrations())[0];
+          const worker = reg?.active || reg?.waiting || reg?.installing;
+          return { label: document.getElementById('tgNotify')?.textContent ?? null, pressed: document.getElementById('tgNotify')?.getAttribute('aria-pressed'), asked: window.__push.asked, subscribed: window.__push.subscribed, keyBytes: window.__push.keyBytes,
+            visible: window.__push.visible, worker: worker ? new URL(worker.scriptURL).pathname : null, scope: reg ? new URL(reg.scope).pathname : null };
+        });
+        check('the line offers « tell me when someone writes », to a listener who has not joined; before the tap nothing is asked, registered or subscribed',
+          idle.label === 'tell me when someone writes' && idle.pressed === 'false' && idle.asked === 0 && idle.subscribed === 0 && idle.registered === 0 && !idle.joined, JSON.stringify(idle));
+        check('…the tap asks the browser\'s permission once, registers sw.js for the site, and subscribes with the tower\'s key',
+          asked.pressed === 'true' && asked.label === 'stop telling me when someone writes' && asked.asked === 1 && asked.subscribed === 1 && asked.keyBytes === 65 && asked.visible && asked.worker === '/sw.js' && asked.scope === '/', JSON.stringify(asked));
+        const until = async (fn, ms = 8000) => { const end = Date.now() + ms; while (Date.now() < end) { if (fn()) return true; await new Promise((r) => setTimeout(r, 150)); } return fn(); };
+        const say = (text) => fetch(`${towerUrl}/api/telegraph`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Push check', text }) });
+        const mine = () => pushed.filter((r) => `${pushStub}${r.url}` === endpoint);
+        const words = `pushcheck ${Date.now()}`;
+        await say(words);
+        await until(() => mine().length >= 1);
+        const first = mine()[0];
+        let told = null;
+        try { told = JSON.parse(decrypt(first.body, { ...ua, auth }).toString()); } catch { /* not for this browser, or not encrypted */ }
+        check('…the next message reaches that browser\'s push service: encrypted to it alone, signed by the tower, and it says who wrote and what',
+          Boolean(first) && first.headers['content-encoding'] === 'aes128gcm' && /^vapid t=[\w.-]+, k=[\w-]{87}$/.test(first.headers.authorization || '') && !first.body.includes(words)
+          && told?.title === 'Push check on the telegraph line' && told.body === words && told.url === 'antenna', JSON.stringify({ got: mine().length, headers: first && { enc: first.headers['content-encoding'], ttl: first.headers.ttl }, told }));
+        await np.click('#tgNotify').catch(() => {});
+        await np.waitForFunction(() => document.getElementById('tgNotify')?.getAttribute('aria-pressed') === 'false', null, { timeout: 8000 }).catch(() => {});
+        pushed.length = 0;
+        await say(`pushcheck after stop ${Date.now()}`);
+        await new Promise((r) => setTimeout(r, 1500));
+        const stopped = await np.evaluate(() => ({ label: document.getElementById('tgNotify')?.textContent ?? null, sub: Boolean(window.__push.sub) }));
+        check('…and the same link stops it: the tower forgets the subscription, the browser too, and nothing more is sent', stopped.label === 'tell me when someone writes' && !stopped.sub && mine().length === 0, JSON.stringify({ ...stopped, sent: mine().length }));
+        await nctx.close();
+        await new Promise((r) => pushService.close(r));
+      }
+    }
+
     // The phone (Ortis, 2026-11-10: « people have to scroll down to see the music name »): on /radio the title and
     // Tune in are on the first screen, the tagline, the loop and sync figures and Resync are not shown; in the Booth
     // a button puts the visuals on the big screen (a phone has no F).

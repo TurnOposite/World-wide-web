@@ -58,7 +58,7 @@ function receiveBody(req, file, max) {
  * @param {Function} ctx.rescan
  */
 export function apiRouter(ctx) {
-  const { station, listeners, config, state, collections, channels = null, telegraph = null } = ctx;
+  const { station, listeners, config, state, collections, channels = null, telegraph = null, notifier = null } = ctx;
 
   /**
    * Which clock a request is asking about. No `channel` — the tower's
@@ -335,7 +335,15 @@ export function apiRouter(ctx) {
     res.set('Cache-Control', 'no-store');
     if (!telegraph) return res.json({ ok: false, enabled: false, messages: [], removed: [] });
     const since = Number(req.query.since);
-    res.json({ ok: true, enabled: true, now: Date.now(), limits: { text: TELEGRAPH_LIMITS.text, name: TELEGRAPH_LIMITS.name }, ...telegraph.since(Number.isFinite(since) ? since : 0) });
+    res.json({
+      ok: true,
+      enabled: true,
+      now: Date.now(),
+      limits: { text: TELEGRAPH_LIMITS.text, name: TELEGRAPH_LIMITS.name },
+      // With Web Push on, the public half of the tower's key: what a browser needs to ask to be told (ui/push.js).
+      ...(notifier?.push ? { push: { key: notifier.push.publicKey } } : {}),
+      ...telegraph.since(Number.isFinite(since) ? since : 0),
+    });
   });
 
   router.post('/telegraph', express.json({ limit: '4kb' }), (req, res) => {
@@ -358,6 +366,39 @@ export function apiRouter(ctx) {
       return res.status(status).json(rest);
     }
     res.status(201).json(out);
+    // After the answer, and never in its way: tell the station's phone, and the listeners who asked.
+    try { notifier?.message(out.message, { from: typeof b.push === 'string' ? b.push : null }); } catch (err) { console.warn(`[notify] ${err.message}`); }
+  });
+
+  // « Tell me when someone writes » (Ortis, 2026-11-16): a browser hands over its push subscription, or takes
+  // it back. No key — it is the listener's own choice — so the fences are in the store: only a real push
+  // service's address is accepted (server/lib/webpush.js allowedEndpoint), a ceiling on how many are kept, and
+  // a small budget per address for asking.
+  const pushGate = (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!telegraph || !notifier?.push) { res.status(503).json({ error: 'push_off', detail: 'Notifications are switched off on this tower.' }); return false; }
+    return true;
+  };
+  router.post('/telegraph/subscribe', express.json({ limit: '4kb' }), (req, res) => {
+    if (!pushGate(req, res)) return;
+    const budget = notifier.subscribeBudget.take(req.ip || req.socket?.remoteAddress);
+    if (!budget.ok) {
+      res.set('Retry-After', String(budget.retryAfter));
+      return res.status(429).json({ error: 'slow_down', retryAfter: budget.retryAfter });
+    }
+    const b = req.body && typeof req.body === 'object' ? req.body : {};
+    const out = notifier.push.add({ endpoint: b.endpoint, keys: b.keys });
+    if (!out.ok) {
+      const { status, ok, ...rest } = out;
+      return res.status(status).json(rest);
+    }
+    res.status(201).json({ ok: true });
+  });
+  router.post('/telegraph/unsubscribe', express.json({ limit: '4kb' }), (req, res) => {
+    if (!pushGate(req, res)) return;
+    // The same answer whether or not it was known: this is not a way to ask who is subscribed.
+    notifier.push.remove(req.body?.endpoint);
+    res.json({ ok: true });
   });
 
   router.post('/telegraph/remove', express.json({ limit: '1kb' }), (req, res) => {

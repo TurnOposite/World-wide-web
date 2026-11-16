@@ -1,9 +1,15 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
 import { originFromEnv } from './lib/origin.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(__dirname, '..');
+
+/** The website's public address, as `fire` knows it (deploy/fire.json) — where a notification's tap leads. */
+function siteFromFire() {
+  try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'deploy', 'fire.json'), 'utf8')).site || null; } catch { return null; }
+}
 
 function envInt(name, fallback) {
   const raw = process.env[name];
@@ -102,6 +108,26 @@ export const config = {
   telegraphLog: process.env.TELEGRAPH_LOG === 'none'
     ? null
     : path.resolve(process.env.TELEGRAPH_LOG || path.join(path.dirname(process.env.CACHE_FILE || path.join(ROOT, '.cache', 'library.json')), 'telegraph.jsonl')),
+
+  // Notifications for the line (server/lib/notify.js; docs/NOTIFICATIONS.md).
+  // A — the station's own phone: an ntfy topic's address. Unset = nothing is sent. The topic's name is a
+  //     secret (whoever knows it can read what is sent there): it lives in the tower's environment only.
+  telegraphNotifyUrl: process.env.TELEGRAPH_NOTIFY_URL || null,
+  // B — listeners who ask (« Tell me when someone writes »): Web Push. On with the line unless TELEGRAPH_PUSH=0.
+  //     Subscriptions, and the server's key pair unless VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY give one, are kept
+  //     beside the line's log; with TELEGRAPH_LOG=none there is nowhere to keep them, and push is off.
+  telegraphPush: process.env.TELEGRAPH_PUSH !== '0',
+  telegraphPushFile: process.env.TELEGRAPH_PUSH_FILE ? path.resolve(process.env.TELEGRAPH_PUSH_FILE) : null,
+  vapidKeys: process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY
+    ? { publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY }
+    : null,
+  // Extra origins a subscription may point at, comma-separated: the self-test's stand-in for a push service.
+  // Never set on a real tower — the built-in list (Google, Mozilla, Apple, Microsoft) is the protection.
+  telegraphPushAllow: (process.env.TELEGRAPH_PUSH_ALLOW || '').split(',').map((s) => s.trim()).filter(Boolean),
+  // At most one notification per this many seconds, each way; what arrives meanwhile goes out together.
+  telegraphNotifyGapSeconds: Math.max(0, envInt('TELEGRAPH_NOTIFY_GAP_SECONDS', 60)),
+  // The website's own address: where a tap on a notification leads, and who the tower says it is to a push service.
+  publicSite: process.env.PUBLIC_SITE || siteFromFire(),
 
   // Rescan the library automatically every N minutes. 0 disables.
   autoRescanMinutes: envInt('AUTO_RESCAN_MINUTES', 30),

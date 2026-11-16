@@ -417,6 +417,19 @@ class TowerClient extends Emitter {
     throw new ControlError(out.detail || out.error || `status ${res.status}`, { status: res.status, code: out.error });
   }
 
+  /** « Tell me when someone writes » (ui/push.js): hand the tower this browser's push subscription, or take it back. No key. */
+  async telegraphSubscribe(sub) {
+    const res = await fetch(`${this.origin}/api/telegraph/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ControlError(out.detail || out.error || `status ${res.status}`, { status: res.status, code: out.error });
+    return out;
+  }
+
+  async telegraphUnsubscribe(endpoint) {
+    const res = await fetch(`${this.origin}/api/telegraph/unsubscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint }) });
+    return res.json().catch(() => ({}));
+  }
+
   /** The line's log, for the station (ui/line-admin.js): `q` is from, to, q, name, limit, offset. */
   telegraphLog(q = {}) { return this._getKeyed(`/api/telegraph/log?${new URLSearchParams(q)}`); }
   telegraphLogCsv(q = {}) { return this._getKeyed(`/api/telegraph/log?${new URLSearchParams({ ...q, format: 'csv' })}`, { text: true }); }

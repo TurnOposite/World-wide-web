@@ -254,6 +254,13 @@ async function boot() {
     else if (k === 'm') { player.toggle(); e.preventDefault(); }
   });
 
+  // A tap on a notification (sw.js) while the site is open: go there with the router, so the music plays on.
+  try {
+    navigator.serviceWorker?.addEventListener('message', (e) => {
+      if (e.data?.type === 'go' && typeof e.data.route === 'string') router.go(e.data.route.replace(/^\/+/, ''));
+    });
+  } catch { /* no service workers here (a private window, an old browser): nothing to listen to */ }
+
   // For the e2e tests and for curious listeners with a console open.
   globalThis.radioTower = { client, player, stage, settings, router, world, atelier };
 }

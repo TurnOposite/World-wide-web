@@ -149,6 +149,11 @@ process.stdout.write(d === null || d === undefined ? "" : String(d));
 # parentheses matter: after a bare `print`, awk reads `>` as a redirection.
 calc() { awk "BEGIN { print ($1) }"; }
 
+# The line's notifications (2026-11-16): the site stage plays the push service itself, on this port. The tower is
+# told it may call that one address (TELEGRAPH_PUSH_ALLOW — never set on a real tower) and not to wait a minute
+# between notifications.
+PUSH_STUB_PORT="${TEST_PUSH_PORT:-$((PORT + 1))}"
+
 # STATION_KEY is set here so the browser stage can exercise the queue editor.
 # In production leaving it unset is the safe default (the write endpoints
 # return 503 and the editor hides itself); the self-test is the one place we
@@ -162,6 +167,7 @@ AUTO_RESCAN_MINUTES=0 \
 STATION_NAME="Self Test Tower" \
 STATION_KEY="selftest-key" \
 QUEUE_LOCK_SECONDS=20 \
+TELEGRAPH_PUSH_ALLOW="http://127.0.0.1:$PUSH_STUB_PORT" TELEGRAPH_NOTIFY_GAP_SECONDS=0 \
 STATION_LAT=10.5 STATION_LON=-20.25 STATION_PLACE="Self Test Point" STATION_TZ=Etc/GMT+1 \
   node server/index.js > "$FIXTURE_DIR/server.log" 2>&1 &
 SERVER_PID=$!
@@ -342,7 +348,7 @@ for chk in "site-sync.mjs --check" "site-texts.mjs --check" "site-collections.mj
   if OUT="$(node scripts/$chk 2>&1)"; then ok "$(tail -1 <<<"$OUT" | sed 's/^ *✓ *//')"; else bad "$(tail -1 <<<"$OUT" | sed 's/^ *✗ *//')"; fi
 done
 if [[ $DO_BROWSER -eq 1 ]] && node -e "import('playwright').then(()=>process.exit(0)).catch(()=>process.exit(1))" 2>/dev/null; then
-  if node scripts/site-smoke.mjs "http://127.0.0.1:$PORT" 2>&1 | sed 's/^/  /'; then
+  if TOWER_PUSH_STUB="http://127.0.0.1:$PUSH_STUB_PORT" node scripts/site-smoke.mjs "http://127.0.0.1:$PORT" 2>&1 | sed 's/^/  /'; then
     ok "the site plays, syncs, reorders and renders in a real browser"
   else
     bad "site smoke test failed"

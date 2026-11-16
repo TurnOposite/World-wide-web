@@ -1080,3 +1080,6 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
   .la-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
   .la-chip{margin-left:0}
 }
+/* « Tell me when someone writes » (2026-11-16): a link in the line's foot; on an iPhone in a Safari tab, one sentence. */
+.tg-joinhint .tg-notify{color:var(--ink)}
+.tg-ios{margin:8px 0 0;max-width:60ch}

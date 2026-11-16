@@ -21,6 +21,7 @@ import { apiRouter } from './routes/api.js';
 import { attachDevReload } from './lib/devReload.js';
 import { Collections, isPrivatePath } from './lib/collections.js';
 import { Telegraph, dailyReset } from './lib/telegraph.js';
+import { LineNotifier, PushStore } from './lib/notify.js';
 
 const VERSION = '0.1.0';
 
@@ -70,6 +71,23 @@ const collections = new Collections({ dir: config.collectionsDir });
 const telegraph = config.telegraph
   ? new Telegraph({ logFile: config.telegraphLog, logKeepDays: config.telegraphLogKeepDays, dayStart: dailyReset(config.telegraphReset, config.telegraphResetZone) })
   : null;
+
+// Notifications for the line (server/lib/notify.js): the station's phone through ntfy, listeners who asked
+// through Web Push. Nothing is sent unless one of the two is set up; neither can hold a message back.
+function makeNotifier() {
+  if (!telegraph) return null;
+  const pushFile = config.telegraphPushFile || (config.telegraphLog ? path.join(path.dirname(config.telegraphLog), 'telegraph-push.json') : null);
+  let push = null;
+  if (config.telegraphPush && pushFile) {
+    try {
+      push = new PushStore({ file: pushFile, keys: config.vapidKeys, subject: config.publicSite || 'https://github.com/TurnOposite/World-wide-web', allowOrigins: config.telegraphPushAllow });
+    } catch (err) {
+      console.warn(`[notify] listeners' notifications are off: ${err.message}`);
+    }
+  }
+  return new LineNotifier({ ntfyUrl: config.telegraphNotifyUrl, push, siteUrl: config.publicSite, gapMs: config.telegraphNotifyGapSeconds * 1000 });
+}
+const notifier = makeNotifier();
 
 const state = {
   version: VERSION,
@@ -147,7 +165,7 @@ export function createApp({ devReload = false } = {}) {
     const limiter = new RateLimiter({ capacity: config.rateBurst, refillPerSec: config.ratePerSecond > 0 ? config.ratePerSecond : 5 });
     app.use('/api', rateLimit(limiter, { skip: (req) => isLoopback(req.ip) }));
   }
-  app.use('/api', apiRouter({ station, listeners, config, state, rescan, collections, channels, telegraph }));
+  app.use('/api', apiRouter({ station, listeners, config, state, rescan, collections, channels, telegraph, notifier }));
 
   // The files behind the University / Photos / Crates pages. Read-only, and
   // narrower than express.static on its own: `_review/` and `_incoming/` are
@@ -240,7 +258,7 @@ export function createApp({ devReload = false } = {}) {
   return app;
 }
 
-export { station, channels, listeners, state, rescan, collections, telegraph };
+export { station, channels, listeners, state, rescan, collections, telegraph, notifier };
 
 // A manually-built `file://${resolved}` string does not percent-encode the
 // path, but import.meta.url always does — so this comparison silently failed
