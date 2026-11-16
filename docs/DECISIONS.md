@@ -3944,3 +3944,61 @@ as well ».
 
 **Revisit if** he wants the log gone too (`TELEGRAPH_LOG=none`), or the weekly warning turns into noise (the
 day-boundary fix should silence most of it).
+
+## 2026-11-16 - The station's view of the line; notifications without a third dependency; status; fire from GitHub; an exit plan
+
+**Asked** (Ortis, the handoff of the day and « build all new infra and push »): « phone notification for messages
+in antenna »; « more parameters in the chat logs for admin with history beyond what's not kept and restore
+option »; live status; the phone beside the desktop; fire with the laptop off; the tooling on the backlog; a
+ready exit from Oracle.
+
+**Decided**
+
+1. **« All new infra » is N1–N7.** The handoff's other items (B1–B6, B8, W, C1) keep their place in the backlog.
+   B2 in particular re-deals the day on air and was not slipped in under this word.
+2. **A sender tag that lasts a day, with its salt on the disk.** Until today the salt died with the process: no
+   tag could be logged usefully and a deploy forgave a silenced sender. Now the salt lasts one broadcast day, sits
+   in `<log>.salt` (mode 600), and is replaced at 05:00; the one before is kept one more day so a silence holds
+   across the turn. What that costs, said plainly: for at most two days, someone holding the tower's disk could
+   test addresses against a tag (there are only four billion IPv4 addresses). After that the salt is gone and the
+   tag ties to nothing. No address is ever written. This is the same exception to BRIEF rule 5 as the mute of
+   2026-11-10, made to last a day instead of a process.
+3. **Restore keeps the message's id and time**, and the room names restored messages apart (`restored` in
+   `GET /api/telegraph`): pages ask « what is newer than id N », and an old id would never be told. The event in
+   the log carries the whole message, because the line it was first written on can leave the log before the next
+   start.
+4. **`TELEGRAPH_LOG_KEEP_DAYS` defaults to 0** — no limit in days, only the size cap that already existed — until
+   he says how far back he wants it. Trimming is a rewrite of the two files through a temporary one.
+5. **Web Push is written out, not installed.** RFC 8291, the aes128gcm coding and VAPID are about 120 lines with
+   `node:crypto`; the `web-push` package would have been a third runtime dependency with its own tree. The proof
+   is the RFC's own worked example, byte for byte, and a round trip.
+6. **A subscription is the one thing kept about a listener, and only by their tap.** BRIEF rule 5 (« no accounts,
+   no tracking, no cookies ») stands for everything a listener does not ask for. Nothing is registered or asked
+   before the tap; the same link undoes it on both sides.
+7. **The tower only calls a real push service.** A subscription's endpoint is an address a stranger gives and the
+   tower then POSTs to: without a list it is a way to make the tower call anything, itself and Oracle's metadata
+   service included. Google's, Mozilla's, Apple's and Microsoft's push hosts, https, nothing else;
+   `TELEGRAPH_PUSH_ALLOW` exists for the self-test's stand-in and is never set on a real tower.
+8. **The service worker answers no request.** No `fetch` handler, no cache: it cannot serve an old site (the
+   2026-08-20 lesson in `server/index.js`). It exists to show a notification and, on a tap, to ask the open page
+   to go to the Antenna with its own router — a reload would cut the music.
+9. **ntfy for his phone** is a third party that sees the sender's name and the first 80 characters, in clear, under
+   a topic whose name is the only secret. His to switch on; the topic lives in the tower's environment only.
+10. **One notification a minute, each way**; what arrives meanwhile goes out as one. A listener is not told of
+    their own message. A notification that fails is one warning and never fails the message.
+11. **The commit is read from git's files, not by running git**: the service is another user than the checkout's
+    owner (git refuses) and has no reason to spawn programs.
+12. **`/api/status` is behind the key; `npm run status` uses none.** The script reads only what is public, so it
+    runs from a cloud session; the Booth's side adds what the key opens (silenced, subscribers).
+13. **The comparison's pictures are git-ignored.** 57 JPEGs a run are working files; the page is attached to a
+    report, not kept as history.
+14. **Fire from GitHub rests on the server's own rule, not on the workflow.** The deploy key's line in
+    `authorized_keys` forces the updater; the workflow names no command, pins the host key, asks no repository
+    permission. Off until he makes the key: a key made for him would be a key someone else has seen.
+15. **Commits are authored « Claude <noreply@anthropic.com> »**, as the earlier ones: the laptop has no git
+    identity and his address is not added to a public history by a session.
+
+**Revisit if** the two-day window of decision 2 is more than he wants (the salt can go back to dying with the
+process, at the price of logged tags and lasting mutes); if a real iPhone refuses part B; if the free ntfy.sh
+is not private enough (it can be self-hosted, or replaced by a Web Push subscription of his own marked as the
+station's); if the line gets enough traffic that one notification a minute is too many or too few.

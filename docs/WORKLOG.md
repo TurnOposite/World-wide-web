@@ -3290,3 +3290,43 @@ The plan it came out of is `docs/plans/PLAN-chat-and-moods.md`.
 - **Oracle**: his screenshots show the Free Tier, the trial's credits suspended since 5 November. What a budget
   alert does and does not do, and the one charge the tower can run up (egress past 10 TB), told to him; the
   cap on it is BACKLOG B1.
+
+## 2026-11-16 - The handoff's seven new items: the line's log and notifications, live status, phone next to desktop, fire from GitHub, the exit plan (Claude Code, for Ortis)
+
+Ortis, in Claude Code on the laptop, with the handoff document of the day: « build all new infra and push ».
+Read as the seven items the handoff calls new (N1–N7); the older backlog (B1–B6, B8, the W items, C1) is untouched
+and still open. One commit an item, in the clone (`radio-tower-live`), on `main`.
+
+- **Baseline** on `e0b8cd6`, this laptop: `npm test` 454 (426 pass, 28 skipped — the bash-only ones);
+  `bash scripts/build-test.sh`: 43/43 browser, 167/168 site, 26/26 Atelier. The one red is « phone on its side
+  (844×390) » — `"above":false`, the 0.125 px edge this Windows Chrome has had since October; green on GitHub.
+- **N6** `3ead4f6` — `/tower-work`, `tower-builder`, `tower-planner` take work from `docs/BACKLOG.md`;
+  `/tower-status` reads `npm run status`; the `tower-deploy` skill, which still described the Pi, is rewritten for
+  GitHub → Vercel → the Oracle tower. Plugin manifest 0.4.0.
+- **N2 (+ B7)** `7fadded` — the tower's log keeps the track on air and a per-day sender tag with each message, and
+  events for taking off, silencing, restoring, un-silencing. Behind the key: `GET /api/telegraph/log` (filters,
+  pages, `?format=csv`), `POST /api/telegraph/restore`, `POST /api/telegraph/unmute`. The Booth's desk, on a tower,
+  has a « Line » side. A silence survives a restart and 05:00; the room has its own ceiling (30, then one every
+  2 s). **Found on the way:** at start the tower read only the newest log file, so a restart right after the log
+  turned over emptied the room — it reads both now. **A test moved:** `tests/telegraph.test.js` « two files at
+  most » now also expects `line.jsonl.salt` (the day's salt, a few bytes; the log is still two files).
+- **N1** `3a3b792` — A: `TELEGRAPH_NOTIFY_URL` (an ntfy topic) and the tower tells his phone when a listener
+  writes. B: « tell me when someone writes » on the Antenna, standard Web Push written with `node:crypto`
+  (`server/lib/webpush.js`: RFC 8291's worked example comes out byte for byte — `node --test tests/webpush.test.js`,
+  6 pass). A manifest, icons (`node scripts/site-icons.mjs`) and a service worker with no `fetch` handler.
+  `docs/NOTIFICATIONS.md`.
+- **N3** `acb0487` — `/api/health` carries `commit`; `GET /api/status` behind the key; `npm run status`; a
+  « Status » side in the Booth. Run against the live station at 21:37 UTC, before the push: GitHub and the site on
+  `e0b8cd6`, self-test passed, the tower on air, 3,174 tracks, 0 listening, up 3 d 9 h, 0 messages on the line.
+- **N4** `08a9c25` — `scripts/compare-phone.mjs` (`npm run compare`). First run, this copy against the live tower, 19 routes × 3 sizes: no page runs off the side at any size, every title is on the first screen, no console error; « Join the telegraph line » ends 33 px under the first screen at 375×667 on /antenna — the same on the published site (`--url`, before this push), so not from today: it joins W3; the rest of the 37 flags are text under 12 px (on a desktop mostly because the world draws a window smaller than 1:1 — `LIVE`, the Booth's light labels, the Ondes guide's times).
+- **N5** `65bd575` — `.github/workflows/fire.yml` and `docs/FIRE-FROM-CLOUD.md`. **Not switched on:** it needs a
+  deploy key he makes; without the secret a run sends nothing and ends green. The tower's host key pinned in the
+  workflow is the one this laptop's `known_hosts` already held (`ssh-keyscan` gave the same line).
+- **N7** `0a78fcb` — `docs/EXIT-ORACLE.md`. A plan; nothing built.
+- **Self-test after**, on the last commit, this laptop: `npm test` 508 (480 pass, 28 skipped, 0 fail); `bash scripts/build-test.sh`: 43/43 browser, 181/182 site, 26/26 Atelier. The same single red as the baseline.
+  Each of N2, N1 and the final state was run through the whole `build-test.sh` in a scratch worktree.
+- **Not verified, said plainly:** notifications on a real iPhone (the self-test plays the push service itself:
+  it proves the tap, the subscription, the encryption, the delivery — not Apple's side); ntfy to his phone (no
+  topic exists yet); `fire.yml` end to end (no key yet); the checks on GitHub's Linux Chromium until CI ran.
+- **Left for him:** the three steps in `docs/NOTIFICATIONS.md`; the six in `docs/FIRE-FROM-CLOUD.md`; the questions
+  at the top of `docs/BACKLOG.md`.

@@ -207,3 +207,16 @@ push — harmless in tower mode, where the booth talks to the tower.
 - **Rate limits.** One address can make 300 requests at once and 5 a second
   after that (`RATE_BURST`, `RATE_PER_SECOND` in `/etc/radio-tower.env`).
   Twenty wrong station keys from one address lock it out for a while.
+
+## Since 2026-11-16
+
+- **Is everything on the same commit?** `npm run status` (laptop or cloud, no key), or the Booth → unlock →
+  **Status**. `/api/health` on the tower now says its `commit`.
+- **The line's log** (history, restore, un-silence, export): the Booth → unlock → **Line**. On the tower it is
+  `/srv/radio/cache/telegraph.jsonl` (+ `.1`, and `.salt`, the day's salt). `TELEGRAPH_LOG_KEEP_DAYS` in
+  `/etc/radio-tower.env` sets how far back it goes.
+- **Notifications**: [`NOTIFICATIONS.md`](./NOTIFICATIONS.md). Listeners' subscriptions and the tower's push
+  key pair: `/srv/radio/cache/telegraph-push.json` — on the tower only; lost with the server.
+- **The tower updated from GitHub**, laptop off: [`FIRE-FROM-CLOUD.md`](./FIRE-FROM-CLOUD.md), once the deploy
+  key exists.
+- **If Oracle goes**: [`EXIT-ORACLE.md`](./EXIT-ORACLE.md) continues the section « If the server dies » above.

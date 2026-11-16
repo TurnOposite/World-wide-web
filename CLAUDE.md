@@ -45,6 +45,18 @@ every request of Ortis's not on the site yet, what each waits on, and the
 order to take them in when he says to spend usage on it. Read it before
 choosing what to work on; add to it what you leave undone.
 
+**New since 2026-11-16 — the handoff's seven items (N1–N7).** The tower's log of the line is the station's to
+read: `GET /api/telegraph/log`, restore and un-silence behind the key, the Booth's « Line » side
+(`site/js/ui/line-admin.js`); each message is logged with the track on air and a per-day sender tag
+(`server/lib/telegraph.js` — read its header before touching it). Notifications: an ntfy topic for Ortis's
+phone and Web Push for listeners who ask (`server/lib/notify.js`, `server/lib/webpush.js`,
+`site/js/ui/push.js`, `site/sw.js`; **[`docs/NOTIFICATIONS.md`](./docs/NOTIFICATIONS.md)**). `npm run status`
+and the Booth's « Status » side say whether GitHub, Vercel and the tower are on the same commit
+(`/api/health` carries `commit`). `npm run compare` puts every route at three sizes on one page.
+`.github/workflows/fire.yml` updates the tower from GitHub once the self-test is green — **off until Ortis makes
+the deploy key** ([`docs/FIRE-FROM-CLOUD.md`](./docs/FIRE-FROM-CLOUD.md)). The way off Oracle:
+[`docs/EXIT-ORACLE.md`](./docs/EXIT-ORACLE.md) (a plan).
+
 **New since 2026-11-13.** The telegraph line empties every morning at 05:00
 Paris (`TELEGRAPH_RESET`, `dailyReset` in `server/lib/telegraph.js`; the
 tower's log is kept). The Livre miroir turns back from the pond to its
@@ -145,6 +157,8 @@ npm run layout         # the site's map: where each page's window stands, the pa
 npm run layout -- swap atlas playlists   # …move, nudge, size, tilt, tag, online, offline, check
 npm run past -- snapshot v3 <ref>   # freeze a version of the site under past/
 npm run fire -- --dry-run           # publish now: GitHub → Vercel → the Oracle tower (fire.cmd; asks before sending)
+npm run status                      # GitHub, Vercel and the tower on one screen: commits, self-test, health, the line (-- --repeats 14)
+npm run compare                     # every route at 1440×900, 390×844 and 375×667 on one page, with flags (-- --label before)
 
 npm run site           # the static site on :8090 (add -- --fixtures DIR for local audio; ?atelier=1 to move pages)
 npm run site:build     # assemble dist/ (what GitHub Pages serves)

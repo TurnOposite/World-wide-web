@@ -25,6 +25,9 @@ would cost more than the tidiness is worth.
 | How does the site work without a server? | [`CLOUD.md`](./CLOUD.md) — the cloud edition, 2026-09-26 |
 | Where does it run right now, and how do I add music? | [`LIVE.md`](./LIVE.md) — Vercel + the Oracle server, **current since 2026-10-08** |
 | How did it go on GitHub Pages? (retired 2026-10-02) | [`GO-LIVE.md`](./GO-LIVE.md) — historical |
+| How do the line's notifications work, and how do I get them on my phone? | [`NOTIFICATIONS.md`](./NOTIFICATIONS.md) — ntfy for Ortis, Web Push for listeners who ask, the iPhone's Home Screen rule (2026-11-16) |
+| How does the tower update with the laptop off? | [`FIRE-FROM-CLOUD.md`](./FIRE-FROM-CLOUD.md) — the `fire` workflow and the deploy key Ortis makes (2026-11-16; off until he does) |
+| What if Oracle stops, or ends the free tier? | [`EXIT-ORACLE.md`](./EXIT-ORACLE.md) — where each of the server's jobs would go, free options first (2026-11-16; a plan) |
 | Is this still heading the right way? | [`PLANNING.md`](./PLANNING.md) |
 | What is planned for the telegraph line, the streams and the phone, and what is the next step? | [`plans/PLAN-chat-and-moods.md`](./plans/PLAN-chat-and-moods.md) — started 2026-11-10, with a log |
 | What did Ortis say about the genre labels, row by row? | [`plans/LABELS-ortis-2026-11-11.md`](./plans/LABELS-ortis-2026-11-11.md) — 59 rows of his sheet, and what they ask for. Not yet rules |
