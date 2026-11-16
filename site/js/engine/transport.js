@@ -430,6 +430,9 @@ class TowerClient extends Emitter {
     return res.json().catch(() => ({}));
   }
 
+  /** The tower's own status, for the station (ui/status-panel.js). */
+  towerStatus() { return this._getKeyed('/api/status'); }
+
   /** The line's log, for the station (ui/line-admin.js): `q` is from, to, q, name, limit, offset. */
   telegraphLog(q = {}) { return this._getKeyed(`/api/telegraph/log?${new URLSearchParams(q)}`); }
   telegraphLogCsv(q = {}) { return this._getKeyed(`/api/telegraph/log?${new URLSearchParams({ ...q, format: 'csv' })}`, { text: true }); }

@@ -29,6 +29,7 @@ import { LOOKS } from '../viz/settings.js';
 import { ChannelDial } from '../ui/channels.js';
 import { VisualsPanel } from '../ui/visuals.js';
 import { LineAdmin } from '../ui/line-admin.js';
+import { StatusPanel } from '../ui/status-panel.js';
 
 export const title = 'Booth';
 
@@ -159,7 +160,7 @@ export async function mount(root, ctx) {
   function buildDesk() {
     const d = $('bDesk');
     // On a tower the desk has more than music (Ortis, 2026-11-16): the line's log, behind the same key.
-    const tabs = client.planeKind === 'tower' ? [['music', 'Music'], ['line', 'Line']] : [];
+    const tabs = client.planeKind === 'tower' ? [['music', 'Music'], ['line', 'Line'], ['status', 'Status']] : [];
     d.innerHTML = `
       <div class="booth-tabs" id="bTabs" role="group" aria-label="The desk's sides"${tabs.length ? '' : ' hidden'}>
         ${tabs.map(([id, label], i) => `<button type="button" class="btn small" data-tab="${id}" aria-pressed="${i === 0}">${label}</button>`).join('')}
@@ -187,10 +188,11 @@ export async function mount(root, ctx) {
         </div>
       </div>
       </div>
-      <section class="panel booth-side" id="bSideLine" aria-label="The telegraph line's log" hidden></section>`;
+      <section class="panel booth-side" id="bSideLine" aria-label="The telegraph line's log" hidden></section>
+      <section class="panel booth-side" id="bSideStatus" aria-label="The station's status" hidden></section>`;
     // Each side is built the first time it is opened, and only read then: the log is not asked for on every visit.
-    const sides = { line: null };
-    const makers = { line: (el) => new LineAdmin({ root: el, client, toast }) };
+    const sides = { line: null, status: null };
+    const makers = { line: (el) => new LineAdmin({ root: el, client, toast }), status: (el) => new StatusPanel({ root: el, client }) };
     const show = (id) => {
       for (const b of d.querySelectorAll('#bTabs [data-tab]')) b.setAttribute('aria-pressed', String(b.dataset.tab === id));
       for (const [side] of tabs) {

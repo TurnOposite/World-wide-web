@@ -1083,3 +1083,13 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 /* « Tell me when someone writes » (2026-11-16): a link in the line's foot; on an iPhone in a Safari tab, one sentence. */
 .tg-joinhint .tg-notify{color:var(--ink)}
 .tg-ios{margin:8px 0 0;max-width:60ch}
+/* The Booth's « Status » side (2026-11-16): label and line, one under the other on a phone. */
+.sp-rows{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 16px;margin:14px 0 0}
+.sp-rows dt{font:12px var(--mono);color:var(--text-dim);padding-top:2px}
+.sp-rows dd{margin:0;font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+.sp-ok{color:var(--signal)}
+.sp-bad{color:var(--live)}
+@media (max-width:720px){
+  .sp-rows{grid-template-columns:1fr;gap:2px}
+  .sp-rows dd{margin-bottom:10px}
+}

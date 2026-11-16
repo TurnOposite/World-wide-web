@@ -22,6 +22,7 @@ import { attachDevReload } from './lib/devReload.js';
 import { Collections, isPrivatePath } from './lib/collections.js';
 import { Telegraph, dailyReset } from './lib/telegraph.js';
 import { LineNotifier, PushStore } from './lib/notify.js';
+import { readCommit, readRepo } from './lib/commit.js';
 
 const VERSION = '0.1.0';
 
@@ -91,6 +92,9 @@ const notifier = makeNotifier();
 
 const state = {
   version: VERSION,
+  // Which commit this is, and of which repository: read once, from git's own files (server/lib/commit.js).
+  commit: readCommit(ROOT),
+  repo: readRepo(ROOT),
   startedAt: Date.now(),
   lastScanAt: null,
   lastScanSkipped: [],

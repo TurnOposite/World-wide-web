@@ -122,6 +122,8 @@ export function apiRouter(ctx) {
       lastScanAt: state.lastScanAt,
       musicDir: config.musicDir,
       version: state.version,
+      // The commit this code is (null outside a git checkout): what `npm run status` compares with GitHub and Vercel.
+      commit: state.commit ?? null,
       node: process.version,
       memoryMb: Math.round(process.memoryUsage().rss / 1048576),
     });
@@ -471,6 +473,45 @@ export function apiRouter(ctx) {
       return res.status(status).json(rest);
     }
     res.json(out);
+  });
+
+  // --- the station's own status --------------------------------------------
+  // What the Booth's « Status » side shows (Ortis reads it on his phone): the commit on air, how long it has
+  // been up, who is listening, the line, the notifications, when the day turns. Behind the key: none of it is
+  // secret one by one — most is in /api/health — but together it is the operator's view, not a listener's.
+  router.get('/status', (req, res) => {
+    if (!requireKey(req, res, { disabledError: 'status_disabled', disabledDetail: 'Set STATION_KEY to read the station\'s status.' })) return;
+    const now = Date.now();
+    const onAir = station.at(now);
+    const day = telegraph?.dayStart ? telegraph.dayStart(now) : null;
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      ok: true,
+      now,
+      commit: state.commit ?? null,
+      repo: state.repo ?? null,
+      version: state.version,
+      node: process.version,
+      startedAt: state.startedAt,
+      uptimeSeconds: Math.round(process.uptime()),
+      memoryMb: Math.round(process.memoryUsage().rss / 1048576),
+      status: state.scanning && state.lastScanAt === null ? 'scanning' : station.isEmpty ? 'no_tracks' : 'on_air',
+      tracks: station.tracks.length,
+      lastScanAt: state.lastScanAt,
+      listeners: listeners.count(),
+      onAir: onAir?.track ? { id: onAir.track.id, title: onAir.track.title, artist: onAir.track.artist } : null,
+      line: telegraph
+        ? {
+          today: telegraph.since(0, 100_000).messages.length,
+          silenced: telegraph.muted().length,
+          keepDays: telegraph.logKeepDays,
+          dayStarted: day,
+          // A day is 23 to 25 hours long: 26 hours on is always inside the next one.
+          nextReset: day === null ? null : telegraph.dayStart(day + 26 * 3600_000),
+        }
+        : null,
+      notifications: { ortis: Boolean(notifier?.ntfy), listeners: notifier?.push ? notifier.push.size : null },
+    });
   });
 
   // --- operations ----------------------------------------------------------

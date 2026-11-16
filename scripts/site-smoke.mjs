@@ -1727,14 +1727,22 @@ try {
         const endpoint = `${pushStub}/push/selftest-${Date.now()}`;
         const nctx = await browser.newContext();
         await nctx.addInitScript((subscription) => {
+          // Whatever this browser's own push support is (a headless one may have none), the page meets the same
+          // three things a browser with Web Push has: PushManager, Notification, and a pushManager on the worker's
+          // registration — all stand-ins that record what the page asked of them.
           window.__push = { asked: 0, subscribed: 0, sub: null };
-          Notification.requestPermission = async () => { window.__push.asked++; return 'granted'; };
           const fake = { endpoint: subscription.endpoint, toJSON: () => subscription, unsubscribe: async () => { window.__push.sub = null; return true; } };
-          PushManager.prototype.subscribe = async function subscribe(o) {
-            Object.assign(window.__push, { subscribed: window.__push.subscribed + 1, keyBytes: o?.applicationServerKey?.length ?? null, visible: o?.userVisibleOnly === true, sub: fake });
-            return fake;
+          const manager = {
+            subscribe: async (o) => {
+              Object.assign(window.__push, { subscribed: window.__push.subscribed + 1, keyBytes: o?.applicationServerKey?.length ?? null, visible: o?.userVisibleOnly === true, sub: fake });
+              return fake;
+            },
+            getSubscription: async () => window.__push.sub,
           };
-          PushManager.prototype.getSubscription = async function getSubscription() { return window.__push.sub; };
+          if (!('PushManager' in window)) window.PushManager = function PushManager() {};
+          if (!('Notification' in window)) window.Notification = function Notification() {};
+          window.Notification.requestPermission = async () => { window.__push.asked++; return 'granted'; };
+          Object.defineProperty(ServiceWorkerRegistration.prototype, 'pushManager', { configurable: true, get() { return manager; } });
         }, { endpoint, keys: { p256dh: ua.publicKey, auth } });
         const np = await nctx.newPage();
         watch(np, 'tower, notifications');
@@ -1879,7 +1887,7 @@ try {
     });
     await la.waitForFunction(() => [...document.querySelectorAll('.la-row .la-text')].some((x) => x.textContent.startsWith('selftest')), null, { timeout: 8000 }).catch(() => {});
     const laRow = await rowOf();
-    check('the Booth on a tower, unlocked: a « Line » side beside Music, built only when opened', sidesBefore.tabs.join() === 'music,line' && sidesBefore.music && sidesBefore.line === true && !sidesBefore.built && Boolean(laRow), JSON.stringify({ ...sidesBefore, row: Boolean(laRow) }));
+    check('the Booth on a tower, unlocked: « Line » and « Status » sides beside Music, each built only when opened', sidesBefore.tabs.join() === 'music,line,status' && sidesBefore.music && sidesBefore.line === true && !sidesBefore.built && Boolean(laRow), JSON.stringify({ ...sidesBefore, row: Boolean(laRow) }));
     check('…the log shows the message with more than the room is told — the track on air, a sender tag — as text, by day',
       Boolean(laRow) && laRow.chip === 'on the line' && /on air: \S/.test(laRow.meta || '') && /sender #[\w-]{6}/.test(laRow.meta || '') && laRow.name === 'Self <b>test</b>' && laRow.markup === 0 && Boolean(laRow.day)
       && laRow.acts.join() === 'remove,mute', JSON.stringify(laRow));
@@ -1922,6 +1930,34 @@ try {
     });
     check('on a 390 px phone the line\'s log fits: rows, nothing off the side', lpFit.rows >= 1 && lpFit.doc <= 1 && (lpFit.box === null || lpFit.box <= 1) && lpFit.wide <= 390, JSON.stringify(lpFit));
     await lpctx.close();
+
+    // The Booth's « Status » side: GitHub, the site and the tower each asked for its commit, and the tower's
+    // health, the line and the notifications in rows. GitHub is someone else's: this run answers for it, with the
+    // commit the tower says it is on, so the three can be compared.
+    const towerHealth = await (await fetch(`${towerUrl}/api/health`)).json();
+    const ghAsked = [];
+    await keyCtx.route('https://api.github.com/repos/**', (r) => {
+      const u = r.request().url();
+      ghAsked.push(u);
+      const body = /\/commits\/main$/.test(u) ? { sha: towerHealth.commit || 'c'.repeat(40), commit: { message: 'The commit under test\n\nbody', committer: { date: new Date().toISOString() } } }
+        : { workflow_runs: [{ name: 'self-test', status: 'completed', conclusion: 'success', created_at: new Date().toISOString() }] };
+      return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(body) });
+    });
+    await la.click('#bTabs [data-tab="status"]').catch(() => {});
+    await la.waitForFunction(() => document.querySelectorAll('#spRows dt').length >= 5 && /Read at/.test(document.getElementById('spState')?.textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    const sp = await la.evaluate(() => ({
+      rows: Object.fromEntries([...document.querySelectorAll('#spRows dt')].map((dt) => [dt.textContent, dt.nextElementSibling?.textContent || ''])),
+      shown: { music: !document.getElementById('bSideMusic').hidden, line: !document.getElementById('bSideLine').hidden, status: !document.getElementById('bSideStatus').hidden },
+      markup: document.querySelectorAll('#spRows dd *').length,
+    }));
+    const sha7 = towerHealth.commit ? towerHealth.commit.slice(0, 7) : '—';
+    check('/api/health says which commit the tower runs', /^[0-9a-f]{40}$/.test(towerHealth.commit || ''), String(towerHealth.commit));
+    check('the Booth\'s « Status » side: the tower\'s commit and health, GitHub\'s commit and self-test, the line, the notifications — each asked now, shown as text',
+      sp.shown.status && !sp.shown.music && !sp.shown.line && sp.markup === 0 && sp.rows['The tower']?.startsWith(`${sha7} · on air · up `) && sp.rows['GitHub main'] === `${sha7} · self-test passed · « The commit under test »`
+      && /messages? today · .*empties in /.test(sp.rows['The line'] || '') && /your phone: not set up .* listeners who asked: \d+/.test(sp.rows.Notifications || '') && /tracks · \d+ listening/.test(sp.rows['On air'] || '')
+      && ghAsked.some((u) => /\/commits\/main$/.test(u)), JSON.stringify(sp));
+    // The dev server's config.json carries no commit (only a build stamps one), so two agree and one is unknown: that is not « in step ».
+    check('…and it does not say « in step » while one of the three is unknown', /^GitHub and the tower on [0-9a-f]{7}; commit not known for the site\.$/.test(sp.rows['In step?'] || ''), sp.rows['In step?']);
     await la.close();
 
     // Not watched for console errors: the browser logs the tower's 401 itself.

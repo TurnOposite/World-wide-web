@@ -66,7 +66,7 @@ test('a stranger\'s words are put on the page as text; the log is asked for with
   assert.match(client, /telegraphLog\(q = \{\}\) \{ return this\._getKeyed\(/, 'the log is read through the keyed request');
   assert.match(client, /_getKeyed[\s\S]{0,200}'x-station-key': this\.key/, '…which sends the key as a header, never in the address');
   const booth = read('site/js/pages/booth.js');
-  assert.match(booth, /client\.planeKind === 'tower' \? \[\['music', 'Music'\], \['line', 'Line'\]/, 'the Line tab exists on a tower only');
+  assert.match(booth, /client\.planeKind === 'tower' \? \[\['music', 'Music'\], \['line', 'Line'\], \['status', 'Status'\]\] : \[\]/, 'the Line and Status sides exist on a tower only');
   assert.ok(booth.indexOf('new LineAdmin') > booth.indexOf('function buildDesk()'), 'and is built inside the desk, which only an accepted key opens');
 });
 
