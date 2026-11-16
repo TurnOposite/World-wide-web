@@ -127,3 +127,17 @@ a concept that you shouldn't push now because it might be hard. »
 | 2026-11-16 | N4 — `npm run compare`: every route at three sizes on one page, with flags | `08a9c25` |
 | 2026-11-16 | N5 — fire from GitHub (built; waits for his deploy key) | `65bd575` |
 | 2026-11-16 | N7 — `docs/EXIT-ORACLE.md` | `0a78fcb` |
+
+## Touch-ups chosen by Ortis, 2026-11-16 (night) — not built yet
+
+« Homogenize with the rest of the experience » — his four answers, to build next (one commit, before/after pictures):
+
+| # | What | His choice |
+|---|---|---|
+| T1 | The Booth desk's Music / Line / Status tabs | **A switch like ZONE \| ECHO** (joined, slanted, the open side filled teal) |
+| T2 | The Line side's rows | **Keep the cards.** (Mine to add: the sender's character in each card as on the Antenna, corners squared like the world's panels, the « kept … » hint moved into the note) |
+| T3 | « tell me when someone writes » on the Antenna | **A bell button** beside Join (« Tell me » / « On · stop »), and beside change · leave once joined |
+| T4 | The Status side | **Three lamps on top** (GitHub · Site · Tower: green same commit, red behind, grey unknown), the sentence under them, then the rows |
+
+Also: the Status side's CSS classes share the `sp-` prefix with the Spotify deck — rename them (`stat-`). The smoke's label checks for the notify link move with T3.
+Fire from GitHub: the deploy key pair exists on the laptop (`~\.ssh\radio-tower-github`, made 2026-11-16); steps 3–6 of `FIRE-FROM-CLOUD.md` are his.

@@ -64,7 +64,8 @@ jobs:
           set -euo pipefail
           umask 077
           mkdir -p ~/.ssh
-          printf '%s\n' "$KEY" > ~/.ssh/tower-deploy
+          # A key pasted from Windows can carry carriage returns, which ssh refuses as « invalid format ».
+          printf '%s\n' "$KEY" | tr -d '\r' > ~/.ssh/tower-deploy
           printf '%s\n' "$TOWER_HOST_KEY" > ~/.ssh/known_hosts
           # No command is given: the server runs the one its authorized_keys line names, whatever is asked.
           ssh -i ~/.ssh/tower-deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=20 "$TOWER_SSH" 2>&1 | tee update.txt
