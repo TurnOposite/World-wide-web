@@ -200,8 +200,8 @@ they travel with the folder rather than living in one conversation:
 
 | Kind | Name | Use |
 |---|---|---|
-| Agent | `tower-planner` | Stands back: reviews what's built against the goal, re-ranks the roadmap, provisions tooling. No code |
-| Agent | `tower-builder` | Picks the next roadmap item, implements it, proves it with the self-test |
+| Agent | `tower-planner` | Stands back: reviews what's built against the goal, re-ranks the backlog (and the older roadmap), provisions tooling. No code |
+| Agent | `tower-builder` | Picks the next backlog item, implements it, proves it with the self-test |
 | Agent | `tower-auditor` | Read-only review: correctness, security, Pi-fitness |
 | Agent | `tower-scout` | Researches one bounded question and writes up options; changes no code |
 | Agent | `tower-dj` | Changes what is *playing*: reads the MP3s, drives the queue over the Pi bridge, fires a Spontaneous Emission. Changes no code |
@@ -210,12 +210,12 @@ they travel with the folder rather than living in one conversation:
 | Skill | `tower-dj-booth` | Operating the booth in `dj/` — moods, the permutation rule, and how to read a refusal |
 | Skill | `tower-selftest` | How to run and read the self-test, and how to fix common failures |
 | Skill | `tower-station-clock` | The sync model, with the invariants that must not break |
-| Skill | `tower-deploy` | Getting it onto the Pi and onto the public internet |
+| Skill | `tower-deploy` | Publishing: GitHub → Vercel → the Oracle tower (`fire`, the nightly update, fire from GitHub), verifying live, the tower's shell |
 | Skill | `tower-anywhere` | The go-anywhere kit: boot order, the invariants, the status file, how to prove a change off-Pi |
 | Skill | `tower-curate` | The publishing pipeline and privacy rules for the three rooms |
 | Skill | `tower-mobile-check` | Proving the player on a phone: what emulation can't settle, the iOS Safari hazards, the physical-device checklist |
-| Command | `/tower-status` | Where the project stands right now |
-| Command | `/tower-work` | Do one full improvement cycle, end to end |
+| Command | `/tower-status` | Where the project stands right now (`npm run status`) |
+| Command | `/tower-work` | Do one full improvement cycle, end to end — the first open item of `docs/BACKLOG.md` |
 | Command | `/tower-online` | Is the tower set up to come online anywhere? What works, what only the Pi can prove |
 | Command | `/tower-curate` | Add / remove / fix what a room shows — shortlist, scrub, publish |
 

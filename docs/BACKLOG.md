@@ -28,6 +28,23 @@ Size: **S** = under an hour of work, **M** = a session, **L** = several sessions
 | U1 | **The Oracle account is on the Free Tier** (screenshots, 2026-11-13: plan type Free Tier, the trial's Universal Credits suspended since 5 Nov). Oracle can stop an Always Free server that looks idle for 7 days — CPU, network and memory all under 20 % — and the tower looks idle (0 listeners, 128 MB of 12 GB). Stopped is not deleted: it can be started again from the console. | Explained to him 2026-11-13; his worry: a budget alert does not stop spending | **needs Ortis**: go Pay As You Go or not. If yes, B1 first or right after |
 | U2 | **The same song twice across 05:00.** `scripts/repeats.mjs` on 2026-11-13, 14 days ahead: 13 tracks play in the last hours of a broadcast day and again in the first hour of the next, as close as 12 min (« zanzibar » 17/11 04:40 → 05:00, « Heavy Smoke » 21/11 04:52 → 05:13). Each day is dealt on its own (`buildDay`), and nothing looks at the day before. | Found, not fixed | **needs Ortis**: changing `buildDay` changes what plays from the moment the tower takes it (see the note under B2) |
 
+## New on 2026-11-16 — the handoff to Claude Code
+
+Ortis, 2026-11-16: « first task for him is code all of the list … with those items as well », then, the same
+evening in Claude Code: « build all new infra and push ». The seven below are the « new infra »; the order to take
+everything in is the handoff's: N6 → B2 → B1 → N2 (with B7, part of W9) → N1 A → N3 → N4 → B4, B5, B8 → N1 B → N5 →
+B6 → N7 → C1's mock → the W items as his answers come.
+
+| # | What (his words where he gave them) | State |
+|---|---|---|
+| N1 | **« Phone notification for messages in antenna »** — A: he is told when someone writes (an ntfy topic, `TELEGRAPH_NOTIFY_URL`). B: listeners can opt in (« Tell me when someone writes »), standard Web Push | open |
+| N2 | **« More parameters in the chat logs for admin with history beyond what's not kept and restore option »** — more fields per message, the whole log behind the key, restore, un-silence, a « Line » tab in the Booth | open |
+| N3 | **Live status**: `npm run status`, the commit in `/api/health`, a « Status » panel in the Booth's private side | open |
+| N4 | **Phone ↔ desktop comparison**: `scripts/compare-phone.mjs`, every route at 1440×900, 390×844 and 375×667 on one page, with flags | open |
+| N5 | **Fire from the cloud**: a GitHub Actions job that runs the tower's updater once the self-test is green, with a restricted deploy key Ortis creates | open |
+| N6 | **The tooling points at the backlog**: `/tower-work`, `tower-builder` and `tower-planner` read this file first; `tower-deploy` rewritten for Oracle, fire and the nightly update; the plugin manifest in step | open |
+| N7 | **A ready exit from Oracle** (Ortis, 2026-11-13): `docs/EXIT-ORACLE.md`, free options first | open |
+
 ## Ready to build
 
 | # | What | Size | Where it starts |

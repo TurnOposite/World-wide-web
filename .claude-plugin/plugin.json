@@ -1,12 +1,12 @@
 {
   "name": "radio-tower-ops",
   "displayName": "Radio Tower Ops",
-  "version": "0.3.0",
-  "description": "The agents, skills and commands that build, test and deploy Radio Tower — a Raspberry Pi radio station. Travels with the project folder rather than living in one conversation.",
+  "version": "0.4.0",
+  "description": "The agents, skills and commands that build, test and publish Radio Tower — a synced radio station on a small cloud server, with its website. They work from docs/BACKLOG.md. Travels with the project folder rather than living in one conversation.",
   "author": {
     "name": "Ortis"
   },
-  "keywords": ["raspberry-pi", "radio", "streaming", "self-hosting", "music"],
+  "keywords": ["radio", "streaming", "self-hosting", "music", "oracle-cloud", "vercel"],
   "license": "MIT",
   "agents": "./.claude/agents/",
   "skills": "./.claude/skills/",

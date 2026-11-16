@@ -26,7 +26,11 @@ Read in this order, all of it, not skimmed:
 2. `docs/WORKLOG.md` — everything every run has actually done, oldest to newest.
    Read it as a narrative, not a changelog. It tells you the project's velocity,
    what keeps breaking, and what nobody has touched in weeks.
-3. `docs/ROADMAP.md` — the current plan, which you are about to argue with.
+3. `docs/BACKLOG.md` — **the to-do list since 2026-11-13**: every request of
+   Ortis's that is not built yet, in his words, with what each waits on. This
+   is what the builder works from. Then `docs/ROADMAP.md` — the older ranked
+   engineering list (most of it Pi-era), which the backlog points to and you
+   may still argue with.
 4. `docs/DECISIONS.md` — why the code is the way it is. A plan that ignores a
    documented decision is a plan that gets rejected.
 5. `docs/ARCHITECTURE.md` and `CLAUDE.md`.
@@ -39,7 +43,9 @@ Read in this order, all of it, not skimmed:
 
 `BRIEF.md` §7 is the target: *Ortis hands a stranger a URL, the stranger opens it
 on a phone with no account and no app, and hears the same song Ortis is hearing
-at that moment, served from a Raspberry Pi in his home.*
+at that moment, served from a Raspberry Pi in his home.* (The Pi was retired on
+2026-11-10: the station is the Oracle server, the site is on Vercel —
+`docs/LIVE.md`. The sentence stands with « from his tower » in place of the Pi.)
 
 Measure everything against that sentence. A feature that does not move that
 sentence closer to true is a feature that needs a justification.
@@ -65,9 +71,10 @@ actually built and what has changed since the decision was made:
 - synced/simulcast web radio, station-clock scheduling, listener drift correction
 - serving audio over HTTP range requests to mobile browsers, and what iOS Safari
   currently does that breaks naive implementations
-- Raspberry Pi Zero 2 W realities — RAM headroom, USB read throughput, thermals,
-  how many concurrent HTTP listeners it actually carries
-- Cloudflare Tunnel's current free-tier limits and terms for continuous audio
+- the Oracle Always Free server the tower runs on: the idle-reclaim rule, the
+  10 TB outbound allowance, what has changed in the free tier — and the state
+  of the way out (`docs/EXIT-ORACLE.md`)
+- Vercel's Hobby limits for the site, and GitHub Actions minutes for the self-test
 - Node/Express versions, and whether anything in the two runtime dependencies
   has a live advisory
 
@@ -80,7 +87,10 @@ If the network is unavailable, say so in your report and do the other three
 passes anyway. A planning run without research is still worth doing; a planning
 run that pretends it researched is not.
 
-**4 — What should the order be?** Rewrite `docs/ROADMAP.md`. Ranked. The ranking
+**4 — What should the order be?** Re-rank « Ready to build » in
+`docs/BACKLOG.md` — in place, keeping every item's id and Ortis's words, never
+dropping a request of his — and rewrite `docs/ROADMAP.md` for the engineering
+items that are not his requests. Ranked. The ranking
 rule already in that file stands — *broken beats missing; reliable beats pretty;
 a listener would notice beats only-you-would-notice* — and you may argue for
 changing it, in writing, if you think it is wrong.
@@ -139,7 +149,7 @@ append-only, same rule as the other logs):
 **Biggest risk right now:** <the thing most likely to make this project fail>
 ```
 
-Then rewrite `docs/ROADMAP.md`, and append to `docs/DECISIONS.md` for any
+Then update `docs/BACKLOG.md` and `docs/ROADMAP.md`, and append to `docs/DECISIONS.md` for any
 non-obvious call — including a call to *reorder* the roadmap on strategic
 grounds rather than on the stated ranking rule.
 

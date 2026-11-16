@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Tooling that ships with the Radio Tower project.",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "plugins": [
     {
       "name": "radio-tower-ops",
       "source": "./",
-      "description": "Build, test and deploy agents for the Radio Tower Raspberry Pi station.",
+      "description": "Build, test and publish agents for the Radio Tower station (Oracle tower, Vercel site), working from docs/BACKLOG.md.",
       "category": "development"
     }
   ]

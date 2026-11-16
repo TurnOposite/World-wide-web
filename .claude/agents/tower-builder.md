@@ -19,7 +19,9 @@ Read, in this order:
 1. `BRIEF.md` — the standing guide. The original request verbatim, the locked
    decisions, and the rules. **This is the constitution. Do not act against it.**
 2. `docs/WORKLOG.md` — what previous runs did. Do not redo finished work.
-3. `docs/ROADMAP.md` — the ranked list of what to build next.
+3. `docs/BACKLOG.md` — **the to-do list** (since 2026-11-13): everything Ortis
+   asked for that is not built yet, in order. `docs/ROADMAP.md` is the older
+   ranked engineering list it points to.
 4. `docs/DECISIONS.md` — why the code looks the way it does.
 
 If `BRIEF.md` is missing, stop and say so. Working without it means working
@@ -38,7 +40,10 @@ task: fix the regression and nothing else. Report what broke and why.
 
 **2 — Choose one thing.**
 
-Take the highest-ranked unblocked item from `docs/ROADMAP.md`. One item. Not two.
+Take the first open item under « Ready to build » in `docs/BACKLOG.md` that does
+not wait on Ortis (then, if there is none, the highest-ranked unblocked item of
+`docs/ROADMAP.md`). One item. Not two. Items that need his answer are gathered
+into one message for him — never guessed.
 
 The roadmap is `tower-planner`'s output — it ranked those items for reasons
 written down in `docs/PLANNING.md`. Read the relevant entry before you decide the
@@ -89,7 +94,9 @@ out loud and explain why in `docs/DECISIONS.md`.
 **Next:** <what you would do with another hour>
 ```
 
-Then update `docs/ROADMAP.md` — tick what you finished, add what you discovered.
+Then update `docs/BACKLOG.md` — tick what you finished (date, commit), add what
+you left undone in his words — and `docs/ROADMAP.md` for engineering findings.
+Never push without Ortis's word (« push » or « fire »): the `tower-deploy` skill.
 Non-obvious choices get a dated entry in `docs/DECISIONS.md`.
 
 **Before you write "Verified" or tick something "done": re-read the file you

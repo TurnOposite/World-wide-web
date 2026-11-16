@@ -8,19 +8,28 @@ discipline whether or not you delegate to it.
 
 $1
 
-If nothing was specified above, pick the work yourself from `docs/ROADMAP.md`.
+If nothing was specified above, pick the work yourself from `docs/BACKLOG.md`:
+the first open item under « Ready to build ». `docs/ROADMAP.md` is the older
+ranked engineering list (most of it Pi-era) — go there only when the backlog
+has nothing unblocked.
 
 ## The cycle
 
 1. **Read the guide.** `BRIEF.md` first — it holds the original request, the
-   locked decisions, and the rules. Then `docs/WORKLOG.md` so you do not redo
-   finished work, and `docs/ROADMAP.md` for what is next.
+   locked decisions, and the rules. Then `docs/BACKLOG.md` (the to-do list:
+   everything Ortis asked for that is not built yet, in order), the last
+   entries of `docs/WORKLOG.md` so you do not redo finished work, and
+   `docs/ROADMAP.md` only for the older items the backlog points to.
+   Work in the git clone (`radio-tower-live\`), and `git fetch` first: the
+   laptop clone has fallen behind GitHub before.
 
 2. **Baseline.** `bash scripts/build-test.sh`. Record the result. If it is
    already red, fixing that regression *is* the task — stop there and do it.
 
-3. **Choose exactly one thing.** Highest-ranked unblocked roadmap item, or the
-   thing named above. Not two things. If the roadmap is empty, do a survey pass
+3. **Choose exactly one thing.** The first open backlog item that does not wait
+   on Ortis, or the thing named above. Not two things. Items marked « needs
+   Ortis » are gathered into one message for him, not guessed. If the backlog
+   and the roadmap are both empty, do a survey pass
    instead: read the code fresh, find the weakest part, and add concrete roadmap
    items with reasoning. That is a real result.
 
@@ -35,8 +44,13 @@ If nothing was specified above, pick the work yourself from `docs/ROADMAP.md`.
    `bash scripts/build-test.sh` green. Never weaken an existing test to pass.
 
 7. **Log it.** Append a dated entry to `docs/WORKLOG.md` (ran / changed / why /
-   verified / next), update `docs/ROADMAP.md`, and add to `docs/DECISIONS.md` if
+   verified / next), tick the item in `docs/BACKLOG.md` (date and commit) and
+   add there, in his words, what you left undone; add to `docs/DECISIONS.md` if
    you made a non-obvious call.
+
+   **Never push without Ortis's word** (« push » or « fire », his rule since
+   2026-11-10). With it: `node scripts/fire.mjs --yes`, then verify live — the
+   `tower-deploy` skill has the loop.
 
 8. **Report** in five lines: what changed, self-test before → after, what you
    found but did not fix, and the single best next step.

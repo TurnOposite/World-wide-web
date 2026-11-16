@@ -1,140 +1,171 @@
 ---
 name: tower-deploy
-description: Deploy Radio Tower onto a Raspberry Pi and publish it on the public internet with a Cloudflare Tunnel. Use when installing on the Pi, setting up the systemd service, exposing the station publicly, pointing a domain at it, or diagnosing a station that is unreachable, silent, or restarting.
+description: Publish Radio Tower — GitHub, then Vercel (the site), then the Oracle Cloud server (the tower). Use when asked to push, fire, publish or deploy, to check what is live, to read the tower's nightly update, to reinstall the server, or to diagnose a tower that is unreachable, silent, restarting, or stuck on an old commit.
 ---
 
-# Getting the tower on the air
+# Getting a change on the air
 
-**Blank SD card, no prior Pi experience?** Point Ortis at `pi/README.md`
-instead — Raspberry Pi Imager does the OS, one SSH command
-(`sudo bash /boot/firmware/radiotower/pi/install.sh`) does the station. What
-follows here assumes the repo is already on a running Pi.
+Rewritten 2026-11-16. The Raspberry Pi was retired on 2026-11-10; its installer,
+tunnel scripts and the old version of this skill's subject are in
+`archive/pi-kit/` and are not run. `docs/LIVE.md` is the authority on where
+things are hosted; this skill is how to move a change through them.
 
-Two steps, two scripts. Run them on the Pi, from the project directory.
+## The three places
 
-```bash
-sudo bash scripts/setup-pi.sh                       # install + systemd + verify
-sudo bash scripts/setup-tunnel.sh quick             # temporary public URL
-sudo bash scripts/setup-tunnel.sh named tower.example.com   # permanent
+| | Address | Takes `main` |
+|---|---|---|
+| **GitHub** | `TurnOposite/World-wide-web`, `main` | on push; `.github/workflows/ci.yml` runs the whole self-test |
+| **Vercel** (the site) | `https://globe-trotter-ochre.vercel.app` | once that self-test is green. `/config.json` → `commit` is what it serves |
+| **The tower** (Oracle, Marseille) | `https://129-151-227-129.sslip.io` | every night ~04:20 UTC (`deploy/cloud/update.sh`), only a commit CI passed, with rollback; at once with `fire`; or from GitHub when `fire.yml`'s deploy key is set up (`docs/FIRE-FROM-CLOUD.md`) |
+
+The addresses fire uses are in `deploy/fire.json`. If the tower moves, change
+that file and `site/config.json` (`tower.url`, `tower.allowed`) together.
+
+## The rule before anything leaves the laptop
+
+**Ask Ortis before every push** (his rule since 2026-11-10). He says « push »
+or « fire »; then publish and verify. `bash scripts/build-test.sh` green first.
+
+A change to how a day is dealt (`server/lib/programme.js` `buildDay`, the
+rules' shape) changes what is playing the moment the tower takes the code:
+ship it so it starts at a 05:00 Paris boundary, and tell him the day.
+
+## Publish
+
+In **PowerShell on the laptop**, in `radio-tower-live\`:
+
+```powershell
+node scripts/fire.mjs --dry-run
 ```
 
-Both are idempotent. Re-run them after pulling changes.
-
-## What `setup-pi.sh` does
-
-`setup-pi.sh` is a thin wrapper that hands off to `pi/install.sh` (the same
-installer the from-scratch flow uses), pointed at this checkout as the
-payload. Its steps:
-
-1. Installs Node 22 via NodeSource if the Pi has nothing recent enough.
-2. Creates the dedicated `radiotower` service user if missing (no login
-   shell — matches the systemd unit's hardening).
-3. `rsync`s the project to `/opt/radio-tower`, excluding `node_modules`,
-   `.cache`, `.git`, and `music/`.
-4. `npm install --omit=dev` — production dependencies only.
-5. Writes `/etc/radio-tower.env` from the template, if it does not already exist.
-   **An existing file is never overwritten**, so your settings survive re-runs.
-6. Installs and starts the `radiotower` systemd unit.
-7. Polls `/api/health` for a minute and prints the LAN URL.
-
-Override the defaults with environment variables:
-
-```bash
-sudo MUSIC_DIR=/media/pi/BIGDRIVE APP_DIR=/srv/tower bash scripts/setup-pi.sh
+```powershell
+node scripts/fire.mjs --yes
 ```
 
-## Where the music goes
+`fire` checks the map, fetches GitHub (never forces), runs the unit tests,
+pushes `HEAD:main`, waits for CI, waits for Vercel to serve the commit, then
+SSHes to the tower and runs its updater, and checks the tower answers on the
+new commit. About 7 minutes. `--no-tower` stops after Vercel (the tower takes
+it tonight); `--skip-tests` when the full self-test has just run. `fire.cmd`
+is the same by double-click and asks you to type FIRE.
 
-`MUSIC_DIR` in `/etc/radio-tower.env`, default `/mnt/music`. The service only ever
-reads it. For a USB drive, mount it by UUID so it survives a reboot:
+From the cloud, with no laptop: push to `main`. Vercel follows CI. The tower
+follows either that night, or within minutes if the deploy key of
+`docs/FIRE-FROM-CLOUD.md` is in place.
 
-```bash
-lsblk -f                                  # find the UUID
-sudo mkdir -p /mnt/music
-echo 'UUID=xxxx-xxxx /mnt/music exfat defaults,nofail,ro,uid=1000 0 0' | sudo tee -a /etc/fstab
-sudo mount -a
-```
+The laptop has no global git identity and Git is the portable one in
+`Documents\Ortis\Git` (fire finds its bash). Commit with
+`git -c user.name=… -c user.email=…` unless Ortis has set one.
 
-`nofail` matters: without it, a Pi that boots with the drive unplugged drops to
-an emergency shell instead of coming up.
-
-New files join the rotation on the next auto-rescan (30 minutes by default), or
-immediately:
-
-```bash
-curl -X POST http://127.0.0.1:8080/api/rescan
-```
-
-Check what the tower sees before you trust it:
+## Verify live
 
 ```bash
-cd /opt/radio-tower && npm run scan -- --list
+npm run status
 ```
 
-Files with unreadable duration are skipped and named in the output — that is
-where a "why isn't this song playing" question gets answered.
-
-## Going public
-
-**Quick mode** gives a random `*.trycloudflare.com` URL, no account, no domain,
-foreground process. Perfect for "listen to this right now". The URL dies when you
-Ctrl-C, and a new one is issued next time.
-
-**Named mode** needs a domain already in Cloudflare. It logs in once
-interactively, creates a tunnel called `radio-tower`, points your hostname at it
-via DNS, writes `/etc/cloudflared/config.yml`, and installs `cloudflared` as a
-service. Survives reboots.
-
-A tunnel is the right choice here rather than port forwarding: nothing inbound is
-opened on the router, it works behind CGNAT and on a dynamic IP, TLS is free, and
-Cloudflare absorbs a traffic spike instead of the Pi's uplink.
-
-## Operating it
+One screen: GitHub `main` and its self-test, the commit Vercel serves, the
+tower's commit and health, listeners, the telegraph line, the next 05:00, and
+the commits since you last looked. All three commits should be the same one.
+By hand:
 
 ```bash
-sudo systemctl status radiotower
-sudo systemctl restart radiotower
-sudo journalctl -u radiotower -f          # station logs
-sudo journalctl -u cloudflared -f         # tunnel logs
-node scripts/healthcheck.js               # one-screen status
-node scripts/healthcheck.js --json        # for monitoring
+curl -s https://globe-trotter-ochre.vercel.app/config.json
 ```
+
+```bash
+curl -s https://129-151-227-129.sslip.io/api/health
+```
+
+Then open the changed page, desktop and phone, and tell Ortis in two lines
+what changed and where to see it. For a UI change, `node
+scripts/compare-phone.mjs` before and after gives every route at three sizes
+on one page.
+
+## The tower's shell
+
+**PowerShell on the laptop** (the key's path is passed to ssh; never open or
+copy the key):
+
+```powershell
+ssh -i $env:USERPROFILE\.ssh\radio-tower ubuntu@129.151.227.129
+```
+
+Then, **bash on the tower**:
+
+```bash
+sudo /usr/local/bin/radio-tower-update      # take main now (same CI check, same rollback)
+journalctl -u radio-tower-update -n 20      # what the last nights did
+journalctl -u radio-tower -n 50             # the station's own log
+systemctl status radio-tower caddy
+cat /srv/radio/deployed-commit              # what the updater believes is on air
+```
+
+Layout on the server: code `/opt/radio-tower` (a git checkout, root's), the
+built site `/opt/radio-tower/dist-tower`, music `/srv/radio/music`, the scan
+cache, the telegraph log and the push subscriptions in `/srv/radio/cache/`,
+settings `/etc/radio-tower.env` (root-only; holds the station key — never
+print it). The service runs as `radiotower` with `ProtectSystem=strict`: it
+can write under `/srv/radio` and nowhere else.
+
+### Settings that are not in the repository
+
+`/etc/radio-tower.env` is written once by `deploy/cloud/install.sh`; the
+nightly update never touches it. Lines added by hand since (then `sudo
+systemctl restart radio-tower`):
+
+| Line | What it turns on |
+|---|---|
+| `TELEGRAPH_NOTIFY_URL=https://ntfy.sh/<long random topic>` | a notification to Ortis's phone when someone writes on the line (`docs/NOTIFICATIONS.md`) |
+| `TELEGRAPH_LOG_KEEP_DAYS=<n>` | how many days the private chat log goes back (0 or unset: only the size cap) |
+| `TELEGRAPH_PUSH=0` | switches the listeners' opt-in notifications off |
+
+A secret goes in that file on the server, never in the repository, a doc, a
+log or a chat.
+
+## A new server
+
+`deploy/cloud/README.md`: a fresh Ubuntu machine, `first-boot.sh` fetches and
+runs `install.sh` (Node 22, Caddy with HTTPS on `<ip>.sslip.io`, the firewall
+ports Oracle's images keep shut, the service, the nightly timer). About an
+hour, mostly waiting. Then `node library\bot.mjs publish` from the laptop
+sends the music back. The way off Oracle altogether is `docs/EXIT-ORACLE.md`.
 
 ## Diagnosing
 
-**Service restarts in a loop.** `journalctl -u radiotower -n 50`. Usually
-`MUSIC_DIR` does not exist or is not readable by the service user, or the
-`.cache` directory is not writable — the unit uses `ProtectSystem=strict`, so
-only paths listed in `ReadWritePaths` can be written.
+**The tower is on an old commit.** `journalctl -u radio-tower-update -n 20`.
+« its self-test is failure/pending on GitHub »: CI has not passed that commit —
+look at the Actions page, not the server. « did not come up last time — waiting
+for a newer commit »: the commit was tried, did not answer, and was rolled
+back (`/srv/radio/rejected-commit`); fix it with a new commit. « could not
+build »: npm or the network; it retries the next night.
 
-**Station is up, nothing plays.** `curl localhost:8080/api/health`. If `tracks` is
-0, the scan found nothing: check `MUSIC_DIR`, check the file extensions are in
-`config.audioExtensions`, and run `npm run scan` to see the skip reasons.
+**The site is on an old commit.** Vercel only deploys once CI is green
+(Deployment Checks). A red self-test holds the site back by design.
 
-**Reachable on the LAN, not through the tunnel.** `systemctl status cloudflared`.
-If the tunnel is up, confirm `config.yml`'s `service:` port matches `PORT` in
-`/etc/radio-tower.env`. DNS for a fresh named tunnel can take a minute.
+**The site plays 28 tracks in a loop.** It could not reach the tower within
+6 s and fell back to the in-browser station on the Wix tracks. Check
+`/api/health` on the tower; if the server is stopped (Oracle reclaims an idle
+Always Free machine), start it from the Oracle console.
 
-**Audio stutters for remote listeners but not local ones.** Upstream bandwidth.
-A 320kbps library and ten listeners is 3.2Mbps of upload. Either re-encode the
-library lower or cap concurrent listeners. Cloudflare does not cache these
-responses — they are ranged and per-listener.
+**Station up, nothing plays.** `/api/health` → `tracks: 0` means the scan
+found nothing: `MUSIC_DIR` in `/etc/radio-tower.env`, then `npm run scan` in
+`/opt/radio-tower`.
 
-**Everyone is out of sync with each other.** Check the Pi's clock first:
-`timedatectl`. A Pi with no RTC that lost NTP will drift, and since the whole
-schedule is derived from wall-clock time, the station itself moves. `sudo
-systemctl restart systemd-timesyncd`.
+**Service restarts in a loop.** `journalctl -u radio-tower -n 50`. Usually a
+path outside `/srv/radio` it tried to write, or a broken `/etc/radio-tower.env`.
 
-**A song plays twice in a row after adding files.** Expected. Adding tracks
-changes `cycleSeconds`, which shifts every future position; the player detects
-the `revision` change and rejoins. One audible jump, then normal.
+**HTTPS fails on a new address.** Caddy needs ports 80 and 443 reachable to
+get its certificate: the Oracle security list *and* the machine's iptables
+(`install.sh` opens the second; the first is the console).
 
-## Before you deploy a change
+**Everyone is out of sync.** The server's clock: `timedatectl`. The whole
+programme is a function of wall-clock time.
 
-```bash
-bash scripts/build-test.sh
-```
+## What not to do
 
-Green, or do not deploy. Then on the Pi, re-run `setup-pi.sh` and watch
-`journalctl -u radiotower -f` for the first minute — a scan failure on a large
-library shows up there and nowhere else.
+- Never change `STATION_EPOCH` on the live tower: it re-deals everything.
+- Never force-push `main`. `fire` refuses; so should you.
+- Never edit code in `/opt/radio-tower` by hand: the updater resets it to the
+  commit it deploys. Change the repository.
+- Never touch `/srv/radio/music` from the shell: the music is published from
+  the laptop by the library bot, and changes to it need Ortis's word.
