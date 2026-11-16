@@ -1784,6 +1784,69 @@ try {
     const locked = await authOf();
     check('…and "Lock and forget" leaves nothing in the browser', locked.unlocked === false && locked.stored === null && /Station key/.test(locked.text));
 
+    // The Booth's « Line » tab (Ortis, 2026-11-16: « more parameters in the chat logs for admin with history … and
+    // restore option »): behind the key, the tower's log of the line. The message this run sent earlier is in it,
+    // with the track on air and a sender tag; the station takes it off, a listener's page loses it; the station
+    // puts it back, and the listener's page — which asks the tower only for what is newer — shows it again.
+    check('a locked Booth has no desk sides at all: the line\'s log is not there to be found', await bk.evaluate(() => !document.querySelector('#bTabs, #bSideLine, .la')));
+    const la = await keyCtx.newPage();
+    watch(la, 'booth, line');
+    await la.goto(`${boothAt}#key=selftest-key`, { waitUntil: 'domcontentloaded' });
+    await la.waitForSelector('#bTabs [data-tab="line"]', { timeout: 10000 }).catch(() => {});
+    const sidesBefore = await la.evaluate(() => ({ tabs: [...document.querySelectorAll('#bTabs [data-tab]')].map((b) => b.dataset.tab), music: !document.getElementById('bSideMusic')?.hidden, line: document.getElementById('bSideLine')?.hidden, built: Boolean(document.querySelector('.la')) }));
+    await la.click('#bTabs [data-tab="line"]').catch(() => {});
+    const rowOf = () => la.evaluate(() => {
+      const li = [...document.querySelectorAll('.la-row')].find((x) => x.querySelector('.la-text')?.textContent.startsWith('selftest'));
+      return li ? { id: li.dataset.id, cls: li.className, chip: li.querySelector('.la-chip')?.textContent, meta: li.querySelector('.la-meta')?.textContent, name: li.querySelector('.la-name')?.textContent,
+        acts: [...li.querySelectorAll('.la-acts button')].map((b) => b.dataset.act), markup: li.querySelectorAll('.la-text *, .la-name *').length, day: li.closest('.la-day')?.querySelector('.la-sub')?.textContent } : null;
+    });
+    await la.waitForFunction(() => [...document.querySelectorAll('.la-row .la-text')].some((x) => x.textContent.startsWith('selftest')), null, { timeout: 8000 }).catch(() => {});
+    const laRow = await rowOf();
+    check('the Booth on a tower, unlocked: a « Line » side beside Music, built only when opened', sidesBefore.tabs.join() === 'music,line' && sidesBefore.music && sidesBefore.line === true && !sidesBefore.built && Boolean(laRow), JSON.stringify({ ...sidesBefore, row: Boolean(laRow) }));
+    check('…the log shows the message with more than the room is told — the track on air, a sender tag — as text, by day',
+      Boolean(laRow) && laRow.chip === 'on the line' && /on air: \S/.test(laRow.meta || '') && /sender #[\w-]{6}/.test(laRow.meta || '') && laRow.name === 'Self <b>test</b>' && laRow.markup === 0 && Boolean(laRow.day)
+      && laRow.acts.join() === 'remove,mute', JSON.stringify(laRow));
+    // A listener who has not joined, reading the line.
+    const l3 = await (await browser.newContext()).newPage();
+    watch(l3, 'tower, listener during moderation');
+    await l3.goto(`${dev}antenna?tower=${encodeURIComponent(towerUrl)}`, { waitUntil: 'domcontentloaded' });
+    const hears = (want, ms = 12000) => l3.waitForFunction((w) => [...document.querySelectorAll('.tg-msg .tg-text')].some((x) => x.textContent.startsWith('selftest')) === w, want, { timeout: ms }).then(() => true).catch(() => false);
+    const heardFirst = await hears(true);
+    await la.click(`.la-row[data-id="${laRow?.id}"] button[data-act="remove"]`).catch(() => {});
+    await la.waitForFunction((id) => document.querySelector(`.la-row[data-id="${id}"]`)?.classList.contains('la-removed'), laRow?.id, { timeout: 8000 }).catch(() => {});
+    const laOff = await rowOf();
+    const goneForListener = await hears(false);
+    check('…taken off from the log: the row says so and offers to put it back, and a listener\'s page loses it', heardFirst && laOff?.chip === 'taken off' && laOff.acts.join() === 'restore' && /taken off \d/.test(laOff.meta || '') && goneForListener,
+      JSON.stringify({ heardFirst, laOff, goneForListener }));
+    await la.click(`.la-row[data-id="${laRow?.id}"] button[data-act="restore"]`).catch(() => {});
+    await la.waitForFunction((id) => document.querySelector(`.la-row[data-id="${id}"]`)?.classList.contains('la-on'), laRow?.id, { timeout: 8000 }).catch(() => {});
+    const laBack = await rowOf();
+    const backForListener = await hears(true);
+    const laMark = await l3.evaluate(() => [...document.querySelectorAll('.tg-msg')].find((x) => x.querySelector('.tg-text')?.textContent.startsWith('selftest'))?.querySelector('.tg-meta')?.textContent || '');
+    const onTowerAgain = (await (await fetch(`${towerUrl}/api/telegraph`)).json()).messages?.filter((x) => x.text.startsWith('selftest')) || [];
+    check('…put back: it is on the line again, once, with its own id and a « put back » mark, on the page of a listener who was already reading', laBack?.chip === 'on the line (put back)' && /put back \d/.test(laBack.meta || '')
+      && backForListener && /put back/.test(laMark) && onTowerAgain.length === 1 && String(onTowerAgain[0].id) === laRow?.id && Number.isFinite(onTowerAgain[0].restored), JSON.stringify({ laBack, backForListener, laMark, n: onTowerAgain.length }));
+    const keyless = await fetch(`${towerUrl}/api/telegraph/log`);
+    check('…and none of it answers without the key', keyless.status === 401);
+    await l3.context().close();
+    // On a phone the log is rows, not a table: nothing runs off the side.
+    const lpctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+    const lp = await lpctx.newPage();
+    watch(lp, 'booth, line, phone');
+    await lp.goto(`${boothAt}#key=selftest-key`, { waitUntil: 'domcontentloaded' });
+    await lp.waitForSelector('#bTabs [data-tab="line"]', { timeout: 10000 }).catch(() => {});
+    await lp.evaluate(() => document.querySelector('#bTabs [data-tab="line"]')?.click());
+    await lp.waitForSelector('.la-row', { timeout: 8000 }).catch(() => {});
+    await lp.waitForTimeout(300);
+    const lpFit = await lp.evaluate(() => {
+      const box = document.querySelector('.la')?.closest('.w-box');
+      const side = document.querySelector('.la')?.getBoundingClientRect();
+      return { rows: document.querySelectorAll('.la-row').length, doc: document.documentElement.scrollWidth - document.documentElement.clientWidth, box: box ? box.scrollWidth - box.clientWidth : null, wide: side ? Math.round(side.width) : null };
+    });
+    check('on a 390 px phone the line\'s log fits: rows, nothing off the side', lpFit.rows >= 1 && lpFit.doc <= 1 && (lpFit.box === null || lpFit.box <= 1) && lpFit.wide <= 390, JSON.stringify(lpFit));
+    await lpctx.close();
+    await la.close();
+
     // Not watched for console errors: the browser logs the tower's 401 itself.
     const bad = await keyCtx.newPage();
     bad.on('pageerror', (e) => errors.push(`booth-bad-key: ${e.message}`));

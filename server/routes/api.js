@@ -8,7 +8,7 @@ import { stationPayload, schedulePayload, queuePayload, checkReorder } from '../
 import { resolveTrackPath } from '../lib/library.js';
 import { sendAudio } from '../lib/stream.js';
 import { RateLimiter } from '../lib/ratelimit.js';
-import { LIMITS as TELEGRAPH_LIMITS } from '../lib/telegraph.js';
+import { LIMITS as TELEGRAPH_LIMITS, historyCsv } from '../lib/telegraph.js';
 
 /**
  * Stream a request body into `file`, at most `max` bytes. Resolves with the
@@ -349,7 +349,9 @@ export function apiRouter(ctx) {
       host = true;
     }
     const b = req.body && typeof req.body === 'object' ? req.body : {};
-    const out = telegraph.post({ name: b.name, icon: b.icon, text: b.text, stream: b.stream, who: req.ip || req.socket?.remoteAddress, host });
+    // What was on air when it was said, for the station's log only: the sender's stream if they named it, else the tower's own.
+    const air = pick(b.channel).st.at(Date.now())?.track;
+    const out = telegraph.post({ name: b.name, icon: b.icon, text: b.text, stream: b.stream, who: req.ip || req.socket?.remoteAddress, host, on: air ? { id: air.id, title: air.title } : null });
     if (!out.ok) {
       const { status, ok, ...rest } = out;
       if (rest.retryAfter) res.set('Retry-After', String(rest.retryAfter));
@@ -362,6 +364,67 @@ export function apiRouter(ctx) {
     if (!telegraph) return res.status(503).json({ error: 'telegraph_off', detail: 'The telegraph line is switched off on this tower.' });
     if (!requireKey(req, res, { disabledError: 'telegraph_moderation_disabled', disabledDetail: 'Set STATION_KEY to take messages off the line.' })) return;
     const out = telegraph.remove(Number(req.body?.id), { mute: req.body?.mute === true });
+    if (!out.ok) {
+      const { status, ok, ...rest } = out;
+      return res.status(status).json(rest);
+    }
+    res.json(out);
+  });
+
+  // The station's view of the line (Ortis, 2026-11-16): everything the log holds — on the line, taken off, or gone
+  // when the room emptied — with the track on air and a per-day sender tag; a message can be put back, a silenced
+  // sender given the line again. All of it behind the station key: none of this is the room's to read.
+  const lineGate = (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!telegraph) { res.status(503).json({ error: 'telegraph_off', detail: 'The telegraph line is switched off on this tower.' }); return false; }
+    return requireKey(req, res, { disabledError: 'telegraph_moderation_disabled', disabledDetail: 'Set STATION_KEY to read the line\'s log.' });
+  };
+  /** A time from the address bar: milliseconds, or a date (YYYY-MM-DD, or anything Date reads); else the fallback. */
+  const when = (v, fallback) => {
+    if (v === undefined || v === '') return fallback;
+    const n = Number(v);
+    const t = Number.isFinite(n) ? n : Date.parse(String(v));
+    return Number.isFinite(t) ? t : fallback;
+  };
+  router.get('/telegraph/log', async (req, res, next) => {
+    if (!lineGate(req, res)) return;
+    try {
+      const csv = req.query.format === 'csv';
+      const out = await telegraph.history({
+        from: when(req.query.from, -Infinity),
+        to: when(req.query.to, Infinity),
+        q: String(req.query.q ?? '').slice(0, 100),
+        name: String(req.query.name ?? '').slice(0, 100),
+        // An export is the whole answer, not a page of it.
+        limit: csv ? 500 : req.query.limit,
+        offset: csv ? 0 : req.query.offset,
+      });
+      if (!csv) return res.json({ ok: true, now: Date.now(), ...out });
+      const entries = [...out.entries];
+      for (let offset = 500; offset < out.total && offset < 100_000; offset += 500) {
+        entries.push(...(await telegraph.history({ from: when(req.query.from, -Infinity), to: when(req.query.to, Infinity), q: String(req.query.q ?? '').slice(0, 100), name: String(req.query.name ?? '').slice(0, 100), limit: 500, offset })).entries);
+      }
+      res.set('Content-Type', 'text/csv; charset=utf-8');
+      res.set('Content-Disposition', `attachment; filename="telegraph-line-${new Date().toISOString().slice(0, 10)}.csv"`);
+      res.send(historyCsv(entries));
+    } catch (err) { next(err); }
+  });
+
+  router.post('/telegraph/restore', express.json({ limit: '1kb' }), async (req, res, next) => {
+    if (!lineGate(req, res)) return;
+    try {
+      const out = await telegraph.restore(Number(req.body?.id));
+      if (!out.ok) {
+        const { status, ok, ...rest } = out;
+        return res.status(status).json(rest);
+      }
+      res.json(out);
+    } catch (err) { next(err); }
+  });
+
+  router.post('/telegraph/unmute', express.json({ limit: '1kb' }), (req, res) => {
+    if (!lineGate(req, res)) return;
+    const out = telegraph.unmute(req.body?.tag);
     if (!out.ok) {
       const { status, ok, ...rest } = out;
       return res.status(status).json(rest);

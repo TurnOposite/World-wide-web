@@ -96,6 +96,9 @@ export const config = {
   // programme's own day boundary. TELEGRAPH_RESET=off keeps everything said.
   telegraphReset: process.env.TELEGRAPH_RESET || '05:00',
   telegraphResetZone: process.env.TELEGRAPH_RESET_TZ || 'Europe/Paris',
+  // How many days the log goes back (Ortis, 2026-11-16: the station reads the whole history behind the key).
+  // 0 = no limit in days: only the size cap (two files of 5 MB), as before.
+  telegraphLogKeepDays: Math.max(0, envInt('TELEGRAPH_LOG_KEEP_DAYS', 0)),
   telegraphLog: process.env.TELEGRAPH_LOG === 'none'
     ? null
     : path.resolve(process.env.TELEGRAPH_LOG || path.join(path.dirname(process.env.CACHE_FILE || path.join(ROOT, '.cache', 'library.json')), 'telegraph.jsonl')),

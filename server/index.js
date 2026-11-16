@@ -68,7 +68,7 @@ const collections = new Collections({ dir: config.collectionsDir });
 // The telegraph line: the chat room. Off (null) with TELEGRAPH=0.
 // It empties every morning at config.telegraphReset (05:00 Paris), unless TELEGRAPH_RESET=off.
 const telegraph = config.telegraph
-  ? new Telegraph({ logFile: config.telegraphLog, dayStart: dailyReset(config.telegraphReset, config.telegraphResetZone) })
+  ? new Telegraph({ logFile: config.telegraphLog, logKeepDays: config.telegraphLogKeepDays, dayStart: dailyReset(config.telegraphReset, config.telegraphResetZone) })
   : null;
 
 const state = {

@@ -1046,3 +1046,37 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
   .cast-name{min-height:0}
   .minibar.has-me .mb-time{display:none}
 }
+
+/* ------------------------------------------- the Booth's sides (2026-11-16) */
+/* Behind the key, on a tower: Music (the desk as it was), Line (the telegraph line's log), Status. Rows, not
+   tables: it is read on a phone. Everything a stranger typed is text, set by textContent (ui/line-admin.js). */
+.booth-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.booth-tabs .btn[aria-pressed="true"]{border-color:var(--signal);color:var(--signal)}
+.booth-side{min-width:0}
+.la-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 12px;align-items:end;margin-top:12px}
+.la-filters label{display:grid;gap:4px;font-size:12px;color:var(--text-dim);min-width:0}
+.la-filters input{background:#0d1116;border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--text);font:14px var(--font);min-width:0;width:100%;color-scheme:dark}
+.la-go{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.la-sub{font:600 12px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin:18px 0 8px}
+.la-muted{border:1px solid var(--line);border-radius:12px;padding:2px 14px 12px;margin-top:12px}
+.la-mrow{margin:6px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--text-dim)}
+.la-tag{font:12px var(--mono);color:var(--text)}
+.la-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.la-row{border:1px solid var(--line-soft);border-radius:12px;padding:10px 12px;min-width:0;background:var(--bg-raise-2)}
+.la-row.la-removed,.la-row.la-left{background:transparent}
+.la-top{margin:0;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.la-name{font-size:13.5px;font-weight:650;overflow-wrap:anywhere}
+.la-host .la-name{color:var(--signal)}
+.la-time{font:11px var(--mono);color:var(--text-dim)}
+.la-chip{margin-left:auto;font:11px var(--mono);border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--text-dim);white-space:nowrap}
+.la-chip-on{border-color:var(--signal);color:var(--signal)}
+.la-chip-removed{border-color:var(--live);color:var(--live)}
+.la-text{margin:4px 0 0;font-size:14.5px;line-height:1.4;overflow-wrap:anywhere;white-space:pre-wrap}
+.la-removed .la-text,.la-left .la-text{color:var(--text-dim)}
+.la-meta{margin:4px 0 0;font:11.5px/1.5 var(--mono);color:var(--text-dim);overflow-wrap:anywhere}
+.la-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.la-more{margin-top:14px}
+@media (max-width:720px){
+  .la-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .la-chip{margin-left:0}
+}

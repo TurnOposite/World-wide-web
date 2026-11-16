@@ -45,8 +45,11 @@ export function mergeMessages(have, incoming = [], removed = [], keep = KEEP) {
   return [...byId.values()].sort((a, b) => a.id - b.id).slice(-keep);
 }
 
-/** Only what was said since the room's day began (`day`, from the tower); everything when the tower gives none. */
-export const sinceDay = (messages, day) => (Number.isFinite(day) ? messages.filter((m) => !(m.t < day)) : messages);
+/**
+ * Only what was said since the room's day began (`day`, from the tower) — and what the station put back since
+ * (an older message it restored stays until the next morning); everything when the tower gives none.
+ */
+export const sinceDay = (messages, day) => (Number.isFinite(day) ? messages.filter((m) => !(m.t < day) || m.restored >= day) : messages);
 
 /** The first letter of a name, for a listener whose icon the bank does not hold. */
 export const initial = (name) => ([...String(name || '?').trim()][0] || '?').toUpperCase();
@@ -183,7 +186,8 @@ export class TelegraphLine {
       if (out.limits) this.limits = { ...this.limits, ...out.limits };
       const before = this.messages;
       // The room empties every morning (05:00 Paris): a page left open overnight lets yesterday go too.
-      this.messages = sinceDay(mergeMessages(before, out.messages, out.removed), out.day);
+      // `restored`: messages the station put back keep their old id, so the tower names them apart.
+      this.messages = sinceDay(mergeMessages(before, [...(out.messages || []), ...(out.restored || [])], out.removed), out.day);
       this.latest = Math.max(this.latest, ...this.messages.map((m) => m.id), 0);
       const was = this.state;
       this.state = 'open';
@@ -224,7 +228,7 @@ export class TelegraphLine {
       const top = h('p', 'tg-top');
       top.append(h('b', 'tg-name', m.name));
       if (m.host) top.append(h('span', 'tg-badge', 'tower'));
-      top.append(h('span', 'tg-meta', `${clock(m.t)}${m.stream ? ` · ${m.stream}` : ''}`));
+      top.append(h('span', 'tg-meta', `${clock(m.t)}${m.stream ? ` · ${m.stream}` : ''}${m.restored ? ' · put back' : ''}`));
       body.append(top, h('p', 'tg-text', m.text));
       li.append(this.face(m.name, m.icon), body);
       if (mod && this._asking === m.id) li.append(this._modRow());

@@ -378,10 +378,11 @@ class TowerClient extends Emitter {
   }
 
   /** Say something on the line. With the booth unlocked, the key goes along and the message is marked as the station's. */
-  async telegraphSend({ name, icon, text, stream }) {
+  async telegraphSend({ name, icon, text, stream, push }) {
     const headers = { 'Content-Type': 'application/json' };
     if (this.key) headers['x-station-key'] = this.key;
-    const res = await fetch(`${this.origin}/api/telegraph`, { method: 'POST', headers, body: JSON.stringify({ name, icon, text, stream }) });
+    // `channel`: so the tower's log can note what was on air where the sender was listening.
+    const res = await fetch(`${this.origin}/api/telegraph`, { method: 'POST', headers, body: JSON.stringify({ name, icon, text, stream, channel: this.channel || undefined, push: push || undefined }) });
     const out = await res.json().catch(() => ({}));
     if (res.status === 401 && out.error === 'bad_key') {
       // The key this browser held is no longer the station's: lock, as a refused write does, and say so.
@@ -397,6 +398,32 @@ class TowerClient extends Emitter {
 
   /** Take a message off the line — the station key's call; `mute` also silences its sender for a day. */
   telegraphRemove(id, { mute = false } = {}) { return this._post('/api/telegraph/remove', { id, mute }); }
+
+  /**
+   * A read only the station key may make (the line's log, the tower's status). A key the tower refuses is
+   * forgotten and the booth locked, exactly as a refused write does.
+   */
+  async _getKeyed(path, { text = false } = {}) {
+    const res = await fetch(`${this.origin}${path}`, { cache: 'no-store', headers: { 'x-station-key': this.key || '' } });
+    if (res.ok) return text ? res.text() : res.json();
+    const out = await res.json().catch(() => ({}));
+    if (res.status === 401 && out.error === 'bad_key') {
+      if (this.remembered) stationKeyStore.set(this.origin, null);
+      this.key = null;
+      this.refused = true;
+      this.emit('control', { doc: null, status: 'locked' });
+      throw new ControlError('The station refused that key. Unlock with the current one.', { status: 401, code: out.error });
+    }
+    throw new ControlError(out.detail || out.error || `status ${res.status}`, { status: res.status, code: out.error });
+  }
+
+  /** The line's log, for the station (ui/line-admin.js): `q` is from, to, q, name, limit, offset. */
+  telegraphLog(q = {}) { return this._getKeyed(`/api/telegraph/log?${new URLSearchParams(q)}`); }
+  telegraphLogCsv(q = {}) { return this._getKeyed(`/api/telegraph/log?${new URLSearchParams({ ...q, format: 'csv' })}`, { text: true }); }
+  /** Put a message that was taken off, or that left at 05:00, back in today's room. */
+  telegraphRestore(id) { return this._post('/api/telegraph/restore', { id }); }
+  /** Give a silenced sender (by the log's per-day tag) the line back. */
+  telegraphUnmute(tag) { return this._post('/api/telegraph/unmute', { tag }); }
 
   reorder(req) { return this._post('/api/queue/reorder', this.channel ? { ...req, channel: this.channel } : req); }
   clear() { return this._post('/api/queue/clear', this.channel ? { channel: this.channel } : {}); }

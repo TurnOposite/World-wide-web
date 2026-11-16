@@ -177,7 +177,8 @@ test('the log is capped: past its size it is set aside once, and a new one start
   await t.flushed();
   assert.ok(fs.statSync(logFile).size <= 400);
   assert.ok(fs.existsSync(`${logFile}.1`), 'the older part is kept beside it');
-  assert.deepEqual(fs.readdirSync(path.dirname(logFile)).sort(), ['line.jsonl', 'line.jsonl.1'], 'two files at most');
+  // Since 2026-11-16 the day's salt sits beside the log (a few bytes, replaced every morning): the log itself is still two files.
+  assert.deepEqual(fs.readdirSync(path.dirname(logFile)).sort(), ['line.jsonl', 'line.jsonl.1', 'line.jsonl.salt'], 'two log files at most, and the day\'s salt');
 });
 
 test('a log that cannot be written does not take the line down', async () => {

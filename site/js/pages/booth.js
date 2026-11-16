@@ -28,6 +28,7 @@ import { resolveMood, planEmission } from '../ui/moods.js';
 import { LOOKS } from '../viz/settings.js';
 import { ChannelDial } from '../ui/channels.js';
 import { VisualsPanel } from '../ui/visuals.js';
+import { LineAdmin } from '../ui/line-admin.js';
 
 export const title = 'Booth';
 
@@ -157,7 +158,13 @@ export async function mount(root, ctx) {
   /** The desk: the channel, the queue, the moods and the broadcast look — built only once the booth is open. */
   function buildDesk() {
     const d = $('bDesk');
+    // On a tower the desk has more than music (Ortis, 2026-11-16): the line's log, behind the same key.
+    const tabs = client.planeKind === 'tower' ? [['music', 'Music'], ['line', 'Line']] : [];
     d.innerHTML = `
+      <div class="booth-tabs" id="bTabs" role="group" aria-label="The desk's sides"${tabs.length ? '' : ' hidden'}>
+        ${tabs.map(([id, label], i) => `<button type="button" class="btn small" data-tab="${id}" aria-pressed="${i === 0}">${label}</button>`).join('')}
+      </div>
+      <div id="bSideMusic">
       <section class="channels" id="bChannels" aria-label="Which channel you are editing" hidden></section>
       <div class="booth">
         <div class="panel" id="bQueue"></div>
@@ -178,7 +185,21 @@ export async function mount(root, ctx) {
             <p class="qstate" id="bLookState" aria-live="polite"></p>
           </div>
         </div>
-      </div>`;
+      </div>
+      </div>
+      <section class="panel booth-side" id="bSideLine" aria-label="The telegraph line's log" hidden></section>`;
+    // Each side is built the first time it is opened, and only read then: the log is not asked for on every visit.
+    const sides = { line: null };
+    const makers = { line: (el) => new LineAdmin({ root: el, client, toast }) };
+    const show = (id) => {
+      for (const b of d.querySelectorAll('#bTabs [data-tab]')) b.setAttribute('aria-pressed', String(b.dataset.tab === id));
+      for (const [side] of tabs) {
+        const el = $(`bSide${side[0].toUpperCase()}${side.slice(1)}`);
+        if (el) el.hidden = side !== id;
+      }
+      if (makers[id] && !sides[id]) sides[id] = makers[id]($(`bSide${id[0].toUpperCase()}${id.slice(1)}`));
+    };
+    $('bTabs').addEventListener('click', (e) => { const b = e.target.closest('[data-tab]'); if (b) show(b.dataset.tab); });
     const queue = new QueueEditor({ root: $('bQueue'), client, player, title: 'Queue' });
     // The booth edits the channel you are tuned to; turn the dial to edit another.
     const dial = new ChannelDial({ root: $('bChannels'), client, label: 'Editing channel' });
@@ -237,7 +258,7 @@ export async function mount(root, ctx) {
     $('bSendMine').addEventListener('click', () => sendLook({ ...settings.effective }));
     $('bClearLook').addEventListener('click', () => sendLook(null));
     d.hidden = false;
-    return { queue, paintLooks, destroy: () => { queue.destroy(); dial.destroy(); offCh?.(); d.replaceChildren(); d.hidden = true; } };
+    return { queue, paintLooks, destroy: () => { for (const s of Object.values(sides)) s?.destroy(); queue.destroy(); dial.destroy(); offCh?.(); d.replaceChildren(); d.hidden = true; } };
   }
 
   function paint() {
