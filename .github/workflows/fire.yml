@@ -1,0 +1,89 @@
+# Fire from the cloud (the 2026-11-16 handoff, N5): once the self-test is green on main, the tower takes the
+# commit at once instead of waiting for its night (~04:20 UTC) — with no laptop switched on.
+#
+# How it is fenced (docs/FIRE-FROM-CLOUD.md):
+#   - It does nothing until Ortis has made a deploy key and stored its private half as the repository secret
+#     TOWER_DEPLOY_KEY. Without the secret the run says so and ends green: the nightly update still happens.
+#   - On the tower that key can do one thing only. Its line in authorized_keys is
+#       restrict,command="sudo /usr/local/bin/radio-tower-update" ssh-ed25519 …
+#     so whatever this workflow (or anyone holding the key) asks for, the server runs its own updater and
+#     nothing else: no shell, no forwarding. The updater itself only takes a commit whose self-test passed on
+#     GitHub, and rolls back one that does not answer (deploy/cloud/update.sh).
+#   - The server's identity is pinned below (its public host key): the run refuses to talk to anything else.
+#   - It only follows a push to main of this repository — never a pull request, never a fork.
+#
+# The address and the host key are public facts (deploy/fire.json, docs/LIVE.md); tests/fire-cloud.test.js keeps
+# them in step with deploy/fire.json. No secret is in this file.
+name: fire
+
+on:
+  workflow_run:
+    workflows: [self-test]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: fire-tower
+  cancel-in-progress: false
+
+env:
+  TOWER_SSH: ubuntu@129.151.227.129
+  TOWER_URL: https://129-151-227-129.sslip.io
+  TOWER_HOST_KEY: 129.151.227.129 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINAeW+k78nfQEqWz8H0aK/UB6sH5wNss4cgQrj4xOFZR
+
+jobs:
+  tower:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Is the deploy key set up?
+        id: key
+        env:
+          KEY: ${{ secrets.TOWER_DEPLOY_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "have=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "No TOWER_DEPLOY_KEY secret yet: nothing sent. The tower takes main tonight (~04:20 UTC). Setting it up: docs/FIRE-FROM-CLOUD.md" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: The tower's own updater, now
+        if: steps.key.outputs.have == 'yes'
+        env:
+          KEY: ${{ secrets.TOWER_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/tower-deploy
+          printf '%s\n' "$TOWER_HOST_KEY" > ~/.ssh/known_hosts
+          # No command is given: the server runs the one its authorized_keys line names, whatever is asked.
+          ssh -i ~/.ssh/tower-deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=20 "$TOWER_SSH" 2>&1 | tee update.txt
+          rm -f ~/.ssh/tower-deploy
+          { echo '### The tower'; echo; echo '```'; cat update.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Is the tower on that commit?
+        if: steps.key.outputs.have == 'yes'
+        env:
+          WANT: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 20); do
+            GOT="$(curl -fsS --max-time 10 "$TOWER_URL/api/health" | node -e 'let s="";process.stdin.on("data",(c)=>{s+=c}).on("end",()=>{try{const j=JSON.parse(s);console.log(`${j.commit||""} ${j.status||""}`)}catch{console.log(" ")}})' || true)"
+            if [ "$GOT" = "$WANT on_air" ]; then
+              echo "The tower is on air on ${WANT:0:7}." | tee -a "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            sleep 6
+          done
+          echo "The tower answers « $GOT », not « $WANT on_air ». Its updater's lines are above: a commit it set aside, or one whose self-test it could not read, waits for the next night." | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 1
