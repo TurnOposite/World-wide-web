@@ -76,7 +76,7 @@ export function apiRouter(ctx) {
     return { st, extra: { channel: resolved, channelLabel: label } };
   };
   const router = express.Router();
-  const keyFailures = new RateLimiter({ capacity: 20, refillPerSec: 1 / 30, maxKeys: 5000 });
+  const keyFailures = new RateLimiter({ capacity: 20, refillPerSec: 1 / 30, maxKeys: 5000, now: ctx.now });
 
   // --- collections -----------------------------------------------------------
   // The manifest behind /library.html, /photos.html and /crates.html. Read-only

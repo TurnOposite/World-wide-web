@@ -301,7 +301,14 @@ try {
     `${echoes.next.length} next, ${echoes.recent.length} played`);
   check('Ondes: the next hours, timed in the listener\'s own zone', echoes.guide.length >= 5 && echoes.times.every((t) => /\d{1,2}[:.h]\d{2}/.test(t)) && echoes.tz === echoes.wantTz,
     `${echoes.guide.length} rows, ${echoes.tz}`);
-  check('…and the music did not stop to show it', echoes.same && !echoes.paused && Math.abs(echoes.drift) < 1.5, `drift ${echoes.drift.toFixed(2)}s`);
+  // Read once, the drift was a coin toss on a loaded laptop (a seek, or a seam, still settling): now playing and within
+  // 1.5 s of the clock within three seconds. The same <audio> is still the proof it never restarted.
+  const steady = await a.waitForFunction(() => {
+    const au = document.getElementById('audio');
+    return !au.paused && Math.abs(au.currentTime - window.radioTower.player.livePosition()) < 1.5;
+  }, null, { timeout: 3000 }).then(() => true, () => false);
+  const drift = await a.evaluate(() => document.getElementById('audio').currentTime - window.radioTower.player.livePosition());
+  check('…and the music did not stop to show it', echoes.same && steady, `drift ${drift.toFixed(2)}s (first read ${echoes.drift.toFixed(2)}s${echoes.paused ? ', paused' : ''})`);
 
   // The old address still answers, and lands on the new one.
   await a.evaluate(() => window.radioTower.router.go('echoes'));
@@ -511,12 +518,19 @@ try {
   const committedOv = boothCh === 'all' ? committed.override : committed.overrides?.[boothCh];
   check('the reorder is committed through the contents API', puts >= 1 && Array.isArray(committedOv?.ids), `${puts} commit(s), channel ${boothCh}`);
   await b.evaluate(() => window.radioTower.client.pollControl());
-  await b.waitForTimeout(300);
+  await b.waitForFunction(() => window.radioTower.client.controlStatus === 'applied', null, { timeout: 3000 }).catch(() => {});
   const afterIds = await b.evaluate(() => window.radioTower.client.engine.get('/api/queue').body.slots.map((s) => s.id));
   const status = await b.evaluate(() => window.radioTower.client.controlStatus);
-  const sameMultiset = [...beforeIds].sort().join() === [...afterIds].sort().join();
+  // A track ends every half minute on the fixture, and now and then one ended between the two reads: the window
+  // slid by one, and « nothing added, nothing removed » went red on a queue that was right (2026-11-17). Compare
+  // what both reads cover: `slid` tracks have left the front, as many new ones joined the back.
+  const slid = Math.max(0, beforeIds.indexOf(afterIds[0]));
+  const span = afterIds.length - slid;
+  const sameMultiset = [...beforeIds.slice(slid)].sort().join() === [...afterIds.slice(0, span)].sort().join();
+  const fenced = afterIds.slice(0, Math.max(0, lockedCount - slid)).join() === beforeIds.slice(slid, lockedCount).join();
   check('a second listener adopts it on its next poll', status === 'applied' && afterIds.join() !== beforeIds.join(), `status ${status}`);
-  check('…and it is a permutation: nothing added, nothing removed, the fence untouched', sameMultiset && afterIds.slice(0, lockedCount).join() === beforeIds.slice(0, lockedCount).join());
+  check('…and it is a permutation: nothing added, nothing removed, the fence untouched', beforeIds.includes(afterIds[0]) && slid <= 1 && sameMultiset && fenced,
+    `slid ${slid}, ${afterIds.length} slots, fence ${lockedCount}`);
 
   await booth.click('#bMoods [data-mood]');
   await booth.waitForTimeout(800);

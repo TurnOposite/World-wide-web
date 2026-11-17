@@ -152,7 +152,7 @@ async function rescan({ useCache = true } = {}) {
  *   the test suite, which imports and calls this with no arguments, never
  *   opens an fs.watch handle of its own.
  */
-export function createApp({ devReload = false } = {}) {
+export function createApp({ devReload = false, now } = {}) {
   const app = express();
   app.disable('x-powered-by');
   // Behind cloudflared (the Pi) or Caddy (the cloud tower), both on this
@@ -176,10 +176,11 @@ export function createApp({ devReload = false } = {}) {
   });
 
   if (config.rateBurst > 0) {
-    const limiter = new RateLimiter({ capacity: config.rateBurst, refillPerSec: config.ratePerSecond > 0 ? config.ratePerSecond : 5 });
+    // `now`: the budgets' clock — a test's, so a slow machine cannot earn requests back mid-burst (2026-11-17).
+    const limiter = new RateLimiter({ capacity: config.rateBurst, refillPerSec: config.ratePerSecond > 0 ? config.ratePerSecond : 5, now });
     app.use('/api', rateLimit(limiter, { skip: (req) => isLoopback(req.ip) }));
   }
-  app.use('/api', apiRouter({ station, listeners, config, state, rescan, collections, channels, telegraph, notifier }));
+  app.use('/api', apiRouter({ station, listeners, config, state, rescan, collections, channels, telegraph, notifier, now }));
 
   // The files behind the University / Photos / Crates pages. Read-only, and
   // narrower than express.static on its own: `_review/` and `_incoming/` are

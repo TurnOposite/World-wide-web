@@ -101,7 +101,10 @@ test('the middleware answers 429 with Retry-After and the usual JSON shape', () 
 
 test('the tower: floods refused per address, keys budgeted, the website allowed to send the key', async () => {
   const { createApp } = await import('../server/index.js');
-  const server = createApp().listen(0, '127.0.0.1');
+  // The budgets run on this clock, not the machine's: on a loaded laptop 45 requests took over two seconds and
+  // earned some back (2026-11-17). Stopped, the count is exact; moved by hand, the refill is too.
+  const now = clock();
+  const server = createApp({ now }).listen(0, '127.0.0.1');
   await new Promise((r) => server.once('listening', r));
   const base = `http://127.0.0.1:${server.address().port}`;
   // Caddy (on loopback) says who the client is; only loopback is believed.
@@ -113,10 +116,13 @@ test('the tower: floods refused per address, keys budgeted, the website allowed 
       last = await fetch(`${base}/api/time`, as('203.0.113.9'));
       if (last.status === 200) ok++;
     }
-    assert.ok(ok >= 40 && ok <= 42, `${ok} of 45 answered (burst 40, 1/s)`);
+    assert.equal(ok, 40, 'a burst of 40, then refused');
     assert.equal(last.status, 429);
     assert.ok(Number(last.headers.get('retry-after')) >= 1);
     assert.equal((await last.json()).error, 'rate_limited');
+    now.advance(1000);
+    assert.equal((await fetch(`${base}/api/time`, as('203.0.113.9'))).status, 200, 'a second later, one more (1/s)');
+    assert.equal((await fetch(`${base}/api/time`, as('203.0.113.9'))).status, 429, '…and only one');
     assert.equal((await fetch(`${base}/api/time`, as('198.51.100.7'))).status, 200, 'a different listener is unaffected');
     for (let i = 0; i < 60; i++) assert.equal((await fetch(`${base}/api/time`)).status, 200, 'this machine itself is never limited');
 

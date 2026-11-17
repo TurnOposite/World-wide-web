@@ -85,6 +85,20 @@ cannot change it without colliding. **Proposal:** one file per room (`radio`, `a
   permutation », the seam check fixed today): give every time-based test the injected clock most already
   accept, and in the browser wait for a condition instead of reading once (BACKLOG B5).
 
+**Done 2026-11-17 (night), step 1 of the order below:**
+
+- The side-phone red was **not** rounding: the frame really ran 2.1 px under the mini-player, which is 66.1 px tall
+  with Windows' Segoe UI where the layout assumed 64. `world.js` now measures the mini-player (and places the frames
+  again when it changes height); the check's slack went from 2 px to 0.5, since the 2 px is what hid it.
+- `tests/helpers/ffmpeg.js` finds ffmpeg for all five files that need it (`$FFMPEG`, else PATH). `npm test` warns
+  before it starts when it is missing, the self-test prints how many tests skipped, and under CI (or
+  `REQUIRE_FFMPEG=1`) a missing ffmpeg is a failure, not 28 skips.
+- `ratelimit.test`: the tower's budgets take the test's clock (`createApp({ now })`), so the burst count is exact
+  (40, not « 40 to 42 ») and the refill is checked by moving the clock a second.
+- The browser: « …the music did not stop » waits up to 3 s for the player to be playing and on the clock instead of
+  reading once; « it is a permutation » allows for a track ending between its two reads (the window slides by one)
+  and waits for « applied » instead of 300 ms.
+
 ## 6. Blind spots found (things nothing tests today)
 
 - **`preview-smoke.mjs` never runs** (above).
