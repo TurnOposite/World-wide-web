@@ -4002,3 +4002,22 @@ ready exit from Oracle.
 process, at the price of logged tags and lasting mutes); if a real iPhone refuses part B; if the free ntfy.sh
 is not private enough (it can be self-hosted, or replaced by a Web Push subscription of his own marked as the
 station's); if the line gets enough traffic that one notification a minute is too many or too few.
+
+## 2026-11-17 - The streams from the label sheet, in the code; notifications the station's
+
+1. **The streams' content is code** (`server/data/streams.json`), not `music\channels.json`: this session may not
+   touch `music/` (`.claude/settings.json`), and in the repository it is versioned, tested and carried by a push.
+   It is merged into the streams whatever the music folder's file says — unless that file picks the streams' own
+   labels or tracks, or says `"sheet": false`: his file can always overrule.
+2. **His words decide a row, energy words first**, then the first label he typed; Slushwave, Bossa nova and Beat
+   tape count as Chill; Funk, Hip-hop, Pop, Rock, VGM and Rap FR stay on Everything only. « Liminal » read as the
+   Vaporwave / Slushwave / Ambient family; Lo-fi counted with Chill. Easy (the sheet's third stream) is not a stream.
+3. **Selecting by track id** (`tracks`, `excludeTracks`) is what lets an album row of the sheet go to a stream
+   when its label does not; ids are the sha1 of the path on the tower, so a file renamed on the laptop leaves the
+   list (it then goes by its label). `scripts/streams-from-sheet.mjs` rebuilds the list.
+4. **Notifications are the station's** (« only accessible to me »): subscribing needs the station key, the push
+   key is given with the keyed log, the open room says nothing of it. The listener-facing link of 2026-11-16 is gone.
+5. **Chill is most of the library** (≈ 86 % of tracks): that is the rule as he said it; Energy is small (≈ 42 h).
+
+**Revisit if** he wants Lo-fi or the sheet's « Easy » rows elsewhere, a BPM measure instead of labels (W2), or the
+selection back in his channels.json.

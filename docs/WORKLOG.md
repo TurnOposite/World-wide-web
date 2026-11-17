@@ -3330,3 +3330,35 @@ and still open. One commit an item, in the clone (`radio-tower-live`), on `main`
   topic exists yet); `fire.yml` end to end (no key yet); the checks on GitHub's Linux Chromium until CI ran.
 - **Left for him:** the three steps in `docs/NOTIFICATIONS.md`; the six in `docs/FIRE-FROM-CLOUD.md`; the questions
   at the top of `docs/BACKLOG.md`.
+
+## 2026-11-17 - Chill and Energy filled; the stream from Radio; notifications the station's; the Booth's touch-ups; fire's key on the tower; the side dials designed (Claude Code, for Ortis)
+
+Asked (Ortis, morning): pick up what was left; notifications « only accessible to me, so it doesn't have to
+appear on the antenna »; « pushing the chill and energy mixes now, based on the … Excel file … all the breakcore
+and all the faster BPM stuff … in the energetic, and … in the chill, all the like liminal barber beat jazz. And
+keep everything stream as is »; « seeing if from radio we can also change the stream »; and a design for behind
+the side menus — a cassette reel on Zone's side, a 1920s half globe on Echo's — « do those designs now and wait
+before pushing them, but the rest to do push ».
+
+- **The streams** `dfc1497`: `server/data/streams.json`, built by `scripts/streams-from-sheet.mjs` from his sheet
+  (all 529 rows found on the tower). Chill: Barber Beats, Vaporwave, Ambient, Lo-fi, Jazz + his rows, 2,737 tracks,
+  ≈ 296 h. Energy: Atmospheric DnB, Electronic + his breakcore / hyperpop / « energy » rows, 124 tracks, ≈ 42 h.
+  Channels can select by track id now. **Not in `music\channels.json`**: `.claude/settings.json` denies this
+  session any read or write under `music/`, so the selection is code, merged into whatever that file says about
+  the streams (`withSheet`; `"sheet": false` refuses it). `docs/STREAMS.md`.
+- **/radio** has a switch of the streams' names (`dfc1497`), the shape of ZONE | ECHO.
+- **Notifications** `74b3f86`: off the Antenna; the Booth's Line side has « Notify this device »; subscribing
+  needs the key; the station's own messages notify nobody. ntfy to his phone: the line is on the tower (he did it).
+- **T1, T2, T4** `74b3f86`: the desk's sides as a switch; the log's cards with faces and the window's corners; the
+  Status side's three lamps. (T3, the bell on the Antenna, is superseded by the line above.)
+- **Fire from GitHub**: the deploy key's line is on the tower, restricted to the updater; checked — asking it for
+  `id` answered « radio-tower: already up to date (2d78290) », no shell. A copy of the previous
+  `authorized_keys` is beside it (`authorized_keys.bak-2026-11-17`). **Left for him:** the GitHub secret
+  `TOWER_DEPLOY_KEY` (a private key typed into a web form: his to do), then a run of `fire`.
+- **The side dials** — on the local branch `claude/side-dials` (`4f721b1`), **not pushed**, per his word.
+- **Tests that moved with their pages**: `tests/site-telegraph.test.js` (/radio's switch), `tests/channels.test.js`
+  (a channels.json that defines both streams with folders only now gets the sheet's fill), `tests/notify.test.js`,
+  `tests/site-push.test.js`, the site smoke's Radio, notification and Status checks.
+- **Self-test** on `74b3f86`, this laptop: `npm test` 509 (481 pass, 28 skipped), 43/43 browser, 182/183 site,
+  26/26 Atelier — the one red is « phone on its side », red on this Windows Chrome since October. The site stage
+  alone after `4d5b119`: 148/149, the same one red, « …a tap on it changes the stream from Radio » passing.

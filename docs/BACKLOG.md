@@ -75,7 +75,7 @@ B6 → N7 → C1's mock → the W items as his answers come.
 
 | # | What he asked (date) | Waiting on |
 |---|---|---|
-| W1 | **The two streams' music** — Chill and Energy are on the dial, empty (2026-11-10) | His word on 8 labels he used that the tower does not have: Slushwave, Funk, Hyperpop, Bossa nova, Hip-hop, Breakcore, Beat tape, Pop — their own, or folded in? Then plan steps 2a → 2b (`plans/LABELS-ortis-2026-11-11.md`) |
+| ~~W1~~ | **Done 2026-11-17** (`dfc1497`, `docs/STREAMS.md`): filled from his sheet by his rule of that day. ~~The two streams' music~~ (2026-11-10) | His word on 8 labels he used that the tower does not have: Slushwave, Funk, Hyperpop, Bossa nova, Hip-hop, Breakcore, Beat tape, Pop — their own, or folded in? Then plan steps 2a → 2b (`plans/LABELS-ortis-2026-11-11.md`) |
 | W2 | **A tempo (BPM) slider** (2026-11-10) | W1 first; then BPM measured offline on the laptop (plan 2e, 2f). No track carries a tempo today |
 | W3 | **His phone notes** on /radio and /antenna (2026-11-10). On a 375×667 screen Tune in is still 50 px under the fold (plan 1e) | Him, on his own phone. The real-phone checklist in `WORLD.md` has never been run |
 | W4 | **His uni projects in the Archive, linked from the Atlas** (2026-11-03): « Who's in My Food? » (5 episodes), the night-skating report, the podcast « Echo Chamber » (poster), « Emily in Panam », « Sounds of Time » | Atlas option A or B (the mock: `Radio Tower\Claude outputs\atlas-projection-mock-2026-11-03.html`), the new room's name (« Projection » proposed), titles, the 3 missing files (classmates), and where 6.8 GB of video lives (not GitHub or Vercel: the Oracle server or Cloudflare R2) |
@@ -128,7 +128,7 @@ a concept that you shouldn't push now because it might be hard. »
 | 2026-11-16 | N5 — fire from GitHub (built; waits for his deploy key) | `65bd575` |
 | 2026-11-16 | N7 — `docs/EXIT-ORACLE.md` | `0a78fcb` |
 
-## Touch-ups chosen by Ortis, 2026-11-16 (night) — not built yet
+## Touch-ups chosen by Ortis, 2026-11-16 (night) — **built 2026-11-17** (`74b3f86`): T1, T2, T4; T3 superseded (« the notifications should only be accessible to me »: the bell is in the Booth)
 
 « Homogenize with the rest of the experience » — his four answers, to build next (one commit, before/after pictures):
 
@@ -141,3 +141,11 @@ a concept that you shouldn't push now because it might be hard. »
 
 Also: the Status side's CSS classes share the `sp-` prefix with the Spotify deck — rename them (`stat-`). The smoke's label checks for the notify link move with T3.
 Fire from GitHub: the deploy key pair exists on the laptop (`~\.ssh\radio-tower-github`, made 2026-11-16); steps 3–6 of `FIRE-FROM-CLOUD.md` are his.
+
+## Designs waiting for his look (2026-11-17)
+
+| # | What | Where |
+|---|---|---|
+| D1 | **The dials behind the side menus**: a cassette reel behind Zone's tags (turns one tooth at each change of page), an engraved 1920s globe behind Echo's (turns 30°) | local branch `claude/side-dials` (`4f721b1`), **not pushed**. Pictures in the session. His word: push as is, or what to change |
+| D2 | **Fire from GitHub**: the tower half is done (2026-11-17) | his half: the `TOWER_DEPLOY_KEY` secret on GitHub (`docs/FIRE-FROM-CLOUD.md` step 5), then Actions → fire → Run |
+
