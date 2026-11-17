@@ -342,8 +342,6 @@ export function apiRouter(ctx) {
       enabled: true,
       now: Date.now(),
       limits: { text: TELEGRAPH_LIMITS.text, name: TELEGRAPH_LIMITS.name },
-      // With Web Push on, the public half of the tower's key: what a browser needs to ask to be told (ui/push.js).
-      ...(notifier?.push ? { push: { key: notifier.push.publicKey } } : {}),
       ...telegraph.since(Number.isFinite(since) ? since : 0),
     });
   });
@@ -372,10 +370,10 @@ export function apiRouter(ctx) {
     try { notifier?.message(out.message, { from: typeof b.push === 'string' ? b.push : null }); } catch (err) { console.warn(`[notify] ${err.message}`); }
   });
 
-  // « Tell me when someone writes » (Ortis, 2026-11-16): a browser hands over its push subscription, or takes
-  // it back. No key — it is the listener's own choice — so the fences are in the store: only a real push
-  // service's address is accepted (server/lib/webpush.js allowedEndpoint), a ceiling on how many are kept, and
-  // a small budget per address for asking.
+  // « Notify this device » (Ortis, 2026-11-16, then 2026-11-17: « the notifications should only be accessible to
+  // me »): a browser holding the station key hands over its push subscription. The store's own fences stay: only a
+  // real push service's address is accepted (server/lib/webpush.js allowedEndpoint), a ceiling on how many are
+  // kept, a small budget per address. Taking one back needs no key: it only ever removes.
   const pushGate = (req, res) => {
     res.set('Cache-Control', 'no-store');
     if (!telegraph || !notifier?.push) { res.status(503).json({ error: 'push_off', detail: 'Notifications are switched off on this tower.' }); return false; }
@@ -383,6 +381,7 @@ export function apiRouter(ctx) {
   };
   router.post('/telegraph/subscribe', express.json({ limit: '4kb' }), (req, res) => {
     if (!pushGate(req, res)) return;
+    if (!requireKey(req, res, { disabledError: 'push_off', disabledDetail: 'Set STATION_KEY: notifications are the station\'s.' })) return;
     const budget = notifier.subscribeBudget.take(req.ip || req.socket?.remoteAddress);
     if (!budget.ok) {
       res.set('Retry-After', String(budget.retryAfter));
@@ -442,7 +441,8 @@ export function apiRouter(ctx) {
         limit: csv ? 500 : req.query.limit,
         offset: csv ? 0 : req.query.offset,
       });
-      if (!csv) return res.json({ ok: true, now: Date.now(), ...out });
+      // With Web Push on, the public half of the tower's push key: what the Booth needs to « notify this device ».
+      if (!csv) return res.json({ ok: true, now: Date.now(), ...out, push: notifier?.push ? { key: notifier.push.publicKey, devices: notifier.push.size } : null });
       const entries = [...out.entries];
       for (let offset = 500; offset < out.total && offset < 100_000; offset += 500) {
         entries.push(...(await telegraph.history({ from: when(req.query.from, -Infinity), to: when(req.query.to, Infinity), q: String(req.query.q ?? '').slice(0, 100), name: String(req.query.name ?? '').slice(0, 100), limit: 500, offset })).entries);

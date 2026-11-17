@@ -14,8 +14,16 @@
  * Everything a stranger typed goes on the page as text (textContent), as on
  * the line itself. Built for a phone first: rows, not a table.
  *
+ * Notifications live here too (Ortis, 2026-11-17: « the notifications should
+ * only be accessible to me, so it doesn't have to appear on the antenna »):
+ * the bell in the head asks this browser to be told when someone writes —
+ * Web Push, behind the same key (ui/push.js). His phone through ntfy is the
+ * other way (docs/NOTIFICATIONS.md).
+ *
  * The top of this file is pure (no DOM) so node:test can check it.
  */
+import * as push from './push.js';
+import { castFace } from './cast.js';
 
 /** How many messages a page of the log holds. */
 export const PAGE = 50;
@@ -97,8 +105,10 @@ export class LineAdmin {
 
     root.classList.add('la');
     root.innerHTML = `
-      <div class="panel-head"><h2 id="laH">The line's log</h2><span class="hint" id="laKeep"></span></div>
-      <p class="queue-note">Everything the tower has kept of the telegraph line: what is on it now, what you took off, and what left when the room emptied at 05:00. Only the station key reads this.</p>
+      <div class="panel-head"><h2 id="laH">The line's log</h2>
+        <button class="btn small la-bell" type="button" id="laNotify" aria-pressed="false" hidden><span aria-hidden="true">🔔</span> <span id="laNotifyText">Notify this device</span></button></div>
+      <p class="queue-note">Everything the tower has kept of the telegraph line: what is on it now, what you took off, and what left when the room emptied at 05:00. Only the station key reads this. <span id="laKeep"></span></p>
+      <p class="hint la-ios" id="laIos" hidden></p>
       <form class="la-filters" id="laForm" autocomplete="off" aria-label="Filter the log">
         <label>From <input type="date" id="laFrom"></label>
         <label>To <input type="date" id="laTo"></label>
@@ -119,6 +129,10 @@ export class LineAdmin {
     $('laCsv').addEventListener('click', () => this.exportCsv());
     $('laMore').addEventListener('click', () => this.load({ more: true }));
     $('laDays').addEventListener('click', (e) => this._onAct(e));
+    $('laNotify').addEventListener('click', () => this._toggleNotify());
+    this.pushKey = null;
+    this.pushOn = null;
+    push.current().then((sub) => { this.pushOn = sub?.endpoint || null; this._paintNotify(); });
     $('laMuted').addEventListener('click', (e) => this._onAct(e));
     this.load();
   }
@@ -144,6 +158,8 @@ export class LineAdmin {
       this.total = out.total;
       this.muted = out.muted || [];
       this.keepDays = out.keepDays || 0;
+      this.pushKey = typeof out.push?.key === 'string' ? out.push.key : null;
+      this._paintNotify();
       this.say(this.total ? `${this.total} message${this.total === 1 ? '' : 's'}${this.entries.length < this.total ? `, the newest ${this.entries.length} shown` : ''}.` : 'Nothing in the log for that.');
       this.paint();
     } catch (err) {
@@ -183,9 +199,46 @@ export class LineAdmin {
     $('laMore').hidden = this.entries.length >= this.total;
   }
 
+  /** The bell: shown when the tower sends notifications and this browser can receive them; on an iPhone tab, how to. */
+  _paintNotify() {
+    const b = this.$?.('laNotify');
+    if (!b) return;
+    const can = push.support();
+    const ios = this.$('laIos');
+    b.hidden = !this.pushKey || can !== 'ok';
+    ios.hidden = !this.pushKey || can !== 'ios-home';
+    if (!ios.hidden) ios.textContent = push.HINTS['ios-home'].replace('ask to be told when someone writes', 'turn on the bell here');
+    b.setAttribute('aria-pressed', String(Boolean(this.pushOn)));
+    this.$('laNotifyText').textContent = this.pushOn ? 'On · stop' : 'Notify this device';
+  }
+
+  async _toggleNotify() {
+    const b = this.$('laNotify');
+    b.disabled = true;
+    if (this.pushOn) {
+      await push.unsubscribe(this.client);
+      this.pushOn = null;
+      this.toast('This device will not be told any more.');
+    } else {
+      const out = await push.subscribe(this.client, this.pushKey);
+      if (out.ok) { this.pushOn = out.endpoint; this.toast('This device will be told when someone writes, even with the radio closed.'); }
+      else this.toast(out.reason === 'denied' ? push.HINTS.denied : `Notifications could not be turned on${out.detail ? `: ${out.detail}` : '.'}`);
+    }
+    if (!this._alive) return;
+    b.disabled = false;
+    this._paintNotify();
+  }
+
   _row(e) {
     const li = h('li', `la-row la-${e.state}${e.host ? ' la-host' : ''}`);
     li.dataset.id = String(e.id);
+    // The sender's picture, as on the line itself: their character, or their initial.
+    let face = castFace(e.icon, 'tg-face la-face');
+    if (!face) {
+      face = h('span', 'tg-face tg-letter la-face', ([...String(e.name || '?').trim()][0] || '?').toUpperCase());
+      face.setAttribute('aria-hidden', 'true');
+    }
+    li.append(face);
     const top = h('p', 'la-top');
     top.append(h('b', 'la-name', e.name));
     if (e.host) top.append(h('span', 'tg-badge', 'tower'));

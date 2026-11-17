@@ -417,9 +417,12 @@ class TowerClient extends Emitter {
     throw new ControlError(out.detail || out.error || `status ${res.status}`, { status: res.status, code: out.error });
   }
 
-  /** « Tell me when someone writes » (ui/push.js): hand the tower this browser's push subscription, or take it back. No key. */
+  /**
+   * « Notify this device » (ui/push.js, from the Booth's Line side): hand the tower this browser's push subscription,
+   * or take it back. The station key's: notifications are the station's, not the room's (Ortis, 2026-11-17).
+   */
   async telegraphSubscribe(sub) {
-    const res = await fetch(`${this.origin}/api/telegraph/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sub) });
+    const res = await fetch(`${this.origin}/api/telegraph/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-station-key': this.key || '' }, body: JSON.stringify(sub) });
     const out = await res.json().catch(() => ({}));
     if (!res.ok) throw new ControlError(out.detail || out.error || `status ${res.status}`, { status: res.status, code: out.error });
     return out;

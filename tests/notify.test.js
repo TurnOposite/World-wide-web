@@ -8,9 +8,10 @@
  *     characters — and not for the station's own messages;
  *   - at most one notification a minute, each way: what arrives meanwhile
  *     goes out together;
- *   - a listener who asked is told, encrypted to their browser alone; one who
- *     wrote the message is not told about it; a subscription the push service
- *     says is gone is forgotten;
+ *   - a device the station subscribed (with the key, from the Booth — Ortis,
+ *     2026-11-17: « only accessible to me ») is told, encrypted to it alone;
+ *     one that wrote the message is not; the station's own words notify
+ *     nobody; a subscription the push service says is gone is forgotten;
  *   - only a real push service's address is ever kept, or called;
  *   - the server's key pair and the subscriptions survive a restart, and
  *     nothing about a listener is on the disk but the subscription;
@@ -205,7 +206,7 @@ test('listeners who asked are told — but not of their own message; a subscript
   got.push.length = 0;
   n.message({ name: 'Tower', text: 'good evening', host: true });
   await n.idle();
-  assert.deepEqual([to(ada).length, to(bo).length], [1, 1], 'the station\'s own message is news for every listener');
+  assert.deepEqual([to(ada).length, to(bo).length], [0, 0], 'the station\'s own words are the station\'s: nobody is told of them');
 });
 
 test('several messages in one batch: a listener who wrote them all is skipped, one who wrote some is told', async () => {
@@ -218,7 +219,7 @@ test('several messages in one batch: a listener who wrote them all is skipped, o
   store.add(ada.sub);
   store.add(bo.sub);
   const n = new LineNotifier({ push: store, gapMs: 60_000, now, setTimer: (fn) => { timer = fn; return {}; } });
-  n.message({ name: 'Tower', text: 'first' });
+  n.message({ name: 'Listener', text: 'first' });
   await n.idle();
   got.push.length = 0;
   n.message({ name: 'Ada', text: 'one' }, { from: ada.sub.endpoint });
@@ -242,17 +243,21 @@ test.before(async () => {
 test.after(() => new Promise((resolve) => server.close(resolve)));
 const post = (p, body, headers = {}) => fetch(base + p, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
 
-test('the tower: a browser asks to be told, is told of the next message, and can take it back', async () => {
+test('the tower: the station\'s device asks to be told, with the key; is told of the next message; can take it back', async () => {
   const line = await (await fetch(`${base}/api/telegraph`)).json();
-  assert.match(line.push?.key || '', /^[\w-]{87}$/, 'the line says notifications exist, with the public half of the tower\'s key');
-  assert.doesNotMatch(JSON.stringify(line), /privateKey/);
+  assert.equal('push' in line, false, 'the open room says nothing of notifications: they are the station\'s (2026-11-17)');
+  const keyed = { 'x-station-key': KEY };
+  const log = await (await fetch(`${base}/api/telegraph/log`, { headers: keyed })).json();
+  assert.match(log.push?.key || '', /^[\w-]{87}$/, 'the Booth reads the public half of the tower\'s push key with the log');
+  assert.doesNotMatch(JSON.stringify(log), /privateKey/);
 
-  assert.equal((await post('/api/telegraph/subscribe', { endpoint: 'http://127.0.0.1:1/x', keys: { p256dh: 'x', auth: 'y' } })).status, 400);
-  assert.equal((await post('/api/telegraph/subscribe', { endpoint: 'https://evil.example/hook', keys: browser().sub.keys })).status, 400, 'the tower will not be made to call an address a stranger chose');
+  assert.equal((await post('/api/telegraph/subscribe', browser().sub)).status, 401, 'without the key: no');
+  assert.equal((await post('/api/telegraph/subscribe', { endpoint: 'http://127.0.0.1:1/x', keys: { p256dh: 'x', auth: 'y' } }, keyed)).status, 400);
+  assert.equal((await post('/api/telegraph/subscribe', { endpoint: 'https://evil.example/hook', keys: browser().sub.keys }, keyed)).status, 400, 'the tower will not be made to call an address a stranger chose');
   const me = browser();
   const other = browser();
-  assert.equal((await post('/api/telegraph/subscribe', me.sub)).status, 201);
-  assert.equal((await post('/api/telegraph/subscribe', other.sub)).status, 201);
+  assert.equal((await post('/api/telegraph/subscribe', me.sub, keyed)).status, 201);
+  assert.equal((await post('/api/telegraph/subscribe', other.sub, keyed)).status, 201);
 
   got.push.length = 0;
   got.ntfy.length = 0;
@@ -272,7 +277,7 @@ test('the tower: a browser asks to be told, is told of the next message, and can
 
   // Asking over and over from one address is refused before it reaches the store.
   let refused = 0;
-  for (let i = 0; i < 8; i++) if ((await post('/api/telegraph/subscribe', browser().sub)).status === 429) refused++;
+  for (let i = 0; i < 8; i++) if ((await post('/api/telegraph/subscribe', browser().sub, { 'x-station-key': KEY })).status === 429) refused++;
   assert.ok(refused >= 2, `${refused} refused`);
 });
 
@@ -287,7 +292,7 @@ test('a tower with notifications off says nothing of them and refuses subscripti
   try {
     const b = `http://127.0.0.1:${s.address().port}`;
     assert.equal('push' in (await (await fetch(`${b}/api/telegraph`)).json()), false);
-    const r = await fetch(`${b}/api/telegraph/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(browser().sub) });
+    const r = await fetch(`${b}/api/telegraph/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-station-key': KEY }, body: JSON.stringify(browser().sub) });
     assert.equal(r.status, 503);
     assert.equal((await fetch(`${b}/api/telegraph`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"name":"A","text":"still works"}' })).status, 201, 'and the line itself is untouched');
   } finally { await new Promise((resolve) => s.close(resolve)); }

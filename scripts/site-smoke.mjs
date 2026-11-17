@@ -431,11 +431,23 @@ try {
   // must land this listener on that channel's track *and* second, touch no
   // one else, and be remembered — then B goes back to the default for the
   // booth checks below, which expect both listeners on the same channel.
-  // The dial stands in the Antenna since 2026-11-10; /radio names the stream on air and leads there.
-  await b.waitForFunction(() => !document.getElementById('rStream')?.hidden, null, { timeout: 8000 }).catch(() => {});
-  const lead = await b.evaluate(() => { const e = document.getElementById('rStream'); return { shown: Boolean(e) && !e.hidden, text: e?.textContent.trim(), href: e?.getAttribute('href'), dial: Boolean(document.querySelector('#view .dial')) }; });
-  check('/radio names the stream on air and leads to the Antenna; the dial itself is no longer on it', lead.shown && /^stream\s+\S/.test(lead.text) && lead.href === 'antenna' && !lead.dial, JSON.stringify(lead));
-  await b.click('#rStream');
+  // The dial stands in the Antenna since 2026-11-10. Since 2026-11-17 (Ortis: « from radio we can also change the
+  // stream ») /radio has a switch of the streams' names; what each is playing stays the Antenna's.
+  await b.waitForFunction(() => document.querySelectorAll('#rStream button[data-ch]').length >= 2, null, { timeout: 8000 }).catch(() => {});
+  const lead = await b.evaluate(() => ({ chs: [...document.querySelectorAll('#rStream button[data-ch]')].map((x) => x.dataset.ch + (x.getAttribute('aria-pressed') === 'true' ? '*' : '')),
+    dial: Boolean(document.querySelector('#view .dial')) }));
+  check('/radio has a switch of the streams, the one on air here marked; the dial with what each plays is not on it', lead.chs.length >= 2 && lead.chs.filter((c) => c.endsWith('*')).length === 1 && !lead.dial, JSON.stringify(lead));
+  const fromRadio = lead.chs.find((c) => !c.endsWith('*') && c !== 'all');
+  if (fromRadio) {
+    await b.click(`#rStream button[data-ch="${fromRadio}"]`);
+    await b.waitForFunction((ch) => window.radioTower.player.data?.station?.channel === ch, fromRadio, { timeout: 8000 }).catch(() => {});
+    const switched = await b.evaluate(() => ({ ch: window.radioTower.client.channel, on: window.radioTower.player.data?.station?.channel, pressed: document.querySelector('#rStream [aria-pressed="true"]')?.dataset.ch }));
+    check('…a tap on it changes the stream from Radio', switched.ch === fromRadio && switched.on === fromRadio && switched.pressed === fromRadio, JSON.stringify(switched));
+    const back = lead.chs.find((c) => c.endsWith('*')).slice(0, -1);
+    await b.evaluate((ch) => window.radioTower.client.setChannel(ch), back);
+    await b.waitForFunction((ch) => window.radioTower.player.data?.station?.channel === ch, back, { timeout: 8000 }).catch(() => {});
+  }
+  await b.evaluate(() => window.radioTower.router.go('antenna'));
   await b.waitForSelector('#anDial button[data-ch]', { timeout: 8000 }).catch(() => {});
   const dial = await b.$$eval('#anDial button[data-ch]', (bs) => bs.map((x) => ({ slug: x.dataset.ch, on: x.getAttribute('aria-pressed') === 'true' })));
   const homeCh = dial.find((d) => d.on)?.slug;
@@ -1701,10 +1713,11 @@ try {
     check('…another listener, who has not joined, reads it too', heard);
     await t2.context().close();
 
-    // « Tell me when someone writes » (Ortis, 2026-11-16: « phone notification for messages in antenna »). A listener
-    // who has not even joined can ask. Nothing is asked of the browser before the tap; the tap asks permission,
-    // registers the service worker and hands the tower a subscription made with the tower's own key; the next
-    // message then arrives at that browser's push service, encrypted to it. The push service is someone else's, so
+    // « Notify this device » (Ortis, 2026-11-16: « phone notification for messages in antenna »; 2026-11-17: « only
+    // accessible to me, so it doesn't have to appear on the antenna »): the bell in the Booth's Line side, behind the
+    // key. Nothing is asked of the browser before the tap; the tap asks permission, registers the service worker and
+    // hands the tower a subscription made with the tower's own key; the next listener's message then arrives at that
+    // browser's push service, encrypted to it. The push service is someone else's, so
     // this run plays it: the page's subscription is a stand-in that points here (TOWER_PUSH_STUB, build-test.sh).
     const pushStub = process.env.TOWER_PUSH_STUB;
     if (!pushStub) {
@@ -1747,21 +1760,27 @@ try {
         const np = await nctx.newPage();
         watch(np, 'tower, notifications');
         await np.goto(`${dev}antenna?tower=${encodeURIComponent(towerUrl)}`, { waitUntil: 'domcontentloaded' });
-        await np.waitForSelector('#tgNotify', { timeout: 10000 }).catch(() => {});
-        const idle = await np.evaluate(async () => ({ label: document.getElementById('tgNotify')?.textContent ?? null, pressed: document.getElementById('tgNotify')?.getAttribute('aria-pressed'), asked: window.__push.asked, subscribed: window.__push.subscribed,
-          registered: (await navigator.serviceWorker.getRegistrations()).length, joined: Boolean(document.getElementById('tgText')) }));
-        await np.click('#tgNotify').catch(() => {});
-        await np.waitForFunction(() => document.getElementById('tgNotify')?.getAttribute('aria-pressed') === 'true', null, { timeout: 12000 }).catch(() => {});
+        await np.waitForSelector('#view .tg-join', { timeout: 10000 }).catch(() => {});
+        const antennaHas = await np.evaluate(() => ({ bell: Boolean(document.querySelector('#tgNotify, #laNotify')), words: /tell me when someone writes|notify this device/i.test(document.getElementById('view')?.textContent || '') }));
+        check('the Antenna offers listeners no notifications: they are the station\'s', !antennaHas.bell && !antennaHas.words, JSON.stringify(antennaHas));
+        await np.goto(`${dev}booth?tower=${encodeURIComponent(towerUrl)}#key=selftest-key`, { waitUntil: 'domcontentloaded' });
+        await np.waitForSelector('#bTabs [data-tab="line"]', { timeout: 10000 }).catch(() => {});
+        await np.evaluate(() => document.querySelector('#bTabs [data-tab="line"]')?.click());
+        await np.waitForFunction(() => document.getElementById('laNotify') && !document.getElementById('laNotify').hidden, null, { timeout: 10000 }).catch(() => {});
+        const idle = await np.evaluate(async () => ({ label: document.getElementById('laNotifyText')?.textContent ?? null, pressed: document.getElementById('laNotify')?.getAttribute('aria-pressed'), asked: window.__push.asked, subscribed: window.__push.subscribed,
+          registered: (await navigator.serviceWorker.getRegistrations()).length }));
+        await np.click('#laNotify').catch(() => {});
+        await np.waitForFunction(() => document.getElementById('laNotify')?.getAttribute('aria-pressed') === 'true', null, { timeout: 12000 }).catch(() => {});
         const asked = await np.evaluate(async () => {
           const reg = (await navigator.serviceWorker.getRegistrations())[0];
           const worker = reg?.active || reg?.waiting || reg?.installing;
-          return { label: document.getElementById('tgNotify')?.textContent ?? null, pressed: document.getElementById('tgNotify')?.getAttribute('aria-pressed'), asked: window.__push.asked, subscribed: window.__push.subscribed, keyBytes: window.__push.keyBytes,
+          return { label: document.getElementById('laNotifyText')?.textContent ?? null, pressed: document.getElementById('laNotify')?.getAttribute('aria-pressed'), asked: window.__push.asked, subscribed: window.__push.subscribed, keyBytes: window.__push.keyBytes,
             visible: window.__push.visible, worker: worker ? new URL(worker.scriptURL).pathname : null, scope: reg ? new URL(reg.scope).pathname : null };
         });
-        check('the line offers « tell me when someone writes », to a listener who has not joined; before the tap nothing is asked, registered or subscribed',
-          idle.label === 'tell me when someone writes' && idle.pressed === 'false' && idle.asked === 0 && idle.subscribed === 0 && idle.registered === 0 && !idle.joined, JSON.stringify(idle));
+        check('the Booth\'s Line side, unlocked, has the bell « Notify this device »; before the tap nothing is asked, registered or subscribed',
+          idle.label === 'Notify this device' && idle.pressed === 'false' && idle.asked === 0 && idle.subscribed === 0 && idle.registered === 0, JSON.stringify(idle));
         check('…the tap asks the browser\'s permission once, registers sw.js for the site, and subscribes with the tower\'s key',
-          asked.pressed === 'true' && asked.label === 'stop telling me when someone writes' && asked.asked === 1 && asked.subscribed === 1 && asked.keyBytes === 65 && asked.visible && asked.worker === '/sw.js' && asked.scope === '/', JSON.stringify(asked));
+          asked.pressed === 'true' && asked.label === 'On · stop' && asked.asked === 1 && asked.subscribed === 1 && asked.keyBytes === 65 && asked.visible && asked.worker === '/sw.js' && asked.scope === '/', JSON.stringify(asked));
         const until = async (fn, ms = 8000) => { const end = Date.now() + ms; while (Date.now() < end) { if (fn()) return true; await new Promise((r) => setTimeout(r, 150)); } return fn(); };
         const say = (text) => fetch(`${towerUrl}/api/telegraph`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Push check', text }) });
         const mine = () => pushed.filter((r) => `${pushStub}${r.url}` === endpoint);
@@ -1774,13 +1793,13 @@ try {
         check('…the next message reaches that browser\'s push service: encrypted to it alone, signed by the tower, and it says who wrote and what',
           Boolean(first) && first.headers['content-encoding'] === 'aes128gcm' && /^vapid t=[\w.-]+, k=[\w-]{87}$/.test(first.headers.authorization || '') && !first.body.includes(words)
           && told?.title === 'Push check on the telegraph line' && told.body === words && told.url === 'antenna', JSON.stringify({ got: mine().length, headers: first && { enc: first.headers['content-encoding'], ttl: first.headers.ttl }, told }));
-        await np.click('#tgNotify').catch(() => {});
-        await np.waitForFunction(() => document.getElementById('tgNotify')?.getAttribute('aria-pressed') === 'false', null, { timeout: 8000 }).catch(() => {});
+        await np.click('#laNotify').catch(() => {});
+        await np.waitForFunction(() => document.getElementById('laNotify')?.getAttribute('aria-pressed') === 'false', null, { timeout: 8000 }).catch(() => {});
         pushed.length = 0;
         await say(`pushcheck after stop ${Date.now()}`);
         await new Promise((r) => setTimeout(r, 1500));
-        const stopped = await np.evaluate(() => ({ label: document.getElementById('tgNotify')?.textContent ?? null, sub: Boolean(window.__push.sub) }));
-        check('…and the same link stops it: the tower forgets the subscription, the browser too, and nothing more is sent', stopped.label === 'tell me when someone writes' && !stopped.sub && mine().length === 0, JSON.stringify({ ...stopped, sent: mine().length }));
+        const stopped = await np.evaluate(() => ({ label: document.getElementById('laNotifyText')?.textContent ?? null, sub: Boolean(window.__push.sub) }));
+        check('…and the same bell stops it: the tower forgets the subscription, the browser too, and nothing more is sent', stopped.label === 'Notify this device' && !stopped.sub && mine().length === 0, JSON.stringify({ ...stopped, sent: mine().length }));
         await nctx.close();
         await new Promise((r) => pushService.close(r));
       }
@@ -1944,11 +1963,13 @@ try {
       return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(body) });
     });
     await la.click('#bTabs [data-tab="status"]').catch(() => {});
-    await la.waitForFunction(() => document.querySelectorAll('#spRows dt').length >= 5 && /Read at/.test(document.getElementById('spState')?.textContent || ''), null, { timeout: 10000 }).catch(() => {});
+    await la.waitForFunction(() => document.querySelectorAll('#statRows dt').length >= 4 && /Read at/.test(document.getElementById('statState')?.textContent || ''), null, { timeout: 10000 }).catch(() => {});
     const sp = await la.evaluate(() => ({
-      rows: Object.fromEntries([...document.querySelectorAll('#spRows dt')].map((dt) => [dt.textContent, dt.nextElementSibling?.textContent || ''])),
+      rows: Object.fromEntries([...document.querySelectorAll('#statRows dt')].map((dt) => [dt.textContent, dt.nextElementSibling?.textContent || ''])),
+      say: document.getElementById('statSay')?.textContent || '',
+      lamps: [...document.querySelectorAll('#statLamps .stat-lamp')].map((l) => `${l.querySelector('b')?.textContent}:${[...l.classList].find((c) => /^stat-(ok|behind|unknown)$/.test(c))}`),
       shown: { music: !document.getElementById('bSideMusic').hidden, line: !document.getElementById('bSideLine').hidden, status: !document.getElementById('bSideStatus').hidden },
-      markup: document.querySelectorAll('#spRows dd *').length,
+      markup: document.querySelectorAll('#statRows dd *, #statSay *').length,
     }));
     const sha7 = towerHealth.commit ? towerHealth.commit.slice(0, 7) : '—';
     check('/api/health says which commit the tower runs', /^[0-9a-f]{40}$/.test(towerHealth.commit || ''), String(towerHealth.commit));
@@ -1957,7 +1978,7 @@ try {
       && /messages? today · .*empties in /.test(sp.rows['The line'] || '') && /your phone: not set up .* listeners who asked: \d+/.test(sp.rows.Notifications || '') && /tracks · \d+ listening/.test(sp.rows['On air'] || '')
       && ghAsked.some((u) => /\/commits\/main$/.test(u)), JSON.stringify(sp));
     // The dev server's config.json carries no commit (only a build stamps one), so two agree and one is unknown: that is not « in step ».
-    check('…and it does not say « in step » while one of the three is unknown', /^GitHub and the tower on [0-9a-f]{7}; commit not known for the site\.$/.test(sp.rows['In step?'] || ''), sp.rows['In step?']);
+    check('…three lamps, GitHub · Site · Tower, and it does not say « in step » while one of the three is unknown', /^GitHub and the tower on [0-9a-f]{7}; commit not known for the site\.$/.test(sp.say) && sp.lamps.join() === 'GitHub:stat-ok,Site:stat-unknown,Tower:stat-ok', JSON.stringify({ say: sp.say, lamps: sp.lamps }));
     await la.close();
 
     // Not watched for console errors: the browser logs the tower's 401 itself.

@@ -11,12 +11,12 @@
  *      him. The topic's name is the only secret: it lives in the tower's
  *      environment, never in the repository.
  *
- *   B. Listeners who asked are told (« Tell me when someone writes » on the
- *      Antenna): standard Web Push (server/lib/webpush.js). The browser's
- *      subscription — an address at its push service and two keys — is kept
- *      in a file beside the line's log; nothing else about the listener is,
- *      and no address of theirs. A subscription the push service says is gone
- *      (404, 410) is forgotten.
+ *   B. The station's own devices are told (« Notify this device » in the
+ *      Booth's Line side, behind the key — Ortis, 2026-11-17: « the
+ *      notifications should only be accessible to me »): standard Web Push
+ *      (server/lib/webpush.js). The browser's subscription — an address at its
+ *      push service and two keys — is kept in a file beside the line's log. A
+ *      subscription the push service says is gone (404, 410) is forgotten.
  *
  * Neither may become a stream of buzzing: at most one notification a minute,
  * and what arrived meanwhile goes out together (« 3 new messages »).
@@ -204,7 +204,8 @@ export class LineNotifier {
   message(m, { from = null } = {}) {
     const item = { name: m.name, text: m.text, host: m.host === true, from: typeof from === 'string' ? from : null };
     if (this.ntfy && !item.host) this.toOrtis.add(item);
-    if (this.push?.size) this.toListeners.add(item);
+    // The station's own words are the station's: nobody is told of them, either way.
+    if (this.push?.size && !item.host) this.toListeners.add(item);
   }
 
   async _ntfy(items) {

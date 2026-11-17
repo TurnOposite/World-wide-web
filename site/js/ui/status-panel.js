@@ -24,6 +24,15 @@ export function ciOf(runs, workflow = 'self-test') {
   return ours[0].conclusion === 'success' ? 'success' : 'failure';
 }
 
+/**
+ * The three lamps (Ortis, 2026-11-17): GitHub, the site, the tower — each green when it is on the commit GitHub's
+ * main is on, red when it is on another, grey when it could not be read.
+ */
+export function lamps({ github = null, site = null, tower = null } = {}) {
+  const lamp = (name, sha, ref) => ({ name, sha, state: !sha ? 'unknown' : !ref || sha === ref ? 'ok' : 'behind' });
+  return [lamp('GitHub', github, github), lamp('Site', site, github), lamp('Tower', tower, github)];
+}
+
 export const CI_WORDS = Object.freeze({ success: 'self-test passed', failure: 'self-test FAILED', pending: 'self-test running', none: 'no self-test ran on it', unknown: 'self-test not read' });
 
 /**
@@ -125,20 +134,22 @@ export class StatusPanel {
     this.root = root;
     this.client = client;
     this._alive = true;
-    root.classList.add('sp');
+    root.classList.add('stat');
     root.innerHTML = `
-      <div class="panel-head"><h2 id="spH">Status</h2><button class="btn small" type="button" id="spAgain">Read again</button></div>
+      <div class="panel-head"><h2 id="statH">Status</h2><button class="btn small" type="button" id="statAgain">Read again</button></div>
       <p class="queue-note">GitHub, the website and the tower should be on the same commit. Each is asked directly, now.</p>
-      <dl class="sp-rows" id="spRows" aria-labelledby="spH"></dl>
-      <p class="qstate" id="spState" aria-live="polite"></p>`;
-    root.querySelector('#spAgain').addEventListener('click', () => this.load());
+      <div class="stat-lamps" id="statLamps" role="list" aria-label="Which commit each place is on"></div>
+      <p class="stat-say" id="statSay"></p>
+      <dl class="stat-rows" id="statRows" aria-labelledby="statH"></dl>
+      <p class="qstate" id="statState" aria-live="polite"></p>`;
+    root.querySelector('#statAgain').addEventListener('click', () => this.load());
     this.load();
   }
 
   async load() {
     if (!this._alive || this._busy) return;
     this._busy = true;
-    const state = this.root.querySelector('#spState');
+    const state = this.root.querySelector('#statState');
     state.textContent = 'Reading…';
     state.className = 'qstate';
     try {
@@ -149,20 +160,40 @@ export class StatusPanel {
       const repo = tower?.repo || (gh.owner && gh.repo ? `${gh.owner}/${gh.repo}` : null);
       const [github, site] = await Promise.all([readGithub(repo), readSite(new URL('config.json', document.baseURI))]);
       if (!this._alive) return;
-      this.paint(statusRows({ github, site, tower, towerError }));
+      this.paint(statusRows({ github, site, tower, towerError }), lamps({ github: github.sha, site: site.commit, tower: tower?.commit }));
       state.textContent = `Read at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}.`;
     } finally { this._busy = false; }
   }
 
-  paint(rows) {
-    const dl = this.root.querySelector('#spRows');
+  paint(rows, lit = []) {
+    const box = this.root.querySelector('#statLamps');
+    box.replaceChildren();
+    for (const l of lit) {
+      const p = document.createElement('span');
+      p.className = `pill stat-lamp stat-${l.state}`;
+      p.setAttribute('role', 'listitem');
+      p.title = { ok: 'on GitHub\'s commit', behind: 'on another commit', unknown: 'could not be read' }[l.state];
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.setAttribute('aria-hidden', 'true');
+      const b = document.createElement('b');
+      b.textContent = l.name;
+      p.append(dot, b, ` ${short(l.sha)}`);
+      box.append(p);
+    }
+    // The first row says in a sentence what the lamps show: it goes under them, the rest stay a list.
+    const [first, ...rest] = rows;
+    const say = this.root.querySelector('#statSay');
+    say.textContent = first?.[0] === 'In step?' ? first[1] : '';
+    say.className = `stat-say${first?.[2] ? ` stat-${first[2]}` : ''}`;
+    const dl = this.root.querySelector('#statRows');
     dl.replaceChildren();
-    for (const [label, text, tone] of rows) {
+    for (const [label, text, tone] of first?.[0] === 'In step?' ? rest : rows) {
       const dt = document.createElement('dt');
       dt.textContent = label;
       const dd = document.createElement('dd');
       dd.textContent = text;
-      if (tone) dd.className = `sp-${tone}`;
+      if (tone) dd.className = `stat-${tone}`;
       dl.append(dt, dd);
     }
   }
@@ -170,7 +201,7 @@ export class StatusPanel {
   destroy() {
     this._alive = false;
     this.root.replaceChildren();
-    this.root.classList.remove('sp');
+    this.root.classList.remove('stat');
   }
 }
 

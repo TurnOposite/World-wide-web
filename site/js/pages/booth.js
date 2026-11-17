@@ -162,8 +162,8 @@ export async function mount(root, ctx) {
     // On a tower the desk has more than music (Ortis, 2026-11-16): the line's log, behind the same key.
     const tabs = client.planeKind === 'tower' ? [['music', 'Music'], ['line', 'Line'], ['status', 'Status']] : [];
     d.innerHTML = `
-      <div class="booth-tabs" id="bTabs" role="group" aria-label="The desk's sides"${tabs.length ? '' : ' hidden'}>
-        ${tabs.map(([id, label], i) => `<button type="button" class="btn small" data-tab="${id}" aria-pressed="${i === 0}">${label}</button>`).join('')}
+      <div class="booth-tabs seg" id="bTabs" role="group" aria-label="The desk's sides"${tabs.length ? '' : ' hidden'}>
+        ${tabs.map(([id, label], i) => `<button type="button" data-tab="${id}" aria-pressed="${i === 0}">${label}</button>`).join('')}
       </div>
       <div id="bSideMusic">
       <section class="channels" id="bChannels" aria-label="Which channel you are editing" hidden></section>

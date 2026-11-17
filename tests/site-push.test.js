@@ -49,14 +49,17 @@ test('the tower\'s key reaches the browser as bytes; a subscription leaves it as
   assert.equal(plainSubscription(null), null);
 });
 
-test('nothing is registered, asked or subscribed until the listener taps', () => {
+test('nothing is registered, asked or subscribed until the station taps the bell — and the Antenna has none', () => {
   const src = read('site/js/ui/push.js');
   const cur = src.slice(src.indexOf('export async function current()'), src.indexOf('export async function subscribe'));
   assert.doesNotMatch(cur, /requestPermission|\.register\(|\.subscribe\(|create: true/, 'looking for an existing subscription asks for nothing');
-  const line = read('site/js/ui/telegraph.js');
-  assert.match(line, /b\.addEventListener\('click', \(\) => this\._toggleNotify\(b\)\)/, 'subscribing happens from the button');
-  assert.equal(line.match(/push\.subscribe\(/g).length, 1);
-  assert.ok(line.indexOf('push.subscribe(') > line.indexOf('async _toggleNotify('), '…and from nowhere else');
+  // Ortis, 2026-11-17: « the notifications should only be accessible to me, so it doesn't have to appear on the antenna ».
+  assert.doesNotMatch(read('site/js/ui/telegraph.js'), /push\.|tgNotify|tell me when someone writes/, 'the listener\'s line offers nothing of it');
+  const admin = read('site/js/ui/line-admin.js');
+  assert.match(admin, /\$\('laNotify'\)\.addEventListener\('click', \(\) => this\._toggleNotify\(\)\)/, 'subscribing happens from the Booth\'s bell');
+  assert.equal(admin.match(/push\.subscribe\(/g).length, 1);
+  assert.ok(admin.indexOf('push.subscribe(') > admin.indexOf('async _toggleNotify('), '…and from nowhere else');
+  assert.match(read('site/js/engine/transport.js'), /telegraph\/subscribe`, \{ method: 'POST', headers: \{ 'Content-Type': 'application\/json', 'x-station-key': this\.key/, 'with the station key');
   for (const f of ['site/js/main.js', 'site/index.html']) assert.doesNotMatch(read(f), /serviceWorker\.register|requestPermission/, `${f} registers nothing on arrival`);
 });
 

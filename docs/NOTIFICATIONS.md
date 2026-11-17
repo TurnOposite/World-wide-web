@@ -38,56 +38,27 @@ What leaves the tower this way: the name and the start of the message, to
 ntfy.sh (a third party), for that topic. Never an address. The topic's name is
 never written in the repository, a document or a log.
 
-## B — Listeners who ask are told
+## B — Your other devices, from the Booth
 
-On the Antenna, in the line's foot: **« tell me when someone writes »**. Nobody
-is asked anything until they tap it. The tap asks the browser's permission,
-registers the site's service worker, and hands the tower a *push subscription*:
-an address at the browser's own push service (Google's, Mozilla's, Apple's) and
-two keys. The same link stops it, on both sides.
+Ortis, 2026-11-17: « the notifications should only be accessible to me, so it doesn't have to appear on the
+antenna ». The Antenna offers listeners nothing. In the Booth, unlocked with the station key, the **Line** side
+has a bell, **« Notify this device »**: it asks the browser's permission, registers the site's service worker,
+and hands the tower this device's push subscription — only with the key. **« On · stop »** takes it back.
 
-- **On as soon as the tower runs this code** (unless `TELEGRAPH_PUSH=0`). The
-  tower makes its own key pair on first start and keeps it, with the
-  subscriptions, in `/srv/radio/cache/telegraph-push.json` (the service's
-  own, mode 600).
-- **What is kept about a listener:** that subscription and when it was made.
-  No name, no address. It is the one exception to « nothing about a listener
-  is stored », by their own tap, and undone by their own tap
-  (`docs/DECISIONS.md`, 2026-11-16).
-- **What is sent:** who wrote and the first 80 characters, encrypted so only
-  that browser can read it (RFC 8291); the push service carries it without
-  seeing it. A listener is not told about their own message. One a minute at
-  most, as above.
-- **A subscription that has gone** (the push service answers 404 or 410) is
-  forgotten by itself.
-- **The tower only ever calls a real push service**: an address that is not
-  Google's, Mozilla's, Apple's or Microsoft's push host is refused, so the
-  subscribe endpoint cannot be used to make the tower call anything else.
-
-### iPhone
-
-Safari only lets a website send notifications when it has been **added to the
-Home Screen and opened from there** (iOS 16.4 or later). In a Safari tab the
-line says so in one sentence instead of showing a link that cannot work:
-Share → Add to Home Screen → open the radio from that icon → the link appears.
-The site carries what that needs (`site/manifest.webmanifest`, the icons in
-`site/assets/app-*.png`, re-drawn by `node scripts/site-icons.mjs`).
-
-**Not proven on a real iPhone.** The self-test drives Chromium with a stand-in
-push service: it proves the tap, the subscription, the encryption and the
-delivery to the push service — not Apple's side. To check on the iPhone 11 Pro:
-add to Home Screen, open, Antenna, tap the link, allow; then write from the
-laptop and wait for the notification with the phone locked. In the EU, Apple
-announced in 2024 that Home Screen web apps would go, then kept them: if the
-icon opens in Safari instead of its own window, that has changed again, and
-part B cannot work on an iPhone until it changes back.
+- Messages you send yourself (the Booth unlocked) notify nobody, either way.
+- What is sent: who wrote and the first 80 characters, encrypted so only that device can read it (RFC 8291);
+  one a minute at most. The tower keeps the subscription (an address at the browser's push service and two keys)
+  in `/srv/radio/cache/telegraph-push.json`, with its own push key pair.
+- **On an iPhone** a website can only receive notifications once it is added to the Home Screen and opened from
+  there (iOS 16.4 or later): Share → Add to Home Screen → open it → Booth → unlock → Line → the bell. In a Safari
+  tab the Line side says so instead of showing the bell. Not yet tried on your iPhone.
 
 ## Settings (the tower's environment, `/etc/radio-tower.env`)
 
 | Line | Default | What |
 |---|---|---|
 | `TELEGRAPH_NOTIFY_URL` | unset | A: the ntfy topic's address. Unset = nothing sent |
-| `TELEGRAPH_PUSH` | on | B: `0` switches the listeners' notifications off |
+| `TELEGRAPH_PUSH` | on | B: `0` switches the Booth's « Notify this device » off |
 | `TELEGRAPH_NOTIFY_GAP_SECONDS` | 60 | at most one notification per this many seconds, each way |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | made and kept by the tower | only to bring a key pair from elsewhere |
 | `PUBLIC_SITE` | `site` in `deploy/fire.json` | where a tap on Ortis's notification leads |

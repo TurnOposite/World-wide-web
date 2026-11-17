@@ -17,7 +17,6 @@
  */
 import { clock } from './util.js';
 import { CastPicker, castFace, castIcon, castLabel, CAST } from './cast.js';
-import * as push from './push.js';
 
 export const IDENTITY_KEY = 'gt.telegraph.me';
 /** How often the line is read while its window is open and the tab is in view. */
@@ -128,10 +127,6 @@ export class TelegraphLine {
     this.latest = 0;
     this._timer = 0;
     this._alive = true;
-    // « Tell me when someone writes »: the tower's public key once it says it sends notifications, and this
-    // browser's subscription if it already has one (asked for nothing, registered nothing: ui/push.js current()).
-    this.pushKey = null;
-    this.pushOn = null;
 
     root.classList.add('tg');
     root.innerHTML = `
@@ -152,7 +147,6 @@ export class TelegraphLine {
       return;
     }
     loadBank().then((icons) => { this.icons = icons; if (this._alive) this.paint(); });
-    push.current().then((sub) => { this.pushOn = sub?.endpoint || null; this._labelNotify(); });
     this.poll();
     this._timer = setInterval(() => { if (!document.hidden) this.poll(); }, POLL_MS);
   }
@@ -190,8 +184,7 @@ export class TelegraphLine {
       if (!this._alive) return;
       if (out.enabled === false) { this.state = 'off'; this.paint(); return; }
       if (out.limits) this.limits = { ...this.limits, ...out.limits };
-      const hadKey = this.pushKey;
-      this.pushKey = typeof out.push?.key === 'string' ? out.push.key : null;
+
       const before = this.messages;
       // The room empties every morning (05:00 Paris): a page left open overnight lets yesterday go too.
       // `restored`: messages the station put back keep their old id, so the tower names them apart.
@@ -200,9 +193,7 @@ export class TelegraphLine {
       const was = this.state;
       this.state = 'open';
       if (was !== 'open') this.paint();
-      // A tower that starts or stops sending notifications: only the foot's own lines, and never under a hand that is typing.
-      else if (hadKey !== this.pushKey && !this.foot.contains(document.activeElement)) this.paintFoot();
-      if (was === 'open' && (before.length !== this.messages.length || before.at(-1)?.id !== this.messages.at(-1)?.id)) this.paintLog();
+      else if ((before.length !== this.messages.length || before.at(-1)?.id !== this.messages.at(-1)?.id)) this.paintLog();
     } catch (err) {
       if (!this._alive) return;
       // A tower that does not know the line (one still running the code from before it): closed, not broken.
@@ -293,49 +284,6 @@ export class TelegraphLine {
     if (s) { s.textContent = text; s.className = `qstate tg-state ${tone}`; }
   }
 
-  /**
-   * The way to ask to be told (or to stop), where this browser can be: a link-like button for the foot's line;
-   * on an iPhone in a Safari tab, the one sentence that says how; else nothing.
-   */
-  _notifyBits() {
-    if (!this.pushKey) return { button: null, hint: null };
-    const can = push.support();
-    if (can === 'ios-home') return { button: null, hint: h('p', 'hint tg-ios', push.HINTS['ios-home']) };
-    if (can !== 'ok') return { button: null, hint: null };
-    const b = h('button', 'tg-link tg-notify');
-    b.type = 'button';
-    b.id = 'tgNotify';
-    b.addEventListener('click', () => this._toggleNotify(b));
-    this._labelNotify(b);
-    return { button: b, hint: null };
-  }
-
-  _labelNotify(b = this.foot?.querySelector('#tgNotify')) {
-    if (!b) return;
-    b.textContent = this.pushOn ? 'stop telling me when someone writes' : 'tell me when someone writes';
-    b.setAttribute('aria-pressed', String(Boolean(this.pushOn)));
-  }
-
-  async _toggleNotify(b) {
-    b.disabled = true;
-    if (this.pushOn) {
-      await push.unsubscribe(this.client);
-      this.pushOn = null;
-      this.toast('You will not be told any more. This browser and the tower have both forgotten the subscription.');
-    } else {
-      const out = await push.subscribe(this.client, this.pushKey);
-      if (out.ok) {
-        this.pushOn = out.endpoint;
-        this.toast('You will be told when someone writes, even with the radio closed. The same link stops it.');
-      } else {
-        this.toast(out.reason === 'denied' ? push.HINTS.denied : `Notifications could not be turned on${out.detail ? `: ${out.detail}` : '.'}`);
-      }
-    }
-    if (!this._alive) return;
-    b.disabled = false;
-    this._labelNotify(b);
-  }
-
   paintFoot() {
     if (!this._alive) return;
     const foot = this.foot;
@@ -348,11 +296,7 @@ export class TelegraphLine {
       const b = h('button', 'btn primary tg-join', 'Join the telegraph line');
       b.type = 'button';
       b.addEventListener('click', () => { this.joining = true; this.paintFoot(); this.foot.querySelector('#tgName')?.focus(); });
-      const hint = h('span', 'hint tg-joinhint', 'A name and a character, nothing else. No account.');
-      const tell = this._notifyBits();
-      if (tell.button) hint.append(' Or just ', tell.button, '.');
-      foot.append(b, hint);
-      if (tell.hint) foot.append(tell.hint);
+      foot.append(b, h('span', 'hint tg-joinhint', 'A name and a character, nothing else. No account.'));
       return;
     }
     if (!me || this.joining) { this._joinForm(me); return; }
@@ -379,12 +323,9 @@ export class TelegraphLine {
     leave.type = 'button';
     leave.addEventListener('click', () => { identity.leave(); this.joining = false; this.paintFoot(); this.toast('You left the line. Nothing about you is kept in this browser.'); });
     who.append(change, ' · ', leave);
-    const tell = this._notifyBits();
-    if (tell.button) who.append(' · ', tell.button);
     const state = h('p', 'qstate tg-state');
     state.setAttribute('aria-live', 'polite');
     foot.append(form, who, state);
-    if (tell.hint) foot.append(tell.hint);
   }
 
   _joinForm(me) {
@@ -446,8 +387,7 @@ export class TelegraphLine {
         const list = await this.client.channels?.();
         stream = list?.channels?.find((c) => c.slug === (this.client.channel ?? list.current))?.label || null;
       } catch { /* the stream is a courtesy */ }
-      // `push`: this browser's own subscription, so the tower does not notify it of what it just said.
-      const message = await this.client.telegraphSend({ name: me.name, icon: me.icon, text, stream, push: this.pushOn });
+      const message = await this.client.telegraphSend({ name: me.name, icon: me.icon, text, stream });
       input.value = '';
       this.say('');
       this.messages = mergeMessages(this.messages, [message]);
