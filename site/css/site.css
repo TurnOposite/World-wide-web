@@ -1017,6 +1017,7 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 @media (max-width:760px),(max-height:500px){
   .radio-extra{display:none!important}
   .radio-head{margin:0 0 10px}
+  .r-count-live{margin-left:10px;vertical-align:middle}
   .onair{gap:14px;padding:16px}
   .onair .cover{max-width:min(240px,25vh)}
   .onair h1{margin:10px 0 6px}

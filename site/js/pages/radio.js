@@ -17,6 +17,7 @@
  * `.radio-extra`.
  */
 import { esc, fmt, fmtSpan, coverSvg } from '../ui/util.js';
+import { PHONE_MEDIA } from '../world/layout.js';
 
 export const title = 'Radio';
 
@@ -186,6 +187,18 @@ export function mount(root, ctx) {
   const offCh = client.on?.('channel', paintStream);
   paintStream();
 
+  // On a phone (Ortis, 2026-11-17: Tune in back on the first screen) the listener count moves up beside LIVE, which
+  // has the room, so the stream switch has the head's line to itself: one row less above the title. Desktop unchanged.
+  const phone = matchMedia(PHONE_MEDIA);
+  const placeCount = () => {
+    const pill = $('rMode');
+    if (phone.matches) $('rBadge').after(pill);
+    else root.querySelector('.meters')?.prepend(pill);
+    pill.classList.toggle('r-count-live', phone.matches);
+  };
+  phone.addEventListener?.('change', placeCount);
+  placeCount();
+
   setPlaying(player.playing);
   paintStation();
   if (player.drift !== null) onDrift({ detail: player.drift });
@@ -194,6 +207,7 @@ export function mount(root, ctx) {
     document.body.classList.remove('on-radio');
     alive = false;
     offCh?.();
+    phone.removeEventListener?.('change', placeCount);
     player.removeEventListener('station', paintStation);
     player.removeEventListener('tick', onTick);
     player.removeEventListener('drift', onDrift);
