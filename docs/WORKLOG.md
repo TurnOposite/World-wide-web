@@ -3397,3 +3397,17 @@ before pushing them, but the rest to do push ».
   shapes, tests of features no visitor runs (the Pi player, Pages, the preview), source-text assertions, the
   always-red Windows check, and three blind spots (the preview smoke never runs; keyed routes and paths are safe only
   if remembered; the bot's lanes).
+
+## 2026-11-17 (late night) - Green means green: the tests' first clean-up step (Claude Code, for Ortis)
+
+- **The side-phone red was real** `5272428`: on a phone on its side the frame ran 2.1 px under the mini-player
+  (66.1 px tall with Windows' Segoe UI; the layout assumed 64). `world.js` measures it now, and places the frames again
+  when it changes height. The check's slack went from 2 px to 0.5 — the slack is what hid it.
+- **ffmpeg found in one place** `5272428`: `tests/helpers/ffmpeg.js` (`$FFMPEG`, else PATH) for the five files that make
+  real audio. Missing: `npm test` warns before it starts and the self-test counts the skips; under CI it is a failure.
+- **Timing tests on a clock or a condition** `97c7a96`: the tower's budgets take a test clock (`createApp({ now })`),
+  so the burst is exactly 40; « the music did not stop » and « it is a permutation » wait for a condition, and the
+  permutation allows for a track ending between its two reads.
+- **Self-test on the laptop, twice, fully green for the first time**: 513/513 unit (0 skipped), 43/43 browser,
+  185/185 site, 26/26 Atelier — on `5272428`, then on `97c7a96`. Next in `docs/TESTS-REVIEW.md`: the keyed-route table
+  and the no-path walk.
