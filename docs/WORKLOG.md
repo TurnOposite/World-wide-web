@@ -3411,3 +3411,13 @@ before pushing them, but the rest to do push ».
 - **Self-test on the laptop, twice, fully green for the first time**: 513/513 unit (0 skipped), 43/43 browser,
   185/185 site, 26/26 Atelier — on `5272428`, then on `97c7a96`. Next in `docs/TESTS-REVIEW.md`: the keyed-route table
   and the no-path walk.
+
+## 2026-11-17 (late night) - Every door of the API, from the router (Claude Code, for Ortis)
+
+- **`tests/routes.test.js`** `cca0c1d` (`docs/TESTS-REVIEW.md` step 2): the 25 routes are read from the router; each is
+  named OPEN (13) or KEYED (12), and a new one fails the suite until it is placed. Every keyed route: 401 with no key
+  and a wrong key, open with the right one; wrong keys on any of them share one budget (twenty, then 429). Every answer
+  walked for a path on disk, a file name or a `relPath`. Each check was broken on purpose once and went red.
+- **Found by the walk, fixed**: `/api/health`, open, told anyone `"musicDir":"/srv/radio/music"`. It is in the keyed
+  `/api/status` now; the DJ booth's `status` and `doctor` read it there with their key.
+- **Self-test** on `cca0c1d`: 520/520 unit, 43/43 browser, 185/185 site, 26/26 Atelier.
