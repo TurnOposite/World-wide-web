@@ -232,7 +232,7 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
   let landRings = [];
   const dials = mountDials({ root, nav: tags.nav, getRings: () => landRings });
   fetch(new URL('data/world.json', document.baseURI)).then((r) => (r.ok ? r.json() : null)).then((j) => {
-    if (j?.paths) { landRings = ringsOf(j.paths); dials.place(); }
+    if (j?.paths) { landRings = ringsOf(j.paths); dials.settle(); }
   }).catch(() => {});
   const phone = matchMedia(PHONE_MEDIA);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
@@ -291,6 +291,8 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
     const before = current;
     current = d.id;
     tags.mark(d.id);
+    // Measured again at every arrival: a dial follows its tags wherever the page load, a font or the Atelier left them.
+    dials.place();
     if (before && before !== d.id) dials.turn(d.half);
     plane.querySelectorAll('.w-district').forEach((s) => s.classList.toggle('here', s.dataset.d === d.id));
     skip?.setAttribute('href', `#w-${d.id}`);
@@ -493,7 +495,7 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
     const end = screen.button.offsetParent ? screen.button.getBoundingClientRect().left : innerWidth - 8;
     root.style.setProperty('--w-strip-r', `${Math.round(innerWidth - end + 8)}px`);
   }
-  addEventListener('resize', () => { placeAll(); camera.refit(); fitStrip(); refit(); dials.place(); });
+  addEventListener('resize', () => { placeAll(); camera.refit(); fitStrip(); refit(); dials.settle(); });
 
   // The one live page. The page the camera leaves sleeps in its frame (inert,
   // its players silenced) until the camera lands, then its frame is a door again.

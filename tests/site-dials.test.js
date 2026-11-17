@@ -67,5 +67,8 @@ test('decoration only: hidden, untouchable, not on a phone, still with reduced m
   assert.match(css, /@media \(prefers-reduced-motion:reduce\)\{\.w-reel-turn\{transition:none\}\}/);
   const world = read('site/js/world/world.js');
   assert.match(world, /if \(before && before !== d\.id\) dials\.turn\(d\.half\);/);
+  // 2026-11-17: placed once, at a bad instant of a slow load, both dials sat 400 px low live. Measured at every arrival.
+  assert.match(world, /dials\.place\(\);\n {4}if \(before && before !== d\.id\)/, 'measured again at every arrival');
+  assert.match(world, /landRings = ringsOf\(j\.paths\); dials\.settle\(\);/, 'and a few times once the map arrives');
   assert.ok(world.indexOf('dials.el') < world.indexOf('viewport, scan'), 'behind the windows');
 });

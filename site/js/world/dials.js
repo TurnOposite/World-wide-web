@@ -204,6 +204,20 @@ export function mountDials({ root, nav, getRings, reduced = matchMedia('(prefers
     frame = requestAnimationFrame(step);
   }
 
+  /**
+   * Where the tags are now decides where the dials go. Measured once, at the wrong instant — the first seconds of a
+   * slow load, while the page is still laying itself out — both dials sat 400 px low on the live site (2026-11-17).
+   * So: at every arrival (world.js), and a few times over the two seconds after the map arrives or the window changes.
+   */
+  let settling = 0;
+  function settle() {
+    clearTimeout(settling);
+    let n = 0;
+    const tick = () => { place(); if (++n < 5) settling = setTimeout(tick, 450); };
+    tick();
+  }
+
+  let placedFor = '';
   function place() {
     const w = innerWidth;
     svg.setAttribute('width', w);
@@ -217,13 +231,18 @@ export function mountDials({ root, nav, getRings, reduced = matchMedia('(prefers
       if (!d) continue;
       g.setAttribute('transform', `translate(${d.cx} ${d.cy})`);
       if (half === 'zone') zoneScale.setAttribute('transform', `scale(${d.r / 100})`);
-      else { globeR = d.r - 14; drawGlobe(shown); }
+      else {
+        // The globe is redrawn only when its size changed, or its coasts arrived: a move costs one attribute.
+        const key = `${d.r}:${getRings().length}`;
+        if (key !== placedFor) { placedFor = key; globeR = d.r - 14; drawGlobe(shown); }
+      }
     }
   }
 
   return {
     el,
     place,
+    settle,
     /** A change of page: the reel turns one tooth, the globe thirty degrees — each toward the half arrived on. */
     turn(half) {
       if (half === 'echo') { lon0 += 30; turnGlobeTo(lon0); } else { reelAngle += 60; reelG.style.transform = `rotate(${reelAngle}deg)`; }
