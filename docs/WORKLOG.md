@@ -3421,3 +3421,15 @@ before pushing them, but the rest to do push ».
 - **Found by the walk, fixed**: `/api/health`, open, told anyone `"musicDir":"/srv/radio/music"`. It is in the keyed
   `/api/status` now; the DJ booth's `status` and `doctor` read it there with their key.
 - **Self-test** on `cca0c1d`: 520/520 unit, 43/43 browser, 185/185 site, 26/26 Atelier.
+
+## 2026-11-17 (late night) - One way to start a tower; the rules said once (Claude Code, for Ortis)
+
+- **`f3380c3`** (`docs/TESTS-REVIEW.md` step 3, in part): `tests/helpers/tower.js` starts every test tower (fifteen
+  files); the key refusals and path walks that `routes.test` holds for every route left eight files; « everyone hears
+  the same second » is one helper, `tests/helpers/same-programme.js`, run on the Station, the daily programme (both
+  clock changes) and each browser channel — and shown to go red on a listener one second off. 520 → 515 tests,
+  ~185 lines fewer.
+- **Noted, not changed**: a Station takes the scan's path-sorted list as part of the programme, and the scan sorts with
+  `localeCompare` (machine language). One tower deals for everyone, so nothing differs today.
+- **Self-test** on `f3380c3`: 515/515 unit, 43/43 browser, 185/185 site, 26/26 Atelier. Still to fold: the
+  permutation's authority, range requests, the 05:00 calendar.
