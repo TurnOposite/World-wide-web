@@ -3362,3 +3362,22 @@ before pushing them, but the rest to do push ».
 - **Self-test** on `74b3f86`, this laptop: `npm test` 509 (481 pass, 28 skipped), 43/43 browser, 182/183 site,
   26/26 Atelier — the one red is « phone on its side », red on this Windows Chrome since October. The site stage
   alone after `4d5b119`: 148/149, the same one red, « …a tap on it changes the stream from Radio » passing.
+
+## 2026-11-17 (evening) - New albums on the tower; today's code live (Claude Code, for Ortis)
+
+- **Music** (his word: « I want all of those up and running »), from Downloads, through the library bot (the session
+  may not touch `music\` itself): ultimateria万 — *era estranged 疎遠な時代* (released 2026-11-15): tracks 7 « kismet運命 »
+  and 10 « waiting待っている » in `For Radio` (Favourites, daily — « playlist level rotation »), the other 8 in
+  `More often` (every 3 days — « more than a normal album, less than the very very frequent »); in `Crates/Bandcamp`:
+  slowerpace 音楽 — *Bliss OS* (6), saken — *reveries夢 ~ volume Ⅳ* (15), Mabisyo — *Lo-Fi Beats Vault V.1* (11),
+  death's dynamic shroud.wmv — « MACHINE死 » (1). The two WAV albums and *Bliss OS* (lossless .m4a, which Chrome cannot
+  play) were converted to MP3 320 outside the music folder first; ultimateria's titles (mis-encoded by the downloader)
+  and track numbers (order checked on its Bandcamp page) fixed. `publish`: 45 of 45 sent; the tower holds 3,217 tracks.
+  They join the programme at the next 05:00 Paris.
+- **CI**: two red runs on GitHub. The first log is not readable without a GitHub login, so `ci.yml` now posts what
+  failed as annotations (public) — B5. It was « « Aller à la radio » crosses the seam »: `paused: true` 0.17 s from the
+  clock, read at a fixture track change; the check now waits up to 4 s for the same element to be playing (`e7b65ba`).
+  Green on GitHub, then `fire`: site and tower on `e7b65ba`.
+- **Live check**: Everything 3,217 tracks, Chill 2,755 (≈ 297 h), Energy 124 (≈ 42 h); `/api/telegraph` no longer
+  advertises push. `npm run compare -- --url …` on /radio: on a 390 px phone the stream switch takes its own row, so a
+  long title pushes Tune in under the first screen (at 375×667 the title ends 10 px under). Not fixed yet.
