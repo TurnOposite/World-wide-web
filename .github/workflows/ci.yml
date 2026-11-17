@@ -50,4 +50,15 @@ jobs:
           node scripts/cloud-library.mjs check
 
       - name: Self-test
-        run: bash scripts/build-test.sh
+        run: |
+          set -o pipefail
+          bash scripts/build-test.sh 2>&1 | tee selftest.log
+
+      # What failed, where anyone can read it without signing in: as annotations on the run (the public API lists
+      # them) and on the run's summary page. The log itself needs a GitHub login (BACKLOG B5, 2026-11-17).
+      - name: What failed
+        if: failure()
+        run: |
+          sed 's/\[[0-9;]*m//g' selftest.log | grep -E '^ *(FAIL|not ok|✖)|✗' | head -20 > failed.txt || true
+          while IFS= read -r line; do echo "::error title=self-test::$(printf '%s' "$line" | cut -c1-900)"; done < failed.txt
+          { echo '### What failed'; echo; echo '```'; cat failed.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
