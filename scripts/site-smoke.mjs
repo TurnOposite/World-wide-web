@@ -1165,6 +1165,10 @@ try {
   await w.click('#w-une .echo-onair a.echo-go');
   await settled('radio');
   await w.waitForFunction(() => !window.radioTower.world.ash, null, { timeout: 3000 }).catch(() => {});
+  // The fixture's tracks last 22–34 s: read at a track change, the element is paused for the instant the next file
+  // takes over (GitHub, 2026-11-17: « paused »: true at 0.17 s from the clock). Wait for it to be playing — four
+  // seconds, the same element — then read; a radio that really stopped still fails (BACKLOG B5).
+  await w.waitForFunction(() => { const au = document.getElementById('audio'); return au === window.__worldAudio && !au.paused; }, null, { timeout: 4000 }).catch(() => {});
   const crossed = { ...(await shot('radio')), ...(await w.evaluate(() => {
     const au = document.getElementById('audio');
     return { same: au === window.__worldAudio, paused: au.paused, d: au.currentTime - window.radioTower.player.livePosition(), ash: window.radioTower.world.ash,
