@@ -59,6 +59,6 @@ jobs:
       - name: What failed
         if: failure()
         run: |
-          sed 's/\[[0-9;]*m//g' selftest.log | grep -E '^ *(FAIL|not ok|✖)|✗' | head -20 > failed.txt || true
+          tr -d "\033" < selftest.log | sed "s/\[[0-9;]*m//g" | grep -E "^ *(FAIL|not ok|✖)|✗" | head -20 > failed.txt || true
           while IFS= read -r line; do echo "::error title=self-test::$(printf '%s' "$line" | cut -c1-900)"; done < failed.txt
           { echo '### What failed'; echo; echo '```'; cat failed.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
