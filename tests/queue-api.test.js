@@ -16,15 +16,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { FFMPEG, hasFfmpeg, NO_FFMPEG } from './helpers/ffmpeg.js';
 
 const run = promisify(execFile);
 
-let hasFfmpeg = true;
-try {
-  await run('ffmpeg', ['-version']);
-} catch {
-  hasFfmpeg = false;
-}
 
 const MUSIC = await fs.mkdtemp(path.join(os.tmpdir(), 'rt-queue-'));
 const CACHE = path.join(MUSIC, '.cache', 'library.json');
@@ -39,7 +34,7 @@ if (hasFfmpeg) {
     ['07 Golf.mp3', 22, 460], ['08 Hotel.mp3', 30, 500],
   ];
   for (const [name, seconds, freq] of specs) {
-    await run('ffmpeg', [
+    await run(FFMPEG, [
       '-hide_banner', '-loglevel', 'error', '-y',
       '-f', 'lavfi', '-i', `sine=frequency=${freq}:duration=${seconds}`,
       '-metadata', `title=${path.basename(name, '.mp3').replace(/^\d+\s/, '')}`,
@@ -120,7 +115,7 @@ const reorder = (w, ids, key = KEY) =>
   );
 
 test('GET /api/queue reports editability and marks the imminent slots frozen', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const body = await (await get('/api/queue')).json();
   assert.equal(body.editable, true);
   assert.equal(body.lockSeconds, 45);
@@ -142,7 +137,7 @@ test('GET /api/queue reports editability and marks the imminent slots frozen', a
 });
 
 test('a reorder without the key is refused', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const w = await freeWindow(2);
   if (!w) return t.skip('not enough unlocked slots');
   const ids = [w.window[1].id, w.window[0].id];
@@ -153,7 +148,7 @@ test('a reorder without the key is refused', async (t) => {
 });
 
 test('a reorder with the key permutes the window', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const w = await freeWindow(3);
   if (!w) return t.skip('not enough unlocked slots');
 
@@ -173,7 +168,7 @@ test('a reorder with the key permutes the window', async (t) => {
 });
 
 test('a slot too close to air cannot be moved', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const { slots } = await (await get('/api/queue')).json();
   const locked = slots.find((s) => s.locked);
   if (!locked) return t.skip('nothing is currently locked');
@@ -192,7 +187,7 @@ test('a slot too close to air cannot be moved', async (t) => {
 });
 
 test('an id that does not belong to the window is refused, not misapplied', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const w = await freeWindow(2);
   if (!w) return t.skip('not enough unlocked slots');
 
@@ -203,7 +198,7 @@ test('an id that does not belong to the window is refused, not misapplied', asyn
 });
 
 test('a window running past the end of the cycle is refused', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const w = await freeWindow(2);
   if (!w) return t.skip('not enough unlocked slots');
 
@@ -221,7 +216,7 @@ test('a window running past the end of the cycle is refused', async (t) => {
 });
 
 test('reordering never changes the library revision', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const before = await (await get('/api/queue')).json();
   const w = await freeWindow(2);
   if (!w) return t.skip('not enough unlocked slots');
@@ -237,7 +232,7 @@ test('reordering never changes the library revision', async (t) => {
 });
 
 test('clear removes the override', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const w = await freeWindow(2);
   if (!w) return t.skip('not enough unlocked slots');
 
@@ -262,7 +257,7 @@ test('POST /api/key says whether a key is the station key, and changes nothing',
 });
 
 test('the queue endpoints leak no filesystem paths', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const raw = await (await get('/api/queue')).text();
   assert.ok(!raw.includes('relPath'), 'relPath leaked');
   assert.ok(!raw.includes(MUSIC), 'absolute music path leaked');
@@ -273,7 +268,7 @@ test('the queue endpoints leak no filesystem paths', async (t) => {
 // has a real STATION_KEY and a real, ffmpeg-backed music directory to add a
 // file to.
 test('a rescan without the key is refused, without running the scan', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const before = station.tracks.length;
   assert.equal((await post('/api/rescan', {}, {})).status, 401);
   assert.equal((await post('/api/rescan', {}, { 'x-station-key': 'wrong-key' })).status, 401);
@@ -281,9 +276,9 @@ test('a rescan without the key is refused, without running the scan', async (t) 
 });
 
 test('a rescan with the key picks up a newly added file', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const before = station.tracks.length;
-  await run('ffmpeg', [
+  await run(FFMPEG, [
     '-hide_banner', '-loglevel', 'error', '-y',
     '-f', 'lavfi', '-i', 'sine=frequency=550:duration=4',
     '-metadata', 'title=Late Addition', '-metadata', 'artist=Test Signal',

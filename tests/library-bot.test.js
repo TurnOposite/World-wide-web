@@ -21,6 +21,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { FFMPEG, NO_FFMPEG } from './helpers/ffmpeg.js';
 
 import {
   core, readingsOf, similarity, safeName, fetchEmbed, mergeTracks, sortWaiting, loadState, saveState,
@@ -38,15 +39,13 @@ Object.assign(process.env, {
 const { readMembership } = await import('../server/lib/library.js');
 
 const run = promisify(execFile);
-let hasFfmpeg = true;
-try { await run('ffmpeg', ['-version']); } catch { hasFfmpeg = false; }
 
 async function tone(file, seconds, { title, artist } = {}) {
   await fsp.mkdir(path.dirname(file), { recursive: true });
   const meta = [];
   if (title) meta.push('-metadata', `title=${title}`);
   if (artist) meta.push('-metadata', `artist=${artist}`);
-  await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', `sine=frequency=330:duration=${seconds}`, ...meta, '-b:a', '64k', file]);
+  await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', `sine=frequency=330:duration=${seconds}`, ...meta, '-b:a', '64k', file]);
 }
 
 /* --------------------------------------------------------------- text -- */
@@ -121,7 +120,7 @@ test('an Exportify CSV becomes a full playlist, quotes and commas included', asy
 
 /* ------------------------------------------------------------- sorting -- */
 
-test('sorting files every arrival in the right folder, once, and loses nothing', { skip: !hasFfmpeg && 'ffmpeg not installed' }, async () => {
+test('sorting files every arrival in the right folder, once, and loses nothing', { skip: NO_FFMPEG }, async () => {
   const root = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-bot-'));
   const lib = path.join(root, 'music');
   const home = path.join(root, 'home');
@@ -225,7 +224,7 @@ test('sorting files every arrival in the right folder, once, and loses nothing',
 
 /* ------------------------------------------------------------- publish -- */
 
-test('publishing sends only what the tower lacks; the tower takes only audio in its library, with the key', { skip: !hasFfmpeg && 'ffmpeg not installed' }, async () => {
+test('publishing sends only what the tower lacks; the tower takes only audio in its library, with the key', { skip: NO_FFMPEG }, async () => {
   const towerMusic = TOWER_MUSIC;
   const lib = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-laptop-'));
   await tone(path.join(lib, 'Haze', 'potsu - letting go.mp3'), 3);

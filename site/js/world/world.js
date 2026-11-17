@@ -408,12 +408,19 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
     pick(next.id, { replace: true });
   });
 
+  // The mini-player's height as drawn. Its design is 64 px, but its text decides it: 66.1 px with Windows' Segoe UI
+  // (2026-11-17), and a phone frame that assumed 64 ran 2 px under it.
+  const minibar = document.getElementById('minibar');
+  const miniH = () => Math.ceil(minibar?.getBoundingClientRect().height || 64);
+  let placedMini = 0;
+
   // Each frame's size on this screen (a phone's frame is the screen), and the zoom
   // that brings its page back to 1:1 once the camera has scaled the plane.
   function placeAll() {
+    placedMini = miniH();
     for (const d of DISTRICTS) {
       const s = sections.get(d.id);
-      const f = frameFor(d, innerWidth, innerHeight, { phone: phone.matches });
+      const f = frameFor(d, innerWidth, innerHeight, { phone: phone.matches, bottom: placedMini });
       Object.assign(s.style, { left: `${d.x}px`, top: `${d.y}px`, width: `${f.w}px`, height: `${f.h}px` });
       s.style.setProperty('--rot', phone.matches ? '0deg' : `${d.rot}deg`);
       s.classList.toggle('w-off', d.status === 'offline');
@@ -530,6 +537,8 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
     const ro = new ResizeObserver(() => fitStrip());
     ro.observe(sw);
     ro.observe(screen.button);
+    // The mini-player grows a line (a long title, a face, a font arriving): the phone frames end above it again.
+    if (minibar) new ResizeObserver(() => { if (miniH() !== placedMini) placeAll(); }).observe(minibar);
   }
 
   return {

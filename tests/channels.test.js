@@ -20,6 +20,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { FFMPEG, NO_FFMPEG } from './helpers/ffmpeg.js';
 import { fileURLToPath } from 'node:url';
 
 import { Station, interleave } from '../server/lib/schedule.js';
@@ -259,10 +260,8 @@ test("the old single override still means the 'all' channel", () => {
 /* ------------------------------------------------------------ the server */
 
 const run = promisify(execFile);
-let hasFfmpeg = true;
-try { await run('ffmpeg', ['-version']); } catch { hasFfmpeg = false; }
 
-test('the server answers per channel, keeps its old answers without one, and never airs _inbox/', { skip: !hasFfmpeg && 'ffmpeg not installed' }, async () => {
+test('the server answers per channel, keeps its old answers without one, and never airs _inbox/', { skip: NO_FFMPEG }, async () => {
   const MUSIC = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-channels-'));
   const files = [
     ['Upbeat/01 Fast.mp3', 4, 220], ['Upbeat/02 Faster.mp3', 5, 260], ['Upbeat/03 Fastest.mp3', 3, 290],
@@ -271,7 +270,7 @@ test('the server answers per channel, keeps its old answers without one, and nev
   ];
   for (const [rel, seconds, freq] of files) {
     await fsp.mkdir(path.dirname(path.join(MUSIC, rel)), { recursive: true });
-    await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', `sine=frequency=${freq}:duration=${seconds}`,
+    await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', `sine=frequency=${freq}:duration=${seconds}`,
       '-metadata', `title=${path.basename(rel, '.mp3')}`, '-metadata', 'artist=Test', '-b:a', '64k', path.join(MUSIC, rel)]);
   }
   // A channel spec beside the music: one custom channel, then the defaults.

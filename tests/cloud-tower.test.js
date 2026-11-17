@@ -15,6 +15,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { FFMPEG, NO_FFMPEG } from './helpers/ffmpeg.js';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -43,15 +44,13 @@ test('every setting install.sh writes is one the server reads', () => {
   assert.match(install, /iptables -I INPUT 1 -p tcp --dport "\$p"/, 'ports 80/443 opened before Oracle\'s REJECT rule');
 });
 
-let hasFfmpeg = true;
-try { await run('ffmpeg', ['-version']); } catch { hasFfmpeg = false; }
 
-test('the tower serves the whole site, tuned to itself', { skip: !hasFfmpeg && 'ffmpeg not installed' }, async () => {
+test('the tower serves the whole site, tuned to itself', { skip: NO_FFMPEG }, async () => {
   const dist = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-dist-tower-'));
   const music = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-cloud-music-'));
   for (const [rel, s, f] of [['Haze/a.mp3', 3, 220], ['Haze/b.mp3', 4, 260], ['Haze/c.mp3', 3, 300], ['Zone/d.mp3', 5, 330], ['Zone/e.mp3', 3, 370], ['Zone/f.mp3', 4, 410]]) {
     await fsp.mkdir(path.dirname(path.join(music, rel)), { recursive: true });
-    await run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', `sine=frequency=${f}:duration=${s}`, '-metadata', `title=${rel}`, '-b:a', '64k', path.join(music, rel)]);
+    await run(FFMPEG, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', `sine=frequency=${f}:duration=${s}`, '-metadata', `title=${rel}`, '-b:a', '64k', path.join(music, rel)]);
   }
   const { build } = await import('../scripts/site-build.mjs');
   await build({ tower: '', dist, quiet: true, repo: '' });

@@ -12,7 +12,7 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "scan": "node scripts/scan.js",
-    "test": "node --test \"tests/*.test.js\"",
+    "test": "node tests/helpers/ffmpeg.js && node --test \"tests/*.test.js\"",
     "healthcheck": "node scripts/healthcheck.js",
     "selftest": "bash scripts/build-test.sh",
     "repeats": "node scripts/repeats.mjs",

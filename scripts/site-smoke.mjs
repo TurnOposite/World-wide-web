@@ -1507,7 +1507,10 @@ try {
     const page = box.querySelector(':scope > .page');
     return {
       line: [brand, sw, tags].every((b) => b.top < 20 && b.bottom <= 60), apart: brand.right <= sw.left && sw.right <= tags.left && tags.right <= innerWidth,
-      under: frame.top >= tags.bottom, above: frame.bottom <= mb.top + 2, inside: frame.left >= 0 && frame.right <= innerWidth,
+      // 2026-11-17: « above » once allowed 2 px, and a frame 2.1 px under the mini-player (Windows' taller text) hid in it, red by 0.125.
+      // The frame now measures the mini-player (world.js miniH); half a pixel is sub-pixel rounding, nothing more.
+      under: frame.top >= tags.bottom, above: frame.bottom <= mb.top + 0.5, inside: frame.left >= 0 && frame.right <= innerWidth,
+      gap: +(mb.top - frame.bottom).toFixed(3),
       zoom: box.style.zoom, scale: page ? page.getBoundingClientRect().width / page.offsetWidth : 0,
       minimap: getComputedStyle(document.querySelector('.w-minimap')).display, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     };

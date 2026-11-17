@@ -107,6 +107,12 @@ FAIL_COUNT="$(awk '/ fail [0-9]+$/{n=$NF} END{print n}' <<<"$TEST_OUT")"
 if [[ "$FAIL_COUNT" == "0" ]]; then
   PASSED="$(awk '/ pass [0-9]+$/{n=$NF} END{print n}' <<<"$TEST_OUT")"
   ok "${PASSED} tests passed"
+  # A skip is not a pass (2026-11-17: 28 skipped unseen on a laptop without ffmpeg). Say how many, and why.
+  SKIPPED="$(awk '/ skipped [0-9]+$/{n=$NF} END{print n}' <<<"$TEST_OUT")"
+  if [[ -n "$SKIPPED" && "$SKIPPED" != "0" ]]; then
+    printf '  %s %s\n' "$(red '!')" "${SKIPPED} tests SKIPPED, not passed:"
+    grep -E '# SKIP|ffmpeg not found' <<<"$TEST_OUT" | sort -u | head -5 | sed 's/^/      /'
+  fi
 else
   bad "test suite failed"
   grep -E 'not ok|AssertionError|fail [0-9]' <<<"$TEST_OUT" | head -20 | sed 's/^/      /'

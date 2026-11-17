@@ -2,8 +2,9 @@
  * Integration test: boot the real server over a real (generated) music
  * directory and exercise every endpoint the player depends on.
  *
- * Requires ffmpeg to synthesise the audio. Skips cleanly if it is absent so
- * the suite still runs on a machine that only has Node.
+ * Requires ffmpeg to synthesise the audio (tests/helpers/ffmpeg.js finds it).
+ * Skips if it is absent so the suite still runs on a machine that only has
+ * Node — loudly, and never under CI.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,15 +13,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { FFMPEG, hasFfmpeg, NO_FFMPEG } from './helpers/ffmpeg.js';
 
 const run = promisify(execFile);
 
-let hasFfmpeg = true;
-try {
-  await run('ffmpeg', ['-version']);
-} catch {
-  hasFfmpeg = false;
-}
 
 const MUSIC = await fs.mkdtemp(path.join(os.tmpdir(), 'rt-music-'));
 const CACHE = path.join(MUSIC, '.cache', 'library.json');
@@ -32,7 +28,7 @@ if (hasFfmpeg) {
     { name: '03 - Dead Air.mp3', seconds: 5, freq: 440, title: 'Dead Air', artist: 'Other Act' },
   ];
   for (const s of specs) {
-    await run('ffmpeg', [
+    await run(FFMPEG, [
       '-hide_banner', '-loglevel', 'error', '-y',
       '-f', 'lavfi', '-i', `sine=frequency=${s.freq}:duration=${s.seconds}`,
       '-metadata', `title=${s.title}`,
@@ -96,7 +92,7 @@ test('GET /api/time returns a plausible server clock', async () => {
 });
 
 test('GET /api/station describes what is on air', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const body = await (await get('/api/station')).json();
   assert.equal(body.station.name, 'Test Tower');
   assert.deepEqual(body.station.origin, { lat: 52.37, lon: 4.9, place: 'Test Harbour', timeZone: 'Europe/Amsterdam' }, 'STATION_LAT/LON/PLACE/TZ surface in /api/station');
@@ -109,14 +105,14 @@ test('GET /api/station describes what is on air', async (t) => {
 });
 
 test('/api/station never leaks a filesystem path', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const raw = await (await get('/api/station')).text();
   assert.ok(!raw.includes('relPath'), 'relPath leaked to the client');
   assert.ok(!raw.includes(MUSIC), 'absolute music path leaked to the client');
 });
 
 test('two /api/station calls a second apart advance the offset, not the track', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
 
   // This only means something if we are not about to roll over mid-test. The
   // schedule is a pure function of `now - epoch` (BRIEF.md §3), so rather than
@@ -170,7 +166,7 @@ test('two /api/station calls a second apart advance the offset, not the track', 
 });
 
 test('listener counting responds to the listener ping', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   await get('/api/station?listener=alpha');
   await get('/api/station?listener=beta');
   const body = await (await get('/api/station?listener=gamma')).json();
@@ -178,7 +174,7 @@ test('listener counting responds to the listener ping', async (t) => {
 });
 
 test('GET /api/library lists and searches', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const all = await (await get('/api/library')).json();
   assert.equal(all.total, 3);
   assert.equal(all.items.length, 3);
@@ -196,7 +192,7 @@ test('GET /api/library lists and searches', async (t) => {
 });
 
 test('GET /api/schedule returns a contiguous programme guide for a window', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const from = new Date(Date.now() + 5000).toISOString();
   const to = new Date(Date.now() + 5000 + 3 * 3600_000).toISOString();
   const res = await get(`/api/schedule?from=${from}&to=${to}`);
@@ -214,7 +210,7 @@ test('GET /api/schedule returns a contiguous programme guide for a window', asyn
 });
 
 test('GET /api/schedule defaults from=now, to=now+2h when omitted', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const before = Date.now();
   const body = await (await get('/api/schedule')).json();
   const after = Date.now();
@@ -223,7 +219,7 @@ test('GET /api/schedule defaults from=now, to=now+2h when omitted', async (t) =>
 });
 
 test('GET /api/schedule caps an oversized window rather than erroring', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const from = new Date().toISOString();
   const to = new Date(Date.now() + 30 * 24 * 3600_000).toISOString(); // 30 days
   const body = await (await get(`/api/schedule?from=${from}&to=${to}`)).json();
@@ -238,7 +234,7 @@ test('GET /api/schedule rejects malformed or inverted windows', async () => {
 });
 
 test('streaming: full body', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const id = station.tracks[0].id;
   const res = await get(`/api/track/${id}/stream`);
   assert.equal(res.status, 200);
@@ -249,7 +245,7 @@ test('streaming: full body', async (t) => {
 });
 
 test('streaming: range request returns 206 with the exact slice', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const id = station.tracks[0].id;
   const full = Buffer.from(await (await get(`/api/track/${id}/stream`)).arrayBuffer());
 
@@ -263,7 +259,7 @@ test('streaming: range request returns 206 with the exact slice', async (t) => {
 });
 
 test('streaming: open-ended and suffix ranges', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const id = station.tracks[0].id;
   const full = Buffer.from(await (await get(`/api/track/${id}/stream`)).arrayBuffer());
 
@@ -277,7 +273,7 @@ test('streaming: open-ended and suffix ranges', async (t) => {
 });
 
 test('streaming: unsatisfiable range returns 416', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const id = station.tracks[0].id;
   const res = await get(`/api/track/${id}/stream`, { headers: { Range: 'bytes=99999999-' } });
   assert.equal(res.status, 416);
@@ -285,7 +281,7 @@ test('streaming: unsatisfiable range returns 416', async (t) => {
 });
 
 test('streaming: HEAD gives the size without the body', async (t) => {
-  if (!hasFfmpeg) return t.skip('ffmpeg not available');
+  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const id = station.tracks[0].id;
   const res = await get(`/api/track/${id}/stream`, { method: 'HEAD' });
   assert.equal(res.status, 200);
