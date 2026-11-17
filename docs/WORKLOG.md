@@ -3381,3 +3381,19 @@ before pushing them, but the rest to do push ».
 - **Live check**: Everything 3,217 tracks, Chill 2,755 (≈ 297 h), Energy 124 (≈ 42 h); `/api/telegraph` no longer
   advertises push. `npm run compare -- --url …` on /radio: on a 390 px phone the stream switch takes its own row, so a
   long title pushes Tune in under the first screen (at 375×667 the title ends 10 px under). Not fixed yet.
+
+## 2026-11-17 (night) - Tune in back on the phone's first screen; the dials live; the tests reviewed (Claude Code, for Ortis)
+
+- **Phone** `62ebd89`: the listener count beside LIVE, the stream switch alone on the head's line — at 390×844 Tune
+  in is on the first screen with a four-line title; at 375×667 the title fits.
+- **The dials** `e110aa4` (« Push the dials »): live. The first live pictures showed both 400 px low after a slow
+  load: they were measured once, when the world map arrived. `2449cc6` measures them at every arrival and five times
+  over the first two seconds, and a browser check now holds each dial's centre level with its own tags. Six cold
+  loads of the live site afterwards: reel at y 313, globe at y 300, on Zone and on Echo.
+- **Self-test** on `5aa5bcf` (the dials): 513 unit, 43/43 browser, 183/184 site (the Windows-only check), 26/26
+  Atelier; GitHub green on each of `62ebd89`, `e110aa4`, `2449cc6`. One unit run on `62ebd89` went red once and green
+  on a rerun with nothing changed (a timing test under load; it does not name itself in the self-test's summary).
+- **The tests reviewed** — `docs/TESTS-REVIEW.md`, a proposal, nothing removed: the same rules tested in several
+  shapes, tests of features no visitor runs (the Pi player, Pages, the preview), source-text assertions, the
+  always-red Windows check, and three blind spots (the preview smoke never runs; keyed routes and paths are safe only
+  if remembered; the bot's lanes).
