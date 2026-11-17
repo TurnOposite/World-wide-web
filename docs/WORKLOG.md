@@ -3433,3 +3433,15 @@ before pushing them, but the rest to do push ».
   `localeCompare` (machine language). One tower deals for everyone, so nothing differs today.
 - **Self-test** on `f3380c3`: 515/515 unit, 43/43 browser, 185/185 site, 26/26 Atelier. Still to fold: the
   permutation's authority, range requests, the 05:00 calendar.
+
+## 2026-11-17 (late night) - The rules each in one place; the Booth's day fixed (Claude Code, for Ortis)
+
+- **`a88856c`** (`docs/TESTS-REVIEW.md` step 3, finished — section 2 is done): the permutation's authority is
+  `queue-compose`'s property test, which now also holds the revision, nothing outside the window moving and the
+  window's end (broken on purpose, it went red); five HTTP range tests are one; the room's 05:00 and the Booth's log
+  days are checked against the programme's calendar every ten minutes of two years.
+- **Bug found by that check, fixed**: the Booth's `broadcastDay` took five hours off instead of reading Paris's hour,
+  so on the two nights a year the clocks change, 05:00–06:00 was filed under the wrong day.
+- **Self-test** on `a88856c`: 507/507 unit, 43/43 browser, 185/185 site, 26/26 Atelier. The suite went 520 → 507 over
+  the three steps tonight. Left in the review: source-text assertions → behaviour (section 3), splitting the smoke
+  (section 4), retiring dead features with your word (section 1).
