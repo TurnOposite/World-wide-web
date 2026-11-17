@@ -26,6 +26,8 @@ import { fileURLToPath } from 'node:url';
 import { Station, interleave } from '../server/lib/schedule.js';
 import { ChannelSet, DEFAULT_CHANNEL_SPEC, STREAMS, crateOf, expandSpec, foldPath, inFolders, matches, slugify, withStreams } from '../server/lib/channels.js';
 import { CloudEngine, overridesOf } from '../site/js/engine/cloud.js';
+import { startTower } from './helpers/tower.js';
+import { assertSameProgramme, instantsFrom } from './helpers/same-programme.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // The real cloud library, but with the full dial these tests exercise —
@@ -165,16 +167,11 @@ test('two browsers on the same channel agree at every instant; different channel
   const library = { ...LIBRARY, tracks: makeLibrary() };
   const start = Date.parse('2026-10-07T00:00:00Z');
   let differ = 0;
+  for (const ch of ['mashup', 'long', 'crate-upbeat', 'all']) {
+    assertSameProgramme(() => new CloudEngine({ library, clock: () => start, channel: ch }).station, instantsFrom(start), { label: ch });
+  }
   for (let i = 0; i < 400; i++) {
     const t = start + i * 91_337;
-    for (const ch of ['mashup', 'long', 'crate-upbeat', 'all']) {
-      const a = new CloudEngine({ library, clock: () => t, channel: ch });
-      const b = new CloudEngine({ library, clock: () => t, channel: ch });
-      const x = a.station.at(t);
-      const y = b.station.at(t);
-      assert.equal(x.track.id, y.track.id, `${ch} differs at ${new Date(t).toISOString()}`);
-      assert.ok(Math.abs(x.offset - y.offset) < 1e-6);
-    }
     const m = new CloudEngine({ library, clock: () => t, channel: 'mashup' }).station.at(t).track.id;
     const l = new CloudEngine({ library, clock: () => t, channel: 'long' }).station.at(t).track.id;
     if (m !== l) differ++;
@@ -279,18 +276,12 @@ test('the server answers per channel, keeps its old answers without one, and nev
     channels: [{ slug: 'games', label: 'Games only', crates: ['VGM'] }, ...DEFAULT_CHANNEL_SPEC.channels],
   }));
 
-  process.env.MUSIC_DIR = MUSIC;
-  process.env.CACHE_FILE = path.join(MUSIC, '.cache', 'library.json');
-  process.env.STATION_EPOCH = '2026-01-01T00:00:00Z';
-  process.env.AUTO_RESCAN_MINUTES = '0';
   delete process.env.CHANNELS_FILE;
-  const { createApp, rescan, station } = await import('../server/index.js');
+  const tower = await startTower({ music: MUSIC, scan: false });
+  const { rescan, station } = tower.mod;
   const scan = await rescan({ useCache: false });
   assert.equal(scan.tracks.length, 6, '_inbox/ is not part of the library');
-
-  const server = createApp().listen(0);
-  await new Promise((r) => server.once('listening', r));
-  const base = `http://127.0.0.1:${server.address().port}`;
+  const { base } = tower;
   const get = async (p) => (await fetch(base + p)).json();
   try {
     const ch = await get('/api/channels');
@@ -316,7 +307,7 @@ test('the server answers per channel, keeps its old answers without one, and nev
     const unknown = await get('/api/station?channel=nope');
     assert.equal(unknown.station.channel, 'mashup', 'an unknown channel is answered by the default, and says so');
   } finally {
-    server.close();
+    await tower.close();
   }
 });
 

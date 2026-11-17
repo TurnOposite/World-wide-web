@@ -24,19 +24,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import http, { createServer } from 'node:http';
+import http from 'node:http';
 import { fileURLToPath } from 'node:url';
+import { startTower } from './helpers/tower.js';
 
-process.env.MUSIC_DIR = await fs.mkdtemp(path.join(os.tmpdir(), 'rt-cache-'));
-process.env.CACHE_FILE = path.join(process.env.MUSIC_DIR, '.cache', 'library.json');
-
-const { createApp } = await import('../server/index.js');
-
-const server = createServer(createApp());
-await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-const base = `http://127.0.0.1:${server.address().port}`;
-
-test.after(() => server.close());
+const tower = await startTower({ prefix: 'rt-cache-' });
+const { base } = tower;
+test.after(() => tower.close());
 
 /** Every path here is something the browser parses and runs. */
 const EXECUTABLE = [
@@ -64,7 +58,7 @@ for (const url of EXECUTABLE) {
  */
 const request = (headers = {}) =>
   new Promise((resolve, reject) => {
-    const req = http.get({ host: '127.0.0.1', port: server.address().port, path: '/app.js', headers }, (res) => {
+    const req = http.get({ host: '127.0.0.1', port: tower.server.address().port, path: '/app.js', headers }, (res) => {
       let body = '';
       res.setEncoding('utf8');
       res.on('data', (c) => (body += c));

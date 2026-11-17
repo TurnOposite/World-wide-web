@@ -64,6 +64,22 @@ the right key). Every answer is walked for a path on disk, a file name or a `rel
 checks were broken on purpose once (a route dropped from the table, the key taken off `/queue/clear`) and went red.
 The ~10 key tests spread over other files are now redundant with this one; they go in step 3, with the shared helper.
 
+**Done 2026-11-17 (night), step 3 of the order below — in part:**
+
+- `tests/helpers/tower.js` (`startTower`): the fifteen files that stand up a tower start it one way now (boot and
+  warmup keep their own: what they test is the start itself).
+- The key refusals and path walks that `routes.test` holds for every route left `api`, `queue-api`, `telegraph`,
+  `telegraph-log`, `notify`, `status`, `library-bot` and `ratelimit` (each test kept what it checks on its own, such
+  as « checking a key moves nothing »); « another address is not locked out » moved into `routes.test`.
+- « Everyone hears the same second » is `tests/helpers/same-programme.js` (`assertSameProgramme`): on air, the second,
+  the next five, the hour's guide — run on the Station, the daily programme (across both clock changes) and each
+  channel of the browser's engine. Broken on purpose (one second off, a different « next ») it went red. Writing it
+  showed that a Station takes the scan's path-sorted list and that the order is part of the programme: the scan sorts
+  with `localeCompare`, whose result can depend on the machine's language — harmless while one tower deals for
+  everyone, worth knowing if two machines ever deal the same library.
+- 520 → 515 tests, ~185 lines fewer, nothing it checked is unchecked. **Still to fold:** the permutation's authority
+  (`queue-compose` against both engines), range requests, the 05:00 calendar.
+
 ## 3. Behaviour, not source text (≈ 45 assertions)
 
 Eleven files assert that a source file **contains** a line of code (`assert.match(read('site/js/…'), /…/)`):

@@ -21,6 +21,7 @@ import os from 'node:os';
 import path from 'node:path';
 import fsp from 'node:fs/promises';
 import { silentMp3 } from './helpers/audio.js';
+import { startTower } from './helpers/tower.js';
 
 const music = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-routes-'));
 await silentMp3(path.join(music, 'Haze Crate', 'Door Tester - First Light.mp3'), 40);
@@ -28,14 +29,15 @@ await silentMp3(path.join(music, 'Haze Crate', 'Door Tester - Second Wind.mp3'),
 await silentMp3(path.join(music, 'Zone', 'Other Act - Third Rail.mp3'), 30);
 
 const KEY = 'right-key-0123456789';
-Object.assign(process.env, {
-  MUSIC_DIR: music,
-  CACHE_FILE: path.join(music, '.cache', 'l.json'),
-  TELEGRAPH_LOG: path.join(music, '.line', 'telegraph.jsonl'),
-  AUTO_RESCAN_MINUTES: '0',
-  STATION_KEY: KEY,
-  ALLOW_UPLOADS: '1',
+// The budgets on a stopped clock, as in ratelimit.test: the count of wrong keys is exact.
+let t = 1_000_000;
+const tower = await startTower({
+  music,
+  now: () => t,
+  env: { TELEGRAPH_LOG: path.join(music, '.line', 'telegraph.jsonl'), STATION_KEY: KEY, ALLOW_UPLOADS: '1' },
 });
+const { app, base } = tower;
+test.after(() => tower.close());
 
 /**
  * The table. OPEN: anyone. KEYED: the station key or a 401. A route that is in neither, or a name here that the
@@ -55,9 +57,6 @@ const KEYED = [
   'GET /status', 'POST /rescan', 'GET /library/manifest', 'PUT /library/file',
 ];
 
-const { createApp, rescan } = await import('../server/index.js');
-await rescan({ useCache: false });
-
 /** Every route the app's /api router answers, as « METHOD /path ». */
 function routesOf(app) {
   const out = [];
@@ -69,17 +68,6 @@ function routesOf(app) {
   }
   return out;
 }
-
-// The budgets on a stopped clock, as in ratelimit.test: the count of wrong keys is exact.
-let t = 1_000_000;
-const app = createApp({ now: () => t });
-let server;
-let base;
-test.before(async () => {
-  await new Promise((resolve) => { server = app.listen(0, '127.0.0.1', resolve); });
-  base = `http://127.0.0.1:${server.address().port}`;
-});
-test.after(() => new Promise((resolve) => server.close(resolve)));
 
 // Caddy, on loopback, says who the client is: a new address for each check keeps one check's wrong keys out of the next.
 let lastIp = 0;
@@ -133,6 +121,7 @@ test('wrong keys share one budget across every keyed route: twenty, then refused
     assert.equal(r.status, 429, `${route}: locked out, even with the right key`);
     assert.equal(r.headers.get('retry-after'), '30');
   }
+  assert.equal((await call('POST /key', { key: KEY })).status, 200, 'the DJ at another address is not locked out');
   t += 30_000;
   assert.equal((await call('POST /key', { key: KEY, ip })).status, 200, 'half a minute later, one more try');
 });

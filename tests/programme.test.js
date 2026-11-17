@@ -4,6 +4,8 @@ import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { silentMp3 } from './helpers/audio.js';
+import { startTower } from './helpers/tower.js';
+import { assertSameProgramme, instantsFrom } from './helpers/same-programme.js';
 import {
   makeCalendar, normalizeProgramme, artistsOf, spreadArtists, planLibrary, buildDay,
   DailyStation, DEFAULT_PROGRAMME,
@@ -96,13 +98,10 @@ test('every day fills exactly from its 05:00 to the next, including the 25-hour 
 });
 
 test('the station is a pure function: two stations, same library and rules, same programme', () => {
-  const a = new DailyStation(tracks, { epoch: EPOCH, programme: DEFAULT_PROGRAMME });
-  const b = new DailyStation([...tracks].reverse(), { epoch: EPOCH, programme: DEFAULT_PROGRAMME });
-  for (const t of [Date.parse('2026-10-14T12:34:56Z'), Date.parse('2026-10-20T02:00:00Z'), Date.parse('2026-12-31T23:59:59Z')]) {
-    const x = a.at(t);
-    const y = b.at(t);
-    assert.equal(x.track.id, y.track.id);
-    assert.equal(x.startsAt, y.startsAt);
+  // Across days, the 05:00 turn, the autumn and the spring clock changes, and a new year.
+  const daily = (i) => new DailyStation(i ? [...tracks].reverse() : tracks, { epoch: EPOCH, programme: DEFAULT_PROGRAMME });
+  for (const from of ['2026-10-14T12:34:56Z', '2026-10-25T00:00:00Z', '2026-12-31T23:00:00Z', '2027-03-28T00:00:00Z']) {
+    assertSameProgramme(daily, instantsFrom(Date.parse(from), { count: 60, step: 1_234_567 }), { label: from, guideEvery: 20 });
   }
 });
 
@@ -268,18 +267,12 @@ test('a tower whose channels.json has a programme plays the daily programme', as
     channels: [{ slug: 'all', label: 'Radio Tower', order: 'station' }],
   }));
 
-  process.env.MUSIC_DIR = MUSIC;
-  process.env.CACHE_FILE = path.join(MUSIC, '.cache', 'library.json');
-  process.env.STATION_EPOCH = '2026-01-01T00:00:00Z';
-  process.env.AUTO_RESCAN_MINUTES = '0';
   delete process.env.CHANNELS_FILE;
-  const { createApp, rescan, station } = await import('../server/index.js');
+  const tower = await startTower({ music: MUSIC, scan: false });
+  const { rescan, station } = tower.mod;
   assert.ok(station instanceof DailyStation, 'the programme in channels.json makes the tower daily');
   await rescan({ useCache: false });
-
-  const server = createApp().listen(0);
-  await new Promise((r) => server.once('listening', r));
-  const base = `http://127.0.0.1:${server.address().port}`;
+  const { base } = tower;
   const get = async (p) => (await fetch(base + p)).json();
   try {
     const ch = await get('/api/channels');
@@ -300,7 +293,7 @@ test('a tower whose channels.json has a programme plays the daily programme', as
     const favs = new Set(station.cycleOrder(today).map((t) => t.title));
     assert.ok(favs.has('undersaken - Malon') && favs.has('snowpoint lounge - Red Chain'), 'the favourites are in today');
   } finally {
-    server.close();
+    await tower.close();
   }
 });
 

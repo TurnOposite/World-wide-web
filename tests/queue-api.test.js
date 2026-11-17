@@ -17,12 +17,12 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { FFMPEG, hasFfmpeg, NO_FFMPEG } from './helpers/ffmpeg.js';
+import { startTower } from './helpers/tower.js';
 
 const run = promisify(execFile);
 
 
 const MUSIC = await fs.mkdtemp(path.join(os.tmpdir(), 'rt-queue-'));
-const CACHE = path.join(MUSIC, '.cache', 'library.json');
 const KEY = 'test-key-0123456789';
 
 if (hasFfmpeg) {
@@ -45,38 +45,18 @@ if (hasFfmpeg) {
   }
 }
 
-process.env.MUSIC_DIR = MUSIC;
-process.env.CACHE_FILE = CACHE;
-process.env.STATION_EPOCH = '2026-01-01T00:00:00Z';
-process.env.AUTO_RESCAN_MINUTES = '0';
-process.env.STATION_KEY = KEY;
-// Long enough that at least one upcoming slot is always frozen (the test
-// tracks are 20–40s), short enough to leave most of the window movable.
-process.env.QUEUE_LOCK_SECONDS = '45';
-
-const { createApp, rescan, station } = await import('../server/index.js');
-
-let base;
-let server;
-
-test.before(async () => {
-  if (hasFfmpeg) await rescan({ useCache: false });
-  const app = createApp();
-  await new Promise((resolve) => {
-    server = app.listen(0, '127.0.0.1', resolve);
-  });
-  base = `http://127.0.0.1:${server.address().port}`;
+const tower = await startTower({
+  music: MUSIC,
+  env: {
+    STATION_KEY: KEY,
+    // Long enough that at least one upcoming slot is always frozen (the test
+    // tracks are 20–40s), short enough to leave most of the window movable.
+    QUEUE_LOCK_SECONDS: '45',
+  },
 });
-
-test.after(() => server?.close());
-
-const get = (p, init) => fetch(base + p, init);
-const post = (p, body, headers = {}) =>
-  fetch(base + p, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', ...headers },
-    body: JSON.stringify(body),
-  });
+const { station } = tower.mod;
+const { base, get, post } = tower;
+test.after(() => tower.close());
 
 /**
  * Pick a movable window of `n` consecutive slots.
@@ -134,17 +114,6 @@ test('GET /api/queue reports editability and marks the imminent slots frozen', a
   if (firstFree !== -1) {
     assert.ok(body.slots.slice(firstFree).every((s) => !s.locked), 'lock is not monotonic');
   }
-});
-
-test('a reorder without the key is refused', async (t) => {
-  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
-  const w = await freeWindow(2);
-  if (!w) return t.skip('not enough unlocked slots');
-  const ids = [w.window[1].id, w.window[0].id];
-
-  assert.equal((await reorder(w, ids, null)).status, 401);
-  assert.equal((await reorder(w, ids, 'wrong-key-here')).status, 401);
-  assert.equal((await (await get('/api/queue')).json()).override, null);
 });
 
 test('a reorder with the key permutes the window', async (t) => {
@@ -247,34 +216,14 @@ test('clear removes the override', async (t) => {
 test('POST /api/key says whether a key is the station key, and changes nothing', async () => {
   assert.equal((await post('/api/key', {}, { 'x-station-key': KEY })).status, 200);
   assert.deepEqual(await (await post('/api/key', {}, { 'x-station-key': KEY })).json(), { ok: true });
-  const wrong = await post('/api/key', {}, { 'x-station-key': 'not-the-key' });
-  assert.equal(wrong.status, 401);
-  assert.equal((await wrong.json()).error, 'bad_key');
-  assert.equal((await post('/api/key', {})).status, 401, 'no key at all');
+  // Refused without the key, or with a wrong one, and no path in any answer: tests/routes.test.js, for every route.
   const before = await (await get('/api/queue')).json();
   await post('/api/key', {}, { 'x-station-key': KEY });
   assert.deepEqual((await (await get('/api/queue')).json()).override ?? null, before.override ?? null, 'checking a key moves nothing');
 });
 
-test('the queue endpoints leak no filesystem paths', async (t) => {
-  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
-  const raw = await (await get('/api/queue')).text();
-  assert.ok(!raw.includes('relPath'), 'relPath leaked');
-  assert.ok(!raw.includes(MUSIC), 'absolute music path leaked');
-});
-
-// roadmap #6 — POST /api/rescan now shares STATION_KEY with the queue write
-// endpoints above. This file is where that's provable end-to-end: it already
-// has a real STATION_KEY and a real, ffmpeg-backed music directory to add a
-// file to.
-test('a rescan without the key is refused, without running the scan', async (t) => {
-  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
-  const before = station.tracks.length;
-  assert.equal((await post('/api/rescan', {}, {})).status, 401);
-  assert.equal((await post('/api/rescan', {}, { 'x-station-key': 'wrong-key' })).status, 401);
-  assert.equal(station.tracks.length, before, 'an unauthenticated call must not touch the library');
-});
-
+// roadmap #6 — POST /api/rescan shares STATION_KEY with the queue write endpoints above (refused without it:
+// tests/routes.test.js). This file has a real, ffmpeg-backed music directory to add a file to.
 test('a rescan with the key picks up a newly added file', async (t) => {
   if (!hasFfmpeg) return t.skip(NO_FFMPEG);
   const before = station.tracks.length;

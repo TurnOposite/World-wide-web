@@ -24,15 +24,16 @@ import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
+import { startTower } from './helpers/tower.js';
 
 const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-telegraph-log-'));
 const KEY = 'right-key-0123456789';
-Object.assign(process.env, {
-  MUSIC_DIR: dir,
-  CACHE_FILE: path.join(dir, '.cache', 'l.json'),
-  TELEGRAPH_LOG: path.join(dir, 'line', 'telegraph.jsonl'),
-  AUTO_RESCAN_MINUTES: '0',
-  STATION_KEY: KEY,
+const tower = await startTower({
+  music: dir,
+  env: {
+    TELEGRAPH_LOG: path.join(dir, 'line', 'telegraph.jsonl'),
+    STATION_KEY: KEY,
+  },
 });
 const { Telegraph, dailyReset, replay, historyCsv } = await import('../server/lib/telegraph.js');
 const { RateLimiter } = await import('../server/lib/ratelimit.js');
@@ -269,25 +270,13 @@ test('an older log (before 2026-11-16) still reads: no tag, no track, a removal 
 });
 
 /* ------------------------------------------------------------- over HTTP -- */
-const { createApp } = await import('../server/index.js');
-const app = createApp();
-let server;
-let base;
-test.before(async () => {
-  await new Promise((resolve) => { server = app.listen(0, '127.0.0.1', resolve); });
-  base = `http://127.0.0.1:${server.address().port}`;
-});
-test.after(() => new Promise((resolve) => server.close(resolve)));
-const post = (p, body, headers = {}) => fetch(base + p, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+const { base, post } = tower;
+test.after(() => tower.close());
 const keyed = { 'x-station-key': KEY };
 
-test('the tower: the log, restore and un-silence answer only to the station key', async () => {
-  const { message } = await (await post('/api/telegraph', { name: 'Ada', text: 'for the log' })).json();
-  for (const [method, p, body] of [['GET', '/api/telegraph/log'], ['GET', '/api/telegraph/log?format=csv'], ['POST', '/api/telegraph/restore', { id: message.id }], ['POST', '/api/telegraph/unmute', { tag: 'x' }]]) {
-    const none = await fetch(base + p, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
-    assert.equal(none.status, 401, `${method} ${p} without the key`);
-    assert.doesNotMatch(await none.text(), /for the log/);
-  }
+// The log, restore and un-silence answer only to the station key: tests/routes.test.js, with every keyed route.
+test('the open room never carries the log\'s extra fields', async () => {
+  await post('/api/telegraph', { name: 'Ada', text: 'for the log' });
   const room = await (await fetch(`${base}/api/telegraph`)).json();
   assert.ok(room.messages.every((m) => !('tag' in m) && !('on' in m)), 'the open room never carries the log\'s extra fields');
 });

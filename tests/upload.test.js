@@ -18,20 +18,15 @@ import fsp from 'node:fs/promises';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
+import { startTower } from './helpers/tower.js';
 
 // The server reads its settings once, at import.
 const MUSIC = fs.mkdtempSync(path.join(os.tmpdir(), 'rt-upload-'));
-Object.assign(process.env, {
-  MUSIC_DIR: MUSIC, CACHE_FILE: path.join(MUSIC, '.cache', 'library.json'),
-  STATION_KEY: 'k-upload', ALLOW_UPLOADS: '1', UPLOAD_MAX_MB: '1', AUTO_RESCAN_MINUTES: '0',
-});
-const { createApp } = await import('../server/index.js');
+const tower = await startTower({ music: MUSIC, env: { STATION_KEY: 'k-upload', ALLOW_UPLOADS: '1', UPLOAD_MAX_MB: '1' } });
 
 const MB = 1048576;
-const server = http.createServer(createApp());
-await new Promise((r) => server.listen(0, '127.0.0.1', r));
-const { port } = server.address();
-test.after(() => { server.closeAllConnections(); server.close(); });
+const { port } = tower.server.address();
+test.after(() => tower.close());
 
 /** Every temporary upload file still in the library. */
 function leftovers(dir = MUSIC, acc = []) {

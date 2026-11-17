@@ -18,14 +18,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import http, { createServer } from 'node:http';
+import http from 'node:http';
 import { fileURLToPath } from 'node:url';
+import { startTower } from './helpers/tower.js';
 
 const ROOT = path.resolve(fileURLToPath(import.meta.url), '../..');
 const DIR = await fs.mkdtemp(path.join(os.tmpdir(), 'rt-collections-'));
-process.env.COLLECTIONS_DIR = DIR;
-process.env.MUSIC_DIR = await fs.mkdtemp(path.join(os.tmpdir(), 'rt-col-music-'));
-process.env.CACHE_FILE = path.join(process.env.MUSIC_DIR, '.cache', 'library.json');
 
 // A tiny but real PDF and PNG, so content types and ranges are genuine.
 const PDF = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
@@ -73,11 +71,9 @@ const manifest = {
 };
 await put('collection.json', JSON.stringify(manifest));
 
-const { createApp } = await import('../server/index.js');
-const server = createServer(createApp());
-await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-const base = `http://127.0.0.1:${server.address().port}`;
-test.after(() => server.close());
+const tower = await startTower({ prefix: 'rt-col-music-', env: { COLLECTIONS_DIR: DIR } });
+const { base } = tower;
+test.after(() => tower.close());
 
 const getJson = async (url) => (await fetch(base + url)).json();
 

@@ -4,7 +4,7 @@
  *     Retry-After; other addresses and this machine itself are unaffected;
  *   - memory stays bounded however many addresses or listener ids a flood
  *     invents;
- *   - guessing the station key is budgeted far more tightly than reading;
+ *   - guessing the station key is budgeted far more tightly than reading (tests/routes.test.js);
  *   - the website on another origin can send the key (CORS preflight).
  */
 import test from 'node:test';
@@ -12,6 +12,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import path from 'node:path';
 import fsp from 'node:fs/promises';
+import { startTower } from './helpers/tower.js';
 
 // Config is read once, at import: set the environment first.
 const music = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-ratelimit-'));
@@ -99,14 +100,12 @@ test('the middleware answers 429 with Retry-After and the usual JSON shape', () 
   assert.deepEqual(res.body, { error: 'rate_limited', retryAfter: 1 });
 });
 
-test('the tower: floods refused per address, keys budgeted, the website allowed to send the key', async () => {
-  const { createApp } = await import('../server/index.js');
+test('the tower: floods refused per address, the website allowed to send the key', async () => {
   // The budgets run on this clock, not the machine's: on a loaded laptop 45 requests took over two seconds and
   // earned some back (2026-11-17). Stopped, the count is exact; moved by hand, the refill is too.
   const now = clock();
-  const server = createApp({ now }).listen(0, '127.0.0.1');
-  await new Promise((r) => server.once('listening', r));
-  const base = `http://127.0.0.1:${server.address().port}`;
+  const tower = await startTower({ music, now });
+  const { base } = tower;
   // Caddy (on loopback) says who the client is; only loopback is believed.
   const as = (ip, init = {}) => ({ ...init, headers: { ...(init.headers || {}), 'X-Forwarded-For': ip } });
   try {
@@ -126,15 +125,7 @@ test('the tower: floods refused per address, keys budgeted, the website allowed 
     assert.equal((await fetch(`${base}/api/time`, as('198.51.100.7'))).status, 200, 'a different listener is unaffected');
     for (let i = 0; i < 60; i++) assert.equal((await fetch(`${base}/api/time`)).status, 200, 'this machine itself is never limited');
 
-    // Guessing the key: twenty tries, then refused before the key is even compared.
-    const guess = (key) => fetch(`${base}/api/queue/clear`, as('192.0.2.50', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Station-Key': key }, body: '{}' }));
-    const codes = [];
-    for (let i = 0; i < 22; i++) codes.push((await guess(`wrong-${i}`)).status);
-    assert.deepEqual(codes.slice(0, 20), Array(20).fill(401));
-    assert.deepEqual(codes.slice(20), [429, 429]);
-    const right = await guess('right-key-0123456789');
-    assert.equal(right.status, 429, 'locked out for a while, even with the right key');
-    assert.equal((await fetch(`${base}/api/queue/clear`, as('192.0.2.51', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Station-Key': 'right-key-0123456789' }, body: '{}' }))).status !== 401, true, 'the DJ elsewhere is not');
+    // Guessing the key — twenty tries, then refused, on every keyed route alike — is tests/routes.test.js.
 
     // The website on Vercel asks first (preflight) before sending the key.
     const pre = await fetch(`${base}/api/queue/reorder`, { method: 'OPTIONS', headers: { Origin: 'https://example.vercel.app', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'content-type,x-station-key' } });
@@ -142,6 +133,6 @@ test('the tower: floods refused per address, keys budgeted, the website allowed 
     assert.match(pre.headers.get('access-control-allow-headers'), /x-station-key/i);
     assert.match(pre.headers.get('access-control-allow-methods'), /POST/);
   } finally {
-    server.close();
+    await tower.close();
   }
 });

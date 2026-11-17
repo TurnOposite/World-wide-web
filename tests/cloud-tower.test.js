@@ -17,6 +17,7 @@ import { execFileSync, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { FFMPEG, NO_FFMPEG } from './helpers/ffmpeg.js';
 import { fileURLToPath } from 'node:url';
+import { startTower } from './helpers/tower.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLOUD = path.join(ROOT, 'deploy', 'cloud');
@@ -58,12 +59,8 @@ test('the tower serves the whole site, tuned to itself', { skip: NO_FFMPEG }, as
   assert.equal(cfg.mode, 'tower');
   assert.equal(cfg.tower.url, '', 'same origin');
 
-  Object.assign(process.env, { MUSIC_DIR: music, CACHE_FILE: path.join(music, '.cache', 'l.json'), SITE_DIR: dist, AUTO_RESCAN_MINUTES: '0' });
-  const { createApp, rescan } = await import('../server/index.js');
-  await rescan({ useCache: false });
-  const server = createApp().listen(0);
-  await new Promise((r) => server.once('listening', r));
-  const base = `http://127.0.0.1:${server.address().port}`;
+  const tower = await startTower({ music, env: { SITE_DIR: dist } });
+  const { base } = tower;
   try {
     for (const p of ['/', '/radio', '/booth', '/atlas', '/zone']) {
       const r = await fetch(base + p);
@@ -79,6 +76,6 @@ test('the tower serves the whole site, tuned to itself', { skip: NO_FFMPEG }, as
     assert.deepEqual(ch.channels.map((c) => c.slug), ['mashup', 'crate-haze', 'crate-zone', 'all']);
     assert.equal((await fetch(`${base}/config.json`)).headers.get('cache-control'), 'no-cache');
   } finally {
-    server.close();
+    await tower.close();
   }
 });

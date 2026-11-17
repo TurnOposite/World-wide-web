@@ -28,14 +28,13 @@ import {
   reconcile, writeChecklist, importFile, emptyState, folderFor, matchFile, buildIndex, publish, summary, writeLists,
 } from '../library/bot.mjs';
 import { ChannelSet } from '../server/lib/channels.js';
+import { startTower } from './helpers/tower.js';
 
 // The server reads its settings once, at import: give it the tower these
 // tests stand up before anything imports it (server/lib/library.js included).
 const TOWER_MUSIC = fs.mkdtempSync(path.join(os.tmpdir(), 'rt-tower-'));
-Object.assign(process.env, {
-  MUSIC_DIR: TOWER_MUSIC, CACHE_FILE: path.join(TOWER_MUSIC, '.cache', 'library.json'),
-  STATION_KEY: 'k-test-123', ALLOW_UPLOADS: '1', AUTO_RESCAN_MINUTES: '0',
-});
+const tower = await startTower({ music: TOWER_MUSIC, scan: false, env: { STATION_KEY: 'k-test-123', ALLOW_UPLOADS: '1' } });
+test.after(() => tower.close());
 const { readMembership } = await import('../server/lib/library.js');
 
 const run = promisify(execFile);
@@ -235,12 +234,9 @@ test('publishing sends only what the tower lacks; the tower takes only audio in 
   await fsp.mkdir(path.join(towerMusic, 'Haze'), { recursive: true });
   await fsp.copyFile(path.join(lib, 'Haze', 'potsu - letting go.mp3'), path.join(towerMusic, 'Haze', 'potsu - letting go.mp3'));
 
-  const { createApp, rescan } = await import('../server/index.js');
-  await rescan({ useCache: false });
-  const server = createApp().listen(0);
-  await new Promise((r) => server.once('listening', r));
-  const base = `http://127.0.0.1:${server.address().port}`;
-  try {
+  await tower.mod.rescan({ useCache: false });
+  const { base } = tower;
+  {
     await assert.rejects(publish(lib, base, 'wrong', { log: () => {} }), /refused the key/);
     const r = await publish(lib, base, 'k-test-123', { log: () => {} });
     assert.equal(r.sent, 2, 'the missing song and playlists.json — not the one it has, not the inbox');
@@ -254,9 +250,6 @@ test('publishing sends only what the tower lacks; the tower takes only audio in 
     assert.equal((await put('Haze/notes.txt')).status, 400, 'audio only');
     assert.equal((await put('/etc/passwd.mp3')).status, 200);
     assert.ok(fs.existsSync(path.join(towerMusic, 'etc', 'passwd.mp3')) && !fs.existsSync('/etc/passwd.mp3'), 'an absolute path lands inside the library');
-    assert.equal((await fetch(`${base}/api/library/manifest`)).status, 401, 'no key, no listing');
-  } finally {
-    server.close();
   }
 });
 

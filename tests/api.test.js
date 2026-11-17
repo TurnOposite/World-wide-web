@@ -14,12 +14,12 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { FFMPEG, hasFfmpeg, NO_FFMPEG } from './helpers/ffmpeg.js';
+import { startTower } from './helpers/tower.js';
 
 const run = promisify(execFile);
 
 
 const MUSIC = await fs.mkdtemp(path.join(os.tmpdir(), 'rt-music-'));
-const CACHE = path.join(MUSIC, '.cache', 'library.json');
 
 if (hasFfmpeg) {
   const specs = [
@@ -41,34 +41,17 @@ if (hasFfmpeg) {
   await fs.writeFile(path.join(MUSIC, 'readme.txt'), 'not audio');
 }
 
-process.env.MUSIC_DIR = MUSIC;
-process.env.CACHE_FILE = CACHE;
-process.env.STATION_EPOCH = '2026-01-01T00:00:00Z';
-process.env.STATION_NAME = 'Test Tower';
-process.env.AUTO_RESCAN_MINUTES = '0';
-// The Zone map's origin (server/lib/origin.js): one line each in the env.
-process.env.STATION_LAT = '52.37';
-process.env.STATION_LON = '4.9';
-process.env.STATION_PLACE = 'Test Harbour';
-process.env.STATION_TZ = 'Europe/Amsterdam';
-
-const { createApp, rescan, station } = await import('../server/index.js');
-
-let base;
-let server;
-
-test.before(async () => {
-  if (hasFfmpeg) await rescan({ useCache: false });
-  const app = createApp();
-  await new Promise((resolve) => {
-    server = app.listen(0, '127.0.0.1', resolve);
-  });
-  base = `http://127.0.0.1:${server.address().port}`;
+const tower = await startTower({
+  music: MUSIC,
+  env: {
+    STATION_NAME: 'Test Tower',
+    // The Zone map's origin (server/lib/origin.js): one line each in the env.
+    STATION_LAT: '52.37', STATION_LON: '4.9', STATION_PLACE: 'Test Harbour', STATION_TZ: 'Europe/Amsterdam',
+  },
 });
-
-test.after(() => server?.close());
-
-const get = (p, init) => fetch(base + p, init);
+const { rescan, station } = tower.mod;
+const { base, get } = tower;
+test.after(() => tower.close());
 
 test('GET /api/health reports the station state', async () => {
   const res = await get('/api/health');
@@ -102,13 +85,6 @@ test('GET /api/station describes what is on air', async (t) => {
   assert.equal(body.upcoming.length, 5);
   assert.ok(body.onAir.startsAt <= body.serverTime);
   assert.ok(body.onAir.endsAt >= body.serverTime);
-});
-
-test('/api/station never leaks a filesystem path', async (t) => {
-  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
-  const raw = await (await get('/api/station')).text();
-  assert.ok(!raw.includes('relPath'), 'relPath leaked to the client');
-  assert.ok(!raw.includes(MUSIC), 'absolute music path leaked to the client');
 });
 
 test('two /api/station calls a second apart advance the offset, not the track', async (t) => {
@@ -202,7 +178,6 @@ test('GET /api/schedule returns a contiguous programme guide for a window', asyn
   assert.equal(body.to, Date.parse(to));
   assert.equal(body.revision, station.revision);
   assert.ok(body.items.length > 0, 'expected at least one scheduled item');
-  assert.ok(!JSON.stringify(body.items).includes('relPath'), 'relPath leaked into the schedule');
   for (let i = 1; i < body.items.length; i++) {
     assert.equal(body.items[i].startsAt, body.items[i - 1].endsAt, `gap before item ${i}`);
   }

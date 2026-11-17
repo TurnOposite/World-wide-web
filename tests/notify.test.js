@@ -25,6 +25,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import http from 'node:http';
 import crypto from 'node:crypto';
+import { startTower } from './helpers/tower.js';
 
 const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-notify-'));
 
@@ -47,16 +48,16 @@ const STUB = `http://127.0.0.1:${stub.address().port}`;
 test.after(() => new Promise((r) => stub.close(r)));
 
 const KEY = 'right-key-0123456789';
-Object.assign(process.env, {
-  MUSIC_DIR: dir,
-  CACHE_FILE: path.join(dir, '.cache', 'l.json'),
-  TELEGRAPH_LOG: path.join(dir, 'line', 'telegraph.jsonl'),
-  TELEGRAPH_NOTIFY_URL: `${STUB}/a-long-random-topic`,
-  TELEGRAPH_PUSH_ALLOW: STUB,
-  TELEGRAPH_NOTIFY_GAP_SECONDS: '0',
-  PUBLIC_SITE: 'https://site.example',
-  AUTO_RESCAN_MINUTES: '0',
-  STATION_KEY: KEY,
+const tower = await startTower({
+  music: dir,
+  env: {
+    TELEGRAPH_LOG: path.join(dir, 'line', 'telegraph.jsonl'),
+    TELEGRAPH_NOTIFY_URL: `${STUB}/a-long-random-topic`,
+    TELEGRAPH_PUSH_ALLOW: STUB,
+    TELEGRAPH_NOTIFY_GAP_SECONDS: '0',
+    PUBLIC_SITE: 'https://site.example',
+    STATION_KEY: KEY,
+  },
 });
 const { LineNotifier, PushStore, Batcher, summarise, ntfyTarget } = await import('../server/lib/notify.js');
 const { generateKeys, decrypt, b64u } = await import('../server/lib/webpush.js');
@@ -232,16 +233,9 @@ test('several messages in one batch: a listener who wrote them all is skipped, o
 });
 
 /* ------------------------------------------------------------- over HTTP -- */
-const { createApp, notifier } = await import('../server/index.js');
-const app = createApp();
-let server;
-let base;
-test.before(async () => {
-  await new Promise((resolve) => { server = app.listen(0, '127.0.0.1', resolve); });
-  base = `http://127.0.0.1:${server.address().port}`;
-});
-test.after(() => new Promise((resolve) => server.close(resolve)));
-const post = (p, body, headers = {}) => fetch(base + p, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+const { base, post } = tower;
+const { notifier } = tower.mod;
+test.after(() => tower.close());
 
 test('the tower: the station\'s device asks to be told, with the key; is told of the next message; can take it back', async () => {
   const line = await (await fetch(`${base}/api/telegraph`)).json();
@@ -251,7 +245,7 @@ test('the tower: the station\'s device asks to be told, with the key; is told of
   assert.match(log.push?.key || '', /^[\w-]{87}$/, 'the Booth reads the public half of the tower\'s push key with the log');
   assert.doesNotMatch(JSON.stringify(log), /privateKey/);
 
-  assert.equal((await post('/api/telegraph/subscribe', browser().sub)).status, 401, 'without the key: no');
+  // Refused without the key, or with a wrong one, and no path in any answer: tests/routes.test.js, for every route.
   assert.equal((await post('/api/telegraph/subscribe', { endpoint: 'http://127.0.0.1:1/x', keys: { p256dh: 'x', auth: 'y' } }, keyed)).status, 400);
   assert.equal((await post('/api/telegraph/subscribe', { endpoint: 'https://evil.example/hook', keys: browser().sub.keys }, keyed)).status, 400, 'the tower will not be made to call an address a stranger chose');
   const me = browser();

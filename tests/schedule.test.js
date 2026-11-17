@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Station, seededShuffle, mulberry32 } from '../server/lib/schedule.js';
+import { assertSameProgramme, instantsFrom } from './helpers/same-programme.js';
 
 const EPOCH = Date.parse('2026-01-01T00:00:00Z');
 
@@ -105,16 +106,10 @@ test('startsAt/endsAt bracket the query time', () => {
 });
 
 test('two independent Station instances agree — this is what keeps listeners in sync', () => {
+  // A fresh process re-scanning the same library: on air, next, the guide. Not in another order — a Station takes the
+  // scan's path-sorted list (server/lib/library.js) and that order is part of the programme (cycle 0 plays it as is).
   const tracks = lib([61, 83, 127, 45, 99]);
-  const a = new Station(tracks, { epoch: EPOCH });
-  const b = new Station(tracks.slice(), { epoch: EPOCH });
-  for (let t = 0; t < 5000; t += 13) {
-    const now = EPOCH + t * 1000;
-    const x = a.at(now);
-    const y = b.at(now);
-    assert.equal(x.track.id, y.track.id, `divergent track at t=${t}`);
-    assert.ok(Math.abs(x.offset - y.offset) < 1e-9, `divergent offset at t=${t}`);
-  }
+  assertSameProgramme(() => new Station(tracks.slice(), { epoch: EPOCH }), instantsFrom(EPOCH - 3_600_000, { count: 400, step: 13_000 }));
 });
 
 test('upcoming() is contiguous with the current track', () => {
@@ -397,15 +392,6 @@ test('schedule() pins a specific future slot against a fixed epoch', () => {
   assert.equal(items[0].id, 't2');
   assert.equal(items[0].startsAt, EPOCH + 300_000);
   assert.equal(items[0].endsAt, EPOCH + 600_000);
-});
-
-test('schedule() survives a restart unchanged — two fresh Station instances agree', () => {
-  const tracks = lib([61, 83, 127, 45, 99]);
-  const a = new Station(tracks, { epoch: EPOCH });
-  const b = new Station(tracks.slice(), { epoch: EPOCH }); // simulates a fresh process re-scanning the same library
-  const from = EPOCH + 12_345_000;
-  const to = from + 3_600_000;
-  assert.deepEqual(a.schedule(from, to), b.schedule(from, to));
 });
 
 test('schedule() returns nothing for an empty station or an inverted window', () => {

@@ -18,18 +18,19 @@ import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
+import { startTower } from './helpers/tower.js';
 
 const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-status-'));
 const KEY = 'right-key-0123456789';
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
-Object.assign(process.env, {
-  MUSIC_DIR: dir,
-  CACHE_FILE: path.join(dir, '.cache', 'l.json'),
-  TELEGRAPH_LOG: path.join(dir, 'line', 'telegraph.jsonl'),
-  AUTO_RESCAN_MINUTES: '0',
-  STATION_KEY: KEY,
-  TOWER_COMMIT: A,
+const tower = await startTower({
+  music: dir,
+  env: {
+    TELEGRAPH_LOG: path.join(dir, 'line', 'telegraph.jsonl'),
+    STATION_KEY: KEY,
+    TOWER_COMMIT: A,
+  },
 });
 const { readCommit, readRepo } = await import('../server/lib/commit.js');
 const { ciOf, compareCommits, duration, statusRows, readGithub, readSite, short } = await import('../site/js/ui/status-panel.js');
@@ -194,21 +195,12 @@ test('this clone against GitHub: behind, ahead, uncommitted, and what arrived si
 });
 
 /* ------------------------------------------------------------- over HTTP -- */
-const { createApp } = await import('../server/index.js');
-const app = createApp();
-let server;
-let base;
-test.before(async () => {
-  await new Promise((resolve) => { server = app.listen(0, '127.0.0.1', resolve); });
-  base = `http://127.0.0.1:${server.address().port}`;
-});
-test.after(() => new Promise((resolve) => server.close(resolve)));
+const { base } = tower;
+test.after(() => tower.close());
 
 test('the tower says its commit to anyone, and its status only to the key', async () => {
   const health = await (await fetch(`${base}/api/health`)).json();
   assert.equal(health.commit, A, 'the commit it was started on');
-  assert.equal((await fetch(`${base}/api/status`)).status, 401);
-  assert.equal((await fetch(`${base}/api/status`, { headers: { 'x-station-key': 'wrong' } })).status, 401);
 
   await fetch(`${base}/api/telegraph`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Ada', text: 'for the count' }) });
   const res = await fetch(`${base}/api/status`, { headers: { 'x-station-key': KEY } });
