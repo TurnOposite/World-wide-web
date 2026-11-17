@@ -4,11 +4,15 @@
  * The station's whole claim is that the programme is a pure function of wall
  * time. Reordering is the one sanctioned exception, so the tests that matter
  * most here are not "did the tracks move" but "did anything *else* move".
+ *
+ * « Nothing else moved » across hundreds of random decisions — the fence, the track on air, the window's end, the
+ * cycle's length, the revision — is queue-compose.test.js's property test (2026-11-17); here, the primitive's own cases.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { Station } from '../server/lib/schedule.js';
+import { assertSameProgramme, instantsFrom } from './helpers/same-programme.js';
 
 const EPOCH = Date.parse('2026-01-01T00:00:00Z');
 
@@ -58,57 +62,6 @@ test('a reorder permutes the window and nothing else', () => {
   );
 });
 
-test('the window still ends at exactly the same instant', () => {
-  const station = makeStation();
-  const now = EPOCH + 1000;
-  const before = station.upcoming(now, 10);
-  const w = before.slice(2, 7);
-
-  station.setQueueOrder({
-    cycleIndex: w[0].cycleIndex,
-    startWithin: w[0].withinCycle,
-    ids: [...w].reverse().map((s) => s.id),
-  });
-
-  const after = station.upcoming(now, 10);
-  assert.equal(after[2].startsAt, before[2].startsAt, 'window start moved');
-  assert.equal(after[6].endsAt, before[6].endsAt, 'window end moved');
-});
-
-test('reordering does not change the cycle duration', () => {
-  const station = makeStation();
-  const cycleBefore = station.cycleSeconds;
-  const w = station.upcoming(EPOCH + 1000, 10).slice(1, 5);
-
-  station.setQueueOrder({
-    cycleIndex: w[0].cycleIndex,
-    startWithin: w[0].withinCycle,
-    ids: [...w].reverse().map((s) => s.id),
-  });
-
-  assert.equal(station.cycleSeconds, cycleBefore);
-  assert.equal(station.revision, `12:${Math.round(cycleBefore)}`);
-});
-
-test('the track on air is unaffected by a reorder behind it', () => {
-  const station = makeStation();
-  const now = EPOCH + 5000;
-  const onAirBefore = station.at(now);
-  const w = station.upcoming(now, 10).slice(2, 6);
-
-  station.setQueueOrder({
-    cycleIndex: w[0].cycleIndex,
-    startWithin: w[0].withinCycle,
-    ids: [...w].reverse().map((s) => s.id),
-  });
-
-  const onAirAfter = station.at(now);
-  assert.equal(onAirAfter.track.id, onAirBefore.track.id);
-  assert.equal(onAirAfter.startsAt, onAirBefore.startsAt);
-  assert.equal(onAirAfter.endsAt, onAirBefore.endsAt);
-  assert.equal(onAirAfter.offset, onAirBefore.offset);
-});
-
 test('the schedule stays deterministic while an override is active', () => {
   // Same override, same answers, however many times you ask and in whatever
   // order you ask — this is what lets two clients agree without talking.
@@ -120,13 +73,12 @@ test('the schedule stays deterministic while an override is active', () => {
   a.setQueueOrder(req);
   b.setQueueOrder(req);
 
-  const instants = [];
-  for (let i = 0; i < 400; i++) instants.push(EPOCH + i * 3137);
-
-  // Ask A forward and B backward: order of interrogation must not matter.
+  // Ask A forward and B backward: order of interrogation must not matter. Then the whole rule (on air, next, guide).
+  const instants = Array.from({ length: 400 }, (_, i) => EPOCH + i * 3137);
   const fromA = instants.map((t) => a.at(t)).map((s) => `${s.track.id}@${s.startsAt}`);
   const fromB = [...instants].reverse().map((t) => b.at(t)).map((s) => `${s.track.id}@${s.startsAt}`).reverse();
   assert.deepEqual(fromA, fromB);
+  assertSameProgramme((i) => { const st = makeStation(); st.setQueueOrder(req); return st; }, instantsFrom(EPOCH, { count: 200, step: 3137 }));
 });
 
 test('rejects anything that is not a permutation', () => {

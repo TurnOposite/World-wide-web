@@ -7,6 +7,11 @@
  * air, mid-song, for every listener. `planQueueOrder` and
  * `planClearQueueOrder` compose with what is in force and never touch the
  * fence. The property test at the bottom is the one that matters.
+ *
+ * Since 2026-11-17 it is the authority on « a reorder is a permutation behind the fence » (docs/TESTS-REVIEW.md):
+ * every override a permutation, the fence and the track on air unmoved, the cycle's length and the library's
+ * revision unchanged, nothing before or after the window moved. The browser plans and clears with the same
+ * Station (site/js/lib/schedule.js is this file byte for byte, pinned by cloud-station.test.js), so this holds there.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -142,12 +147,15 @@ test('property: across hundreds of random DJ decisions, the fence never moves an
   for (const [n, shuffle] of [[7, true], [12, true], [9, false]]) {
     const st = makeStation(n, shuffle);
     const cycleSeconds = st.cycleOrder(0).reduce((a, t) => a + t.duration, 0);
+    const revision = st.revision;
     let now = EPOCH + 3_000;
     let applied = 0;
+    let compared = 0;
     for (let step = 0; step < 400; step++) {
       now += Math.floor(rnd() * 40_000);
       const before = fence(st, now);
       let override;
+      let span = null;
       if (rnd() < 0.25) {
         const c = st.planClearQueueOrder({ now, lockMs: LOCK });
         assert.ok(c.until === null || c.until > now - 1, 'a kept part is still to finish');
@@ -160,15 +168,29 @@ test('property: across hundreds of random DJ decisions, the fence never moves an
         const plan = st.planQueueOrder({ cycleIndex: w[0].cycleIndex, startWithin: w[0].withinCycle, ids }, { now, lockMs: LOCK });
         if (!plan.ok) { assert.ok(['earlier_reorder_on_air', 'other_reorder_waiting'].includes(plan.error), plan.error); continue; }
         override = plan.override;
+        span = [w[0].startsAt, w[w.length - 1].endsAt];
       }
+      const heard = (from, n = 16) => st.upcoming(from, n).map((x) => `${x.id}@${x.startsAt}`);
+      const outside = (list) => list.filter((x) => { const at = Number(x.split('@')[1]); return span && (at < span[0] || at >= span[1]); });
+      const heardBefore = heard(now);
       const res = st.applyQueueOverride(override);
       assert.ok(res.ok, `override must be a permutation of the natural order (${JSON.stringify(override)})`);
       applied++;
       assert.equal(fence(st, now), before, `step ${step}: the fence moved`);
       const cyc = override ? override.cycleIndex : 0;
       assert.equal(st.cycleOrder(cyc).reduce((a, t) => a + t.duration, 0), cycleSeconds, 'cycle length is constant');
+      assert.equal(st.revision, revision, 'a reorder is not a library change');
+      if (span) {
+        const after = heard(now);
+        assert.deepEqual(outside(after), outside(heardBefore), `step ${step}: something outside the window moved`);
+        if (outside(heardBefore).length) compared++;
+        const inside = (list) => list.filter((x) => !outside([x]).length).map((x) => x.split('@')[0]).sort();
+        assert.deepEqual(inside(after), inside(heardBefore), `step ${step}: the window lost or gained a track`);
+        assert.equal(after.find((x) => Number(x.split('@')[1]) >= span[1]), heardBefore.find((x) => Number(x.split('@')[1]) >= span[1]), 'the window ends at the same instant');
+      }
     }
     assert.ok(applied > 100, `enough decisions were exercised (${applied})`);
+    assert.ok(compared > 50, `« outside the window » compared something often enough (${compared})`);
   }
 });
 

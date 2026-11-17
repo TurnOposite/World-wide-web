@@ -208,60 +208,36 @@ test('GET /api/schedule rejects malformed or inverted windows', async () => {
   assert.equal((await get(`/api/schedule?from=${now}&to=${earlier}`)).status, 400);
 });
 
-test('streaming: full body', async (t) => {
+// Every way a Range header can be written — open-ended, suffix, clamped, multipart, malformed — is
+// tests/stream.test.js, on the parser. Here: that what it decides reaches the listener over HTTP (2026-11-17,
+// five tests folded into one).
+test('streaming over HTTP: the whole file, an exact slice (206), an impossible one (416), the size alone (HEAD)', async (t) => {
   if (!hasFfmpeg) return t.skip(NO_FFMPEG);
-  const id = station.tracks[0].id;
-  const res = await get(`/api/track/${id}/stream`);
+  const url = `/api/track/${station.tracks[0].id}/stream`;
+  const res = await get(url);
   assert.equal(res.status, 200);
   assert.equal(res.headers.get('content-type'), 'audio/mpeg');
   assert.equal(res.headers.get('accept-ranges'), 'bytes');
-  const buf = Buffer.from(await res.arrayBuffer());
-  assert.ok(buf.length > 1000, 'suspiciously small body');
-});
+  const full = Buffer.from(await res.arrayBuffer());
+  assert.ok(full.length > 1000, 'suspiciously small body');
 
-test('streaming: range request returns 206 with the exact slice', async (t) => {
-  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
-  const id = station.tracks[0].id;
-  const full = Buffer.from(await (await get(`/api/track/${id}/stream`)).arrayBuffer());
+  const part = await get(url, { headers: { Range: 'bytes=100-199' } });
+  assert.equal(part.status, 206);
+  assert.equal(part.headers.get('content-range'), `bytes 100-199/${full.length}`);
+  assert.equal(part.headers.get('content-length'), '100');
+  assert.deepEqual(Buffer.from(await part.arrayBuffer()), full.subarray(100, 200), 'ranged bytes do not match the full body');
 
-  const res = await get(`/api/track/${id}/stream`, { headers: { Range: 'bytes=100-199' } });
-  assert.equal(res.status, 206);
-  assert.equal(res.headers.get('content-range'), `bytes 100-199/${full.length}`);
-  assert.equal(res.headers.get('content-length'), '100');
-  const slice = Buffer.from(await res.arrayBuffer());
-  assert.equal(slice.length, 100);
-  assert.deepEqual(slice, full.subarray(100, 200), 'ranged bytes do not match the full body');
-});
+  const tail = await get(url, { headers: { Range: 'bytes=-500' } });
+  assert.deepEqual(Buffer.from(await tail.arrayBuffer()), full.subarray(full.length - 500), 'the last 500 bytes');
 
-test('streaming: open-ended and suffix ranges', async (t) => {
-  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
-  const id = station.tracks[0].id;
-  const full = Buffer.from(await (await get(`/api/track/${id}/stream`)).arrayBuffer());
+  const past = await get(url, { headers: { Range: 'bytes=99999999-' } });
+  assert.equal(past.status, 416);
+  assert.equal(past.headers.get('content-range'), `bytes */${full.length}`);
 
-  const open = await get(`/api/track/${id}/stream`, { headers: { Range: 'bytes=1000-' } });
-  assert.equal(open.status, 206);
-  assert.equal(Number(open.headers.get('content-length')), full.length - 1000);
-
-  const suffix = await get(`/api/track/${id}/stream`, { headers: { Range: 'bytes=-500' } });
-  assert.equal(suffix.status, 206);
-  assert.deepEqual(Buffer.from(await suffix.arrayBuffer()), full.subarray(full.length - 500));
-});
-
-test('streaming: unsatisfiable range returns 416', async (t) => {
-  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
-  const id = station.tracks[0].id;
-  const res = await get(`/api/track/${id}/stream`, { headers: { Range: 'bytes=99999999-' } });
-  assert.equal(res.status, 416);
-  assert.match(res.headers.get('content-range'), /^bytes \*\/\d+$/);
-});
-
-test('streaming: HEAD gives the size without the body', async (t) => {
-  if (!hasFfmpeg) return t.skip(NO_FFMPEG);
-  const id = station.tracks[0].id;
-  const res = await get(`/api/track/${id}/stream`, { method: 'HEAD' });
-  assert.equal(res.status, 200);
-  assert.ok(Number(res.headers.get('content-length')) > 1000);
-  assert.equal((await res.text()).length, 0);
+  const head = await get(url, { method: 'HEAD' });
+  assert.equal(head.status, 200);
+  assert.equal(Number(head.headers.get('content-length')), full.length);
+  assert.equal((await head.text()).length, 0);
 });
 
 test('unknown track id is a clean 404', async () => {

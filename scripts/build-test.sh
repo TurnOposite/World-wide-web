@@ -277,8 +277,7 @@ if [[ -n "$TRACK_ID" ]]; then
   LEN="$(curl -s -o /dev/null -w '%{size_download}' -H 'Range: bytes=100-199' "http://127.0.0.1:$PORT/api/track/$TRACK_ID/stream")"
   [[ "$LEN" == "100" ]] && ok "ranged body is exactly the bytes asked for" || bad "ranged body was $LEN bytes, expected 100"
 
-  CODE="$(curl -s -o /dev/null -w '%{http_code}' -H 'Range: bytes=99999999-' "http://127.0.0.1:$PORT/api/track/$TRACK_ID/stream")"
-  [[ "$CODE" == "416" ]] && ok "out-of-range request returns 416" || bad "out-of-range returned $CODE, expected 416"
+  # The 416 (a range past the end) is tests/api.test.js; every other shape of range, tests/stream.test.js.
 fi
 
 # Security.

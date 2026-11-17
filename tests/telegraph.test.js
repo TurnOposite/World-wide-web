@@ -31,6 +31,7 @@ const tower = await startTower({
   },
 });
 const { Telegraph, LIMITS, cleanText, cleanIcon, stripLinks, dailyReset } = await import('../server/lib/telegraph.js');
+const { makeCalendar } = await import('../server/lib/programme.js');
 const { RateLimiter } = await import('../server/lib/ratelimit.js');
 
 function clock(start = 1_800_000_000_000) {
@@ -123,13 +124,14 @@ test('the line is kept: a restart reads it back, without what was taken off, and
   assert.ok(again.post({ name: 'Cy', text: 'third', who: 'c' }).message.id > b.id, 'ids go on from where the log ended');
 });
 
-test('the room empties at 05:00 Paris: the programme\'s own day boundary, summer time included', () => {
+test('the room empties at 05:00 Paris: the programme\'s own day boundary, at every instant', () => {
+  // When 05:00 Paris falls — summer, winter, the nights the clocks change — is the calendar's (programme.test.js).
+  // The room's day is the programme's day: checked against it every ten minutes of two years.
   const at = dailyReset('05:00', 'Europe/Paris');
-  const iso = (t) => new Date(at(Date.parse(t))).toISOString();
-  assert.equal(iso('2026-11-13T03:59:59Z'), '2026-11-12T04:00:00.000Z', 'at 04:59 in Paris (winter) the day is still yesterday\'s');
-  assert.equal(iso('2026-11-13T04:00:00Z'), '2026-11-13T04:00:00.000Z', '05:00 in Paris is 04:00 UTC in winter');
-  assert.equal(iso('2026-11-13T22:30:00Z'), '2026-11-13T04:00:00.000Z');
-  assert.equal(iso('2026-07-01T03:00:00Z'), '2026-07-01T03:00:00.000Z', '…and 03:00 UTC in summer');
+  const cal = makeCalendar();
+  for (let t = Date.parse('2026-01-01T00:00:00Z'); t < Date.parse('2028-01-01T00:00:00Z'); t += 600_000) {
+    assert.equal(at(t), cal.dayStart(cal.dayOf(t)), new Date(t).toISOString());
+  }
   for (const off of ['off', '', 'never', '25:00']) assert.equal(dailyReset(off), null, `« ${off} » is a room that never empties`);
 });
 

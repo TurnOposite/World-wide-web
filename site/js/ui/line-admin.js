@@ -28,14 +28,23 @@ import { castFace } from './cast.js';
 /** How many messages a page of the log holds. */
 export const PAGE = 50;
 
-const DAY_FMT = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' });
+const PARIS = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' });
 
 /**
- * The broadcast day a message belongs to (YYYY-MM-DD): a day runs 05:00 → 05:00 in Paris, like the programme
- * and like the room, so what was said at 02:00 is still the evening before's.
+ * The broadcast day a message belongs to (YYYY-MM-DD): a day runs 05:00 → 05:00 on Paris's clocks, like the
+ * programme and like the room, so what was said at 02:00 is still the evening before's.
+ *
+ * Paris's own hour decides, not five hours of time taken off: on the two nights a year the clocks change that was
+ * an hour off (05:00–06:00 filed under the wrong day — found 2026-11-17 by checking it against the tower's
+ * calendar, server/lib/programme.js makeCalendar, which tests/site-line-admin.test.js now does for two years).
  */
 export function broadcastDay(t, startHour = 5) {
-  return DAY_FMT.format(new Date(t - startHour * 3600_000));
+  const p = Object.fromEntries(PARIS.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
+  const date = `${p.year}-${p.month}-${p.day}`;
+  if (Number(p.hour) >= startHour) return date;
+  const before = new Date(`${date}T12:00:00Z`);
+  before.setUTCDate(before.getUTCDate() - 1);
+  return before.toISOString().slice(0, 10);
 }
 
 /** Entries (newest first, as the tower sends them) in groups by broadcast day, newest day first. */

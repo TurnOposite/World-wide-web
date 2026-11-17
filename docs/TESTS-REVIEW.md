@@ -77,8 +77,23 @@ The ~10 key tests spread over other files are now redundant with this one; they 
   showed that a Station takes the scan's path-sorted list and that the order is part of the programme: the scan sorts
   with `localeCompare`, whose result can depend on the machine's language — harmless while one tower deals for
   everyone, worth knowing if two machines ever deal the same library.
-- 520 → 515 tests, ~185 lines fewer, nothing it checked is unchecked. **Still to fold:** the permutation's authority
-  (`queue-compose` against both engines), range requests, the 05:00 calendar.
+- 520 → 515 tests, ~185 lines fewer, nothing it checked is unchecked.
+
+**Done 2026-11-17 (night), the rest of step 3:**
+
+- **The permutation**: `queue-compose`'s property test is the authority. It now also holds what three example tests in
+  `queue-override` held — the revision unchanged, nothing before or after the window moved, the window ending at the
+  same instant — and one in `cloud-station` (« never moves what is on air… »). The browser plans with the same
+  Station (its copy is byte for byte, pinned), so it is not run twice; what is the browser's own, the control
+  document's trip through JSON, is `assertSameProgramme` on two engines. Broken on purpose (a reorder that also swaps
+  the track after its window) the property went red.
+- **Range requests**: five HTTP tests in `api.test` are one (the whole file, a 206 slice, a suffix, a 416, HEAD); every
+  shape of header stays in `stream.test`; the shell keeps its 206 on real audio and drops its 416.
+- **The 05:00 calendar** stays in `programme.test`; the room's reset (`telegraph.test`) and the Booth's log days
+  (`site-line-admin.test`) are each checked against it every ten minutes of two years instead of by examples. That
+  found a bug: the Booth's `broadcastDay` took five hours off instead of reading Paris's hour, and filed 05:00–06:00
+  under the wrong day on the two nights a year the clocks change. Fixed.
+- 515 → 507 tests. Section 2 is done.
 
 ## 3. Behaviour, not source text (≈ 45 assertions)
 

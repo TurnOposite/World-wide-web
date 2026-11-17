@@ -17,18 +17,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { broadcastDay, groupByDay, stateLabel, actionsFor, queryOf, PAGE } from '../site/js/ui/line-admin.js';
+import { makeCalendar } from '../server/lib/programme.js';
 import { sinceDay, mergeMessages } from '../site/js/ui/telegraph.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
-test('the log is read by broadcast day: 05:00 to 05:00 in Paris, summer and winter', () => {
-  assert.equal(broadcastDay(Date.parse('2026-11-16T12:00:00Z')), '2026-11-16');
-  assert.equal(broadcastDay(Date.parse('2026-11-17T01:30:00Z')), '2026-11-16', '02:30 in Paris is still the evening before\'s day');
-  assert.equal(broadcastDay(Date.parse('2026-11-17T03:59:00Z')), '2026-11-16', '04:59 too');
-  assert.equal(broadcastDay(Date.parse('2026-11-17T04:00:00Z')), '2026-11-17', '05:00 is the new day');
-  assert.equal(broadcastDay(Date.parse('2026-07-01T02:59:00Z')), '2026-06-30', 'in summer 05:00 Paris is 03:00 UTC');
-  assert.equal(broadcastDay(Date.parse('2026-07-01T03:00:00Z')), '2026-07-01');
+test('the log is read by broadcast day: the tower\'s own calendar, every ten minutes of two years', () => {
+  // 05:00 → 05:00 in Paris, summer and winter and the nights between, is the calendar's to say (programme.test.js);
+  // the Booth's day must be the same day at every instant. Until 2026-11-17 it was an hour off twice a year.
+  const cal = makeCalendar();
+  for (let t = Date.parse('2026-01-01T00:00:00Z'); t < Date.parse('2028-01-01T00:00:00Z'); t += 600_000) {
+    assert.equal(broadcastDay(t), cal.dateOf(cal.dayOf(t)), new Date(t).toISOString());
+  }
 
   const e = (id, iso) => ({ id, t: Date.parse(iso) });
   const days = groupByDay([e(4, '2026-11-17T08:00:00Z'), e(3, '2026-11-17T02:00:00Z'), e(2, '2026-11-16T20:00:00Z'), e(1, '2026-11-15T20:00:00Z')]);

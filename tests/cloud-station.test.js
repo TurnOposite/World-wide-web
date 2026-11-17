@@ -22,6 +22,7 @@ import { stationPayload, queuePayload } from '../server/lib/payloads.js';
 import { CloudEngine } from '../site/js/engine/cloud.js';
 import { validateLibrary } from '../scripts/cloud-library.mjs';
 import { SYNCED, expected } from '../scripts/site-sync.mjs';
+import { assertSameProgramme, instantsFrom } from './helpers/same-programme.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEPLOYED = JSON.parse(fs.readFileSync(path.join(ROOT, 'site/station/library.json'), 'utf8'));
@@ -236,40 +237,10 @@ test('two listeners holding the same control document agree at every instant', (
   assert.equal(prop.ok, true, JSON.stringify(prop));
   const { doc } = prop;
 
-  const a = engineAt(t, doc);
-  assert.equal(a.controlStatus, 'applied');
-  const b = engineAt(t + 9_000, JSON.parse(JSON.stringify(doc))); // polled later, same doc
-  for (let s = 0; s < 3 * 3600; s += 7) {
-    const at = t + s * 1000;
-    const x = a.station.at(at);
-    const y = b.station.at(at);
-    assert.equal(x.track.id, y.track.id, `listeners disagree ${s}s after the change`);
-    assert.equal(Math.round(x.offset * 1000), Math.round(y.offset * 1000));
-  }
-});
-
-test('a reorder never moves what is on air, the lock fence, or anything after its window', () => {
-  const t = busyInstant();
-  const before = engineAt(t);
-  const win = movableWindow(before);
-  const ids = win.map((s) => s.id);
-  const { doc } = before.proposeReorder({ cycleIndex: win[0].cycleIndex, startWithin: win[0].withinCycle, ids: [...ids].reverse() });
-  const after = engineAt(t, doc);
-
-  const windowStart = before.station.slotStartsAt(win[0].cycleIndex, win[0].withinCycle);
-  const last = win[win.length - 1];
-  const windowEnd = before.station.slotStartsAt(last.cycleIndex, last.withinCycle) + before.station.get(last.id).duration * 1000;
-  assert.ok(windowStart >= t + before.config.queueLockSeconds * 1000, 'window must start beyond the fence');
-
-  for (let at = t; at < windowStart; at += 2000) {
-    assert.equal(after.station.at(at).track.id, before.station.at(at).track.id, 'something inside the fence moved');
-  }
-  for (let at = windowEnd + 1; at < windowEnd + 6 * 3600e3; at += 60_000) {
-    const x = after.station.at(at);
-    const y = before.station.at(at);
-    assert.equal(x.track.id, y.track.id, 'something after the window moved');
-    assert.equal(Math.round(x.offset * 1000), Math.round(y.offset * 1000));
-  }
+  assert.equal(engineAt(t, doc).controlStatus, 'applied');
+  // One listener holds it now, the other polled nine seconds later and has it through JSON, as from GitHub. What the
+  // reorder may and may not move is queue-compose.test.js's property; this is the document's trip.
+  assertSameProgramme((i) => engineAt(t + i * 9_000, i ? JSON.parse(JSON.stringify(doc)) : doc).station, instantsFrom(t, { count: 300, step: 37_000 }));
 });
 
 test('the cloud refuses what the Pi refuses: inside the fence, not a permutation, across a cycle', () => {
