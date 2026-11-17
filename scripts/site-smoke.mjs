@@ -437,7 +437,7 @@ try {
   const lead = await b.evaluate(() => ({ chs: [...document.querySelectorAll('#rStream button[data-ch]')].map((x) => x.dataset.ch + (x.getAttribute('aria-pressed') === 'true' ? '*' : '')),
     dial: Boolean(document.querySelector('#view .dial')) }));
   check('/radio has a switch of the streams, the one on air here marked; the dial with what each plays is not on it', lead.chs.length >= 2 && lead.chs.filter((c) => c.endsWith('*')).length === 1 && !lead.dial, JSON.stringify(lead));
-  const fromRadio = lead.chs.find((c) => !c.endsWith('*') && c !== 'all');
+  const fromRadio = lead.chs.find((c) => !c.endsWith('*'));
   if (fromRadio) {
     await b.click(`#rStream button[data-ch="${fromRadio}"]`);
     await b.waitForFunction((ch) => window.radioTower.player.data?.station?.channel === ch, fromRadio, { timeout: 8000 }).catch(() => {});
