@@ -390,3 +390,32 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
 /* The Une's lead picture grows with the column's width: in its window it stops at a share of the window's height
    (world.js --w-room), so the front page shows whole at a readable size. */
 .w-echo-d .echo-lead img,.w-echo-d .echo-lead video{aspect-ratio:auto;height:min(calc(var(--w-room,100vh) * .42),calc((100cqw) * 9 / 16));max-height:calc(var(--w-room,100vh) * .42)}
+
+/* ---- the dials behind the side menus (2026-11-17, on the claude/side-dials branch): Zone's cassette reel, half of
+   it at the left edge; Echo's engraved globe of the twenties, half of it at the right. Behind the windows, under the
+   tags; decoration only. Not on a phone (the tags are a strip there). ---- */
+.w-dials{position:absolute;inset:0;pointer-events:none}
+.w-dials-svg{position:absolute;inset:0;overflow:visible}
+.w-dial-zone{opacity:calc(1 - var(--w-mix) * .7)}
+.w-dial-echo{opacity:calc(.3 + var(--w-mix) * .7)}
+.w-reel-turn{transition:transform 1.1s cubic-bezier(.2,.8,.2,1);transform-origin:0 0}
+.w-reel-flange{fill:rgba(90,174,191,.07);stroke:var(--w-neon-a);stroke-width:.9}
+.w-reel-groove{fill:none;stroke:rgba(255,220,190,.05);stroke-width:.6}
+.w-reel-window{fill:rgba(12,14,24,.55);stroke:rgba(90,174,191,.45);stroke-width:.6}
+.w-reel-hub{fill:#d9dde6;stroke:#9aa3b5;stroke-width:.8}
+.w-reel-bore{fill:#0c0e18}
+.w-reel-tooth{fill:#d9dde6}
+.w-reel-screw{fill:#7d8597}
+.w-reel-text{font:600 6px/1 var(--w-mono);letter-spacing:.32em;fill:var(--w-neon-a);opacity:.7}
+.w-globe-sea{fill:#f2ead8;stroke:none}
+.w-globe-grat path{fill:none;stroke:rgba(23,22,21,.28);stroke-width:.7}
+.w-globe-land path{fill:url(#wGlobeHatch);stroke:var(--w-ink);stroke-width:1;stroke-linejoin:round}
+.w-globe-hatch{stroke:rgba(23,22,21,.55);stroke-width:.8}
+.w-globe-equator{fill:none;stroke:var(--w-red);stroke-width:2;stroke-dasharray:7 4}
+.w-globe-rim{fill:none;stroke:var(--w-ink);stroke-width:2.2}
+.w-globe-ring{fill:none;stroke:var(--w-ink);stroke-width:.8}
+.w-globe-ticks line{stroke:var(--w-ink);stroke-width:.8}
+@media (prefers-reduced-motion:reduce){.w-reel-turn{transition:none}}
+@media (max-width:760px),(max-height:500px){.w-dials{display:none}}
+[data-w-list="stack"] .w-dials{display:none}
+
