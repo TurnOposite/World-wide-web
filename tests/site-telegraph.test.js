@@ -130,7 +130,7 @@ test('the list kept in git names files that are in the folder, and the build mak
   assert.match(read('scripts/site-build.mjs'), /'site-telegraph\.mjs'/, 'every build lists the folder again: dropping pictures in is the whole procedure');
 });
 
-test('the Antenna holds the dial and the line; /radio leads to it; the phone trims /radio', () => {
+test('the Antenna holds the dial and the line; /radio switches the stream; the phone trims /radio', () => {
   const antenna = read('site/js/pages/antenna.js');
   assert.match(antenna, /new ChannelDial\(/);
   assert.match(antenna, /new TelegraphLine\(/);
@@ -138,7 +138,11 @@ test('the Antenna holds the dial and the line; /radio leads to it; the phone tri
   assert.ok(!fs.existsSync(path.join(ROOT, 'site/js/pages/broadcast.js')), 'Zone\'s Atlas is gone, not left beside it');
   const radio = read('site/js/pages/radio.js');
   assert.doesNotMatch(radio, /ChannelDial/, 'the dial is the Antenna\'s');
-  assert.match(radio, /id="rStream" href="antenna"/);
+  // Moved 2026-11-17 with the page (Ortis: « from radio we can also change the stream »): a switch of the streams'
+  // names, where it was a link to the Antenna. The dial with what each plays stays the Antenna's.
+  assert.match(radio, /<div class="seg seg-sm" id="rStream" role="group" aria-label="Streams" hidden><\/div>/);
+  assert.match(radio, /client\.setChannel\(b\.dataset\.ch\)/);
+  assert.match(radio, /b\.getAttribute\('aria-disabled'\) === 'true'/, 'a stream waiting for its music cannot be chosen');
   assert.equal((radio.match(/radio-extra/g) || []).length >= 4, true);
   const css = read('site/css/site.css');
   assert.match(css, /@media \(max-width:760px\),\(max-height:500px\)\{\s*\.radio-extra\{display:none!important\}/, 'at the world\'s own phone breakpoints');

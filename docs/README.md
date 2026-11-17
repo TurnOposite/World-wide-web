@@ -26,6 +26,7 @@ would cost more than the tidiness is worth.
 | Where does it run right now, and how do I add music? | [`LIVE.md`](./LIVE.md) — Vercel + the Oracle server, **current since 2026-10-08** |
 | How did it go on GitHub Pages? (retired 2026-10-02) | [`GO-LIVE.md`](./GO-LIVE.md) — historical |
 | How do the line's notifications work, and how do I get them on my phone? | [`NOTIFICATIONS.md`](./NOTIFICATIONS.md) — ntfy for Ortis, Web Push for listeners who ask, the iPhone's Home Screen rule (2026-11-16) |
+| What is on Chill and Energy, and how do I move an album? | [`STREAMS.md`](./STREAMS.md) — filled from the label sheet (2026-11-17) |
 | How does the tower update with the laptop off? | [`FIRE-FROM-CLOUD.md`](./FIRE-FROM-CLOUD.md) — the `fire` workflow and the deploy key Ortis makes (2026-11-16; off until he does) |
 | What if Oracle stops, or ends the free tier? | [`EXIT-ORACLE.md`](./EXIT-ORACLE.md) — where each of the server's jobs would go, free options first (2026-11-16; a plan) |
 | Is this still heading the right way? | [`PLANNING.md`](./PLANNING.md) |

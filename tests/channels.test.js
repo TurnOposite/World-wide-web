@@ -396,7 +396,7 @@ test('the file to publish carries the two streams beside Everything: empty they 
   assert.deepEqual(plain.list().map((c) => c.slug), ['all']);
 });
 
-test('the streams are the tower\'s own: a channels.json written before them gets both, one that defines them wins, one can refuse them', () => {
+test('the streams are the tower\'s own: a channels.json written before them gets both, one that defines them wins, one can refuse them', async () => {
   const doc = JSON.parse(fs.readFileSync(path.join(ROOT, 'library/channels.programme.json'), 'utf8'));
   const plain = ({ _why, ...c }) => c;
   assert.deepEqual(doc.channels.slice(1).map(plain), STREAMS.map((s) => ({ ...s })), 'the file to publish and the code say the same two streams');
@@ -408,6 +408,35 @@ test('the streams are the tower\'s own: a channels.json written before them gets
   const mine = { channels: [{ slug: 'all', label: 'Everything' }, { slug: 'chill', label: 'My chill', folders: ['Mine'] }] };
   assert.deepEqual(withStreams(mine).channels.map((c) => c.label), ['Everything', 'My chill', 'Energy'], 'his own Chill wins; Energy still joins');
   assert.equal(withStreams({ streams: false, channels: old.channels }).channels.length, 1);
-  assert.equal(withStreams(doc), doc, 'a file that already has both is left as it is');
+  // Since 2026-11-17 (Ortis: fill the streams from the label sheet) a file that already defines both, with folders
+  // only, gets the sheet's labels and tracks added to its folders; one that says `"sheet": false` is left as it is.
+  const { streamSelection } = await import('../server/lib/channels.js');
+  const sheet = streamSelection(JSON.parse(fs.readFileSync(path.join(ROOT, 'server/data/streams.json'), 'utf8')));
+  assert.equal(withStreams(doc), doc, 'with no selection given (the site\'s copy), a file that has both is left as it is');
+  const filled = withStreams(doc, sheet);
+  assert.deepEqual(filled.channels.slice(1).map((c) => [c.slug, c.folders, c.match, c.genres.length > 0, c.tracks.length > 0]),
+    [['chill', ['Chill'], 'any', true, true], ['energy', ['Energy'], 'any', true, true]], 'his folders stay, the sheet fills the rest');
+  const refused = { ...doc, channels: doc.channels.map((c, i) => (i ? { ...c, sheet: false } : c)) };
+  assert.equal(withStreams(refused, sheet), refused, 'a file that refuses the sheet is left as it is');
   assert.equal(withStreams(null), null);
+});
+
+test('the streams filled from his label sheet (2026-11-17): by label, by track, and a track left out', async () => {
+  const { streamSelection, withSheet } = await import('../server/lib/channels.js');
+  const { chill, energy } = streamSelection(JSON.parse(fs.readFileSync(path.join(ROOT, 'server/data/streams.json'), 'utf8')));
+  assert.deepEqual(chill.genres, ['barber-beats', 'vaporwave', 'ambient', 'lofi', 'jazz'], '« liminal, barber beat, jazz »');
+  assert.deepEqual(energy.genres, ['dnb-jungle', 'electronic'], '« the breakcore and the faster BPM stuff »');
+  for (const s of [chill, energy]) for (const id of [...s.tracks, ...s.excludeTracks]) assert.match(id, /^[0-9a-f]{12}$/);
+  assert.equal(chill.tracks.filter((id) => energy.tracks.includes(id)).length, 0, 'no track listed on both');
+  const sel = { chill: { genres: ['jazz'], tracks: ['aaaaaaaaaaaa'], excludeTracks: ['bbbbbbbbbbbb'] } };
+  const ch = withSheet({ slug: 'chill', folders: ['Chill'], excludeFolders: ['Energy'], match: 'any' }, sel);
+  const t = (id, genreSlug, relPath = `x/${id}.mp3`) => ({ id, genreSlug, relPath, duration: 200 });
+  assert.equal(matches(t('cccccccccccc', 'jazz'), ch), true, 'by its label');
+  assert.equal(matches(t('aaaaaaaaaaaa', 'unsorted'), ch), true, 'listed by the sheet');
+  assert.equal(matches(t('bbbbbbbbbbbb', 'jazz'), ch), false, 'labelled jazz, but the sheet says otherwise');
+  assert.equal(matches(t('dddddddddddd', 'unsorted', 'Chill/x.mp3'), ch), true, 'his Chill folder still counts');
+  assert.equal(matches(t('eeeeeeeeeeee', 'jazz', 'Energy/x.mp3'), ch), false, 'and what is in Energy stays out');
+  assert.equal(matches(t('ffffffffffff', 'vgm'), ch), false);
+  assert.equal(withSheet({ slug: 'chill', genres: ['ambient'] }, sel).tracks, undefined, 'a definition with labels of its own is his, untouched');
+  assert.equal(withSheet({ slug: 'all' }, sel).tracks, undefined);
 });

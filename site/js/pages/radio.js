@@ -6,8 +6,9 @@
  * the queue below the card went on 2026-11-01 (Ortis: a window shows its
  * page whole, no scrolling inside) — what is next is Ondes', and rearranging
  * it is the Booth's. The dial went to the Antenna on 2026-11-10
- * (pages/antenna.js), where the streams live; this page names the stream on
- * air and leads there. The full-page visualiser is the backdrop of this
+ * (pages/antenna.js), where the streams live with what each is playing; since
+ * 2026-11-17 (Ortis: « from radio we can also change the stream ») this page
+ * has a switch of the streams' names too, the shape of ZONE | ECHO. The full-page visualiser is the backdrop of this
  * whole page; this module only tells it where the cover is.
  *
  * On a phone (Ortis, 2026-11-10: « people have to scroll down to see the
@@ -26,7 +27,7 @@ export function mount(root, ctx) {
       <span class="eyebrow radio-extra">Radio Tower · ${esc(player.station?.tagline || 'One signal. Everyone on the same second.')}</span>
       <div class="meters">
         <span class="pill" id="rMode"></span>
-        <a class="pill pill-link" id="rStream" href="antenna" data-link hidden title="The streams are in the Antenna"></a>
+        <div class="seg seg-sm" id="rStream" role="group" aria-label="Streams" hidden></div>
         <span class="pill radio-extra" id="rLoop" title="Where the station is in its loop">loop –</span>
         <span class="pill radio-extra" id="rSync" title="How closely your playback matches the station">sync –</span>
       </div>
@@ -161,17 +162,27 @@ export function mount(root, ctx) {
   player.addEventListener('playing', onPlaying);
 
   // Up next, Just played and the guide for the next hours live on /ondes; the queue's editor in the Booth;
-  // the streams in the Antenna. With more than one on air, the head names the one playing and leads there.
+  // the streams, with what each is playing, in the Antenna. Here, with more than one, a switch of their names:
+  // a stream still waiting for its music is shown, and cannot be chosen.
   let alive = true;
+  let busy = false;
   const paintStream = async () => {
     if (typeof client.channels !== 'function') return;
     const { channels = [], current } = await client.channels();
     if (!alive) return;
     const el = $('rStream');
-    const on = channels.find((c) => c.slug === (client.channel ?? current));
-    el.hidden = channels.length < 2 || !on;
-    if (!el.hidden) el.innerHTML = `stream <b>${esc(on.label)}</b> <span aria-hidden="true">›</span>`;
+    const on = client.channel ?? current;
+    el.hidden = channels.length < 2;
+    if (el.hidden) return;
+    el.innerHTML = channels.map((c) => `<button type="button" data-ch="${esc(c.slug)}" aria-pressed="${c.slug === on}"${c.empty ? ' aria-disabled="true"' : ''}
+      title="${esc(c.empty ? `${c.label}: no music yet` : c.blurb || c.label)}">${esc(c.label)}</button>`).join('');
   };
+  $('rStream').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-ch]');
+    if (!b || busy || b.getAttribute('aria-disabled') === 'true' || b.dataset.ch === client.channel) return;
+    busy = true;
+    try { await client.setChannel(b.dataset.ch); } finally { busy = false; paintStream(); }
+  });
   const offCh = client.on?.('channel', paintStream);
   paintStream();
 

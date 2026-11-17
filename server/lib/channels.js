@@ -137,10 +137,12 @@ export function matches(t, ch) {
   const crates = cratesOf(t).map(slugify);
   if (Array.isArray(ch.excludeCrates) && ch.excludeCrates.some((c) => crates.includes(slugify(c)))) return false;
   if (Array.isArray(ch.excludeFolders) && ch.excludeFolders.length && inFolders(t, ch.excludeFolders)) return false;
+  if (Array.isArray(ch.excludeTracks) && ch.excludeTracks.length && idSet(ch.excludeTracks).has(t.id)) return false;
   const asked = [];
   if (Array.isArray(ch.crates) && ch.crates.length) asked.push(ch.crates.some((c) => crates.includes(slugify(c))));
   if (Array.isArray(ch.folders) && ch.folders.length) asked.push(inFolders(t, ch.folders));
   if (Array.isArray(ch.genres) && ch.genres.length) asked.push(ch.genres.includes(t.genreSlug));
+  if (Array.isArray(ch.tracks) && ch.tracks.length) asked.push(idSet(ch.tracks).has(t.id));
   if (!asked.length) return true;
   return ch.match === 'any' ? asked.some(Boolean) : asked.every(Boolean);
 }
@@ -181,12 +183,50 @@ export const STREAMS = Object.freeze([
   }),
 ]);
 
-/** A spec with the streams it does not define itself added after its own channels — unless it says `streams: false`. */
-export function withStreams(spec) {
+/** A list of track ids as a Set, made once per list: a stream can list hundreds, and every track of every scan asks. */
+const ID_SETS = new WeakMap();
+function idSet(list) {
+  let s = ID_SETS.get(list);
+  if (!s) { s = new Set(list); ID_SETS.set(list, s); }
+  return s;
+}
+
+/**
+ * What fills the streams (Ortis, 2026-11-17: « all the breakcore and all the faster BPM stuff » in Energy, « all
+ * the liminal, barber beat, jazz » in Chill, Everything as it is) — `server/data/streams.json`, drawn from his
+ * label sheet: the labels each stream takes, the tracks it takes besides, the ones it leaves out. In the code, not
+ * in the music folder's channels.json, so a push carries it to the tower. docs/STREAMS.md. Read by the server at
+ * start (index.js, `streamSelection`) and handed to withStreams: this file is also the site's (site/js/lib), and
+ * reads no file itself.
+ */
+export function streamSelection(doc) {
+  const pick = (s) => (s && Array.isArray(s.genres) ? Object.freeze({ genres: s.genres, tracks: s.tracks || [], excludeTracks: s.excludeTracks || [] }) : null);
+  return Object.freeze({ chill: pick(doc?.chill), energy: pick(doc?.energy) });
+}
+const NO_SELECTION = Object.freeze({});
+
+/**
+ * A stream with the sheet's selection added to what it already names (its folders stay). Left as it is when the
+ * definition picks its own labels or tracks, or says `"sheet": false` — his own channels.json can always overrule.
+ */
+export function withSheet(ch, selection = NO_SELECTION) {
+  const s = ch && selection[ch.slug];
+  if (!s || ch.sheet === false || 'genres' in ch || 'tracks' in ch) return ch;
+  return { ...ch, match: 'any', genres: s.genres, tracks: s.tracks, excludeTracks: [...(ch.excludeTracks || []), ...s.excludeTracks] };
+}
+
+/**
+ * A spec with the streams it does not define itself added after its own channels — unless it says `streams: false` —
+ * and each stream filled from the sheet (withSheet).
+ */
+export function withStreams(spec, selection = NO_SELECTION) {
   if (!spec || spec.streams === false) return spec;
   const have = new Set((spec.channels || []).map((c) => c?.slug));
   const add = STREAMS.filter((s) => !have.has(s.slug));
-  return add.length ? { ...spec, channels: [...(spec.channels || []), ...add] } : spec;
+  const channels = [...(spec.channels || []), ...add];
+  const filled = channels.map((c) => (STREAMS.some((s) => s.slug === c?.slug) ? withSheet(c, selection) : c));
+  const changed = add.length || filled.some((c, i) => c !== channels[i]);
+  return changed ? { ...spec, channels: filled } : spec;
 }
 
 /**

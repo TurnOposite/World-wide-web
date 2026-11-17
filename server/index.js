@@ -12,7 +12,7 @@ import { createServer } from 'node:http';
 import config, { ROOT } from './config.js';
 import { scanLibrary } from './lib/library.js';
 import { Station } from './lib/schedule.js';
-import { ChannelSet, DEFAULT_CHANNEL_SPEC, withStreams } from './lib/channels.js';
+import { ChannelSet, DEFAULT_CHANNEL_SPEC, streamSelection, withStreams } from './lib/channels.js';
 import { DailyStation, DEFAULT_PROGRAMME } from './lib/programme.js';
 import fs from 'node:fs';
 import { Listeners } from './lib/listeners.js';
@@ -26,6 +26,16 @@ import { readCommit, readRepo } from './lib/commit.js';
 
 const VERSION = '0.1.0';
 
+/** What fills Chill and Energy, from his label sheet (server/data/streams.json, docs/STREAMS.md). */
+const STREAM_SELECTION = (() => {
+  try {
+    return streamSelection(JSON.parse(fs.readFileSync(path.join(ROOT, 'server', 'data', 'streams.json'), 'utf8')));
+  } catch (err) {
+    console.warn(`[channels] server/data/streams.json: ${err.message} — the streams take only their folders`);
+    return streamSelection(null);
+  }
+})();
+
 /**
  * The channel spec: library/channels.json beside the music if there is one
  * (CHANNELS_FILE overrides where to look), else the default — Mashup, Long
@@ -38,7 +48,7 @@ function readChannelSpec() {
   try {
     // A tower with a channels.json of its own also carries the two streams, Chill and Energy, unless that
     // file defines them itself or says `"streams": false` (channels.js STREAMS). The default dial stays as it is.
-    if (file && fs.existsSync(file)) return withStreams(JSON.parse(fs.readFileSync(file, 'utf8')));
+    if (file && fs.existsSync(file)) return withStreams(JSON.parse(fs.readFileSync(file, 'utf8')), STREAM_SELECTION);
   } catch (err) {
     console.warn(`[channels] ${file}: ${err.message} — using the default channels`);
   }
