@@ -4021,3 +4021,19 @@ station's); if the line gets enough traffic that one notification a minute is to
 
 **Revisit if** he wants Lo-fi or the sheet's « Easy » rows elsewhere, a BPM measure instead of labels (W2), or the
 selection back in his channels.json.
+
+## 2026-11-17 — Every API route is placed, open or keyed, and the music folder's path went behind the key
+
+**Context.** `docs/TESTS-REVIEW.md` step 2. The station key's doors were each tested by whoever added them, and
+« no filesystem path leaves the tower » only on the endpoints someone thought of.
+
+**Decision.**
+1. `tests/routes.test.js` reads the routes from the router itself. Each must be named there as OPEN or KEYED; a new
+   route fails the suite until it is placed. Every KEYED route is held to the same three answers (no key 401, a wrong
+   key 401, the right key opens it) and to one shared budget of wrong keys per address. Every answer, open or keyed,
+   is walked for a path on the tower's disk, a file name or a `relPath`.
+2. On its first run the walk found `/api/health` — open — telling anyone `"musicDir":"/srv/radio/music"`. It moved to
+   the keyed `/api/status`. The DJ booth's `status` and `doctor`, the only readers, ask `/api/status` with their key
+   (and still read the old field from an older tower).
+
+**Revisit if** something without the key genuinely needs to know where the music is — it should not.

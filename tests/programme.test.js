@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { silentMp3 } from './helpers/audio.js';
 import {
   makeCalendar, normalizeProgramme, artistsOf, spreadArtists, planLibrary, buildDay,
   DailyStation, DEFAULT_PROGRAMME,
@@ -244,17 +245,7 @@ test('planLibrary: a rotation too big for the day slows down instead of crowding
 
 /* ------------------------------------------------------------ the server */
 
-/**
- * Silent MPEG-1 Layer III frames (128 kbit/s, 44.1 kHz): enough for the
- * scanner to read a duration, so this runs where ffmpeg is not installed.
- * Untagged, so the artist comes from an "Artist - Title" file name.
- */
-async function silentMp3(file, seconds) {
-  const frame = Buffer.alloc(417);
-  frame.writeUInt32BE(0xfffb9064, 0);
-  await fsp.mkdir(path.dirname(file), { recursive: true });
-  await fsp.writeFile(file, Buffer.concat(Array(Math.round((seconds * 44100) / 1152)).fill(frame)));
-}
+// silentMp3: tests/helpers/audio.js — the scanner reads a duration, so this runs where ffmpeg is not installed.
 
 test('a tower whose channels.json has a programme plays the daily programme', async () => {
   const MUSIC = await fsp.mkdtemp(path.join(os.tmpdir(), 'rt-programme-'));

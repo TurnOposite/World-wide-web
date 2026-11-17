@@ -56,6 +56,14 @@ Each server-booting test file today starts its own tower with its own settings (
 `tests/helpers/tower.js` (start one with these settings, give me its address, stop it) would remove ~300 lines of
 repeated setup and make every one of them start the same way.
 
+**Done 2026-11-17 (night), step 2 of the order below:** `tests/routes.test.js` reads the 25 routes from the router:
+13 OPEN, 12 KEYED, and a route in neither list fails the suite. Every keyed route answers 401 to no key and a wrong
+key and opens with the right one; wrong keys on any of them share one budget per address (twenty, then 429 even with
+the right key). Every answer is walked for a path on disk, a file name or a `relPath` — and the walk's first run found
+`/api/health` telling anyone where the music is on the tower's disk; that moved behind the key (`/api/status`). Both
+checks were broken on purpose once (a route dropped from the table, the key taken off `/queue/clear`) and went red.
+The ~10 key tests spread over other files are now redundant with this one; they go in step 3, with the shared helper.
+
 ## 3. Behaviour, not source text (≈ 45 assertions)
 
 Eleven files assert that a source file **contains** a line of code (`assert.match(read('site/js/…'), /…/)`):

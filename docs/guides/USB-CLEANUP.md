@@ -86,7 +86,8 @@ Guards built in, because this script deletes things:
 
 ```bash
 grep MUSIC_DIR /etc/radio-tower.env
-curl -s localhost:8080/api/health | grep musicDir
+# behind the key since 2026-11-17 (/api/health no longer says where the music is)
+curl -s -H "X-Station-Key: $(grep ^STATION_KEY= /etc/radio-tower.env | cut -d= -f2-)" localhost:8080/api/status | grep -o '"musicDir":"[^"]*"'
 ```
 
 and from the laptop:

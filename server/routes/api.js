@@ -120,7 +120,8 @@ export function apiRouter(ctx) {
       nowPlayingId: onAir?.track?.id ?? null,
       listeners: listeners.count(),
       lastScanAt: state.lastScanAt,
-      musicDir: config.musicDir,
+      // No musicDir here since 2026-11-17: a path on the tower's disk is not the room's to read (tests/routes.test.js).
+      // It is in /api/status, behind the key.
       version: state.version,
       // The commit this code is (null outside a git checkout): what `npm run status` compares with GitHub and Vercel.
       commit: state.commit ?? null,
@@ -498,6 +499,7 @@ export function apiRouter(ctx) {
       status: state.scanning && state.lastScanAt === null ? 'scanning' : station.isEmpty ? 'no_tracks' : 'on_air',
       tracks: station.tracks.length,
       lastScanAt: state.lastScanAt,
+      musicDir: config.musicDir,
       listeners: listeners.count(),
       onAir: onAir?.track ? { id: onAir.track.id, title: onAir.track.title, artist: onAir.track.artist } : null,
       line: telegraph

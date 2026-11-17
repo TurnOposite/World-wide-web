@@ -284,6 +284,17 @@ class Bridge {
     return res.json();
   }
 
+  /**
+   * Where the station reads its music. Behind the key since 2026-11-17 (/api/status; /api/health no longer says):
+   * null without a key, or from a tower that refuses it.
+   */
+  async musicDir() {
+    if (!this.key) return null;
+    const res = await fetch(this.url + '/api/status', { headers: { accept: 'application/json', 'x-station-key': this.key } }).catch(() => null);
+    if (!res?.ok) return null;
+    return (await res.json().catch(() => ({}))).musicDir ?? null;
+  }
+
   async post(p, body) {
     if (!this.key) {
       throw new Error(
@@ -366,7 +377,7 @@ const commands = {
 
     console.log(`\n  ${station.station?.name ?? 'Radio Tower'} — ${bridge.url}`);
     console.log(`  ${health.status.toUpperCase()}  ${health.tracks} tracks  ${Math.round(health.cycleSeconds / 60)}min cycle  ${health.listeners} listening  rev ${health.revision}`);
-    console.log(`  music: ${health.musicDir}`);
+    console.log(`  music: ${(await bridge.musicDir()) ?? health.musicDir ?? '(the station key shows where)'}`);
     console.log(`  booth: ${queue.editable ? 'OPEN — STATION_KEY is set on the server' : 'CLOSED — server has no STATION_KEY, emissions are refused'}`);
     if (queue.override) console.log(`  ON AIR OVERRIDE: cycle ${queue.override.cycleIndex} from slot ${queue.override.startWithin}, set ${new Date(queue.override.setAt).toLocaleTimeString()}`);
 
@@ -539,13 +550,17 @@ const commands = {
     try {
       const health = await bridge.get('/api/health');
       console.log(`  OK    station reachable at ${bridge.url} — ${health.status}, ${health.tracks} tracks`);
+      // An older tower still says it in /api/health.
+      const where = (await bridge.musicDir()) ?? health.musicDir ?? null;
       const local = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(originOf(bridge.url) || '');
       if (!local) {
         // The cloud tower plays its own copy (/srv/radio/music), sent by the
         // library bot — the two paths never match, and that is not a fault.
-        console.log(`  INFO  the station plays its own copy: ${health.musicDir} (sent by library/bot.mjs publish)`);
-      } else if (path.resolve(health.musicDir) !== dir) {
-        console.log(`  WARN  the station is playing ${health.musicDir}`);
+        console.log(`  INFO  the station plays its own copy${where ? `: ${where}` : ''} (sent by library/bot.mjs publish)`);
+      } else if (!where) {
+        console.log('  INFO  without the station key the booth cannot see which folder the station reads');
+      } else if (path.resolve(where) !== dir) {
+        console.log(`  WARN  the station is playing ${where}`);
         console.log(`        which is NOT the directory this booth is reading (${dir}).`);
         console.log('        That mismatch is the usual cause of "these are not the right files".');
       } else {

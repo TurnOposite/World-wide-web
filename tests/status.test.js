@@ -142,7 +142,7 @@ test('reading GitHub, the site and the tower: each from its own public address, 
     if (/\/commits\/main$/.test(url)) return json({ sha: B, commit: { message: 'The headline\n\nbody', committer: { date: '2026-11-16T20:00:00Z' } } });
     if (/\/actions\/runs\?head_sha=/.test(url)) return json({ workflow_runs: [{ name: 'self-test', status: 'completed', conclusion: 'success', created_at: 'x' }] });
     if (/config\.json$/.test(url)) return json({ commit: A, builtAt: '2026-11-16T20:00:00.000Z', github: { owner: 'x' } });
-    if (/\/api\/health$/.test(url)) return json({ ok: true, status: 'on_air', commit: A, uptimeSeconds: 100, tracks: 4, listeners: 1, memoryMb: 90, node: 'v22.0.0', musicDir: '/srv/radio/music' });
+    if (/\/api\/health$/.test(url)) return json({ ok: true, status: 'on_air', commit: A, uptimeSeconds: 100, tracks: 4, listeners: 1, memoryMb: 90, node: 'v22.0.0', });
     if (/\/api\/station$/.test(url)) return json({ onAir: { id: 't1', title: 'Carrier Wave', artist: 'Self Test', url: '/api/track/t1/stream' } });
     if (/\/api\/telegraph$/.test(url)) return json({ enabled: true, messages: [{ id: 1 }, { id: 2 }], day: Date.parse('2026-11-16T04:00:00Z') });
     return json({}, 404);
