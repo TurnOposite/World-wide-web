@@ -1229,6 +1229,11 @@ try {
     JSON.stringify(dialsAt));
   check("the current tag wears its half's shard (MB-01), drawn over it and hidden from assistive technology; the amber ring is gone",
     Boolean(dialsAt.shard?.on && dialsAt.shard.over && dialsAt.shard.sel) && dialsAt.shard.hidden === 'true' && !/196, 161, 96/.test(dialsAt.amber || ''), JSON.stringify({ shard: dialsAt.shard, amber: dialsAt.amber }));
+  // The station clock in Zone's corner (MB-09) and the name running behind the open window's header (MB-04).
+  const corner = await w.evaluate(() => ({ badge: document.querySelector('.w-badge')?.getAttribute('aria-label') || '', day: document.querySelector('.w-badge b')?.textContent,
+    marq: getComputedStyle(document.querySelector('.w-district.here .w-marq span') || document.body).animationName, still: [...document.querySelectorAll('.w-district:not(.here) .w-marq span')].every((s) => getComputedStyle(s).animationName === 'none') }));
+  check('Zone’s corner shows the station’s day (MB-09), and only the open window runs its name behind its header (MB-04)',
+    /heure de Paris$/.test(corner.badge) && Number(corner.day) >= 1 && corner.marq === 'w-marq' && corner.still, JSON.stringify(corner));
   // The track-change caption (MB-03) and the drawn cover (MB-10), on a page of their own, so the made-up track
   // touches nothing else the smoke goes on to check.
   const capCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });

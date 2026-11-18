@@ -45,6 +45,7 @@ import { Camera } from './camera.js';
 import { mountTags } from './tags.js';
 import { mountDials } from './dials.js';
 import { mountFlip, flips } from './flip.js';
+import { mountBadge } from './badge.js';
 import { mountMinimap } from './minimap.js';
 import { Bubbles } from './bubbles.js';
 import { bubbleCount, mountScreen } from './screen.js';
@@ -111,6 +112,9 @@ function strata() {
   return s;
 }
 
+// MB-04: the name each Zone window's header runs behind it, with its Japanese.
+const MARQ_JP = { radio: 'ラジオ', ondes: '電波', playlists: 'プレイリスト', zone: 'アンテナ', booth: 'ブース' };
+
 function district(d) {
   const s = el('section', `w-district w-${d.half}-d${d.era === 'past' ? ' w-past-d' : ''}${d.status === 'offline' ? ' w-off' : ''}`);
   s.id = `w-${d.id}`;
@@ -135,6 +139,13 @@ function district(d) {
   h.id = `w-${d.id}-h`;
   h.append(el('span', '', d.title));
   bar.append(h, el('span', 'w-cd', d.code));
+  if (d.half === 'zone' && d.era !== 'past' && MARQ_JP[d.id]) {
+    const run = `${d.title.toUpperCase()} · ${MARQ_JP[d.id]} · `.repeat(6);
+    const marq = el('div', 'w-marq');
+    marq.setAttribute('aria-hidden', 'true');
+    marq.append(el('span', '', run), el('span', '', run));
+    bar.prepend(marq);
+  }
   // The page's box: it scrolls inside the window, and carries the zoom that keeps its text at 1:1.
   const box = el('div', 'w-box');
   box.append(door(d));
@@ -242,7 +253,9 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
   const screen = mountScreen({ root, onChange: (p) => count(p.bub) });
   phone.addEventListener?.('change', () => count(screen.prefs.bub));
   reduced.addEventListener?.('change', () => count(screen.prefs.bub));
-  hud.append(title, brand, sw, screen.button, minimap.svg);
+  // The station clock in Zone's corner (MB-09).
+  const badge = mountBadge();
+  hud.append(title, brand, sw, badge.el, screen.button, minimap.svg);
 
   // The motion blur: one SVG filter the camera turns up while it moves.
   const defs = document.createElementNS(NS, 'svg');

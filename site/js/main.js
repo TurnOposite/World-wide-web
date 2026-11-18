@@ -230,6 +230,10 @@ async function boot() {
       })) || null;
       if (!isCurrent()) { try { done?.(); } catch (e) { console.error(e); } return; }
       cleanup = done;
+      // Each section has its own way in (the mood board's MB-07): site.css, by the route's name; none with less motion.
+      root.dataset.enter = match.name;
+      root.classList.add('page-enter');
+      setTimeout(() => root.classList.remove('page-enter'), 480);
       // The window shows its page whole (world.js fitPage), and keeps it whole as it grows.
       if (place) world?.mounted(place.box);
       if (!fromPop) {

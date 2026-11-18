@@ -10,7 +10,7 @@
 import { esc, fmtSpan } from './util.js';
 
 /*
- * The lane select (the mood board's MB-02, 2026-11-19): the streams as a cast on a stage. Each lane has an accent of
+ * The lane select (the mood board's MB-02, 2026-11-18): the streams as a cast on a stage. Each lane has an accent of
  * its own, worn only while it is the one you hear (teal for the first, then Arctic Contact's sky, Zoa Deschanel's acid,
  * a violet, Emapea's sepia), and a flat emblem: a shape of its own with its initial. ▲ ▼ cycle to the next lane on air.
  */

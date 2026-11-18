@@ -103,6 +103,16 @@ export async function mount(root, ctx) {
         <p class="echo-foot"><a href="echo/articles" data-link>Tous les articles →</a><a href="portfolio" data-link>L’Archive →</a><a href="radio" data-link>Zone · la radio en direct</a></p>`,
     { current: 'echo', full: true });
     root.firstElementChild.classList.add('echo-front');
+    // MB-04 on the paper: the lead story crawls under the masthead, like a news ticker. Decoration: the story is below.
+    const mast = root.querySelector('.echo-mast');
+    if (mast && first) {
+      const run = `${first.title} — ${first.standfirst || ''} · `.repeat(2);
+      const crawl = document.createElement('div');
+      crawl.className = 'echo-crawl';
+      crawl.setAttribute('aria-hidden', 'true');
+      crawl.innerHTML = `<span>${esc(run)}</span><span>${esc(run)}</span>`;
+      mast.after(crawl);
+    }
     const stopAsh = ash(root.querySelector('.echo-ash'));
     let stopAir = () => {};
     if (world) {
