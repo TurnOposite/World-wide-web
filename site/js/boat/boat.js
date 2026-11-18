@@ -107,17 +107,21 @@ export function mountBoat({ router, player = null }) {
       tween = { from, to, c, dyaw, bank: Math.max(-6, Math.min(6, dyaw * 0.08)), t0: performance.now(), dur, res };
     });
   }
+  // A device that cannot draw the flight (three frames in a row slower than 150 ms) gets a cut instead of a stutter.
+  let slow = 0, lastStep = 0;
   function stepTween(now) {
     if (!tween) return;
+    slow = lastStep && now - lastStep > 150 ? slow + 1 : 0;
+    lastStep = now;
     const { from, to, c, dyaw, bank, t0, dur, res } = tween;
-    const t = Math.min(1, (now - t0) / dur), e = ease(t), u = 1 - e;
+    const t = slow >= 3 ? 1 : Math.min(1, (now - t0) / dur), e = ease(t), u = 1 - e;
     cv.x = u * u * from.x + 2 * u * e * c[0] + e * e * to.x;
     cv.y = u * u * from.y + 2 * u * e * c[1] + e * e * to.y;
     cv.z = u * u * from.z + 2 * u * e * c[2] + e * e * to.z;
     cv.yaw = from.yaw + dyaw * e;
     cv.pd = from.pd + (to.pd - from.pd) * e;
     cv.roll = from.roll + (to.roll - from.roll) * e + bank * Math.sin(Math.PI * e);
-    if (t >= 1) { Object.assign(cv, to); tween = null; res(); }
+    if (t >= 1) { Object.assign(cv, to); tween = null; lastStep = 0; slow = 0; res(); }
   }
   const flightMs = (a, b) => Math.round(Math.min(2100, 900 + Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) * 1.1));
 
@@ -135,7 +139,7 @@ export function mountBoat({ router, player = null }) {
     $('.b-bseal').textContent = s.glyph; $('.b-bname').textContent = s.name; $('.b-bsub').textContent = s.obj;
     banner.classList.remove('off'); void banner.offsetWidth; banner.classList.add('on');
   }
-  const hideBanner = () => { banner.classList.remove('on'); banner.classList.add('off'); };
+  const hideBanner = () => { banner.classList.remove('on'); banner.classList.add('off'); setTimeout(() => { if (!banner.classList.contains('on')) banner.classList.remove('off'); }, 320); };
   function bloomAt(k) {
     if (reduced || !PLACES[k].c) return;
     const p = proj(PLACES[k].c); if (!p) return;
@@ -279,6 +283,9 @@ export function mountBoat({ router, player = null }) {
     W = root.clientWidth || innerWidth;
     H = (root.clientHeight > 100 ? root.clientHeight : innerHeight - (document.getElementById('minibar')?.offsetHeight || 64));
     phone = W < 720;
+    // The boat stops where the mini-player starts, measured, so nothing of the mini-player sits over the moving lake.
+    const mb = document.getElementById('minibar');
+    if (mb?.offsetHeight) root.style.bottom = `${mb.offsetHeight}px`;
     P = Math.round(Math.hypot(W, H) / (2 * Math.tan(40 * D2R)));
     view.style.perspective = `${P}px`;
     lake.size(W, H, P, Math.min(2, window.devicePixelRatio || 1));

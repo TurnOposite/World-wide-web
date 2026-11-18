@@ -86,6 +86,7 @@ html.boat-on,html.boat-on body{height:100%;overflow:hidden}
 @keyframes b-rock{0%{transform:translateY(0)}100%{transform:translateY(5px) rotate(.4deg)}}
 
 /* the page's panel: a real page, flat over its thing */
+.b-panel[hidden]{display:none}
 .b-panel{position:absolute;z-index:5;display:flex;background:var(--bg,#0b0d10);color:var(--text,#e8edf3);box-shadow:0 22px 70px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.08);border-radius:6px;overflow:hidden}
 .b-box{flex:1;min-width:0;overflow:auto;overscroll-behavior:contain;padding:18px 20px 28px;outline:none}
 .b-panel[data-place="playlists"]{border-radius:18px;box-shadow:0 22px 70px rgba(0,0,0,.45),0 0 0 6px #1b2022}
@@ -153,3 +154,8 @@ html.boat-on,html.boat-on body{height:100%;overflow:hidden}
 @media (prefers-reduced-motion:reduce){
   .b-cam .anim,.b-cam .anim *,.b-cam .swing,.b-cam .sway,.b-hamfg .b-rock{animation:none!important}
 }
+/* Cost, found 2026-11-18: the mini-player's backdrop blur re-blurred the moving lake every frame (2 fps headless, 35
+   without it), and the banner's brush filter was painted even while clipped away. On the boat the mini-player is opaque
+   and the banner exists only while it is shown. */
+.boat-on #minibar{-webkit-backdrop-filter:none;backdrop-filter:none;background:#0e1420}
+.b-banner:not(.on):not(.off){display:none}
