@@ -932,7 +932,7 @@ try {
   await w.click('.w-tag[data-go="une"]');
   await w.waitForFunction(() => window.radioTower.world.current === 'une', null, { timeout: 8000 }).catch(() => {});
   const midFlight = await w.evaluate(() => ({ moving: window.radioTower.world.camera.moving, filter: document.querySelector('.w-plane').style.filter,
-    layer: document.querySelector('.w-plane').style.willChange }));
+    layer: document.querySelector('.w-plane').style.willChange, flip: document.querySelector('.w-flip')?.dataset.last, flipMs: Number(document.querySelector('.w-flip')?.dataset.ms) }));
   await settled('une');
   const une = await shot('une');
   const rest = await w.evaluate(async () => {
@@ -943,6 +943,8 @@ try {
   });
   check('…while it flies the plane gets its own layer; landed on Echo, the layer is dropped and the bubbles stop',
     midFlight.layer === 'transform' && rest.layer === '' && !rest.running && rest.drawn === 0, JSON.stringify({ midFlight, rest }));
+  check('…and the crossing plays the channel flip (MB-05), toward Echo, under 300 ms, hidden from assistive technology', midFlight.flip === 'echo' && midFlight.flipMs > 0 && midFlight.flipMs <= 300
+    && await w.evaluate(() => document.querySelector('.w-flip').getAttribute('aria-hidden') === 'true' && getComputedStyle(document.querySelector('.w-flip')).pointerEvents === 'none'), JSON.stringify({ flip: midFlight.flip, ms: midFlight.flipMs }));
   check('the Une tag flies the camera to Echo: a real address, the motion blur only while moving', midFlight.moving && /wBlur/.test(midFlight.filter)
     && une.path === '/echo' && une.current === 'une' && une.centre < 30 && une.inside && une.filter === '', JSON.stringify({ midFlight, une }));
   check('…across the seam: the paper fades in, the switch reads Echo, Zone\'s visualiser rests', une.mix === '1.000' && une.echo && une.pressed === 'Echo'

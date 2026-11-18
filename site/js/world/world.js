@@ -44,6 +44,7 @@ import { BASE_H, DISTRICTS, FIGURES, FIT_MIN, PHONE_MEDIA, SHORT_MAX, WORLD, byI
 import { Camera } from './camera.js';
 import { mountTags } from './tags.js';
 import { mountDials } from './dials.js';
+import { mountFlip, flips } from './flip.js';
 import { mountMinimap } from './minimap.js';
 import { Bubbles } from './bubbles.js';
 import { bubbleCount, mountScreen } from './screen.js';
@@ -232,6 +233,9 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
   const dials = mountDials({ nav: tags.nav });
   tags.onPoint = () => dials.aim();
   dials.settle();
+  // The channel flip between the halves (MB-05): played at the start of every crossing.
+  const flip = mountFlip(root);
+  let lastHalf = null;
   const phone = matchMedia(PHONE_MEDIA);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const count = (bub) => bubbles.setCount(bubbleCount(bub, { phone: phone.matches, reduced: reduced.matches }));
@@ -287,6 +291,8 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
   const skip = document.querySelector('.skip');
   function arrive(d, { instant = false } = {}) {
     current = d.id;
+    if (flips(lastHalf, d.half, { instant })) flip.play(d.half);
+    lastHalf = d.half;
     tags.mark(d.id);
     // Measured again at every arrival: a dial follows its tags wherever the page load, a font or the Atelier left them,
     // and its needle swings to the page arrived on.

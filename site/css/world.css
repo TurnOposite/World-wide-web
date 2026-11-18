@@ -444,6 +444,23 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
 .w-needle-off{transform:translate(5px,5px)}
 .w-needle-turn{transition:transform .17s cubic-bezier(.2,1.4,.4,1)}
 @media (prefers-reduced-motion:reduce){.w-needle-turn{transition:none}}
+/* The channel flip between the halves (MB-05, flip.js): a teal-to-red wipe, a torn frame, static and scanlines, all
+   over in 280 ms, on top of the camera's flight. Nothing of it stays on screen, and none of it with less motion. */
+.w-flip{position:absolute;inset:0;z-index:50;pointer-events:none;overflow:hidden;visibility:hidden}
+.w-flip.go{visibility:visible}
+.w-flip>i{position:absolute;display:block}
+.w-flip-wipe{top:-30%;bottom:-30%;left:0;width:55%;transform:translateX(-120%) skewX(-18deg);
+  background:linear-gradient(90deg,transparent,var(--w-neon-a) 28%,#e8f6f9 50%,var(--w-red) 72%,transparent)}
+.to-zone .w-flip-wipe{background:linear-gradient(90deg,transparent,var(--w-red) 28%,#fff2ee 50%,var(--w-neon-a) 72%,transparent)}
+.go .w-flip-wipe{animation:w-flip-wipe .28s cubic-bezier(.5,0,.3,1) forwards}
+@keyframes w-flip-wipe{to{transform:translateX(320%) skewX(-18deg)}}
+.w-flip-tear{left:-5%;right:-5%;top:42%;height:9%;opacity:0;background:linear-gradient(rgba(255,40,60,.55),rgba(90,174,191,.55));mix-blend-mode:screen}
+.go .w-flip-tear{animation:w-flip-tear .28s steps(1) forwards}
+@keyframes w-flip-tear{0%{opacity:0}30%{opacity:1;transform:translateX(-14px)}45%{opacity:1;transform:translate(18px,-60%) scaleY(.4)}60%,100%{opacity:0}}
+.w-flip-static{inset:-30px;opacity:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.35) 0 1px,transparent 1px 3px),var(--w-static,none);background-size:auto,96px 96px;mix-blend-mode:overlay}
+.go .w-flip-static{animation:w-flip-static .28s steps(4) forwards}
+@keyframes w-flip-static{0%{opacity:0}25%{opacity:.5;transform:translate(-20px,10px)}50%{opacity:.35;transform:translate(14px,-8px)}75%{opacity:.18;transform:translate(-6px,4px)}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.w-flip{display:none}}
 @media (max-width:760px),(max-height:500px){.w-dials{display:none}}
 [data-w-list="stack"] .w-dials{display:none}
 
