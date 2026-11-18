@@ -3484,3 +3484,20 @@ before pushing them, but the rest to do push ».
   ffmpeg's install having taken 12 minutes instead of seconds. Nothing was wrong with the code (the laptop's run was
   green). The limit is now 30 minutes. The site and the tower kept `6becc3a` until this fire.
 - **Self-test** on the stack (`d48cd43`, rebased as `f9ae0d5`): 515/515 unit, 43/43 browser, 188/188 site, 26/26 Atelier.
+
+## 2026-11-18 (small hours, later still) - MB-02, MB-07, MB-04, MB-08, MB-09 (Claude Code, alone)
+
+- **The lane select (MB-02)** on the Antenna: every stream a card on a stage with a flat emblem (its own shape and
+  initial) and its own accent, the one you hear in full colour and the others tinted until pointed at; ▲ ▼ tune to the
+  next lane on air; the listeners stand in join slots, the empty ones « Press ▶ to join ». Smoke: ▼ retunes.
+- **The date badge (MB-09)** in Zone's corner from the station's clock, Paris time, the day turning at 05:00
+  (`badge.js`, tested across both clock changes); **the marquee (MB-04)** behind the open Zone window's header, and
+  the lead story's crawl under Echo's masthead; **the entrances (MB-07)**, one per section, under 320 ms; **the side
+  text (MB-08)** in Echo's long reads, scroll-driven, no script. None of it moves with less motion.
+- **A red, and what it was**: the first full run of this stack failed one check, the caption's title read while still
+  half noise. Two causes: the scramble was stepped by the screen's frames, which come late on a busy page, and the
+  fixture station's short tracks can change for real during the check (« Low Band » took the caption once). The
+  scramble now keeps its own clock (32 ms a step); the check reads what the event sets at once and sends its made-up
+  track again if a real change takes the caption. A second run was also slowed to a stall by stray browsers of mine;
+  they were stopped and the run repeated alone.
+- **Self-test** on `fb43f11`: 520/520 unit, 43/43 browser, 190/190 site, 26/26 Atelier.

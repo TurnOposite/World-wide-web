@@ -4071,3 +4071,19 @@ MB-01: a selection shard that snaps from item to item and replaces the amber out
 4. GitHub's self-test may take 30 minutes, not 20: a slow package mirror is not a failure of the code.
 
 **Revisit if** he wants the board's French in Zone too, or the caption less often (only when the radio plays, say).
+
+## 2026-11-18 — The lanes on the Antenna, the board's small motions
+
+**Context.** The mood board's MB-02, MB-04, MB-07, MB-08 and MB-09.
+
+**Decision.**
+1. The lane select lives on the Antenna, where every stream is already shown with what it plays; the Radio page keeps
+   its compact switch. The accents follow the board's references in order (teal, Arctic Contact's sky, Zoa Deschanel's
+   acid, a violet, Emapea's sepia) and are worn only by the lane on air.
+2. The marquee runs behind the window header of the page you are in, never all five at once; Echo's crawl carries the
+   lead story, the board's « news crawl ».
+3. The badge's words are the board's French (MATIN, APRÈS-MIDI, SOIR, NUIT) with their Japanese, by its own example.
+4. The entrances animate the page's box only (and Playlists' rows), so the window's fit and every hit test see the page
+   where it lands.
+
+**Revisit if** the marquee distracts (it can stop after one pass), or the lanes should be on the Radio page too.
