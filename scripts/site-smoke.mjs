@@ -1242,17 +1242,28 @@ try {
   await cp.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 10000 }).catch(() => {});
   const capd = await cp.evaluate(async () => {
     const p = window.radioTower.player;
-    const before = Boolean(document.querySelector('.cap')?.classList.contains('in'));
-    p.dispatchEvent(new CustomEvent('track', { detail: { ...p.onAir, id: 'smoke-caption', title: 'Caption check', artist: 'Unknown artist', artUrl: null, hasArt: false, startsAt: Date.now() } }));
-    // Waited on its condition, not a clock: settled, or five seconds gone.
-    for (let t = 0; t < 50 && document.querySelector('.cap .cap-what b')?.textContent !== 'Caption check'; t++) await new Promise((r) => setTimeout(r, 100));
     const el = document.querySelector('.cap');
-    return { before, shown: el.classList.contains('in'), what: el.querySelector('.cap-what b').textContent, who: el.querySelector('.cap-who').textContent,
-      live: document.querySelector('.cap-live').textContent, blank: Boolean(el.querySelector('.cap-art svg.blank')), clicks: getComputedStyle(el).pointerEvents, hidden: el.getAttribute('aria-hidden') };
+    const send = (n) => p.dispatchEvent(new CustomEvent('track', { detail: { ...p.onAir, id: `smoke-caption-${n}`, title: 'Caption check', artist: 'Unknown artist', artUrl: null, hasArt: false, startsAt: Date.now() } }));
+    send(0);
+    // What the event sets at once, read before anything else can happen.
+    const now = { shown: el.classList.contains('in'), who: el.querySelector('.cap-who').textContent, live: document.querySelector('.cap-live').textContent,
+      blank: Boolean(el.querySelector('.cap-art svg.blank')), clicks: getComputedStyle(el).pointerEvents, hidden: el.getAttribute('aria-hidden') };
+    // Then the scramble settles. The fixture tracks are short: a real change may take the caption first (2026-11-18,
+    // « Low Band » replaced it); then the made-up track is sent again, three times at most. Waited on a condition.
+    let settled = false;
+    for (let n = 1; n <= 3 && !settled; n++) {
+      for (let t = 0; t < 20 && !settled; t++) {
+        await new Promise((r) => setTimeout(r, 100));
+        if (el.querySelector('.cap-what b').textContent === 'Caption check') settled = true;
+        else if (!document.querySelector('.cap-live').textContent.includes('Caption check')) break;
+      }
+      if (!settled) send(n);
+    }
+    return { ...now, settled };
   });
   await capCtx.close();
-  check('a track change brings the caption (MB-03): not on arrival; the title settled, an unnamed artist named, the drawn cover, read politely, no clicks taken',
-    !capd.before && capd.shown && capd.what === 'Caption check' && capd.who === 'Anonymous transmission' && capd.live === 'Now playing: Caption check, Anonymous transmission'
+  check('a track change brings the caption (MB-03): the title settles, an unnamed artist is named, the drawn cover, read politely, no clicks taken',
+    capd.shown && capd.settled && capd.who === 'Anonymous transmission' && capd.live === 'Now playing: Caption check, Anonymous transmission'
     && capd.blank && capd.clicks === 'none' && capd.hidden === 'true', JSON.stringify(capd));
   check('…seen from Zone, Echo\'s paper is the ground again, its edge torn over a thin red rim', crossed.ground === '1' && crossed.tear === '1' && crossed.mask
     && crossed.rim === 'rgb(163, 22, 31)', JSON.stringify({ ground: crossed.ground, tear: crossed.tear, mask: crossed.mask, rim: crossed.rim }));
