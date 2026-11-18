@@ -149,3 +149,66 @@ Fire from GitHub: the deploy key pair exists on the laptop (`~\.ssh\radio-tower-
 | D1 | **The dials behind the side menus**: a cassette reel behind Zone's tags (turns one tooth at each change of page), an engraved 1920s globe behind Echo's (turns 30°) | local branch `claude/side-dials` (`4f721b1`), **not pushed**. Pictures in the session. His word: push as is, or what to change |
 | D2 | **Fire from GitHub**: the tower half is done (2026-11-17) | his half: the `TOWER_DEPLOY_KEY` secret on GitHub (`docs/FIRE-FROM-CLOUD.md` step 5), then Actions → fire → Run |
 
+## The front menu: the boat and the mood board (2026-11-18)
+
+Two requests the same night, about the same front.
+
+**The boat.** Ortis, 2026-11-18: « Make an elaborate version of the menus following the Persona 5 smooth transition
+between different angles through a stop in time of a scene in motion that indicates you will continue it after your
+decision … each window is a very smaller part of an ensemble that is not just a 2D plane. The ensemble scenery is an
+old Chinese traditional boat floating in the middle of an Asian fjord of what may look like Thailand, but with the most
+Chinese code inspiration, and round the mountaintops with a gentle, stable lake background. In the boat is a radio
+station. Which plays on a laptop screen, which is what we enter with. Then if you go into playlists, it has the form of
+a little phone that's on the table, antenna. You look to the right and there's like a communication device, maybe we do
+this in the first person, or someone that's sitting down in that boat in like a hammock … have it for tonight as a
+design proposal, and how all of this would work. »
+
+**The mood board.** Then his creative-direction session's brief, [`design/MOODBOARD-globe-trotter.md`](./design/MOODBOARD-globe-trotter.md)
+(copied from his Downloads, unchanged): « the creative vision … You decide the implementation. » Persona 5's menu
+grammar for Zone, its black/white/red look for Echo, Scott Pilgrim's select screen, the texture of the Bandcamp labels
+he follows. « This board is about motion, selection and personality, not a rebuild. »
+
+**How they fit.** The board works on today's map and its items are ready to build now. The boat is a new shell for the
+same pages and waits for his answers. Neither blocks the other: what the board builds (the selection, the caption, the
+entrances, the empty cover) lives in the menus and the pages and would move into the boat as it is. One real
+difference: the boat's prototype took Persona's mechanics only, in ink and mist; the board puts Persona's look on Echo
+and its menu mechanics on Zone. That answers the boat's question on how far the Persona nod goes: if the boat is built,
+its menus follow the board.
+
+**His correction, the same night, on the Antenna:** « The antenna and the phone, I mean, are two different things. The
+antenna and the chat room should live on the side of the boat. It's like a big, maybe another computer, or you can see
+the antenna transmitting. Maybe it has like three modes. It's a bunch of machines and servers come together. There's
+very few screens or just small ones with the essential stuff written. The three modes of the antenna. Maybe it's like a
+cursor that has like the very top position, or 45 degrees to the right and 45 more with the three streams. And then
+there's like electric cables coming out of it, and it's a zoom that connects to the digital world where the characters
+live and the chat lives. »
+
+| # | What | State | Needs |
+|---|---|---|---|
+| F1 | **The boat**, as the front menu: the windows become things on a boat on a karst lake (laptop = Radio, where you arrive; the little phone = Playlists; the machines on the boat's side = Antenna: a transmitting mast, servers with few small screens, a selector with three positions (straight up, 45° right, 90° right) for the three streams, and cables whose zoom leads into the digital world where the characters and the line live; the hanging scroll = Ondes; the lantern = Booth; the desk behind you = Echo), and the camera moves between them, stopping the scene while you choose | **Proposal, 2026-11-18**: a working prototype (CSS 3D boat and a canvas lake, no library, 60 fps headless at 1440 and 390 wide), concept frames, a build plan and the tests' state, on a private page (https://claude.ai/artifact/UXd4Cfrnzo1a2m9TjuHg7C); copy in `Radio Tower\Claude outputs\boat-station-2026-11-18\`. Proposed order: tests first (`TESTS-REVIEW.md` sections 4 then 3), the 3D camera behind `?boat=1`, the shell, the stop in time, phones, art, the switch | **needs Ortis**: go or not; first person or someone in the hammock; Echo at the stern or a second boat; a sound for the lake or none; a night look |
+
+**Ready to build, from the board**, in its order. Each on its own branch with a preview; nothing reaches `main`
+until he writes « push live » (the board's rule; the « site-desk rules » it mentions are not in this repo).
+
+| # | What | Size | Where it starts |
+|---|---|---|---|
+| MB-01 | **Selection shard**: one jagged clip-path shape with a hard offset copy in the second colour sits behind the selected tab or item and jumps to the next one (120–180 ms, slight overshoot, a new shape each time); the label grows a little and tilts the other way. Replaces the amber outline on the active tab. Zone's tabs and dial, Echo's tags, the Everything / Chill / Energy filter, Echo's tag chips; arrows move it, focus matches it, reduced motion just shows it | M | `site/js/world/tags.js`, `dials.js`, `site/css/world.css` |
+| MB-03 | **Track-change caption**: on the station's track change (not a timer), a skewed name tag and a tilted black polygon slide in from the side, the title scrambles then settles, the cover bleeds in; about 5 s; `aria-live="polite"`; reduced motion: a fade | M | `site/js/player.js`, `site/js/ui/minibar.js` |
+| MB-10 | **No blank square on air**: art shown clean when there is some; without art or artist, a generated cassette or CD-ROM label, a barcode from the track id and a camcorder timestamp of its start, and « Artiste inconnu » rather than « Unknown artist ». The track on air at 02:05 on 18/11 had neither | S–M | `site/js/ui/covers.js` |
+| MB-05 | **Zone ⇄ Echo channel flip**, ≤ 300 ms: diagonal wipe (cyan to red), a frame or two of RGB tear, static, then the other world; the address changes and back / forward replay it; reduced motion: an instant swap | M | `site/js/world/world.js`, `camera.js` |
+| MB-02 | **Lane select**: the lanes as a cast on a stage (Scott Pilgrim's select screen, drawn from scratch), each lane's card and accent, ▲ ▼ or swipe to cycle, the listeners as lit join slots; one thumb on a phone, never interrupts playback | L | `site/js/ui/channels.js` |
+| MB-07 | **A different entrance for each section** (the board's table: Radio drops in, Ondes sweeps on a curve, the Booth slides up like a drawer, the Une stamps in…), each under 320 ms and interruptible | M | `site/js/world/world.js`, the pages |
+| MB-04 | **Marquee band**: the active section's name (or the track) repeating slowly behind Zone's panel header; Echo's latest headline as a crawl under the masthead; pauses on hover and focus | S | `site/css/world.css` |
+| MB-08 | **Side text on scroll** in Echo's long reads: pull quotes and captions slide in from alternating sides, CSS scroll-driven animation under `@supports`, nothing moves inside a paragraph | S | `site/css/rooms.css`, `site/js/pages/articles.js` |
+| MB-09 | **Date badge** on Zone from the station's clock (Paris): big day number, weekday, MATIN / APRÈS-MIDI / SOIR / NUIT with a small Japanese line | S | `site/js/world/world.js` |
+| MB-06 | **The Atlas as an overworld**: numbered places on paths, the selected one's name in a banner, a list for small screens and screen readers. Settle together with W5 (the Atlas rethought), which waits on his A or B | L | `site/js/pages/atlas.js` |
+
+Notes for whoever builds these:
+- The board's guardrails hold for every item: nothing copied from Persona, Atlus or Scott Pilgrim (logos, art,
+  textures, fonts; the repo is public), no rehosted Bandcamp art, body text straight and at least AA, animate only
+  `transform`, `opacity` and `clip-path`, playback never paused or desynced, reduced motion everywhere.
+- The board suggests GSAP's SplitText and ScrambleText for MB-03. That would be a front-end dependency on a site with no
+  build step: a hand-rolled scramble is a few lines; if GSAP is used anyway, a `DECISIONS.md` line first.
+- Its four open questions (« Futahero », Japanese lines translated or decorative, which lanes are the cast, UI sounds)
+  do not block anything.
+

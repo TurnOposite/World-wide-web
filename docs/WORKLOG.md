@@ -3445,3 +3445,12 @@ before pushing them, but the rest to do push ».
 - **Self-test** on `a88856c`: 507/507 unit, 43/43 browser, 185/185 site, 26/26 Atelier. The suite went 520 → 507 over
   the three steps tonight. Left in the review: source-text assertions → behaviour (section 3), splitting the smoke
   (section 4), retiring dead features with your word (section 1).
+
+## 2026-11-18 (night) - The boat proposed, the mood board filed (Claude Code, for Ortis)
+
+- **The boat** (his request tonight): a design proposal for the front menu as an old Chinese boat on a karst lake,
+  with a working prototype (CSS 3D boat, canvas lake, no library), concept frames, a build plan and the tests' state.
+  A private page and a copy in `Radio Tower\Claude outputs\boat-station-2026-11-18\`. Nothing on the site changed.
+- **The mood board** from his creative-direction session, copied unchanged to `docs/design/MOODBOARD-globe-trotter.md`.
+- **`BACKLOG.md`**: a new section with both. F1 (the boat) waits on his answers; MB-01 to MB-10 are ready to build in
+  the board's order, each on its own branch until he writes « push live ». No code changed, so no self-test this run.
