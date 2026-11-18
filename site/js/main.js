@@ -116,7 +116,8 @@ async function boot() {
   // Zone's visualiser belongs to Zone: on every Echo route it is hidden (CSS, body.on-echo)
   // and paused here, so it costs no CPU behind the paper.
   let onEcho = false;
-  const syncStage = () => (document.hidden || onEcho ? stage.stop() : stage.start());
+  // On the boat the visualiser is behind the lake, never seen: it rests there too.
+  const syncStage = () => (document.hidden || onEcho || document.documentElement.classList.contains('boat-on') ? stage.stop() : stage.start());
   globalThis.__echoStage = (on) => { onEcho = on; syncStage(); };
   document.addEventListener('visibilitychange', syncStage);
 
@@ -249,7 +250,7 @@ async function boot() {
     },
   });
   ctx.router = router;
-  if (wantBoat) world = (await import('./boat/boat.js')).mountBoat({ router, player });
+  if (wantBoat) { world = (await import('./boat/boat.js')).mountBoat({ router, player }); stage.stop(); }
   else if (wantWorld) world = await (await import('./world/world.js')).mountWorld({ router, site, private: atelierOn });
   // The map's editor, only for a tab that asked (?atelier=1); it never loads for anyone else.
   const atelier = world && atelierOn ? await (await import('./world/atelier.js')).mountAtelier({ world, published, draft, toast }) : null;

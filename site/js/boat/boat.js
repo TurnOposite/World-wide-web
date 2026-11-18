@@ -305,12 +305,17 @@ export function mountBoat({ router, player = null }) {
   });
   let last = performance.now(), visible = true;
   document.addEventListener('visibilitychange', () => { visible = !document.hidden; });
+  let frames = 0, lastError = null;
   function frame(now) {
+    frames++;
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     if (!frozen && !reduced) worldT += dt;
-    const moving = !!tween;
-    stepTween(now);
-    if (visible && (moving || !frozen || dirty)) { applyCam(); lake.draw(cv, worldT, frozen); dirty = false; }
+    // The loop must outlive any one bad frame: an error here used to stop the camera for good, the page still open.
+    try {
+      const moving = !!tween;
+      stepTween(now);
+      if (visible && (moving || !frozen || dirty)) { applyCam(); lake.draw(cv, worldT, frozen); dirty = false; }
+    } catch (e) { lastError = String(e?.stack || e); }
     requestAnimationFrame(frame);
   }
 
@@ -349,6 +354,8 @@ export function mountBoat({ router, player = null }) {
     root,
     get current() { return place; },
     get frozen() { return frozen; },
+    get frames() { return frames; },
+    get lastError() { return lastError; },
     /** The router's question: where does this page go? Into the panel; the camera goes to its thing. */
     show(match) {
       const k = placeOf(match.name);
