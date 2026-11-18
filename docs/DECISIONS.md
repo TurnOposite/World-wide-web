@@ -4038,7 +4038,7 @@ selection back in his channels.json.
 
 **Revisit if** something without the key genuinely needs to know where the music is — it should not.
 
-## 2026-11-19 — The side dials drawn flat; the selection is a shard
+## 2026-11-18 — The side dials drawn flat; the selection is a shard
 
 **Context.** Ortis, 2026-11-18, on the reel and the globe behind the side menus: « a little soulless and without
 character — having them as realist photo objects in such a graphically pared-back background did not work … keep the
@@ -4057,3 +4057,17 @@ MB-01: a selection shard that snaps from item to item and replaces the amber out
    not drawn by a pseudo-element: contrast checkers read what the eye reads.
 
 **Revisit if** he wants the needles gone (the shard alone may be enough), or the ransom letters calmer.
+
+## 2026-11-18 — A name for the unnamed, a caption for each change, a flip between the halves
+
+**Context.** The mood board's MB-10, MB-03 and MB-05 (`docs/design/MOODBOARD-globe-trotter.md`).
+
+**Decision.**
+1. « Anonymous transmission » in Zone, « Transmission anonyme » on Echo, rather than the board's French on both: Zone
+   speaks English everywhere else. The drawn cover is a flat cassette (clear-cut shapes, after the side dials' verdict).
+2. The caption's scramble is a few hand-written lines, not GSAP's ScrambleText: no build step, no new dependency.
+3. The flip plays at the start of a crossing (`world.js arrive`), so back and forward replay it like a click; it ends on
+   its own animation's end, never on a clock.
+4. GitHub's self-test may take 30 minutes, not 20: a slow package mirror is not a failure of the code.
+
+**Revisit if** he wants the board's French in Zone too, or the caption less often (only when the radio plays, say).

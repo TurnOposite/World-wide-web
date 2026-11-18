@@ -3455,7 +3455,7 @@ before pushing them, but the rest to do push ».
 - **`BACKLOG.md`**: a new section with both. F1 (the boat) waits on his answers; MB-01 to MB-10 are ready to build in
   the board's order, each on its own branch until he writes « push live ». No code changed, so no self-test this run.
 
-## 2026-11-19 (night) - MB-01: the selection shard; the side dials drawn flat (Claude Code, alone, by his leave)
+## 2026-11-18 (small hours) - MB-01: the selection shard; the side dials drawn flat (Claude Code, alone, by his leave)
 
 - **`0d3df8f`, `a460e13`** (the mood board's MB-01, and his verdict on the side dials). The tag pointed at, by the
   pointer or the keyboard, else the page you are on, wears a jagged shard with a hard offset copy (teal over magenta in
@@ -3468,3 +3468,19 @@ before pushing them, but the rest to do push ».
   the ticks, the shard, the ransom letters, decoration only); the smoke reads the new rims and needles and checks that
   the current tag wears its shard. The first run was red at stage 1: a shell heredoc had eaten two backslashes in the
   smoke test's new check names. Fixed, then 509/509 unit, 43/43 browser, 186/186 site, 26/26 Atelier.
+
+## 2026-11-18 (small hours, later) - MB-10, MB-03, MB-05: the cover, the caption, the flip; CI given room (Claude Code, alone)
+
+- **No blank square on air (MB-10)**: a track without a cover gets one drawn, a flat cassette with its title on the
+  label, a barcode made from its id and its start burnt in like a camcorder's date (Paris time). « Unknown artist » is
+  shown as « Anonymous transmission » (« Transmission anonyme » on Echo), the lock screen included.
+- **The track-change caption (MB-03)**: on the player's own `track` event, not the first of a visit, the artist on a
+  skewed paper tag and the title in a tilted black shard that scrambles then settles, the cover bleeding in; read once,
+  politely; a fade with less motion; it takes no clicks. Smoke: a made-up track on a page of its own brings it.
+- **The channel flip (MB-05)**: every crossing between Zone and Echo plays a 280 ms wipe, tear and static over the
+  camera's flight. Found while looking at it: ending it on a timer cut it before it was seen, because the next page
+  mounts at the same moment and the animation starts late; it now ends on its own `animationend`.
+- **The first fire of MB-01 did not reach the site**: GitHub cancelled its self-test at the job's 20-minute limit,
+  ffmpeg's install having taken 12 minutes instead of seconds. Nothing was wrong with the code (the laptop's run was
+  green). The limit is now 30 minutes. The site and the tower kept `6becc3a` until this fire.
+- **Self-test** on the stack (`d48cd43`, rebased as `f9ae0d5`): 515/515 unit, 43/43 browser, 188/188 site, 26/26 Atelier.
