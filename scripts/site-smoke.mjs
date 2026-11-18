@@ -1240,16 +1240,18 @@ try {
   const boatCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const bp = await boatCtx.newPage();
   watch(bp, 'the boat');
+  // In front, or headless Chrome draws its frames seconds apart, as for any page behind another (2026-11-18).
+  await bp.bringToFront();
   await bp.goto(dev + 'radio?boat=1', { waitUntil: 'domcontentloaded' });
   await bp.evaluate(() => { try { sessionStorage.setItem('gt.boat.seen', '1'); } catch { /* the arrival then plays: slower, still checked */ } });
   await bp.reload({ waitUntil: 'domcontentloaded' });
-  await bp.waitForFunction(() => window.radioTower?.world?.current === 'radio' && !document.querySelector('.b-panel').hidden, null, { timeout: 20000 }).catch(() => {});
+  await bp.waitForFunction(() => window.radioTower?.world?.current === 'radio' && !document.querySelector('.b-panel').hidden, null, { timeout: 45000 }).catch(() => {});
   const boat1 = await bp.evaluate(() => ({ root: Boolean(document.querySelector('.b-root')), map: Boolean(document.querySelector('.w-root')), page: Boolean(document.querySelector('.b-box .page')), place: window.radioTower.world.current }));
   await bp.keyboard.press('Escape');
-  await bp.waitForFunction(() => document.querySelectorAll('.b-lb').length >= 7, null, { timeout: 20000 }).catch(() => {});
+  await bp.waitForFunction(() => document.querySelectorAll('.b-lb').length >= 7, null, { timeout: 45000 }).catch(() => {});
   const boat2 = await bp.evaluate(() => ({ frozen: document.querySelector('.b-root').classList.contains('frozen'), labels: document.querySelectorAll('.b-lb').length }));
-  await bp.click('.b-lb[data-go="playlists"]').catch(() => {});
-  await bp.waitForFunction(() => location.pathname === '/playlists' && window.radioTower.world.current === 'playlists', null, { timeout: 20000 }).catch(() => {});
+  await bp.click('.b-lb[data-go="playlists"]', { timeout: 45000 }).catch(() => {});
+  await bp.waitForFunction(() => location.pathname === '/playlists' && window.radioTower.world.current === 'playlists', null, { timeout: 45000 }).catch(() => {});
   const boat3 = await bp.evaluate(() => ({ path: location.pathname, place: window.radioTower.world.current, page: Boolean(document.querySelector('.b-box .page')) }));
   await boatCtx.close();
   check('the boat, behind ?boat=1 (F1): the map links aboard; aboard, Radio opens on the laptop, Stop time freezes the scene and offers every place, Playlists opens on the phone at its address',
