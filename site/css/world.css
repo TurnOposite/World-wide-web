@@ -246,8 +246,31 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
 .w-tag:hover>span,.w-tag:focus-visible>span{background:var(--w-neon-a);color:var(--w-night);box-shadow:5px 5px 0 var(--w-neon-b);transform:skewX(var(--w-slant)) scale(1.08)}
 .w-tag[data-half="echo"]:hover>span,.w-tag[data-half="echo"]:focus-visible>span{background:var(--w-red);color:var(--w-paper);box-shadow:5px 5px 0 var(--w-ink)}
 .w-tag:focus-visible{outline:none}
-.w-tag[aria-current="true"]>span{box-shadow:0 0 0 2px var(--w-night),0 0 0 4px var(--w-neon-c)}
-.w-tag[data-half="echo"][aria-current="true"]>span{box-shadow:0 0 0 2px var(--w-paper),0 0 0 4px var(--w-red)}
+/* The selection (MB-01): the shard sits behind the tag it points at and the tag's own face steps aside, so the shard
+   becomes the face. The label grows a little and leans the other way. One shard per half; it jumps, it does not drift. */
+.w-shard{position:absolute;left:0;top:0;width:100px;height:40px;pointer-events:none;transform-origin:50% 50%;opacity:0;
+  transition:transform .17s cubic-bezier(.2,1.4,.4,1),opacity .1s linear}
+.w-shard.on{opacity:1}
+.w-shard>b{position:absolute;inset:0;transition:clip-path .17s cubic-bezier(.2,1.4,.4,1)}
+.w-shard-a{background:var(--w-neon-a)}
+.w-shard-b{background:var(--w-neon-b);transform:translate(3px,3px)}
+.w-shard[data-half="echo"] .w-shard-a{background:var(--w-red)}
+.w-shard[data-half="echo"] .w-shard-b{background:var(--w-ink)}
+.w-tag.w-sel>span{background:transparent;border-color:transparent;color:var(--w-night);box-shadow:none;
+  transform:skewX(var(--w-slant)) rotate(calc(var(--r,0deg) * -2)) scale(1.08)}
+.w-tag[data-half="echo"].w-sel>span{background:transparent;border-color:transparent;color:var(--w-paper);box-shadow:none}
+/* Echo's labels as ransom notes: a letter at a time in the faces already on the page, and inverted chips. Labels only. */
+.w-tag .rn{font-weight:400;display:inline-block}
+.w-tag .rn0{font-family:var(--w-head)}
+.w-tag .rn1{font:700 1em/1 var(--w-ui);letter-spacing:.04em}
+.w-tag .rn2{font:600 .92em/1 var(--w-mono);background:var(--w-ink);color:var(--w-paper);padding:0 .08em;margin:0 .04em}
+.w-tag .rn3{font-family:var(--w-head);font-style:italic;color:var(--w-red)}
+.w-tag.w-sel .rn3{color:var(--w-paper)}
+.w-tag.w-sel .rn2{background:var(--w-paper);color:var(--w-red)}
+@media (prefers-reduced-motion:reduce){.w-shard,.w-shard>b{transition:none}}
+/* In the phone strip and the stacked list the tags stand straight, so the selected one leans by its own angle only. */
+@media (max-width:760px),(max-height:500px){.w-tag.w-sel>span{transform:skewX(var(--w-slant)) rotate(calc(var(--r,0deg) * -1)) scale(1.06)}}
+[data-w-list="stack"] .w-tag.w-sel>span{transform:skewX(var(--w-slant)) rotate(calc(var(--r,0deg) * -1)) scale(1.06)}
 /* Faint by its text and a dashed edge, never by opacity: a see-through tag over Echo's paper loses its contrast. */
 .w-tag.faint>span{font-size:12px;border-style:dashed}
 .w-tag.faint:not(:hover):not(:focus-visible)>span{color:var(--w-dim)}
@@ -391,31 +414,36 @@ html.world-on,html.world-on body{height:100%;overflow:hidden}
    (world.js --w-room), so the front page shows whole at a readable size. */
 .w-echo-d .echo-lead img,.w-echo-d .echo-lead video{aspect-ratio:auto;height:min(calc(var(--w-room,100vh) * .42),calc((100cqw) * 9 / 16));max-height:calc(var(--w-room,100vh) * .42)}
 
-/* ---- the dials behind the side menus (2026-11-17, on the claude/side-dials branch): Zone's cassette reel, half of
-   it at the left edge; Echo's engraved globe of the twenties, half of it at the right. Behind the windows, under the
-   tags; decoration only. Not on a phone (the tags are a strip there). ---- */
+/* ---- the dials behind the side menus. Half discs since 2026-11-17; drawn flat since 2026-11-18 (Ortis: the reel and the
+   globe were « soulless », photo-real objects on a pared-back ground; « clear-cut shapes » in the same semicircles).
+   Zone: a tuning scale, night disc and teal rim. Echo: a paper sunburst, ink rim, red band. Each needle snaps to the
+   tag pointed at, with a hard offset copy (docs/design/MOODBOARD-globe-trotter.md §4). Behind the windows. ---- */
 .w-dials{position:absolute;inset:0;pointer-events:none}
 .w-dials-svg{position:absolute;inset:0;overflow:visible}
 .w-dial-zone{opacity:calc(1 - var(--w-mix) * .7)}
 .w-dial-echo{opacity:calc(.3 + var(--w-mix) * .7)}
-.w-reel-turn{transition:transform 1.1s cubic-bezier(.2,.8,.2,1);transform-origin:0 0}
-.w-reel-flange{fill:rgba(90,174,191,.07);stroke:var(--w-neon-a);stroke-width:.9}
-.w-reel-groove{fill:none;stroke:rgba(255,220,190,.05);stroke-width:.6}
-.w-reel-window{fill:rgba(12,14,24,.55);stroke:rgba(90,174,191,.45);stroke-width:.6}
-.w-reel-hub{fill:#d9dde6;stroke:#9aa3b5;stroke-width:.8}
-.w-reel-bore{fill:#0c0e18}
-.w-reel-tooth{fill:#d9dde6}
-.w-reel-screw{fill:#7d8597}
-.w-reel-text{font:600 6px/1 var(--w-mono);letter-spacing:.32em;fill:var(--w-neon-a);opacity:.7}
-.w-globe-sea{fill:#f2ead8;stroke:none}
-.w-globe-grat path{fill:none;stroke:rgba(23,22,21,.28);stroke-width:.7}
-.w-globe-land path{fill:url(#wGlobeHatch);stroke:var(--w-ink);stroke-width:1;stroke-linejoin:round}
-.w-globe-hatch{stroke:rgba(23,22,21,.55);stroke-width:.8}
-.w-globe-equator{fill:none;stroke:var(--w-red);stroke-width:2;stroke-dasharray:7 4}
-.w-globe-rim{fill:none;stroke:var(--w-ink);stroke-width:2.2}
-.w-globe-ring{fill:none;stroke:var(--w-ink);stroke-width:.8}
-.w-globe-ticks line{stroke:var(--w-ink);stroke-width:.8}
-@media (prefers-reduced-motion:reduce){.w-reel-turn{transition:none}}
+.w-dial-zone .w-dial-disc{fill:rgba(20,26,42,.86)}
+.w-dial-zone .w-dial-band{fill:none;stroke:rgba(90,174,191,.12);stroke-width:26}
+.w-dial-zone .w-dial-rim{fill:none;stroke:var(--w-neon-a);stroke-width:1.6}
+.w-dial-zone .w-dial-ring{fill:none;stroke:var(--w-neon-a);stroke-width:.6;opacity:.45}
+.w-dial-zone .w-dial-ticks line{stroke:var(--w-neon-a);stroke-width:.8;opacity:.55}
+.w-dial-zone .w-dial-ticks line.big{stroke-width:1.6;opacity:.9}
+.w-dial-zone .w-needle-a{fill:var(--w-neon-a)}
+.w-dial-zone .w-needle-b{fill:var(--w-neon-b)}
+.w-dial-zone .w-dial-hub{fill:var(--w-night);stroke:var(--w-neon-a);stroke-width:1.6}
+.w-dial-echo .w-dial-disc{fill:var(--w-paper)}
+.w-dial-echo .w-dial-ray{fill:var(--w-paper-2)}
+.w-dial-echo .w-dial-band{fill:none;stroke:var(--w-red);stroke-width:7}
+.w-dial-echo .w-dial-rim{fill:none;stroke:var(--w-ink);stroke-width:2.2}
+.w-dial-echo .w-dial-ring{fill:none;stroke:var(--w-ink);stroke-width:.8}
+.w-dial-echo .w-dial-ticks line{stroke:var(--w-ink);stroke-width:.8}
+.w-dial-echo .w-dial-ticks line.big{stroke-width:1.8}
+.w-dial-echo .w-needle-a{fill:var(--w-red)}
+.w-dial-echo .w-needle-b{fill:var(--w-ink)}
+.w-dial-echo .w-dial-hub{fill:var(--w-ink)}
+.w-needle-off{transform:translate(5px,5px)}
+.w-needle-turn{transition:transform .17s cubic-bezier(.2,1.4,.4,1)}
+@media (prefers-reduced-motion:reduce){.w-needle-turn{transition:none}}
 @media (max-width:760px),(max-height:500px){.w-dials{display:none}}
 [data-w-list="stack"] .w-dials{display:none}
 

@@ -1116,3 +1116,13 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .seg button:focus-visible{outline:2px solid var(--signal);outline-offset:-3px}
 .seg-sm button{padding:7px 12px;font-size:11px;letter-spacing:.14em}
 @media (max-width:420px){.seg-sm button{padding:7px 9px;letter-spacing:.08em}}
+
+/* The mood board's MB-01 in the pages (2026-11-18): the pressed choice of a row (the radio's streams, the Booth's
+   switches, Echo's themes) is cut as a shard and pops in with a small overshoot instead of fading. Its own background
+   stays under the text, so the contrast checks read what the eye reads. */
+.seg button[aria-pressed="true"],.echo-filter .chip[aria-pressed="true"]{clip-path:polygon(3% 10%,34% 0,66% 8%,98% 2%,100% 50%,97% 96%,64% 100%,30% 92%,2% 100%,0 48%);
+  animation:shard-pop .17s cubic-bezier(.2,1.4,.4,1)}
+.seg button:nth-child(even)[aria-pressed="true"],.echo-filter .chip:nth-child(even)[aria-pressed="true"]{clip-path:polygon(0 4%,30% 10%,70% 0,100% 8%,97% 54%,100% 100%,66% 92%,36% 100%,4% 94%,2% 40%)}
+.echo-filter .chip[aria-pressed="true"]{background:var(--w-red,#a3161f);color:var(--w-paper,#f2f0eb);border-color:transparent}
+@keyframes shard-pop{from{transform:scale(.82)}}
+@media (prefers-reduced-motion:reduce){.seg button[aria-pressed="true"],.echo-filter .chip[aria-pressed="true"]{animation:none}}

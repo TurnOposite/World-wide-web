@@ -1,22 +1,17 @@
 /**
- * The two dials behind the side menus (Ortis, 2026-11-17): « on the sides … if
- * we made that the background behind those menus … on the radio side it's like
- * a cassette tape … a half circle that stops at the edge of the screen … and
- * maybe have it rotating when we're changing. And then for the echo side …
- * have a half earth in like a very 1920 style. A globe would be great. »
+ * The two dials behind the side menus. The half discs came on 2026-11-17, holding a cassette reel and an engraved
+ * globe. Ortis, 2026-11-18: « a little soulless and without character — having them as realist photo objects in such
+ * a graphically pared-back background did not work … keep the shapes and spaces … a design with more straightforward
+ * and clear-cut shapes (within the semi-circles they occupy, which have been really well established) ».
  *
- * Zone's: a cassette reel, half of it showing at the left edge — the tape
- * wound on it, the hub's six teeth, the flange's windows. Echo's: an engraved
- * globe of the twenties, half of it at the right edge — paper, ink coasts
- * (Natural Earth 1:110m, data/world.json), hatching, a red equator. Each sits
- * behind its own tags, sized and placed from where the tags actually stand
- * (the Atelier can move them), and turns a little at every change of page:
- * the reel by one tooth, the globe by thirty degrees of longitude.
+ * So the same half discs, drawn flat. Zone's is a tuning scale: a night disc, a teal rim, a ring of ticks, a flat band.
+ * Echo's is a paper sunburst: alternating wedges, an ink rim, a red band, its ticks outside. Each has a needle, a flat
+ * wedge with a hard offset copy (the mood board's double offset, docs/design/MOODBOARD-globe-trotter.md §4), that
+ * snaps to the tag being pointed at: the one under the pointer or the keyboard, else the page you are on.
  *
- * Decoration only: aria-hidden, no pointer events, not on a phone (the tags
- * are a strip there), and still when the visitor asks for less motion.
- *
- * The top of this file is pure (no DOM) so node:test can check it.
+ * Decoration only: aria-hidden, no pointer events, not on a phone (the tags are a strip there), and the needle jumps
+ * instead of swinging when the visitor asks for less motion. The top of this file is pure (no DOM) so node:test can
+ * check it.
  */
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -39,169 +34,115 @@ export function dialFor(boxes, { side, width, margin = 34, min = 170, max = 420 
   return { cx, cy, r: Math.round(Math.min(max, Math.max(min, r + margin))) };
 }
 
-/** Orthographic projection, the globe turned to `lon0`: [x, y, seen]. A point behind the globe is pushed onto its rim. */
-export function ortho(lon, lat, lon0, r) {
-  const l = (lon - lon0) * RAD;
-  const p = lat * RAD;
-  const x = Math.cos(p) * Math.sin(l);
-  const y = -Math.sin(p);
-  const seen = Math.cos(p) * Math.cos(l) > 0;
-  if (seen) return [x * r, y * r, true];
-  const n = Math.hypot(x, y) || 1;
-  return [(x / n) * r, (y / n) * r, false];
+/** The needle's angle in degrees, from a dial's centre to the middle of a tag's box: 0 points right, 90 down. */
+export function aimAt(box, cx, cy) {
+  return Math.atan2((box.top + box.bottom) / 2 - cy, (box.left + box.right) / 2 - cx) / RAD;
 }
 
-/** The world map's paths (x = lon + 180, y = 90 − lat; M, L and Z only) as rings of [lon, lat]. */
-export function ringsOf(paths) {
-  const rings = [];
-  for (const d of paths) {
-    let ring = null;
-    for (const m of String(d).matchAll(/([MLZ])([^MLZ]*)/gi)) {
-      const cmd = m[1].toUpperCase();
-      if (cmd === 'Z') { if (ring?.length > 2) rings.push(ring); ring = null; continue; }
-      const nums = m[2].split(/[\s,]+/).filter(Boolean).map(Number);
-      if (cmd === 'M') { if (ring?.length > 2) rings.push(ring); ring = []; }
-      for (let i = 0; i + 1 < nums.length; i += 2) ring?.push([nums[i] - 180, 90 - nums[i + 1]]);
-    }
-    if (ring?.length > 2) rings.push(ring);
+/** The angle to turn to, the short way round: a needle at 170° sent to -170° goes on to 190°, not back through 0. */
+export function turnTo(from, to) {
+  return from + ((((to - from) % 360) + 540) % 360) - 180;
+}
+
+/**
+ * A dial's tick marks between radii r1 and r2 over the half that shows (Zone's: -90° to 90°, Echo's: 90° to 270°),
+ * one every `step` degrees, the majors (every `major`) reaching out to r3.
+ */
+export function ticks(side, r1, r2, r3, { step = 5, major = 30 } = {}) {
+  const from = side === 'left' ? -90 : 90;
+  const out = [];
+  for (let a = from; a <= from + 180; a += step) {
+    const big = (a - from) % major === 0;
+    const c = Math.cos(a * RAD), s = Math.sin(a * RAD), r = big ? r3 : r2;
+    out.push({ a, big, x1: r1 * c, y1: r1 * s, x2: r * c, y2: r * s });
   }
-  return rings;
+  return out;
 }
 
-/** One land ring on the globe, as an SVG path — or '' when none of it faces us. */
-export function ringPath(ring, lon0, r) {
-  const pts = ring.map(([lon, lat]) => ortho(lon, lat, lon0, r));
-  if (!pts.some((p) => p[2])) return '';
-  return `M${pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join('L')}Z`;
+/** The needle: a flat wedge from the hub to `len`, `w` wide at its root, pointing right (it is turned as a whole). */
+export function needlePath(len, w) {
+  const r = (v) => +v.toFixed(1);
+  return `M0,${r(-w)}L${r(len)},0L0,${r(w)}L${r(-w * 1.2)},0Z`;
 }
 
-/** The graticule: meridians every 30°, parallels every 30°, as polylines on the face we see. */
-export function graticule(lon0, r) {
-  const lines = [];
-  const line = (pts) => {
-    let d = '';
-    let pen = false;
-    for (const [lon, lat] of pts) {
-      const [x, y, seen] = ortho(lon, lat, lon0, r);
-      if (!seen) { pen = false; continue; }
-      d += `${pen ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`;
-      pen = true;
-    }
-    if (d) lines.push(d);
-  };
-  for (let lon = -180; lon < 180; lon += 30) line(Array.from({ length: 37 }, (_, i) => [lon, -90 + i * 5]));
-  for (const lat of [-60, -30, 30, 60]) line(Array.from({ length: 73 }, (_, i) => [-180 + i * 5, lat]));
-  return lines;
-}
-
-/* ------------------------------------------------------------------ DOM -- */
 const s = (tag, attrs = {}, parent = null) => {
-  const e = document.createElementNS(NS, tag);
-  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
-  parent?.append(e);
-  return e;
+  const n = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  parent?.append(n);
+  return n;
 };
 
-/** The reel, drawn once at radius 100 and scaled: tape, flange windows, the hub and its teeth, a label arc. */
-function reel() {
-  const g = s('g', { class: 'w-reel-turn' });
-  const defs = s('defs', {}, g);
-  const tape = s('radialGradient', { id: 'wReelTape' }, defs);
-  s('stop', { offset: '0.34', 'stop-color': '#1a120d' }, tape);
-  s('stop', { offset: '0.78', 'stop-color': '#2a1b13' }, tape);
-  s('stop', { offset: '1', 'stop-color': '#120c09' }, tape);
-  // The flange: a clear plastic disc, its rim lit by the station's teal.
-  s('circle', { r: 100, class: 'w-reel-flange' }, g);
-  // The wound tape, with its sheen rings.
-  s('circle', { r: 84, fill: 'url(#wReelTape)' }, g);
-  for (let i = 0; i < 9; i++) s('circle', { r: 40 + i * 5, class: 'w-reel-groove' }, g);
-  // Three windows cut in the flange, over the tape: the classic C-60 look.
-  for (let k = 0; k < 3; k++) {
-    const a0 = (k * 120 + 18) * RAD;
-    const a1 = (k * 120 + 102) * RAD;
-    const arc = (r, a) => `${(r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a)).toFixed(1)}`;
-    s('path', { d: `M${arc(46, a0)}A46,46 0 0 1 ${arc(46, a1)}L${arc(92, a1)}A92,92 0 0 0 ${arc(92, a0)}Z`, class: 'w-reel-window' }, g);
-  }
-  // The hub, white plastic, with its six teeth.
-  s('circle', { r: 30, class: 'w-reel-hub' }, g);
-  s('circle', { r: 17, class: 'w-reel-bore' }, g);
-  for (let k = 0; k < 6; k++) {
-    const a = k * 60;
-    s('rect', { x: 13, y: -3, width: 8, height: 6, rx: 1, class: 'w-reel-tooth', transform: `rotate(${a})` }, g);
-  }
-  for (let k = 0; k < 3; k++) s('circle', { cx: 24 * Math.cos((k * 120 + 60) * RAD), cy: 24 * Math.sin((k * 120 + 60) * RAD), r: 1.8, class: 'w-reel-screw' }, g);
-  // A strip of the cassette's label running round the rim: Zone's own words.
-  const path = s('path', { id: 'wReelRim', d: 'M -94,0 A94,94 0 1 1 94,0 A94,94 0 1 1 -94,0', fill: 'none' }, defs);
-  void path;
-  const t = s('text', { class: 'w-reel-text' }, g);
-  const tp = s('textPath', { href: '#wReelRim', startOffset: '0' }, t);
-  tp.textContent = 'RADIO TOWER · SIDE A · ONE SIGNAL · EVERYONE ON THE SAME SECOND · SIDE B · ';
-  return g;
+/** One flat dial: disc, bands, rim, ticks, the needle with its offset copy, the hub. Redrawn when its radius changes. */
+function dial(half) {
+  const g = s('g', { class: `w-dial w-dial-${half}` });
+  const body = s('g', {}, g);
+  const shadow = s('g', { class: 'w-needle-off' }, g);
+  const shadowTurn = s('g', { class: 'w-needle-turn' }, shadow);
+  const shadowPath = s('path', { class: 'w-needle w-needle-b' }, shadowTurn);
+  const turn = s('g', { class: 'w-needle-turn' }, g);
+  const path = s('path', { class: 'w-needle w-needle-a' }, turn);
+  const hub = s('circle', { class: 'w-dial-hub' }, g);
+  let drawnFor = 0;
+  return {
+    g,
+    turns: [turn, shadowTurn],
+    draw(r) {
+      if (r === drawnFor) return;
+      drawnFor = r;
+      const side = half === 'zone' ? 'left' : 'right';
+      const parts = [s('circle', { r, class: 'w-dial-disc' })];
+      if (half === 'echo') {
+        // The sunburst: wedges every 15°, every other one a shade darker, out to the red band.
+        for (let a = 90; a < 270; a += 30) {
+          const p = (deg, rr) => `${(rr * Math.cos(deg * RAD)).toFixed(1)},${(rr * Math.sin(deg * RAD)).toFixed(1)}`;
+          const rr = r * 0.9;
+          parts.push(s('path', { d: `M0,0L${p(a, rr)}A${rr},${rr} 0 0 1 ${p(a + 15, rr)}Z`, class: 'w-dial-ray' }));
+        }
+        parts.push(s('circle', { r: r * 0.62, class: 'w-dial-band' }));
+      } else {
+        parts.push(s('circle', { r: r * 0.79, class: 'w-dial-band' }));
+      }
+      parts.push(s('circle', { r, class: 'w-dial-rim' }));
+      parts.push(s('circle', { r: half === 'zone' ? r - 7 : r + 9, class: 'w-dial-ring' }));
+      const t = half === 'zone' ? ticks(side, r * 0.86, r * 0.9, r * 0.95) : ticks(side, r + 9, r + 13, r + 19);
+      const tg = s('g', { class: 'w-dial-ticks' });
+      for (const k of t) s('line', { x1: k.x1.toFixed(1), y1: k.y1.toFixed(1), x2: k.x2.toFixed(1), y2: k.y2.toFixed(1), class: k.big ? 'big' : '' }, tg);
+      parts.push(tg);
+      body.replaceChildren(...parts);
+      const len = r * (half === 'zone' ? 0.6 : 0.56), w = Math.max(6, r * 0.045);
+      path.setAttribute('d', needlePath(len, w));
+      shadowPath.setAttribute('d', needlePath(len, w));
+      hub.setAttribute('r', Math.max(7, r * 0.075));
+    },
+  };
 }
 
-export function mountDials({ root, nav, getRings, reduced = matchMedia('(prefers-reduced-motion: reduce)') }) {
+export function mountDials({ nav, reduced = matchMedia('(prefers-reduced-motion: reduce)') }) {
   const el = document.createElement('div');
   el.className = 'w-dials';
   el.setAttribute('aria-hidden', 'true');
   const svg = s('svg', { class: 'w-dials-svg' });
   el.append(svg);
+  const dials = { zone: dial('zone'), echo: dial('echo') };
+  svg.append(dials.zone.g, dials.echo.g);
+  const at = { zone: null, echo: null };
+  const angle = { zone: 0, echo: 180 };
 
-  // Zone: the reel.
-  const zone = s('g', { class: 'w-dial w-dial-zone' }, svg);
-  const zoneScale = s('g', {}, zone);
-  const reelG = reel();
-  zoneScale.append(reelG);
-  let reelAngle = 0;
+  /** The tag a half's needle points at: the one pointed at by hand or keyboard, else the page you are on, else none. */
+  const targetOf = (half) => nav.querySelector(`.w-tag[data-half="${half}"].w-pointed:not(.w-tag-past)`)
+    || nav.querySelector(`.w-tag[data-half="${half}"][aria-current="true"]:not(.w-tag-past)`);
 
-  // Echo: the globe of the twenties.
-  const echo = s('g', { class: 'w-dial w-dial-echo' }, svg);
-  const hatch = s('pattern', { id: 'wGlobeHatch', width: 4, height: 4, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(35)' }, s('defs', {}, echo));
-  s('line', { x1: 0, y1: 0, x2: 0, y2: 4, class: 'w-globe-hatch' }, hatch);
-  const sea = s('circle', { class: 'w-globe-sea' }, echo);
-  const gratG = s('g', { class: 'w-globe-grat' }, echo);
-  const landG = s('g', { class: 'w-globe-land' }, echo);
-  const equator = s('path', { class: 'w-globe-equator' }, echo);
-  const rim = s('circle', { class: 'w-globe-rim' }, echo);
-  const ring2 = s('circle', { class: 'w-globe-ring' }, echo);
-  const ticks = s('g', { class: 'w-globe-ticks' }, echo);
-  let lon0 = -20; // Europe and Africa facing the reader, Paris near the middle
-  let shown = lon0;
-  let globeR = 0;
-  let frame = 0;
-
-  function drawGlobe(at) {
-    const rings = getRings();
-    const r = globeR;
-    sea.setAttribute('r', r);
-    rim.setAttribute('r', r);
-    ring2.setAttribute('r', r + 9);
-    gratG.replaceChildren(...graticule(at, r).map((d) => s('path', { d })));
-    landG.replaceChildren(...rings.map((ring) => ringPath(ring, at, r)).filter(Boolean).map((d) => s('path', { d })));
-    const eq = Array.from({ length: 73 }, (_, i) => ortho(-180 + i * 5, 0, at, r)).filter((p) => p[2]);
-    equator.setAttribute('d', eq.length ? `M${eq.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join('L')}` : '');
-    if (!ticks.childNodes.length || ticks.dataset.r !== String(r)) {
-      ticks.dataset.r = String(r);
-      ticks.replaceChildren(...Array.from({ length: 72 }, (_, i) => {
-        const a = i * 5 * RAD;
-        const l = i % 6 ? 4 : 9;
-        return s('line', { x1: (r + 9) * Math.cos(a), y1: (r + 9) * Math.sin(a), x2: (r + 9 + l) * Math.cos(a), y2: (r + 9 + l) * Math.sin(a) });
-      }));
+  function aim() {
+    for (const half of ['zone', 'echo']) {
+      const t = targetOf(half), d = at[half];
+      if (!t || !d) continue;
+      const to = turnTo(angle[half], aimAt(t.getBoundingClientRect(), d.cx, d.cy));
+      angle[half] = to;
+      for (const g of dials[half].turns) {
+        g.style.transition = reduced.matches ? 'none' : '';
+        g.style.transform = `rotate(${to.toFixed(1)}deg)`;
+      }
     }
-  }
-
-  function turnGlobeTo(target) {
-    cancelAnimationFrame(frame);
-    if (reduced.matches) { shown = target; drawGlobe(shown); return; }
-    const from = shown;
-    const t0 = performance.now();
-    const step = (now) => {
-      const k = Math.min(1, (now - t0) / 900);
-      const e = 1 - (1 - k) ** 3;
-      shown = from + (target - from) * e;
-      drawGlobe(shown);
-      if (k < 1) frame = requestAnimationFrame(step);
-    };
-    frame = requestAnimationFrame(step);
   }
 
   /**
@@ -217,35 +158,23 @@ export function mountDials({ root, nav, getRings, reduced = matchMedia('(prefers
     tick();
   }
 
-  let placedFor = '';
   function place() {
     const w = innerWidth;
     svg.setAttribute('width', w);
     svg.setAttribute('height', innerHeight);
     svg.setAttribute('viewBox', `0 0 ${w} ${innerHeight}`);
-    for (const [half, side, g] of [['zone', 'left', zone], ['echo', 'right', echo]]) {
+    for (const [half, side] of [['zone', 'left'], ['echo', 'right']]) {
       const boxes = [...nav.querySelectorAll(`.w-tag[data-half="${half}"]:not(.w-tag-past):not(.w-off)`)]
         .map((b) => b.getBoundingClientRect()).filter((b) => b.width > 0);
       const d = dialFor(boxes, { side, width: w });
-      g.style.display = d ? '' : 'none';
+      at[half] = d;
+      dials[half].g.style.display = d ? '' : 'none';
       if (!d) continue;
-      g.setAttribute('transform', `translate(${d.cx} ${d.cy})`);
-      if (half === 'zone') zoneScale.setAttribute('transform', `scale(${d.r / 100})`);
-      else {
-        // The globe is redrawn only when its size changed, or its coasts arrived: a move costs one attribute.
-        const key = `${d.r}:${getRings().length}`;
-        if (key !== placedFor) { placedFor = key; globeR = d.r - 14; drawGlobe(shown); }
-      }
+      dials[half].g.setAttribute('transform', `translate(${d.cx} ${d.cy})`);
+      dials[half].draw(d.r);
     }
+    aim();
   }
 
-  return {
-    el,
-    place,
-    settle,
-    /** A change of page: the reel turns one tooth, the globe thirty degrees — each toward the half arrived on. */
-    turn(half) {
-      if (half === 'echo') { lon0 += 30; turnGlobeTo(lon0); } else { reelAngle += 60; reelG.style.transform = `rotate(${reelAngle}deg)`; }
-    },
-  };
+  return { el, place, settle, aim };
 }

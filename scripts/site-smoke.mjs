@@ -1202,12 +1202,20 @@ try {
       return { top: Math.min(...r.map((b) => b.top)), bottom: Math.max(...r.map((b) => b.bottom)) };
     };
     const at = (sel) => { const b = document.querySelector(sel)?.getBoundingClientRect(); return b ? { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2), w: Math.round(b.width) } : null; };
-    return { zone: at('.w-dial-zone .w-reel-flange'), echo: at('.w-dial-echo .w-globe-rim'), zoneTags: span('zone'), echoTags: span('echo'), width: innerWidth, hidden: document.querySelector('.w-dials')?.getAttribute('aria-hidden') };
+    const cur = document.querySelector('.w-tag[aria-current="true"]');
+    const sh = cur && document.querySelector(`.w-shard[data-half="${cur.dataset.half}"]`);
+    const mid = (b) => ({ x: b.left + b.width / 2, y: b.top + b.height / 2 });
+    const shard = sh && (() => { const t = cur.firstElementChild.getBoundingClientRect(), b = sh.getBoundingClientRect(), m = mid(b);
+      return { on: sh.classList.contains('on'), over: m.x >= t.left && m.x <= t.right && m.y >= t.top && m.y <= t.bottom, sel: cur.classList.contains('w-sel'), hidden: sh.getAttribute('aria-hidden') }; })();
+    return { zone: at('.w-dial-zone .w-dial-rim'), echo: at('.w-dial-echo .w-dial-rim'), zoneTags: span('zone'), echoTags: span('echo'), width: innerWidth, hidden: document.querySelector('.w-dials')?.getAttribute('aria-hidden'),
+      needles: document.querySelectorAll('.w-needle-turn').length, shard, amber: cur ? getComputedStyle(cur.firstElementChild).boxShadow : null };
   });
   const level = (d, s) => Boolean(d) && d.y >= s.top && d.y <= s.bottom;
-  check('the dials behind the side menus: the reel on the left edge and the globe on the right, each level with its own tags, hidden from assistive technology',
-    level(dialsAt.zone, dialsAt.zoneTags) && Math.abs(dialsAt.zone.x) <= 2 && level(dialsAt.echo, dialsAt.echoTags) && Math.abs(dialsAt.echo.x - dialsAt.width) <= 2 && dialsAt.hidden === 'true',
+  check('the dials behind the side menus: Zone's on the left edge and Echo's on the right, each level with its own tags, each with its needle, hidden from assistive technology',
+    level(dialsAt.zone, dialsAt.zoneTags) && Math.abs(dialsAt.zone.x) <= 2 && level(dialsAt.echo, dialsAt.echoTags) && Math.abs(dialsAt.echo.x - dialsAt.width) <= 2 && dialsAt.hidden === 'true' && dialsAt.needles === 4,
     JSON.stringify(dialsAt));
+  check('the current tag wears its half's shard (MB-01), drawn over it and hidden from assistive technology; the amber ring is gone',
+    Boolean(dialsAt.shard?.on && dialsAt.shard.over && dialsAt.shard.sel) && dialsAt.shard.hidden === 'true' && !/196, 161, 96/.test(dialsAt.amber || ''), JSON.stringify({ shard: dialsAt.shard, amber: dialsAt.amber }));
   check('…seen from Zone, Echo\'s paper is the ground again, its edge torn over a thin red rim', crossed.ground === '1' && crossed.tear === '1' && crossed.mask
     && crossed.rim === 'rgb(163, 22, 31)', JSON.stringify({ ground: crossed.ground, tear: crossed.tear, mask: crossed.mask, rim: crossed.rim }));
 

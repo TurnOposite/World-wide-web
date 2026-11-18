@@ -43,7 +43,7 @@
 import { BASE_H, DISTRICTS, FIGURES, FIT_MIN, PHONE_MEDIA, SHORT_MAX, WORLD, byId, districtFor, fitFactor, frameFor, pageZoom, swipeHalf } from './layout.js';
 import { Camera } from './camera.js';
 import { mountTags } from './tags.js';
-import { mountDials, ringsOf } from './dials.js';
+import { mountDials } from './dials.js';
 import { mountMinimap } from './minimap.js';
 import { Bubbles } from './bubbles.js';
 import { bubbleCount, mountScreen } from './screen.js';
@@ -228,12 +228,10 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
   let current = null;
   const minimap = mountMinimap((id) => pick(id));
   const tags = mountTags((id) => pick(id));
-  // The dials behind the side menus (2026-11-17): Zone's reel, Echo's globe. The coasts come with the world map.
-  let landRings = [];
-  const dials = mountDials({ root, nav: tags.nav, getRings: () => landRings });
-  fetch(new URL('data/world.json', document.baseURI)).then((r) => (r.ok ? r.json() : null)).then((j) => {
-    if (j?.paths) { landRings = ringsOf(j.paths); dials.settle(); }
-  }).catch(() => {});
+  // The dials behind the side menus: since 2026-11-18 flat (dials.js), their needles following the tag pointed at.
+  const dials = mountDials({ nav: tags.nav });
+  tags.onPoint = () => dials.aim();
+  dials.settle();
   const phone = matchMedia(PHONE_MEDIA);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const count = (bub) => bubbles.setCount(bubbleCount(bub, { phone: phone.matches, reduced: reduced.matches }));
@@ -288,12 +286,11 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
 
   const skip = document.querySelector('.skip');
   function arrive(d, { instant = false } = {}) {
-    const before = current;
     current = d.id;
     tags.mark(d.id);
-    // Measured again at every arrival: a dial follows its tags wherever the page load, a font or the Atelier left them.
+    // Measured again at every arrival: a dial follows its tags wherever the page load, a font or the Atelier left them,
+    // and its needle swings to the page arrived on.
     dials.place();
-    if (before && before !== d.id) dials.turn(d.half);
     plane.querySelectorAll('.w-district').forEach((s) => s.classList.toggle('here', s.dataset.d === d.id));
     skip?.setAttribute('href', `#w-${d.id}`);
     const echo = d.half === 'echo';
