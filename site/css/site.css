@@ -1160,3 +1160,37 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 }
 /* MB-10: a cover drawn for a track that came without one. */
 .cover svg.blank{width:100%;height:100%;display:block}
+
+/* The lane select (MB-02): the Antenna's streams as a cast on a stage. Each lane is a card with its emblem and its
+   numbers; the one you hear is in full colour and wears its own accent, the others are tinted silhouettes until
+   pointed at. ▲ ▼ cycle among the lanes on air; the listeners stand in join slots underneath. */
+.antenna-dial{position:relative;padding:12px 12px 14px;background:radial-gradient(110% 70% at 50% -10%,rgba(90,174,191,.16),transparent 62%),linear-gradient(#0d1120,#0a0d18);border:1px solid var(--line)}
+.antenna-dial .dial-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lane-cycle{margin-left:auto;display:flex;gap:4px}
+.lane-cycle button{width:32px;height:26px;border:1px solid var(--line);background:#11172a;color:var(--text);cursor:pointer;font-size:11px;clip-path:polygon(12% 0,100% 0,88% 100%,0 100%)}
+.lane-cycle button:hover,.lane-cycle button:focus-visible{background:var(--w-neon-a,#5aaebf);color:#0c0e18;outline:none}
+.antenna-dial .ch{grid-template-columns:44px minmax(0,1fr) auto;filter:saturate(.25) brightness(.86);background:linear-gradient(rgba(80,120,190,.16),rgba(80,120,190,.16)),#0e1322;
+  transition:filter .15s,transform .17s cubic-bezier(.2,1.4,.4,1)}
+.antenna-dial .ch-emblem{grid-column:1;grid-row:1/4;width:40px;height:40px;align-self:center}
+.antenna-dial .ch-emblem svg{display:block;width:100%;height:100%}
+.antenna-dial .ch-name{grid-column:2/4;grid-row:1}
+.antenna-dial .ch-now{grid-column:2/4;grid-row:2}
+.antenna-dial .ch-meta{grid-column:2/4;grid-row:3}
+.antenna-dial .ch:hover,.antenna-dial .ch:focus-visible{filter:saturate(.7) brightness(.95)}
+.antenna-dial .ch.on{filter:none;transform:scale(1.02) rotate(-.5deg);background:#121a2c;box-shadow:inset 0 0 0 2px var(--lane,#5aaebf),5px 5px 0 rgba(0,0,0,.4)}
+.antenna-dial .ch.on .ch-name{color:var(--lane,#5aaebf)}
+.lane-slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:10px}
+.lane-slots .slot{position:relative;display:flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:4px 6px;border:1px dashed var(--line);background:none;color:var(--text-dim);
+  font:600 10px/1.1 var(--w-ui,system-ui,sans-serif);letter-spacing:.06em;text-transform:uppercase;text-align:center;clip-path:polygon(6% 0,100% 0,94% 100%,0 100%)}
+.lane-slots button.slot{cursor:pointer}
+.lane-slots button.slot:hover,.lane-slots button.slot:focus-visible{color:var(--text);border-style:solid;outline:none}
+.lane-slots .slot.lit{border:0;background:var(--w-neon-a,#5aaebf);color:#0c0e18}
+.lane-slots .slot.lit svg{width:14px;height:17px;fill:#0c0e18}
+.lane-slots .slot.lit b{font-size:11px}
+.lane-slots .slot.lit i{position:absolute;right:8px;top:3px;font-style:normal;font-size:9px}
+@media (max-width:760px){
+  .antenna-dial .ch{grid-template-columns:40px minmax(0,1fr)}
+  .antenna-dial .ch-emblem{grid-row:1/4;width:34px;height:34px}
+  .antenna-dial .ch-name,.antenna-dial .ch-now,.antenna-dial .ch-meta{grid-column:2;grid-row:auto}
+}
+@media (prefers-reduced-motion:reduce){.antenna-dial .ch{transition:none}}

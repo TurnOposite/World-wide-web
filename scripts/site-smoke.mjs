@@ -480,6 +480,17 @@ try {
     await b.reload({ waitUntil: 'domcontentloaded' });
     await b.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
     check('…and remembered by this browser', (await b.evaluate(() => window.radioTower.client.channel)) === target);
+    // The lane select (MB-02): every lane a card with its emblem and its own accent; ▼ tunes to the next lane on air.
+    await b.waitForSelector('#anDial [data-cycle="1"]', { timeout: 8000 }).catch(() => {});
+    const lanes = await b.evaluate(() => ({ cards: document.querySelectorAll('#anDial .ch').length, emblems: document.querySelectorAll('#anDial .ch .ch-emblem svg').length,
+      accents: new Set([...document.querySelectorAll('#anDial .ch')].map((c) => c.style.getPropertyValue('--lane'))).size }));
+    const laneBefore = await b.evaluate(() => window.radioTower.client.channel);
+    await b.click('#anDial [data-cycle="1"]');
+    await b.waitForFunction((ch) => window.radioTower.client.channel !== ch, laneBefore, { timeout: 8000 }).catch(() => {});
+    await b.waitForTimeout(300);
+    const laneAfter = await b.evaluate(() => ({ ch: window.radioTower.client.channel, on: document.querySelector('#anDial .ch.on')?.dataset.ch }));
+    check('the streams as a lane select (MB-02): each lane its emblem and its own accent, and ▼ tunes to the next one on air',
+      lanes.cards >= 2 && lanes.emblems === lanes.cards && lanes.accents === lanes.cards && laneAfter.ch !== laneBefore && laneAfter.on === laneAfter.ch, JSON.stringify({ lanes, laneBefore, laneAfter }));
     await b.evaluate((ch) => window.radioTower.client.setChannel(ch), homeCh);
     await b.waitForFunction((ch) => window.radioTower.player.data?.station?.channel === ch, homeCh, { timeout: 8000 }).catch(() => {});
   }

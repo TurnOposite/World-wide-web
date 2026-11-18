@@ -34,10 +34,32 @@ export function mount(root, ctx) {
       <section class="antenna-streams" aria-label="Streams">
         <div class="channels antenna-dial" id="anDial" hidden></div>
         <p class="hint antenna-one" id="anOne" hidden>One stream is on air for now: Everything.</p>
+        <div class="lane-slots" id="anSlots" role="group" aria-label="Who is listening" hidden></div>
       </section>
       <section class="panel antenna-line" id="anLine"></section>
     </div>`;
   const one = root.querySelector('#anOne');
+  // The listeners as join slots (MB-02): one lit per person tuned in, the rest waiting for whoever presses play.
+  const slots = root.querySelector('#anSlots');
+  const SLOTS = 4;
+  const paintSlots = () => {
+    const n = ctx.player?.data?.listeners;
+    slots.hidden = client.mode === 'cloud' || !Number.isFinite(n);
+    if (slots.hidden) return;
+    const lit = Math.min(n, SLOTS);
+    slots.innerHTML = Array.from({ length: SLOTS }, (_, i) => (i < lit
+      ? `<span class="slot lit"><svg viewBox="0 0 20 24" aria-hidden="true"><circle cx="10" cy="7" r="5"/><path d="M2 23 Q10 11 18 23Z"/></svg><b>P${i + 1}</b>${i === SLOTS - 1 && n > SLOTS ? `<i>+${n - SLOTS}</i>` : ''}</span>`
+      : `<button type="button" class="slot" data-join>Press ▶ to join</button>`)).join('');
+    slots.setAttribute('aria-label', `${n} listening`);
+  };
+  slots.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-join]')) return;
+    const audio = document.getElementById('audio');
+    if (audio?.paused) document.getElementById('mbTune')?.click();
+  });
+  const onStation = () => paintSlots();
+  ctx.player?.addEventListener?.('station', onStation);
+  paintSlots();
   const dial = new ChannelDial({ root: root.querySelector('#anDial'), client, label: 'Streams', noun: 'streams', onPaint: (n) => { one.hidden = n >= 2; } });
   const lineEl = root.querySelector('#anLine');
   const line = new TelegraphLine({ root: lineEl, client, toast });
@@ -72,5 +94,5 @@ export function mount(root, ctx) {
   phone.addEventListener?.('change', resize);
   resize();
 
-  return () => { dial.destroy(); line.destroy(); watch?.disconnect(); phone.removeEventListener?.('change', resize); cancelAnimationFrame(queued); };
+  return () => { ctx.player?.removeEventListener?.('station', onStation); dial.destroy(); line.destroy(); watch?.disconnect(); phone.removeEventListener?.('change', resize); cancelAnimationFrame(queued); };
 }
