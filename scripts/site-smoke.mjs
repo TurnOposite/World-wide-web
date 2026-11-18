@@ -1234,6 +1234,27 @@ try {
     marq: getComputedStyle(document.querySelector('.w-district.here .w-marq span') || document.body).animationName, still: [...document.querySelectorAll('.w-district:not(.here) .w-marq span')].every((s) => getComputedStyle(s).animationName === 'none') }));
   check('Zone’s corner shows the station’s day (MB-09), and only the open window runs its name behind its header (MB-04)',
     /heure de Paris$/.test(corner.badge) && Number(corner.day) >= 1 && corner.marq === 'w-marq' && corner.still, JSON.stringify(corner));
+  // The boat (F1), behind ?boat=1, on a page of its own: it stands instead of the map, the page opens on its thing,
+  // Stop time freezes the scene and offers every place, and a place chosen there opens its page at its address.
+  const aboard = await w.evaluate(() => document.querySelector('.w-aboard')?.getAttribute('href'));
+  const boatCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const bp = await boatCtx.newPage();
+  watch(bp, 'the boat');
+  await bp.goto(dev + 'radio?boat=1', { waitUntil: 'domcontentloaded' });
+  await bp.evaluate(() => { try { sessionStorage.setItem('gt.boat.seen', '1'); } catch { /* the arrival then plays: slower, still checked */ } });
+  await bp.reload({ waitUntil: 'domcontentloaded' });
+  await bp.waitForFunction(() => window.radioTower?.world?.current === 'radio' && !document.querySelector('.b-panel').hidden, null, { timeout: 20000 }).catch(() => {});
+  const boat1 = await bp.evaluate(() => ({ root: Boolean(document.querySelector('.b-root')), map: Boolean(document.querySelector('.w-root')), page: Boolean(document.querySelector('.b-box .page')), place: window.radioTower.world.current }));
+  await bp.keyboard.press('Escape');
+  await bp.waitForFunction(() => document.querySelectorAll('.b-lb').length >= 7, null, { timeout: 20000 }).catch(() => {});
+  const boat2 = await bp.evaluate(() => ({ frozen: document.querySelector('.b-root').classList.contains('frozen'), labels: document.querySelectorAll('.b-lb').length }));
+  await bp.click('.b-lb[data-go="playlists"]').catch(() => {});
+  await bp.waitForFunction(() => location.pathname === '/playlists' && window.radioTower.world.current === 'playlists', null, { timeout: 20000 }).catch(() => {});
+  const boat3 = await bp.evaluate(() => ({ path: location.pathname, place: window.radioTower.world.current, page: Boolean(document.querySelector('.b-box .page')) }));
+  await boatCtx.close();
+  check('the boat, behind ?boat=1 (F1): the map links aboard; aboard, Radio opens on the laptop, Stop time freezes the scene and offers every place, Playlists opens on the phone at its address',
+    aboard === '?boat=1' && boat1.root && !boat1.map && boat1.page && boat1.place === 'radio' && boat2.frozen && boat2.labels >= 7
+    && boat3.path === '/playlists' && boat3.place === 'playlists' && boat3.page, JSON.stringify({ aboard, boat1, boat2, boat3 }));
   // The track-change caption (MB-03) and the drawn cover (MB-10), on a page of their own, so the made-up track
   // touches nothing else the smoke goes on to check.
   const capCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
