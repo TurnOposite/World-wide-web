@@ -3501,3 +3501,21 @@ before pushing them, but the rest to do push ».
   track again if a real change takes the caption. A second run was also slowed to a stall by stray browsers of mine;
   they were stopped and the run repeated alone.
 - **Self-test** on `fb43f11`: 520/520 unit, 43/43 browser, 190/190 site, 26/26 Atelier.
+
+## 2026-11-18 (morning) - The boat, live behind ?boat=1 (Claude Code, alone)
+
+- **`site/js/boat/`**, as Ortis asked before sleeping (« live and not the default … a toggle to activate the initial
+  cutscene into the boat situation … first person and interactive windows as part of a 3D decor plane … a parallel
+  version of the site »). « Board the boat » in the map's header opens `?boat=1`; `?boat=0` (the brand, aboard) goes
+  back. The first time in a tab the arrival plays: the lake, then the camera swooping aboard. Each page opens in a flat
+  panel over its thing (the laptop is Radio, the phone Playlists, the machines on the side Antenna, the scroll Ondes,
+  the lantern the Booth, the desk behind you Echo). Esc stops time, and the place you choose opens at its address.
+  The router does not know: it asks `show(match)` for a box, as it asks the map.
+- **Found on the way**: measured before its CSS, the boat had no size and the lake's painter never finished (fixed);
+  the mini-player's backdrop blur re-blurred the moving lake every frame and the banner's brush filter painted while
+  clipped away (both fixed); the site's visualiser now rests behind the boat; a flight that cannot be drawn (one frame
+  gap of a quarter second) becomes a cut. In headless Chrome, which renders in software, the first seconds after a load
+  are slow for the map too (3 fps rising to 35); the boat's are slower. Not measured on a GPU: the laptop was locked.
+- **Tests**: `site-boat.test.js` (the flag, every route's place, the camera framing each screen) and a smoke check
+  behind `?boat=1` (it stands instead of the map, Radio on the laptop, Stop time and its labels, Playlists at its address).
+- **Self-test** on `96471ce`: 523/523 unit, 43/43 browser, 191/191 site, 26/26 Atelier.

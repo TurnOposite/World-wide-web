@@ -4087,3 +4087,21 @@ MB-01: a selection shard that snaps from item to item and replaces the amber out
    where it lands.
 
 **Revisit if** the marquee distracts (it can stop after one pass), or the lanes should be on the Radio page too.
+
+## 2026-11-18 — The boat is a second front, behind a flag
+
+**Context.** Ortis's answer before sleeping: the boat live, not the default, with a toggle that plays the arrival.
+
+**Decision.**
+1. A parallel front, `site/js/boat/`, loaded only when the tab asks (`?boat=1`, remembered for the tab like
+   `?world=1`). The map (world.js) is not loaded then; the router, the pages, the player and the mini-player are the
+   same. The boat answers the router's one question, `show(match)`, with a box.
+2. Pages are lifted onto a flat panel over their thing, never smaller than a page can be read in (620 px on a laptop,
+   the whole screen on a phone): text crisp, every control working, a screen reader reading the page as on the map.
+3. The choices made for him, until he says otherwise: first person from the hammock; Echo at the stern desk; no
+   sound on the lake; the arrival once per tab, skippable.
+4. On the boat the mini-player is opaque (a blur over a moving lake costs every frame), the visualiser rests, and a
+   flight the device cannot draw becomes a cut.
+
+**Revisit if** the boat should become the front (his word), or if a phone finds it too heavy: the lake can be painted
+once and kept still.
