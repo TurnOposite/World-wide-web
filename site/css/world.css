@@ -484,3 +484,10 @@ body.on-echo .w-badge{visibility:hidden}
 .w-district.here:hover .w-marq span,.w-district.here:focus-within .w-marq span{animation-play-state:paused}
 @keyframes w-marq{to{transform:translateX(-100%)}}
 @media (prefers-reduced-motion:reduce){.w-district.here .w-marq span{animation:none}}
+/* The way aboard (the boat, F1): a small button in the HUD; the boat itself is site/css/boat.css. */
+.w-aboard{flex:none;pointer-events:auto;display:flex;align-items:center;gap:8px;margin-left:10px;padding:5px 12px 5px 5px;background:rgba(12,14,24,.86);border:1px solid var(--w-edge);color:var(--w-text);text-decoration:none;font:700 12px/1 var(--w-ui);letter-spacing:.12em;text-transform:uppercase;transform:skewX(var(--w-slant))}
+.w-aboard>*{transform:skewX(calc(var(--w-slant) * -1))}
+.w-aboard span{display:grid;place-items:center;width:24px;height:24px;background:#c2432d;color:#fff4ea;font:400 14px/1 "Ma Shan Zheng","KaiTi",serif;letter-spacing:0}
+.w-aboard:hover,.w-aboard:focus-visible{background:var(--w-neon-a);color:var(--w-night);outline:none}
+body.on-echo .w-aboard{background:var(--w-paper);color:var(--w-ink);border-color:var(--w-rule)}
+@media (max-width:760px),(max-height:500px){.w-aboard b{display:none}.w-aboard{padding:5px}}

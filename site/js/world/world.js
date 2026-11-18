@@ -255,7 +255,12 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
   reduced.addEventListener?.('change', () => count(screen.prefs.bub));
   // The station clock in Zone's corner (MB-09).
   const badge = mountBadge();
-  hud.append(title, brand, sw, badge.el, screen.button, minimap.svg);
+  // The way aboard (the boat, docs/BACKLOG.md F1): a parallel front, never the default.
+  const aboard = el('a', 'w-aboard');
+  aboard.href = '?boat=1';
+  aboard.innerHTML = '<span aria-hidden="true">船</span><b>Board the boat</b>';
+  aboard.title = 'Open the site as a boat on a lake: a parallel front, in first person';
+  hud.append(title, brand, sw, badge.el, aboard, screen.button, minimap.svg);
 
   // The motion blur: one SVG filter the camera turns up while it moves.
   const defs = document.createElementNS(NS, 'svg');

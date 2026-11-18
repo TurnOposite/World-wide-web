@@ -15,6 +15,7 @@ import { toast, esc } from './ui/util.js';
 import { initBanner, markHalf } from './ui/banner.js';
 import { ONDES_LABEL } from './labels.js';
 import { atelierWanted, worldWanted } from './world/flag.js';
+import { boatWanted } from './boat/flag.js';
 import { DISTRICTS } from './world/layout.js';
 import { DRAFT_KEY, applyPages, mergeDraft, resolveLayout } from './world/model.js';
 import { resolveRef } from './refs.js';
@@ -133,7 +134,9 @@ async function boot() {
   let world = null;
   let session = null;
   try { session = sessionStorage; } catch { /* storage blocked: the flag lasts this page */ }
-  const wantWorld = worldWanted({ config: client.config, search: location.search, storage: session });
+  // The boat (docs/BACKLOG.md F1): a parallel front behind ?boat=1, never the default. On, the map stays unloaded.
+  const wantBoat = boatWanted({ search: location.search, storage: session });
+  const wantWorld = !wantBoat && worldWanted({ config: client.config, search: location.search, storage: session });
 
   // The map (docs/ATELIER.md): site/data/layout.json — where each window stands, and the versions
   // of the past, online or not. Without it the world keeps its designed map and there is no past.
@@ -246,7 +249,8 @@ async function boot() {
     },
   });
   ctx.router = router;
-  if (wantWorld) world = await (await import('./world/world.js')).mountWorld({ router, site, private: atelierOn });
+  if (wantBoat) world = (await import('./boat/boat.js')).mountBoat({ router, player });
+  else if (wantWorld) world = await (await import('./world/world.js')).mountWorld({ router, site, private: atelierOn });
   // The map's editor, only for a tab that asked (?atelier=1); it never loads for anyone else.
   const atelier = world && atelierOn ? await (await import('./world/atelier.js')).mountAtelier({ world, published, draft, toast }) : null;
   await router.start();
