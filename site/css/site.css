@@ -1126,3 +1126,37 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .echo-filter .chip[aria-pressed="true"]{background:var(--w-red,#a3161f);color:var(--w-paper,#f2f0eb);border-color:transparent}
 @keyframes shard-pop{from{transform:scale(.82)}}
 @media (prefers-reduced-motion:reduce){.seg button[aria-pressed="true"],.echo-filter .chip[aria-pressed="true"]{animation:none}}
+
+/* The track-change caption (MB-03): the artist on a skewed paper tag, the title in a tilted black shard with a hard
+   teal offset, the cover bleeding in at an angle. From the right on a laptop, from below on a phone; it leaves faster
+   than it came, and takes no clicks. */
+.cap{position:fixed;z-index:60;right:max(18px,env(safe-area-inset-right,0px));bottom:calc(var(--cap-bottom,86px) + env(safe-area-inset-bottom,0px));
+  display:flex;align-items:flex-end;max-width:min(560px,calc(100vw - 36px));pointer-events:none;opacity:0;visibility:hidden}
+.cap.in{visibility:visible;animation:cap-in .3s cubic-bezier(.2,1.25,.4,1) forwards}
+.cap.out{visibility:visible;animation:cap-out .18s ease-in forwards}
+@keyframes cap-in{from{opacity:0;transform:translateX(70px) rotate(-2deg)}to{opacity:1;transform:rotate(-2deg)}}
+@keyframes cap-out{from{opacity:1;transform:rotate(-2deg)}to{opacity:0;transform:translateX(50px) rotate(-2deg);visibility:hidden}}
+.cap-art{flex:none;width:92px;height:92px;margin-right:-14px;margin-bottom:-6px;z-index:1;transform:rotate(-7deg);clip-path:polygon(7% 0,100% 5%,95% 100%,0 93%);background:#1b2030}
+.cap-art img,.cap-art svg{display:block;width:100%;height:100%;object-fit:cover}
+.cap-txt{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0}
+.cap-who{margin-left:22px;max-width:calc(100% - 22px);padding:6px 13px 5px;background:#f2f0eb;color:#0c0e18;font:700 12.5px/1 var(--w-ui,"Chakra Petch",system-ui,sans-serif);
+  letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:skewX(-12deg) rotate(-1.5deg)}
+.cap-what{display:block;max-width:100%;filter:drop-shadow(5px 5px 0 var(--w-neon-a,#5aaebf))}
+.cap-what b{display:block;padding:14px 28px 16px 30px;background:#0c0e18;color:#f2f0eb;font:800 clamp(16px,1.7vw,22px)/1.18 var(--w-ui,"Chakra Petch",system-ui,sans-serif);
+  letter-spacing:.02em;clip-path:polygon(0 10%,7% 0,100% 5%,97% 52%,100% 95%,5% 100%,2% 58%);overflow-wrap:anywhere}
+.cap-live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:640px){
+  .cap{left:12px;right:12px;max-width:none;bottom:calc(var(--cap-bottom,80px) + env(safe-area-inset-bottom,0px))}
+  .cap-art{width:58px;height:58px;margin-right:-10px}
+  .cap-who{font-size:11px;padding:5px 10px 4px;margin-left:16px}
+  .cap-what b{font-size:15px;padding:10px 20px 11px 22px}
+  @keyframes cap-in{from{opacity:0;transform:translateY(40px) rotate(-1.5deg)}to{opacity:1;transform:rotate(-1.5deg)}}
+  @keyframes cap-out{from{opacity:1;transform:rotate(-1.5deg)}to{opacity:0;transform:translateY(30px) rotate(-1.5deg);visibility:hidden}}
+}
+@media (prefers-reduced-motion:reduce){
+  .cap.in{animation:cap-fade .2s linear forwards}
+  .cap.out{animation:cap-fade .12s linear reverse forwards}
+  @keyframes cap-fade{from{opacity:0}to{opacity:1}}
+}
+/* MB-10: a cover drawn for a track that came without one. */
+.cover svg.blank{width:100%;height:100%;display:block}

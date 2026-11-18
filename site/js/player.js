@@ -37,6 +37,8 @@ export function webAudioIsSafe(nav = globalThis.navigator) {
   return !ios || Boolean(nav.audioSession);
 }
 
+import { artistOf } from './ui/util.js';
+
 export class Player extends EventTarget {
   /**
    * @param {object} client  from engine/transport.js connect()
@@ -333,7 +335,7 @@ export class Player extends EventTarget {
     try {
       ms.metadata = new MediaMetadata({
         title: t.title,
-        artist: t.artist,
+        artist: artistOf(t),
         album: `${this.station?.name || 'Radio Tower'} — live`,
         artwork: t.artUrl ? [{ src: t.artUrl, sizes: '512x512' }] : [],
       });

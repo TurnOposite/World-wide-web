@@ -5,7 +5,7 @@
  * already typeset); this page only lays them out: an index of cards with a
  * tag filter, and a reading page.
  */
-import { esc } from '../ui/util.js';
+import { esc, artistOf } from '../ui/util.js';
 import { frame, ash, inWorld } from '../ui/echo-front.js';
 
 export const title = 'Echo';
@@ -112,7 +112,7 @@ export async function mount(root, ctx) {
         const on = ctx.player.onAir;
         const ch = ctx.player.station?.channelLabel;
         t.textContent = on ? on.title : 'Silence';
-        by.textContent = on ? `— ${on.artist}${ch ? ` · ${ch}` : ''}` : '';
+        by.textContent = on ? `— ${artistOf(on, 'fr')}${ch ? ` · ${ch}` : ''}` : '';
       };
       paint();
       ctx.player.addEventListener('station', paint);

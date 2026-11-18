@@ -11,7 +11,7 @@
  * listener is tuned to. The player is never touched here: the music keeps
  * playing across the navigation because the router only swaps <main>.
  */
-import { esc, fmt, clock } from '../ui/util.js';
+import { esc, fmt, clock, artistOf } from '../ui/util.js';
 import { ONDES_LABEL } from '../labels.js';
 
 export const title = ONDES_LABEL;
@@ -53,7 +53,7 @@ export function mount(root, ctx) {
   $('eTz').textContent = tzName.replace(/_/g, ' ');
 
   const row = (lead, x) =>
-    `<li>${lead}<span class="ta"><span class="t">${esc(x.title)}</span><span class="a">${esc(x.artist)}</span></span><span class="d">${fmt(x.duration)}</span></li>`;
+    `<li>${lead}<span class="ta"><span class="t">${esc(x.title)}</span><span class="a">${esc(artistOf(x))}</span></span><span class="d">${fmt(x.duration)}</span></li>`;
   const list = (node, items, lead) => {
     node.innerHTML = items.length ? items.map((x) => row(lead(x), x)).join('') : '<li class="empty">nothing here yet</li>';
   };
@@ -68,7 +68,7 @@ export function mount(root, ctx) {
     } else {
       $('eTitle').textContent = t.title;
       const ch = d.station?.channelLabel;
-      $('eArtist').textContent = [t.artist, ch && `on ${ch}`].filter(Boolean).join(' · ');
+      $('eArtist').textContent = [artistOf(t), ch && `on ${ch}`].filter(Boolean).join(' · ');
     }
     list($('eNext'), d?.upcoming || [], (x) => `<span class="idx">${clock(x.startsAt)}</span>`);
     list($('eRecent'), (d?.recent || []).slice(0, 4), () => '<span class="idx">·</span>');

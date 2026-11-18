@@ -16,7 +16,7 @@
  * shown, and the cover sits beside the title instead of above it: site.css,
  * `.radio-extra`.
  */
-import { esc, fmt, fmtSpan, coverSvg } from '../ui/util.js';
+import { esc, fmt, fmtSpan, coverSvg, artistOf, blankCover } from '../ui/util.js';
 import { PHONE_MEDIA } from '../world/layout.js';
 
 export const title = 'Radio';
@@ -112,7 +112,7 @@ export function mount(root, ctx) {
       return;
     }
     $('rTitle').textContent = t.title;
-    $('rArtist').textContent = t.artist;
+    $('rArtist').textContent = artistOf(t);
     $('rAlbum').textContent = [t.album, t.genreLabel].filter(Boolean).join(' · ');
     const chLabel = d.station?.channelLabel;
     $('rLoop').title = chLabel ? `Where the ${chLabel} channel is in its loop` : 'Where the station is in its loop';
@@ -124,9 +124,11 @@ export function mount(root, ctx) {
       sc.href = `echo/lectures/${score}`;
       sc.textContent = `♦ the score of « ${ctx.textTitle?.(score) || score} » — read it while it plays`;
     } else sc.hidden = true;
-    if (t.artUrl !== lastArt) {
-      lastArt = t.artUrl;
-      cover.innerHTML = t.artUrl ? `<img src="${esc(t.artUrl)}" alt="">` : coverSvg(72);
+    // A track without a cover gets one drawn (MB-10): keyed by the track too, so two such tracks in a row each get theirs.
+    const artKey = t.artUrl || `blank:${t.id}`;
+    if (artKey !== lastArt) {
+      lastArt = artKey;
+      cover.innerHTML = t.artUrl ? `<img src="${esc(t.artUrl)}" alt="">` : blankCover(t);
     }
     const cyc = d.station?.cycleSeconds;
     if (cyc && client.mode === 'cloud') {

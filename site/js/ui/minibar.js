@@ -2,7 +2,7 @@
  * The mini-player — the radio on every page. It reads the Player, never the
  * station directly, so it is always showing what this listener hears.
  */
-import { fmt } from './util.js';
+import { fmt, artistOf } from './util.js';
 import { identity, initial, loadBank } from './telegraph.js';
 import { castFace, castLabel } from './cast.js';
 
@@ -23,7 +23,7 @@ export function mountMinibar({ player, stage }) {
     const t = player.onAir;
     title.textContent = t ? t.title : 'Dead air';
     const ch = player.data?.station?.channelLabel;
-    artist.textContent = t ? (ch ? `${t.artist} · ${ch}` : t.artist) : 'No tracks yet';
+    artist.textContent = t ? (ch ? `${artistOf(t)} · ${ch}` : artistOf(t)) : 'No tracks yet';
   };
   player.addEventListener('station', paint);
   player.addEventListener('playing', (e) => {

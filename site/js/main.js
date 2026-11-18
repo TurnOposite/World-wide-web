@@ -9,6 +9,7 @@ import { Stage } from './viz/stage.js';
 import { VisualSettings } from './viz/settings.js';
 import { Router } from './router.js';
 import { mountMinibar } from './ui/minibar.js';
+import { mountCaption } from './ui/caption.js';
 import { VisualsPanel } from './ui/visuals.js';
 import { toast, esc } from './ui/util.js';
 import { initBanner, markHalf } from './ui/banner.js';
@@ -109,6 +110,7 @@ async function boot() {
   player.start();
   stage.start();
   mountMinibar({ player, stage });
+  mountCaption(player);
 
   // Zone's visualiser belongs to Zone: on every Echo route it is hidden (CSS, body.on-echo)
   // and paused here, so it costs no CPU behind the paper.

@@ -3,7 +3,7 @@
  * and the atlas side by side, the writing below, the rooms after that. The
  * on-air card here is the same live station as /radio, not a teaser.
  */
-import { esc, fmt, coverSvg } from '../ui/util.js';
+import { esc, fmt, coverSvg, artistOf, blankCover } from '../ui/util.js';
 import { mapSvg, wirePins } from './atlas.js';
 
 export const title = '';
@@ -64,8 +64,9 @@ export async function mount(root, ctx) {
     const t = player.onAir;
     if (!t) return;
     $('hTitle').textContent = t.title;
-    $('hArtist').textContent = t.artist;
-    if (t.artUrl !== lastArt) { lastArt = t.artUrl; cover.innerHTML = t.artUrl ? `<img src="${esc(t.artUrl)}" alt="">` : coverSvg(40); }
+    $('hArtist').textContent = artistOf(t);
+    const artKey = t.artUrl || `blank:${t.id}`;
+    if (artKey !== lastArt) { lastArt = artKey; cover.innerHTML = t.artUrl ? `<img src="${esc(t.artUrl)}" alt="">` : blankCover(t); }
   };
   const onTick = (e) => { $('hBar').style.width = `${e.detail.pct * 100}%`; };
   const onPlaying = (e) => {
