@@ -107,11 +107,13 @@ export function mountBoat({ router, player = null }) {
       tween = { from, to, c, dyaw, bank: Math.max(-6, Math.min(6, dyaw * 0.08)), t0: performance.now(), dur, res };
     });
   }
-  // A device that cannot draw the flight (three frames in a row slower than 150 ms) gets a cut instead of a stutter.
+  // A device that cannot draw the flight gets a cut instead of a stutter: three frames in a row slower than 150 ms, or
+  // one gap of a quarter of a second, and the camera is where it was going. (Software rendering showed frames seconds
+  // apart: three of them took twenty seconds, 2026-11-18.)
   let slow = 0, lastStep = 0;
   function stepTween(now) {
     if (!tween) return;
-    slow = lastStep && now - lastStep > 150 ? slow + 1 : 0;
+    slow = lastStep && now - lastStep > 150 ? slow + (now - lastStep > 250 ? 3 : 1) : 0;
     lastStep = now;
     const { from, to, c, dyaw, bank, t0, dur, res } = tween;
     const t = slow >= 3 ? 1 : Math.min(1, (now - t0) / dur), e = ease(t), u = 1 - e;
