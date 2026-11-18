@@ -4037,3 +4037,23 @@ selection back in his channels.json.
    (and still read the old field from an older tower).
 
 **Revisit if** something without the key genuinely needs to know where the music is — it should not.
+
+## 2026-11-19 — The side dials drawn flat; the selection is a shard
+
+**Context.** Ortis, 2026-11-18, on the reel and the globe behind the side menus: « a little soulless and without
+character — having them as realist photo objects in such a graphically pared-back background did not work … keep the
+shapes and spaces … a design with more straightforward and clear-cut shapes … just a shame the menu options within are
+not corresponding to the style ». The same night, the mood board (`docs/design/MOODBOARD-globe-trotter.md`) asked for
+MB-01: a selection shard that snaps from item to item and replaces the amber outline.
+
+**Decision.**
+1. The half discs keep their place and size (`dialFor` unchanged). Inside: flat shapes only. Zone, a tuning scale
+   (night disc, teal rim, ticks, a band); Echo, a paper sunburst (alternating wedges, ink rim, red band). Each has a
+   needle with a hard offset copy that turns, the short way, to the tag pointed at.
+2. One shard per half, moved with `transform` and `clip-path` only (the board's performance rule), ten points every
+   time so one eases into the next.
+3. Echo's tag labels are ransom notes; never body text, and each button carries its plain name for a screen reader.
+4. In the pages (the stream switch, Echo's themes) the pressed choice is cut with `clip-path` on its own background,
+   not drawn by a pseudo-element: contrast checkers read what the eye reads.
+
+**Revisit if** he wants the needles gone (the shard alone may be enough), or the ransom letters calmer.

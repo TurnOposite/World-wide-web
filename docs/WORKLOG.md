@@ -3454,3 +3454,17 @@ before pushing them, but the rest to do push ».
 - **The mood board** from his creative-direction session, copied unchanged to `docs/design/MOODBOARD-globe-trotter.md`.
 - **`BACKLOG.md`**: a new section with both. F1 (the boat) waits on his answers; MB-01 to MB-10 are ready to build in
   the board's order, each on its own branch until he writes « push live ». No code changed, so no self-test this run.
+
+## 2026-11-19 (night) - MB-01: the selection shard; the side dials drawn flat (Claude Code, alone, by his leave)
+
+- **`0d3df8f`, `a460e13`** (the mood board's MB-01, and his verdict on the side dials). The tag pointed at, by the
+  pointer or the keyboard, else the page you are on, wears a jagged shard with a hard offset copy (teal over magenta in
+  Zone, red over ink in Echo); it jumps between tags and takes a new shape at every jump. The amber ring is gone.
+- The half discs stay where they were and lose the reel and the globe: Zone's is a flat tuning scale, Echo's a paper
+  sunburst, each with a needle that snaps to the tag pointed at. Echo's tags are ransom notes (a letter at a time in the
+  faces already on the paper), read by their plain names. The radio's streams and Echo's themes cut their pressed
+  choice as a shard too, keeping their own background under the text.
+- **Tests**: `site-dials.test.js` rewritten for what the dials are now (placement, the needle's aim and short turn,
+  the ticks, the shard, the ransom letters, decoration only); the smoke reads the new rims and needles and checks that
+  the current tag wears its shard. The first run was red at stage 1: a shell heredoc had eaten two backslashes in the
+  smoke test's new check names. Fixed, then 509/509 unit, 43/43 browser, 186/186 site, 26/26 Atelier.
