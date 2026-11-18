@@ -37,6 +37,8 @@ export function mountCaption(player, { reduced = matchMedia('(prefers-reduced-mo
   root.append(el, live);
   const art = el.querySelector('.cap-art'), who = el.querySelector('.cap-who'), what = el.querySelector('.cap-what b');
   let lastId = null, timer = 0, frame = 0;
+  // The scramble keeps a clock of its own (32 ms a step, under half a second), not the screen's frames: on a busy
+  // page the frames come late, and a title still half noise was what a reader saw (2026-11-18, a red smoke run).
 
   function hide() {
     clearTimeout(timer);
@@ -47,7 +49,7 @@ export function mountCaption(player, { reduced = matchMedia('(prefers-reduced-mo
 
   function show(t) {
     clearTimeout(timer);
-    cancelAnimationFrame(frame);
+    clearTimeout(frame);
     art.innerHTML = t.artUrl && t.hasArt !== false ? `<img src="${esc(t.artUrl)}" alt="">` : blankCover(t);
     who.textContent = artistOf(t);
     el.classList.remove('out', 'in');
@@ -60,7 +62,7 @@ export function mountCaption(player, { reduced = matchMedia('(prefers-reduced-mo
       const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
       const frames = scrambleFrames(t.title, 14, rnd);
       let i = 0;
-      const step = () => { what.textContent = frames[i]; if (++i < frames.length) frame = requestAnimationFrame(() => setTimeout(step, 30)); };
+      const step = () => { what.textContent = frames[i]; if (++i < frames.length) frame = setTimeout(step, 32); };
       step();
     }
     timer = setTimeout(hide, hold);

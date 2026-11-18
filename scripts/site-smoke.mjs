@@ -1244,7 +1244,8 @@ try {
     const p = window.radioTower.player;
     const before = Boolean(document.querySelector('.cap')?.classList.contains('in'));
     p.dispatchEvent(new CustomEvent('track', { detail: { ...p.onAir, id: 'smoke-caption', title: 'Caption check', artist: 'Unknown artist', artUrl: null, hasArt: false, startsAt: Date.now() } }));
-    await new Promise((r) => setTimeout(r, 1500));
+    // Waited on its condition, not a clock: settled, or five seconds gone.
+    for (let t = 0; t < 50 && document.querySelector('.cap .cap-what b')?.textContent !== 'Caption check'; t++) await new Promise((r) => setTimeout(r, 100));
     const el = document.querySelector('.cap');
     return { before, shown: el.classList.contains('in'), what: el.querySelector('.cap-what b').textContent, who: el.querySelector('.cap-who').textContent,
       live: document.querySelector('.cap-live').textContent, blank: Boolean(el.querySelector('.cap-art svg.blank')), clicks: getComputedStyle(el).pointerEvents, hidden: el.getAttribute('aria-hidden') };
