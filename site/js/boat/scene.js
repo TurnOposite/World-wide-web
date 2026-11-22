@@ -168,7 +168,7 @@ function parts() {
     html: '<svg viewBox="0 0 150 110" width="150" height="110" preserveAspectRatio="none"><g fill="none" stroke="#141414" stroke-width="2.2" stroke-linecap="round"><path d="M44 84 C 40 60, 18 46, 14 0"/><path d="M50 86 C 52 58, 34 34, 36 0"/><path d="M56 86 C 64 60, 66 30, 60 0"/></g><g class="cab" fill="none" stroke="#3fd3c6" stroke-width=".8" opacity=".55"><path d="M44 84 C 40 60, 18 46, 14 0"/><path d="M56 86 C 64 60, 66 30, 60 0"/></g></svg>' });
   add({ go: 'antenna', cls: 'rack', w: 70, h: 120, x: 191.9, y: -62, z: 54.1, t: `rotateY(${R}deg)`,
     html: `<div class="rk-scr"><b>TX</b><span>天線</span><i class="anim"></i></div>
-    <button class="rk-pull" type="button" aria-label="Streams lever"><svg class="rk-sel" viewBox="0 0 70 52" width="70" height="52" aria-hidden="true"><path d="M14 44 A 26 26 0 0 1 40 18" fill="none" stroke="#e9e3d2" stroke-width="1.2" opacity=".6"/>
+    <button class="rk-pull" type="button" aria-label="Streams lever"><svg class="rk-sel" viewBox="0 0 70 52" width="70" height="52" aria-hidden="true">
     <g stroke="#e9e3d2" stroke-width="1.4"><line x1="14" y1="16" x2="14" y2="10"/><line x1="32.4" y1="25.6" x2="36.6" y2="21.4"/><line x1="40" y1="44" x2="46" y2="44"/></g>
     <g fill="#e9e3d2" font-size="4.6" font-family="sans-serif" font-weight="700" letter-spacing=".3"><text x="18" y="9">ALL</text><text x="38" y="19">CHILL</text><text x="48" y="40">ENERGY</text></g>
     <g class="rk-lever"><line x1="14" y1="44" x2="14" y2="19" stroke="#c2432d" stroke-width="3" stroke-linecap="round"/><circle cx="14" cy="19" r="3.4" fill="#c2432d"/></g><circle cx="14" cy="44" r="5" fill="#2b2b2b" stroke="#777" stroke-width="1"/></svg></button>
