@@ -1298,6 +1298,13 @@ try {
   await bp.evaluate(() => window.radioTower.router.go('/antenna'));
   await bp.waitForFunction(() => window.radioTower.world.current === 'antenna' && !document.querySelector('.b-panel').hidden, null, { timeout: 30000 }).catch(() => {});
   await bp.waitForTimeout(600);
+  // The camera may still be settling on a slow runner (red once on GitHub, 3711442, with the same boat green on 25cf7ce):
+  // wait, up to 10 s, until the lever is the thing under its own handle, then read it. A lever that never comes into reach still fails.
+  await bp.waitForFunction(() => {
+    const p = document.querySelector('.rk-pull'); if (!p || p.hidden) return true;
+    const r = p.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width * 0.2, r.y + r.height * 0.75);
+    return Boolean(hit && p.contains(hit));
+  }, null, { timeout: 10000 }).catch(() => {});
   const lever0 = await bp.evaluate(() => {
     const p = document.querySelector('.rk-pull'); if (!p) return null;
     const r = p.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width * 0.2, r.y + r.height * 0.75);
