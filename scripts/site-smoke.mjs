@@ -334,14 +334,19 @@ try {
   const firstId = onAir[0]?.id;
   check('Playlists: one Spotify player, loaded (not lazy), with every playlist as a card', pl.picks.length >= 50 && pl.iframes.length === 1 && onAir.length === 1 && pl.iframes[0].startsWith(SPOTIFY + firstId) && pl.lazy !== 'lazy' && asked(firstId) && pl.now === onAir[0].title,
     `${pl.picks.length} cards, ${pl.iframes.join()}, asked ${spotifyAsked.length}`);
-  // His Bandcamp under the deck (2026-11-22): links out to bandcamp.com, in a new tab, after the cards.
+  // His Bandcamp at the end of the window (2026-11-22, « much simpler »): the logo, a link to his profile in a new tab,
+  // and his sentence; the logo loads.
+  await a.waitForFunction(() => document.querySelector('#view .bc-logo')?.complete, null, { timeout: 8000 }).catch(() => {});
   const bcl = await a.evaluate(() => {
     const s = document.querySelector('#view .bc-links');
     const deck = document.querySelector('#view .sp-deck');
-    return s && { links: [...s.querySelectorAll('a')].map((x) => ({ href: x.href, blank: x.target === '_blank', safe: /noopener/.test(x.rel) })), after: Boolean(deck && (deck.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING)), head: s.querySelector('h2')?.textContent };
+    const img = s?.querySelector('img.bc-logo');
+    return s && { links: [...s.querySelectorAll('a')].map((x) => ({ href: x.href, blank: x.target === '_blank', safe: /noopener/.test(x.rel) })), after: Boolean(deck && (deck.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      logo: img ? { alt: img.alt, w: img.naturalWidth } : null, text: s.querySelector('.bc-text')?.textContent };
   });
-  check('Playlists: under the deck, a Bandcamp section links out to his profile and its pages', Boolean(bcl) && bcl.after && bcl.links.length >= 5
-    && bcl.links.every((l) => l.href.startsWith('https://bandcamp.com/turnoposite') && l.blank && l.safe) && /Bandcamp/.test(bcl.head || ''), JSON.stringify(bcl));
+  check('Playlists: at the end, the Bandcamp logo links to his profile, with his sentence', Boolean(bcl) && bcl.after && bcl.links.length === 1
+    && bcl.links[0].href === 'https://bandcamp.com/turnoposite' && bcl.links[0].blank && bcl.links[0].safe && bcl.logo?.alt === 'Bandcamp' && bcl.logo.w > 0
+    && bcl.text === 'Check out more playlists and albums on my Bandcamp page!', JSON.stringify(bcl));
   const picked = pl.picks.find((p, i) => i >= 2 && !p.on);
   await a.click(`#view .sp-pick[data-id="${picked.id}"]`);
   // 2026-11-11: this check failed 1 run in 3 on untouched code. It read the page a fixed 800 ms after the click,
@@ -1250,10 +1255,13 @@ try {
   watch(bp, 'the boat');
   // In front, or headless Chrome draws its frames seconds apart, as for any page behind another (2026-11-18).
   await bp.bringToFront();
-  await bp.goto(dev + 'radio?boat=1', { waitUntil: 'domcontentloaded' });
+  // Aboard by the map's own button, clicked (2026-11-22: the router caught that click and the boat never came; this
+  // check used to open ?boat=1 directly and could not see it).
+  await bp.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await bp.evaluate(() => { try { sessionStorage.setItem('gt.boat.seen', '1'); } catch { /* the arrival then plays: slower, still checked */ } });
-  await bp.reload({ waitUntil: 'domcontentloaded' });
-  await bp.waitForFunction(() => window.radioTower?.world?.current === 'radio' && !document.querySelector('.b-panel').hidden, null, { timeout: 45000 }).catch(() => {});
+  await bp.waitForSelector('.w-aboard', { timeout: 15000 }).catch(() => {});
+  await bp.click('.w-aboard', { timeout: 15000 }).catch(() => {});
+  await bp.waitForFunction(() => window.radioTower?.world?.current === 'radio' && document.querySelector('.b-panel') && !document.querySelector('.b-panel').hidden, null, { timeout: 45000 }).catch(() => {});
   const boat1 = await bp.evaluate(() => ({ root: Boolean(document.querySelector('.b-root')), map: Boolean(document.querySelector('.w-root')), page: Boolean(document.querySelector('.b-box .page')), place: window.radioTower.world.current }));
   await bp.keyboard.press('Escape');
   await bp.waitForFunction(() => document.querySelectorAll('.b-lb').length >= 7, null, { timeout: 45000 }).catch(() => {});
@@ -1261,10 +1269,57 @@ try {
   await bp.click('.b-lb[data-go="playlists"]', { timeout: 45000 }).catch(() => {});
   await bp.waitForFunction(() => location.pathname === '/playlists' && window.radioTower.world.current === 'playlists', null, { timeout: 45000 }).catch(() => {});
   const boat3 = await bp.evaluate(() => ({ path: location.pathname, place: window.radioTower.world.current, page: Boolean(document.querySelector('.b-box .page')) }));
-  await boatCtx.close();
-  check('the boat, behind ?boat=1 (F1): the map links aboard; aboard, Radio opens on the laptop, Stop time freezes the scene and offers every place, Playlists opens on the phone at its address',
+  check('the boat, behind ?boat=1 (F1): the map\'s button takes you aboard; Radio opens on the laptop, Stop time freezes the scene and offers every place, Playlists opens on the phone at its address',
     aboard === '?boat=1' && boat1.root && !boat1.map && boat1.page && boat1.place === 'radio' && boat2.frozen && boat2.labels >= 7
     && boat3.path === '/playlists' && boat3.place === 'playlists' && boat3.page, JSON.stringify({ aboard, boat1, boat2, boat3 }));
+  // No plane drawn across the eye, at any place (2026-11-22: near the little phone, planes straddling the camera were
+  // drawn 380,000 px wide and an ordinary laptop drew one frame a second; CSS 3D has no near clipping of its own).
+  await bp.evaluate(() => { const b = [...document.querySelectorAll('.b-dock button')].find((x) => /Resume/.test(x.textContent)); b?.click(); });
+  const sizes = {};
+  for (const r of ['radio', 'playlists', 'antenna', 'ondes', 'booth', 'echo']) {
+    await bp.evaluate((p) => window.radioTower.router.go('/' + p), r);
+    await bp.waitForFunction((p) => window.radioTower.world.current === p && !document.querySelector('.b-panel').hidden, r, { timeout: 30000 }).catch(() => {});
+    await bp.waitForTimeout(400);
+    sizes[r] = await bp.evaluate(() => +[...document.querySelectorAll('.b-cam > *')].filter((e) => e.style.visibility !== 'hidden')
+      .map((e) => e.getBoundingClientRect()).reduce((m, b) => Math.max(m, b.width / innerWidth, b.height / innerHeight), 0).toFixed(1));
+  }
+  check('…and at every place no plane of the boat is drawn wider or taller than eight screens (the near clipping)',
+    Object.keys(sizes).length === 6 && Object.values(sizes).every((v) => v > 0 && v <= 8), JSON.stringify(sizes));
+  // The Antenna's lever (2026-11-22): beside the page, in reach; pulled, the next stream, the lever at its angle.
+  await bp.evaluate(() => window.radioTower.router.go('/antenna'));
+  await bp.waitForFunction(() => window.radioTower.world.current === 'antenna' && !document.querySelector('.b-panel').hidden, null, { timeout: 30000 }).catch(() => {});
+  await bp.waitForTimeout(600);
+  const lever0 = await bp.evaluate(() => {
+    const p = document.querySelector('.rk-pull'); if (!p) return null;
+    const r = p.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width * 0.2, r.y + r.height * 0.75);
+    return { hidden: p.hidden, reach: Boolean(hit && p.contains(hit)), arm: document.querySelector('.rk-lever').style.transform, label: p.getAttribute('aria-label'), ch: window.radioTower.client?.channel ?? null };
+  });
+  let lever1 = null;
+  if (lever0 && !lever0.hidden) {
+    await bp.evaluate(() => document.querySelector('.rk-pull').click());
+    await bp.waitForFunction((was) => (window.radioTower.client?.channel ?? null) !== was, lever0.ch, { timeout: 10000 }).catch(() => {});
+    await bp.waitForTimeout(300);
+    lever1 = await bp.evaluate(() => ({ arm: document.querySelector('.rk-lever').style.transform, ch: window.radioTower.client?.channel ?? null, live: document.querySelector('.b-root').classList.contains('live'), say: document.querySelector('.b-say').textContent }));
+  }
+  check('…the Antenna\'s lever stands beside its page, in reach, and pulled it tunes the next stream and turns to it, the cables lit',
+    Boolean(lever0) && (lever0.hidden ? /Streams lever/.test(lever0.label) : lever0.reach && lever1 && lever1.ch !== lever0.ch && lever1.arm !== lever0.arm && lever1.live && /^Now on /.test(lever1.say)),
+    JSON.stringify({ lever0, lever1 }));
+  await boatCtx.close();
+  // The sky on the station's clock (2026-11-22), at a night given by the address: the stars out, the boat in the dark,
+  // the lake listening to the visualiser (which rests behind it).
+  const nightCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const np2 = await nightCtx.newPage();
+  watch(np2, 'the boat at night');
+  await np2.bringToFront();
+  await np2.goto(dev + 'radio?boat=1&sky=23:30', { waitUntil: 'domcontentloaded' });
+  await np2.waitForFunction(() => window.radioTower?.world?.sky && window.radioTower.world.frames > 10, null, { timeout: 45000 }).catch(() => {});
+  const night = await np2.evaluate(() => {
+    const w = window.radioTower.world, heard = window.radioTower.stage?.listen?.(performance.now());
+    return { star: w.sky?.star, cls: document.querySelector('.b-root').classList.contains('night'), filter: document.querySelector('.b-view').style.filter, err: w.lastError, heard: heard && typeof heard.low === 'number' && typeof heard.hit === 'number' };
+  });
+  await nightCtx.close();
+  check('…and at 23:30 by the station\'s clock the night is out: the stars, the boat in the dark, the lake listening to the music, no error',
+    night.star > 0.9 && night.cls && /brightness/.test(night.filter) && !night.err && night.heard, JSON.stringify(night));
   // The track-change caption (MB-03) and the drawn cover (MB-10), on a page of their own, so the made-up track
   // touches nothing else the smoke goes on to check.
   const capCtx = await browser.newContext({ viewport: { width: 1280, height: 800 } });

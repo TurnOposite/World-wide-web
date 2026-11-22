@@ -258,6 +258,9 @@ export async function mountWorld({ router, site = {}, private: priv = false }) {
   // The way aboard (the boat, docs/BACKLOG.md F1): a parallel front, never the default.
   const aboard = el('a', 'w-aboard');
   aboard.href = '?boat=1';
+  // A new load, not the router's: the front is chosen when the page loads (main.js). Caught by the router, the click
+  // only changed the address and the boat never came (Ortis's laptop, 2026-11-22).
+  aboard.dataset.external = '';
   aboard.innerHTML = '<span aria-hidden="true">船</span><b>Board the boat</b>';
   aboard.title = 'Open the site as a boat on a lake: a parallel front, in first person';
   hud.append(title, brand, sw, badge.el, aboard, screen.button, minimap.svg);

@@ -307,7 +307,7 @@ test('Playlists (Zone): playlists.json is well formed, and every playlist plays 
   assert.equal(data.intro, 'No internet? No problem! Download one of my Spotify playlists and listen on the go!');
   const { playlistId, embedUrl, deckList } = await import('../site/js/ui/spotify-deck.js');
   assert.equal(playlistId('https://open.spotify.com/playlist/0XeQKa4xS4I74EsGKl8GpI'), '0XeQKa4xS4I74EsGKl8GpI');
-  assert.equal(playlistId(data.featured.embed), '0XeQKa4xS4I74EsGKl8GpI');
+  assert.equal(playlistId(data.featured.embed), playlistId(data.featured.url), 'the featured playlist\'s player and address agree');
   for (const bad of ['https://evil.example/playlist/0XeQKa4xS4I74EsGKl8GpI', 'javascript:alert(1)', 'https://open.spotify.com/playlist/x"onload="1', '', null]) {
     assert.equal(playlistId(bad), null, String(bad));
   }
@@ -323,20 +323,20 @@ test('Playlists (Zone): playlists.json is well formed, and every playlist plays 
   assert.equal(new Set(list.map((p) => p.id)).size, list.length, 'each playlist once');
   assert.ok(list.length >= data.playlists.length);
   assert.ok(list.every((p) => p.url === `https://open.spotify.com/playlist/${p.id}`));
-  // His Bandcamp under the deck (2026-11-22): only bandcamp.com links get through, and no block means no section.
+  // His Bandcamp at the end (2026-11-22, « much simpler »): the logo linking to his profile, and his sentence.
+  assert.equal(data.featured.title, 'On deck', 'the player opens on On deck (Ortis, 2026-11-22)');
   const { bandcampLinks } = await import('../site/js/ui/spotify-deck.js');
-  const bc = bandcampLinks(data);
-  assert.equal(bc.profile, 'https://bandcamp.com/turnoposite');
-  assert.ok(bc.links.length >= 4 && bc.links.every((l) => l.url.startsWith('https://bandcamp.com/turnoposite')), JSON.stringify(bc.links));
+  assert.deepEqual(bandcampLinks(data), { profile: 'https://bandcamp.com/turnoposite', text: 'Check out more playlists and albums on my Bandcamp page!' });
   assert.equal(bandcampLinks({}), null);
-  assert.equal(bandcampLinks({ bandcamp: { profile: 'javascript:alert(1)', links: [{ url: 'https://evil.example/bandcamp.com' }] } }), null);
-  assert.deepEqual(bandcampLinks({ bandcamp: { links: [{ title: 'x', url: 'https://bandcamp.com.evil.example/' }, { title: 'Label', url: 'https://some-label.bandcamp.com/album/a-b' }] } }).links.map((l) => l.url),
-    ['https://some-label.bandcamp.com/album/a-b']);
+  assert.equal(bandcampLinks({ bandcamp: { profile: 'javascript:alert(1)' } }), null);
+  assert.equal(bandcampLinks({ bandcamp: { profile: 'https://bandcamp.com.evil.example/' } }), null);
+  assert.equal(bandcampLinks({ bandcamp: { profile: 'https://some-label.bandcamp.com/' } }).profile, 'https://some-label.bandcamp.com/');
   const { bandcampSection } = await import('../site/js/pages/playlists.js');
-  const html = bandcampSection({ bandcamp: { profile: 'https://bandcamp.com/x', name: '<b>', links: [{ title: '<img onerror=1>', url: 'https://bandcamp.com/x' }] } });
-  assert.doesNotMatch(html, /<img/, 'his words go on the page as text');
+  const html = bandcampSection({ bandcamp: { profile: 'https://bandcamp.com/x', text: '<img onerror=1>' } });
+  assert.equal((html.match(/<img/g) || []).length, 1, 'one image, the logo; his words go on the page as text');
   assert.match(html, /&lt;img onerror=1&gt;/);
-  assert.match(html, /profil &lt;b&gt; sur Bandcamp/);
+  assert.match(html, /src="assets\/bandcamp-logo\.png" alt="Bandcamp"/);
+  assert.ok(fs.existsSync(path.join(ROOT, 'site/assets/bandcamp-logo.png')), 'the logo is in the site');
   assert.equal(bandcampSection({}), '');
   const { ONDES_LABEL } = await import('../site/js/labels.js');
   assert.equal(ONDES_LABEL, 'Ondes');

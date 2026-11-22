@@ -822,18 +822,12 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .door-echo{border-color:#6b1d1d}.door-echo:hover{border-color:#c0392b}
 @media (max-width:640px){.doors{grid-template-columns:1fr}}
 .pl-profile{margin:22px 0 0}.pl-profile a{color:var(--signal)}
-/* His Bandcamp under the deck (pages/playlists.js, 2026-11-22): links out, in the deck's own cards. */
-.bc-links{margin:34px 0 0;padding-top:20px;border-top:1px solid var(--line)}
-.bc-links h2{display:flex;align-items:center;gap:10px;margin:0;font-size:20px}
-/* Bandcamp's teal, darkened until white on it reads at AA (#1da0c3 gives 3:1; this gives 5.4:1). */
-.bc-mark{display:grid;place-items:center;width:26px;height:26px;border-radius:4px;background:#0e7490;color:#fff;font:700 12px/1 var(--mono);letter-spacing:0}
-.bc-intro{margin:8px 0 0;color:var(--text-dim);font-size:14px;max-width:62ch}
-.bc-list{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
-.bc-link{display:flex;flex-direction:column;gap:3px;height:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg-glass);color:var(--text);text-decoration:none}
-.bc-link:hover,.bc-link:focus-visible{border-color:#1da0c3}
-.bc-link b{font-size:14.5px;font-weight:600}
-.bc-link span{color:var(--text-dim);font-size:12.5px;line-height:1.25}
-.bc-profile{margin-top:12px}
+/* His Bandcamp at the end of the window (pages/playlists.js, 2026-11-22): the logo on its own white, a link, one line. */
+.bc-links{margin:30px 0 0;padding-top:20px;border-top:1px solid var(--line)}
+.bc-link{display:inline-flex;flex-wrap:wrap;align-items:center;gap:12px 18px;color:var(--text);text-decoration:none;font-size:15px}
+.bc-logo{display:block;width:230px;height:auto;max-width:100%;padding:10px 14px;background:#fff;border-radius:var(--radius-sm)}
+.bc-link:hover .bc-text,.bc-link:focus-visible .bc-text{text-decoration:underline}
+.bc-link:focus-visible{outline:2px solid var(--signal);outline-offset:4px}
 
 /* A version of the past in its window (pages/version.js, docs/ATELIER.md): the old site, framed and silent. */
 .v-wrap{display:flex;flex-direction:column;gap:10px;min-height:72vh}

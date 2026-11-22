@@ -54,7 +54,7 @@ export function mount(root, ctx) {
           <button class="btn radio-extra" id="rResync" type="button" title="Jump back to the live position">Resync</button>
           <button class="btn" id="rVisuals" type="button" aria-expanded="false">Visuals</button>
         </div>
-        <p class="status-line" id="rStatus">Playback starts where the tower is — you can't rewind a radio.</p>
+        <p class="status-line" id="rStatus"></p>
       </div>
     </section>`;
 

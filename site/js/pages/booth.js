@@ -47,8 +47,7 @@ export async function mount(root, ctx) {
   }[client.planeKind] || '');
 
   root.innerHTML = `
-    <div class="page-head booth-head"><h1>Booth</h1>
-      <p>The lights are yours — every effect in one place, kept in this browser. The music booth is under them.</p></div>
+    <div class="page-head booth-head"><h1>Booth</h1></div>
     <section class="panel booth-lights" aria-labelledby="bLightsH" data-fit-end>
       <div class="panel-head"><h2 id="bLightsH">Lights</h2><span class="hint booth-keys"><span class="kbd">V</span> the same lights from any page</span>
         <button class="btn small primary" type="button" id="bBig">Visuals on the big screen</button>

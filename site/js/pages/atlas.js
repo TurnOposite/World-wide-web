@@ -195,8 +195,7 @@ export function wirePins(svgRoot, places, on) {
 }
 
 export async function mount(root) {
-  root.innerHTML = `<div class="page-head"><h1>Atlas</h1>
-      <p>Where it happened: the cities I have lived in, and what was made there — the studies, the work, the press.</p></div>
+  root.innerHTML = `<div class="page-head"><h1>Atlas</h1></div>
     <div class="atlas">
       <div class="mapbox" id="aMap"><p class="empty">…</p>
         <article class="postcard" id="aDossier" aria-live="polite" hidden></article></div>
@@ -208,8 +207,9 @@ export async function mount(root) {
   const index = root.querySelector('#aIndex');
 
   box.querySelector('.empty').remove();
-  box.insertAdjacentHTML('afterbegin', mapSvg(world, places, null) +
-    `<div class="map-legend"><span><i class="sw"></i> a place: hover it for its postcard</span><span>Europe enlarged ×${INSET.s} · Natural Earth 1:110m</span></div>`);
+  // The legend (« a place: hover it for its postcard », « Europe enlarged ×2 · Natural Earth 1:110m ») went at
+  // Ortis's word, 2026-11-22, with the page's lead line. The land is Natural Earth, public domain: no credit owed.
+  box.insertAdjacentHTML('afterbegin', mapSvg(world, places, null));
   const svg = box.querySelector('svg');
 
   index.innerHTML = places.map((p, i) => `<button type="button" class="ai-chip k-${esc(p.kind || 'lived')}" data-i="${i}"><b>${esc(p.city)}</b>${p.years ? `<span>${esc(p.years)}</span>` : ''}</button>`).join('');

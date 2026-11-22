@@ -64,20 +64,14 @@ export function deckList(data) {
 const BANDCAMP = /^https:\/\/(?:[a-z0-9-]+\.)?bandcamp\.com(?:\/[A-Za-z0-9_\-/]*)?$/;
 
 /**
- * The Bandcamp links on /playlists (Ortis, 2026-11-22: « make a link section in the Spotify playlist page to my
- * Bandcamp »), from the `bandcamp` block of playlists.json: { title, intro, profile, links: [{ title, url, note }] }.
- * A link that is not on bandcamp.com is dropped; with no profile and no link left, there is no section (null).
+ * His Bandcamp at the end of /playlists (Ortis, 2026-11-22): the logo as a link to his profile and one sentence,
+ * from the `bandcamp` block of playlists.json: { profile, text }. Not on bandcamp.com: no link (null).
  */
 export function bandcampLinks(data) {
   const b = data?.bandcamp;
-  if (!b || typeof b !== 'object') return null;
-  const text = (v) => (typeof v === 'string' ? v.trim() : '');
-  const links = (Array.isArray(b.links) ? b.links : [])
-    .filter((l) => BANDCAMP.test(String(l?.url || '')))
-    .map((l) => ({ title: text(l.title) || 'Bandcamp', url: l.url, note: text(l.note) }));
-  const profile = BANDCAMP.test(String(b.profile || '')) ? b.profile : '';
-  if (!profile && !links.length) return null;
-  return { title: text(b.title) || 'Sur Bandcamp', intro: text(b.intro), profile, name: text(b.name), links };
+  if (!b || typeof b !== 'object' || !BANDCAMP.test(String(b.profile || ''))) return null;
+  const text = typeof b.text === 'string' && b.text.trim() ? b.text.trim() : 'Check out more playlists and albums on my Bandcamp page!';
+  return { profile: b.profile, text };
 }
 
 let DATA = null;

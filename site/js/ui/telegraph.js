@@ -130,7 +130,7 @@ export class TelegraphLine {
 
     root.classList.add('tg');
     root.innerHTML = `
-      <div class="tg-head"><h2 id="tgH">Telegraph line</h2><span class="hint tg-sub">One room for everyone tuned in, whatever the stream. It empties every morning at 5.</span></div>
+      <div class="tg-head"><h2 id="tgH">Telegraph line</h2></div>
       <ol class="tg-log" id="tgLog" aria-labelledby="tgH" aria-live="polite" tabindex="0"></ol>
       <div class="tg-foot" id="tgFoot"></div>`;
     this.log = root.querySelector('#tgLog');
@@ -296,7 +296,7 @@ export class TelegraphLine {
       const b = h('button', 'btn primary tg-join', 'Join the telegraph line');
       b.type = 'button';
       b.addEventListener('click', () => { this.joining = true; this.paintFoot(); this.foot.querySelector('#tgName')?.focus(); });
-      foot.append(b, h('span', 'hint tg-joinhint', 'A name and a character, nothing else. No account.'));
+      foot.append(b);
       return;
     }
     if (!me || this.joining) { this._joinForm(me); return; }

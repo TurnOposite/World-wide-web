@@ -196,6 +196,18 @@ export class Stage {
     return { w, h, dpr };
   }
 
+  /**
+   * The music's shape without drawing anything: for the boat's lake (2026-11-22, « carry over the system that's the
+   * background in the other ones »), which rests this stage but wants its bass and its beats. When the stage runs, it
+   * has read them already this frame; when it rests, they are read here, by the same code.
+   */
+  listen(nowMs) {
+    const dt = this._listenAt ? Math.min(0.05, Math.max(0.001, (nowMs - this._listenAt) / 1000)) : 0.016;
+    this._listenAt = nowMs;
+    if (!this.running) this._readAudio(dt, nowMs, this.getSettings?.()?.sensitivity ?? 1);
+    return { low: this.energy.low, overall: this.energy.overall, hit: this.hit };
+  }
+
   /** Real energies when music plays; a slow carrier otherwise, so the room is never dead. */
   _readAudio(dt, nowMs, sens) {
     let target;

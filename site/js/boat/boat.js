@@ -12,7 +12,11 @@
  *
  * The router does not know: it asks show(match) for a box, as it asks the map (world.js).
  */
-import { PLACES, ORDER, FRONT, placeOf, routeOf, project, poseFor, buildBoat, Lake, cross, norm, D2R } from './scene.js';
+import { PLACES, ORDER, FRONT, placeOf, routeOf, project, poseFor, buildBoat, depthOf, Lake, cross, norm, D2R, skyAt, skyMinutes, LEVER, leverIndex } from './scene.js';
+
+/** The nearest the camera stands to a place's screen, and the nearest a plane may come to the eye, as parts of P. */
+export const MIN_D = 0.16;
+export const NEAR = 0.05;
 
 const SEEN = 'gt.boat.seen';
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -45,7 +49,7 @@ export function mountBoat({ router, player = null }) {
     <div class="b-banner" aria-hidden="true"><svg class="b-brush" viewBox="0 0 1000 160" preserveAspectRatio="none"><defs><filter id="bRough" x="-5%" y="-30%" width="110%" height="160%"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.22" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="22"/></filter></defs><path d="M10 74 C 160 34, 420 46, 990 52 L 994 112 C 640 128, 330 140, 18 126 Z" fill="#141b1c" fill-opacity=".9" filter="url(#bRough)"/></svg>
       <span class="b-seal b-bseal"></span><span><span class="b-bname"></span><span class="b-bsub"></span></span></div>
     <header class="b-hud">
-      <a class="b-brand" href="?boat=0"><span class="b-seal">船</span><span>Radio Tower<small>Back to the map</small></span></a>
+      <a class="b-brand" href="?boat=0" data-external><span class="b-seal">船</span><span>Radio Tower<small>Back to the map</small></span></a>
       <div class="b-pill" role="status"><i></i><span class="b-pillT">Time flows</span><span class="b-clk"></span></div>
     </header>
     <div class="b-intro" hidden><span class="b-seal">船台</span><h1>A radio on a boat, on a still lake</h1>
@@ -57,7 +61,7 @@ export function mountBoat({ router, player = null }) {
   const $ = (s) => root.querySelector(s);
   const world = $('.b-world'), view = $('.b-view'), cam = $('.b-cam'), panel = $('.b-panel'), box = $('.b-box');
   const labels = $('.b-labels'), banner = $('.b-banner'), intro = $('.b-intro'), dock = $('.b-dock'), say = $('.b-say');
-  buildBoat(cam);
+  const planes = buildBoat(cam);
   const lake = new Lake($('.b-env'), { reduced });
 
   let W = 0, H = 0, P = 1000, phone = false;
@@ -68,7 +72,13 @@ export function mountBoat({ router, player = null }) {
   const proj = (p, pose = cv) => project(pose, p, W, H, P);
   const pose = (k) => {
     if (k === 'lake') return lakePose();
-    return poseFor(k, { W, H: H - 60, P, fitW: phone ? 0.72 : 0.8, fitH: phone ? 0.46 : 0.76 });
+    const p = poseFor(k, { W, H: H - 60, P, fitW: phone ? 0.72 : 0.8, fitH: phone ? 0.46 : 0.76, minD: MIN_D * P });
+    if (k === 'antenna' && !phone) {
+      // The machines a little left of centre, so the page can stand on their right and the lever stays seen.
+      const s = PLACES.antenna, d = Math.hypot(p.x - s.c[0], p.y - s.c[1], p.z - s.c[2]), sh = 0.24 * W * d / P;
+      p.x += s.r[0] * sh; p.z += s.r[2] * sh;
+    }
+    return p;
   };
   function lakePose() {
     const ctr = [0, -120, 40], dir = norm([0.92, 0.17, -0.36]);
@@ -92,6 +102,21 @@ export function mountBoat({ router, player = null }) {
 
   function applyCam() {
     cam.style.transform = `translateZ(${P}px) rotateZ(${cv.roll}deg) rotateX(${-cv.pd}deg) rotateY(${cv.yaw}deg) translate3d(${-cv.x}px,${-cv.y}px,${-cv.z}px)`;
+    clip();
+  }
+  // The near clipping CSS 3D lacks (2026-11-22): a plane with a corner nearer the eye than NEAR × P, or behind it, is
+  // left out until the camera moves away. Drawn, it would be tens of thousands of pixels wide and fill the view anyway.
+  let clipped = 0;
+  function clip() {
+    const near = NEAR * P;
+    clipped = 0;
+    for (const pl of planes) {
+      let min = Infinity;
+      for (const p of pl.pts) min = Math.min(min, depthOf(cv, p));
+      const out = min < near;
+      if (out) clipped++;
+      if (out !== pl.out) { pl.out = out; pl.el.style.visibility = out ? 'hidden' : ''; }
+    }
   }
   function fly(to, dur, straight = false) {
     return new Promise((res) => {
@@ -161,10 +186,12 @@ export function mountBoat({ router, player = null }) {
     }
     return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   }
-  function panelRect(from) {
+  function panelRect(from, k = openOn) {
     if (phone) return { x: 10, y: 56, w: W - 20, h: H - 56 - 70 };
     const w = Math.min(W - 48, Math.max(620, from.w)), h = Math.min(H - 150, Math.max(H * 0.66, from.h));
-    const cx = Math.min(W - 24 - w / 2, Math.max(24 + w / 2, from.x + from.w / 2));
+    // The Antenna's page stands beside its machines, not over them: the stream lever on the rack stays in reach.
+    const beside = k === 'antenna' ? from.x + from.w + 24 + w / 2 : from.x + from.w / 2;
+    const cx = Math.min(W - 24 - w / 2, Math.max(24 + w / 2, beside));
     const cy = Math.min(H - 84 - h / 2, Math.max(64 + h / 2, from.y + from.h / 2));
     return { x: cx - w / 2, y: cy - h / 2, w, h };
   }
@@ -172,7 +199,7 @@ export function mountBoat({ router, player = null }) {
   let openOn = null;
   function openPanel(k) {
     const from = screenRect(k); if (!from) return;
-    const to = panelRect(from);
+    const to = panelRect(from, k);
     panel.dataset.place = k;
     setRect(panel, to); panel.hidden = false; openOn = k;
     panel.style.transition = 'none'; panel.style.opacity = '0'; panel.style.transformOrigin = '0 0';
@@ -316,13 +343,76 @@ export function mountBoat({ router, player = null }) {
     try {
       const moving = !!tween;
       stepTween(now);
-      if (visible && (moving || !frozen || dirty)) { applyCam(); lake.draw(cv, worldT, frozen); dirty = false; }
+      // The music's shape from the visualiser, which rests behind the boat but still listens (viz/stage.js listen()).
+      const sound = visible && !frozen ? player?.stage?.listen?.(now) || null : null;
+      if (visible && (moving || !frozen || dirty)) { applyCam(); lake.draw(cv, worldT, frozen, sound); dirty = false; }
     } catch (e) { lastError = String(e?.stack || e); }
     requestAnimationFrame(frame);
   }
 
+  /* ---- the light of the hour: the lake and the boat on the station's clock (Paris), `?sky=HH:MM` to see another */
+  const hamfg = $('.b-hamfg');
+  let skyNow = null;
+  function paintSky() {
+    skyNow = skyAt(skyMinutes(new Date(), location.search));
+    lake.setSky(skyNow);
+    // The boat's planes are lit by day; at night they sink with the karsts (one filter on the whole view, not seventy).
+    const lit = skyNow.dark > 0.02 ? `brightness(${(1 - 0.6 * skyNow.dark).toFixed(3)}) saturate(${(1 - 0.3 * skyNow.dark).toFixed(3)})` : '';
+    view.style.filter = lit; hamfg.style.filter = lit;
+    root.classList.toggle('night', skyNow.star > 0.5);
+    dirty = true;
+  }
+  setInterval(paintSky, 60_000);
+
+  /* ---- the Antenna's lever: three positions, three streams; pulled, it turns to the next and the cables light up */
+  const client = player?.client || null;
+  const pull = cam.querySelector('.rk-pull'), arm = cam.querySelector('.rk-lever');
+  let streams = [], onAir = null;
+  const nameOf = (slug) => streams.find((c) => c.slug === slug)?.label || slug;
+  function paintLever() {
+    if (!pull || !arm) return;
+    const slugs = streams.map((c) => c.slug), cur = client?.channel ?? onAir ?? slugs[0];
+    const i = leverIndex(slugs, cur);
+    arm.style.transform = `rotate(${LEVER[Math.max(0, i)]}deg)`;
+    pull.hidden = slugs.length < 2;
+    const next = slugs.length ? slugs[(Math.max(0, i) + 1) % Math.min(LEVER.length, slugs.length)] : null;
+    pull.setAttribute('aria-label', next ? `Streams lever, on ${nameOf(cur)}: pull for ${nameOf(next)}` : 'Streams lever');
+    pull.dataset.on = cur || '';
+  }
+  let pulse = 0;
+  function lightCables() {
+    root.classList.add('live');
+    clearTimeout(pulse);
+    pulse = setTimeout(() => root.classList.remove('live'), 1800);
+  }
+  async function readStreams() {
+    if (typeof client?.channels !== 'function') return;
+    try {
+      const out = await client.channels();
+      streams = (out.channels || []).filter((c) => !c.empty).slice(0, LEVER.length);
+      onAir = out.current ?? null;
+    } catch { /* no tower: the lever stays where it is */ }
+    paintLever();
+  }
+  pull?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const slugs = streams.map((c) => c.slug);
+    if (slugs.length < 2) return;
+    const i = Math.max(0, leverIndex(slugs, client?.channel ?? onAir ?? slugs[0]));
+    const next = slugs[(i + 1) % Math.min(LEVER.length, slugs.length)];
+    lightCables();
+    try { await client.setChannel(next); } catch { say.textContent = 'The stream could not be changed.'; }
+  });
+  client?.on?.('channel', ({ slug } = {}) => {
+    onAir = slug ?? onAir;
+    paintLever(); lightCables();
+    if (slug) say.textContent = `Now on ${nameOf(slug)}.`;
+  });
+  readStreams();
+
   /* ---- the arrival: the lake, then aboard. Once per tab, unless skipped. */
   size();
+  paintSky();
   let seen = false;
   try { seen = session?.getItem(SEEN) === '1'; } catch { /* same */ }
   let firstPlace = null;
@@ -357,6 +447,9 @@ export function mountBoat({ router, player = null }) {
     get current() { return place; },
     get frozen() { return frozen; },
     get frames() { return frames; },
+    get clipped() { return clipped; },
+    get sky() { return skyNow; },
+    get ripples() { return lake.ripples.length; },
     get lastError() { return lastError; },
     /** The router's question: where does this page go? Into the panel; the camera goes to its thing. */
     show(match) {

@@ -93,7 +93,8 @@ test('a page left open overnight lets yesterday go at the tower\'s 05:00', () =>
   assert.deepEqual(sinceDay(msgs, day).map((m) => m.text), ['this morning']);
   assert.equal(sinceDay(msgs, undefined).length, 2, 'a tower that gives no day (older code): everything stays');
   assert.match(read('site/js/ui/telegraph.js'), /sinceDay\(mergeMessages\(/, 'the poll applies it to what it shows');
-  assert.match(read('site/js/ui/telegraph.js'), /empties every morning at 5/, 'and the line says so');
+  // The line used to say so (« It empties every morning at 5 »); Ortis took that sentence off on 2026-11-22.
+  assert.doesNotMatch(read('site/js/ui/telegraph.js'), /empties every morning at 5/, 'the sentence he removed stays removed');
 });
 
 test('a stranger\'s text is put on the page as text, never as markup or a link', () => {

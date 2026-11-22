@@ -35,6 +35,59 @@ export const placeOf = (route) => ORDER.find((k) => PLACES[k].routes.includes(ro
 /** The page a place opens, by its first route. */
 export const routeOf = (place) => ({ radio: 'radio', playlists: 'playlists', antenna: 'antenna', ondes: 'ondes', booth: 'booth', echo: 'echo' }[place] ?? null);
 
+/* --------------------------------------------------------------------------------- the sky on the station's clock */
+/**
+ * The lake's light through a broadcast day, Paris time (Ortis, 2026-11-22: « have the lake follow the station's clock
+ * with dawn at 6 a.m. and a lot of stars at night … the stars are the main focus »). Keyframes in minutes after
+ * midnight; between two, every colour and amount is mixed. `star` is how much of the night sky shows, `dark` how far
+ * the karsts sink into the night, `lant` the far lanterns in the mountains, `sunA`/`sunEl` the glow low on the sky.
+ */
+const SKY = [
+  [0, { top: '#03050f', mid: '#0a1230', hor: '#1b2550', wHor: '#141d3c', wMid: '#09112a', wNear: '#03060f', star: 1, dark: 0.84, lant: 1, sun: '#9fb4ff', sunA: 0.12, sunEl: 0.42, mist: '#7f90c0', rip: '#c9dbff' }],
+  [270, { top: '#03050f', mid: '#0b1432', hor: '#1e2a56', wHor: '#151f40', wMid: '#09112a', wNear: '#03060f', star: 0.95, dark: 0.82, lant: 0.9, sun: '#9fb4ff', sunA: 0.1, sunEl: 0.42, mist: '#7f90c0', rip: '#c9dbff' }],
+  [330, { top: '#0e1a3e', mid: '#2c3d70', hor: '#8f7590', wHor: '#5f5b7c', wMid: '#2b3454', wNear: '#10172a', star: 0.45, dark: 0.6, lant: 0.45, sun: '#ffb48a', sunA: 0.35, sunEl: -0.02, mist: '#a59cb8', rip: '#e8dcf0' }],
+  [360, { top: '#3b5c8e', mid: '#c48ca2', hor: '#ffc59a', wHor: '#f1b99a', wMid: '#8c8aa8', wNear: '#3e4a5e', star: 0.08, dark: 0.28, lant: 0.08, sun: '#ffd0a0', sunA: 0.85, sunEl: 0.03, mist: '#f3d6cf', rip: '#fff0e4' }],
+  [420, { top: '#8fb0c4', mid: '#c6d4d2', hor: '#f1e6d6', wHor: '#e2dfd4', wMid: '#a9b8b4', wNear: '#5f7672', star: 0, dark: 0.04, lant: 0, sun: '#fff4e0', sunA: 0.7, sunEl: 0.1, mist: '#eaefeb', rip: '#f4f8f4' }],
+  [600, { top: '#9cafad', mid: '#c9d3cf', hor: '#dfe5e0', wHor: '#d2dbd6', wMid: '#aebdb8', wNear: '#5f7672', star: 0, dark: 0, lant: 0, sun: '#fffaec', sunA: 0.75, sunEl: 0.15, mist: '#eaefeb', rip: '#f4f8f4' }],
+  [960, { top: '#9cafad', mid: '#c9d3cf', hor: '#dfe5e0', wHor: '#d2dbd6', wMid: '#aebdb8', wNear: '#5f7672', star: 0, dark: 0, lant: 0, sun: '#fffaec', sunA: 0.75, sunEl: 0.15, mist: '#eaefeb', rip: '#f4f8f4' }],
+  [1050, { top: '#94aab0', mid: '#d0d2c4', hor: '#eadcc0', wHor: '#ddd5c0', wMid: '#aab3a8', wNear: '#5c6b66', star: 0, dark: 0.05, lant: 0, sun: '#ffe2b0', sunA: 0.8, sunEl: 0.08, mist: '#efe6d6', rip: '#f8f2e6' }],
+  [1110, { top: '#6f7fa8', mid: '#d39a8a', hor: '#f6b47a', wHor: '#e4a88a', wMid: '#8f8394', wNear: '#3b4152', star: 0.05, dark: 0.26, lant: 0.2, sun: '#ffb070', sunA: 0.9, sunEl: 0.01, mist: '#f0c8b4', rip: '#ffe6d6' }],
+  [1170, { top: '#1f2c5a', mid: '#4a4f86', hor: '#b07a90', wHor: '#6d5f80', wMid: '#333b62', wNear: '#141a30', star: 0.4, dark: 0.6, lant: 0.7, sun: '#ff9a7a', sunA: 0.3, sunEl: -0.02, mist: '#a99ab8', rip: '#e6dcf4' }],
+  [1230, { top: '#060a1c', mid: '#0f193c', hor: '#25305c', wHor: '#1a2446', wMid: '#0c1430', wNear: '#050812', star: 0.9, dark: 0.8, lant: 1, sun: '#9fb4ff', sunA: 0.12, sunEl: 0.42, mist: '#7f90c0', rip: '#c9dbff' }],
+  [1440, { top: '#03050f', mid: '#0a1230', hor: '#1b2550', wHor: '#141d3c', wMid: '#09112a', wNear: '#03060f', star: 1, dark: 0.84, lant: 1, sun: '#9fb4ff', sunA: 0.12, sunEl: 0.42, mist: '#7f90c0', rip: '#c9dbff' }],
+];
+const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
+const mixHex = (a, b, f) => '#' + hex(a).map((v, i) => Math.round(v + (hex(b)[i] - v) * f).toString(16).padStart(2, '0')).join('');
+
+/** The sky at `min` minutes after midnight, Paris time. */
+export function skyAt(min) {
+  const m = ((min % 1440) + 1440) % 1440;
+  let i = 0;
+  while (i < SKY.length - 2 && SKY[i + 1][0] <= m) i++;
+  const [m0, a] = SKY[i], [m1, b] = SKY[i + 1], f = m1 > m0 ? (m - m0) / (m1 - m0) : 0;
+  const out = {};
+  for (const k of Object.keys(a)) out[k] = typeof a[k] === 'number' ? a[k] + (b[k] - a[k]) * f : mixHex(a[k], b[k], f);
+  return out;
+}
+
+/** Minutes after midnight in Paris, from `?sky=HH:MM` when the address gives one (to see the night by day). */
+export function skyMinutes(now = new Date(), search = '') {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(new URLSearchParams(search).get('sky') || '');
+  if (m && Number(m[1]) < 24 && Number(m[2]) < 60) return Number(m[1]) * 60 + Number(m[2]);
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+  const get = (t) => Number(parts.find((p) => p.type === t)?.value || 0);
+  return get('hour') * 60 + get('minute');
+}
+
+/* ------------------------------------------------------------------------- the Antenna's lever for the streams */
+/** The lever's three positions (2026-11-18, his correction): straight up, 45° right, 90° right — one per stream. */
+export const LEVER = [0, 45, 90];
+/** Which position stands for the stream on now, among the streams on air in their order; -1 when it is none of them. */
+export function leverIndex(slugs, current) {
+  const i = slugs.indexOf(current);
+  return i >= 0 && i < LEVER.length ? i : -1;
+}
+
 /** Pinhole projection, identical to the CSS camera: translateZ(P) rotateZ(roll) rotateX(-pitch) rotateY(yaw) translate(-C). */
 export function project(pose, p, W, H, P, withRoll = true) {
   const vx = p[0] - pose.x, vy = p[1] - pose.y, vz = p[2] - pose.z;
@@ -47,10 +100,23 @@ export function project(pose, p, W, H, P, withRoll = true) {
   return { x: W / 2 + x3 * P / d, y: H / 2 + y3 * P / d, d };
 }
 
-/** The camera pose that frames a place's screen: looking straight at it, from the distance that fits it to `fit`. */
-export function poseFor(place, { W, H, P, fitW = 0.8, fitH = 0.76 }) {
+/** How far in front of the eye a point is (the camera's depth), behind it negative: the projection's own math. */
+export function depthOf(pose, p) {
+  const vx = p[0] - pose.x, vy = p[1] - pose.y, vz = p[2] - pose.z;
+  const yw = pose.yaw * D2R, a = -pose.pd * D2R;
+  const z1 = -vx * Math.sin(yw) + vz * Math.cos(yw);
+  return -(vy * Math.sin(a) + z1 * Math.cos(a));
+}
+
+/**
+ * The camera pose that frames a place's screen: looking straight at it, from the distance that fits it to `fit`, and
+ * never nearer than `minD` (2026-11-22): framing the little phone to 80 % of the screen put the camera 70 units from it,
+ * everything around it magnified twenty times and more, and an ordinary laptop GPU drew one frame a second. The page is
+ * lifted onto its own 620 px panel anyway, so the thing can stay smaller than the panel.
+ */
+export function poseFor(place, { W, H, P, fitW = 0.8, fitH = 0.76, minD = 0 }) {
   const s = PLACES[place], dir = cross(s.r, s.u);
-  const d = P * Math.max(s.w / (fitW * W), s.h / (fitH * H));
+  const d = Math.max(minD, P * Math.max(s.w / (fitW * W), s.h / (fitH * H)));
   return { x: s.c[0] - dir[0] * d, y: s.c[1] - dir[1] * d, z: s.c[2] - dir[2] * d, yaw: Math.atan2(dir[0], -dir[2]) / D2R, pd: Math.asin(dir[1]) / D2R, roll: 0 };
 }
 
@@ -99,12 +165,13 @@ function parts() {
   // the Antenna: machines on the starboard side, on their own platform
   const R = -36;
   add({ cls: 'deck', w: 150, h: 110, x: 230.9, y: -4, z: 51.6, t: `rotateY(${R}deg) rotateX(90deg)`,
-    html: '<svg viewBox="0 0 150 110" width="150" height="110" preserveAspectRatio="none"><g fill="none" stroke="#141414" stroke-width="2.2" stroke-linecap="round"><path d="M44 84 C 40 60, 18 46, 14 0"/><path d="M50 86 C 52 58, 34 34, 36 0"/><path d="M56 86 C 64 60, 66 30, 60 0"/></g><g fill="none" stroke="#3fd3c6" stroke-width=".8" opacity=".55"><path d="M44 84 C 40 60, 18 46, 14 0"/><path d="M56 86 C 64 60, 66 30, 60 0"/></g></svg>' });
+    html: '<svg viewBox="0 0 150 110" width="150" height="110" preserveAspectRatio="none"><g fill="none" stroke="#141414" stroke-width="2.2" stroke-linecap="round"><path d="M44 84 C 40 60, 18 46, 14 0"/><path d="M50 86 C 52 58, 34 34, 36 0"/><path d="M56 86 C 64 60, 66 30, 60 0"/></g><g class="cab" fill="none" stroke="#3fd3c6" stroke-width=".8" opacity=".55"><path d="M44 84 C 40 60, 18 46, 14 0"/><path d="M56 86 C 64 60, 66 30, 60 0"/></g></svg>' });
   add({ cls: 'rack', w: 70, h: 120, x: 191.9, y: -62, z: 54.1, t: `rotateY(${R}deg)`,
     html: `<div class="rk-scr"><b>TX</b><span>天線</span><i class="anim"></i></div>
-    <svg class="rk-sel" viewBox="0 0 70 52" width="70" height="52"><path d="M14 44 A 26 26 0 0 1 40 18" fill="none" stroke="#e9e3d2" stroke-width="1.2" opacity=".6"/>
+    <button class="rk-pull" type="button" aria-label="Streams lever"><svg class="rk-sel" viewBox="0 0 70 52" width="70" height="52" aria-hidden="true"><path d="M14 44 A 26 26 0 0 1 40 18" fill="none" stroke="#e9e3d2" stroke-width="1.2" opacity=".6"/>
     <g stroke="#e9e3d2" stroke-width="1.4"><line x1="14" y1="16" x2="14" y2="10"/><line x1="32.4" y1="25.6" x2="36.6" y2="21.4"/><line x1="40" y1="44" x2="46" y2="44"/></g>
-    <g class="rk-lever"><line x1="14" y1="44" x2="14" y2="19" stroke="#c2432d" stroke-width="3" stroke-linecap="round"/><circle cx="14" cy="19" r="3.4" fill="#c2432d"/></g><circle cx="14" cy="44" r="5" fill="#2b2b2b" stroke="#777" stroke-width="1"/></svg>
+    <g fill="#e9e3d2" font-size="4.6" font-family="sans-serif" font-weight="700" letter-spacing=".3"><text x="18" y="9">ALL</text><text x="38" y="19">CHILL</text><text x="48" y="40">ENERGY</text></g>
+    <g class="rk-lever"><line x1="14" y1="44" x2="14" y2="19" stroke="#c2432d" stroke-width="3" stroke-linecap="round"/><circle cx="14" cy="19" r="3.4" fill="#c2432d"/></g><circle cx="14" cy="44" r="5" fill="#2b2b2b" stroke="#777" stroke-width="1"/></svg></button>
     <div class="rk-vu anim">${'<i></i>'.repeat(9)}</div><div class="rk-sock"><i></i><i></i><i></i></div>` });
   add({ cls: 'rack side', w: 40, h: 120, x: 232, y: -62, z: 58.5, t: 'rotateY(54deg)' });
   add({ cls: 'rack top', w: 70, h: 40, x: 203.7, y: -122, z: 37.9, t: `rotateY(${R}deg) rotateX(90deg)` });
@@ -113,7 +180,7 @@ function parts() {
     html: `<div class="srv">${Array.from({ length: 7 }, (_, i) => `<div class="blade"><i class="anim" style="animation-delay:-${((i * 0.53) % 1.7).toFixed(2)}s"></i><i class="anim g" style="animation-delay:-${((i * 0.31) % 1.3).toFixed(2)}s"></i><span></span></div>`).join('')}</div>` });
   add({ cls: 'rack side', w: 36, h: 84, x: 279.5, y: -44, z: 78.2, t: 'rotateY(54deg)' });
   add({ cls: '', w: 70, h: 125, x: 262.1, y: -172, z: 68, t: `rotateY(${R}deg)`,
-    html: '<svg viewBox="0 0 70 125" width="70" height="125"><g fill="none" stroke="#141414" stroke-width="1.6"><path d="M2 123 Q 30 110 68 8"/><path d="M8 124 Q 40 118 68 22"/></g></svg>' });
+    html: '<svg viewBox="0 0 70 125" width="70" height="125"><g fill="none" stroke="#141414" stroke-width="1.6"><path d="M2 123 Q 30 110 68 8"/><path d="M8 124 Q 40 118 68 22"/></g><g class="cab" fill="none" stroke="#3fd3c6" stroke-width=".9" opacity=".0"><path d="M2 123 Q 30 110 68 8"/><path d="M8 124 Q 40 118 68 22"/></g></svg>' });
   add({ cls: 'mast', w: 4, h: 300, x: 292.3, y: -152, z: 77.6 });
   add({ cls: 'mast', w: 4, h: 300, x: 292.3, y: -152, z: 77.6, t: 'rotateY(90deg)' });
   for (const [y, w] of [[-282, 44], [-258, 30], [-236, 20]]) add({ cls: 'mast', w, h: 3, x: 292.3, y, z: 77.6, t: `rotateY(${R}deg)` });
@@ -153,8 +220,36 @@ function mk(o, el = document.createElement('div')) {
   return el;
 }
 
-/** Puts the boat's planes into the camera element. */
+/** A point placed the way CSS places it: `translate3d(x,y,z) rotate…(…)`, the rotations applied right to left. */
+function placed(p, o) {
+  let [x, y, z] = p;
+  const ops = [...String(o.t || '').matchAll(/rotate([XYZ])\((-?[\d.]+)deg\)/g)];
+  for (let i = ops.length - 1; i >= 0; i--) {
+    const a = Number(ops[i][2]) * D2R, c = Math.cos(a), s = Math.sin(a);
+    if (ops[i][1] === 'X') [y, z] = [y * c - z * s, y * s + z * c];
+    else if (ops[i][1] === 'Y') [x, z] = [x * c + z * s, -x * s + z * c];
+    else [x, y] = [x * c - y * s, x * s + y * c];
+  }
+  return [x + (o.x || 0), y + (o.y || 0), z + (o.z || 0)];
+}
+
+/** A plane's four corners in world units, from the numbers its CSS is made of (its origin, size, place, turn). */
+export function cornersOf(o, parent = null) {
+  const hw = o.w / 2;
+  const [y0, y1] = o.origin === 'bottom' ? [-o.h, 0] : o.origin === 'top' ? [0, o.h] : [-o.h / 2, o.h / 2];
+  return [[-hw, y0, 0], [hw, y0, 0], [-hw, y1, 0], [hw, y1, 0]].map((p) => {
+    const q = placed(p, o);
+    return parent ? placed(q, parent) : q;
+  });
+}
+
+/**
+ * Puts the boat's planes into the camera element; returns each with its corners, so the shell can leave out a plane
+ * that comes too near the eye (CSS 3D has no near clipping: a plane across the eye is drawn tens of thousands of pixels
+ * wide, which on 2026-11-22 held Ortis's laptop at one frame a second).
+ */
 export function buildBoat(cam) {
+  const planes = [];
   for (const o of parts()) {
     if (o.pivot) {
       const pv = document.createElement('div');
@@ -162,8 +257,14 @@ export function buildBoat(cam) {
       pv.style.transform = `translate3d(${o.x}px,${o.y}px,${o.z}px) ${o.t || ''}`;
       pv.appendChild(mk(o.child));
       cam.appendChild(pv);
-    } else cam.appendChild(mk(o));
+      planes.push({ el: pv, pts: cornersOf(o.child, o) });
+    } else {
+      const el = mk(o);
+      cam.appendChild(el);
+      planes.push({ el, pts: cornersOf(o) });
+    }
   }
+  return planes;
 }
 
 /* ------------------------------------------------------------------------------------------- the lake, on a canvas */
@@ -220,6 +321,94 @@ function paintLayer(L, k) {
   return { c, Wp, hY, Hp, R: L.R };
 }
 
+/** A layer's shape in one dark colour, laid over it as the night falls (the karsts sink into the dark, the sky stays). */
+function silhouette(Ly) {
+  const s = document.createElement('canvas'); s.width = Ly.Wp; s.height = Ly.Hp;
+  const g = s.getContext('2d');
+  g.drawImage(Ly.c, 0, 0);
+  g.globalCompositeOperation = 'source-in'; g.fillStyle = '#04070f'; g.fillRect(0, 0, Ly.Wp, Ly.Hp);
+  return s;
+}
+
+/** A few warm lights deep in a range of mountains: too small and too far to tell what they are (Ortis, 2026-11-22). */
+function farLights(Ly, seed, n) {
+  const s = document.createElement('canvas'); s.width = Ly.Wp; s.height = Ly.Hp;
+  const g = s.getContext('2d'), r = rng(seed);
+  let alpha = null;
+  try { alpha = Ly.c.getContext('2d').getImageData(0, 0, Ly.Wp, Ly.hY).data; } catch { return s; }
+  for (let tries = 0, put = 0; put < n && tries < n * 60; tries++) {
+    const x = Math.floor(r() * Ly.Wp), y = Math.floor(Ly.hY * (0.7 + r() * 0.28));
+    if (alpha[(y * Ly.Wp + x) * 4 + 3] < 250) continue; // inside the rock, near its foot
+    const rad = 1.3 + r() * 1.5, gr = g.createRadialGradient(x, y, 0, x, y, rad * 2.4);
+    gr.addColorStop(0, 'rgba(255,214,150,.7)'); gr.addColorStop(0.3, 'rgba(255,170,90,.22)'); gr.addColorStop(1, 'rgba(255,150,80,0)');
+    g.fillStyle = gr; g.fillRect(x - rad * 2.4, y - rad * 2.4, rad * 4.8, rad * 4.8);
+    put++;
+  }
+  return s;
+}
+
+/**
+ * The Milky Way, painted once at half size along the whole panorama and drawn twice as large, which keeps its light
+ * soft: a band arching from the horizon to over half the sky, a brighter warm core, dark lanes of dust down its middle,
+ * and thousands of faint stars crowded into it. Its stars are not the sky's other stars (Lake.starsAt draws those crisp).
+ */
+function milkyWay(k) {
+  const Wp = Math.round(2 * Math.PI * k), Hm = Math.round(1.05 * k);
+  const c = document.createElement('canvas'); c.width = Wp; c.height = Hm;
+  const g = c.getContext('2d'), r = rng(97);
+  const elAt = (az) => 0.78 * Math.sin(az - 0.55) + 0.12; // radians above the horizon
+  const yAt = (az) => Hm - elAt(az) * k;                     // k px per radian at half size
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 0; i < 520; i++) {
+      const az = r() * 2 * Math.PI, y = yAt(az) + (r() - 0.5) * k * 0.16; if (y > Hm || y < 0) continue;
+      const x = az / (2 * Math.PI) * Wp, core = Math.exp(-Math.pow(wrap(az - 2.2) / 0.55, 2));
+      const rad = k * (0.05 + r() * 0.09) * (1 + core * 0.8);
+      const gr = g.createRadialGradient(x, y, 0, x, y, rad);
+      const col = core > 0.3 ? `rgba(255,${226 + Math.round(r() * 20)},${196 + Math.round(r() * 30)},` : `rgba(${196 + Math.round(r() * 30)},${210 + Math.round(r() * 30)},255,`;
+      gr.addColorStop(0, col + (pass ? 0.05 : 0.07) * (1 + core * 1.6) + ')'); gr.addColorStop(1, col + '0)');
+      g.fillStyle = gr;
+      for (const off of [-Wp, 0, Wp]) if (x + off + rad > 0 && x + off - rad < Wp) g.fillRect(x + off - rad, y - rad, rad * 2, rad * 2);
+    }
+  }
+  g.save(); g.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < 260; i++) {
+    const az = r() * 2 * Math.PI, y = yAt(az) + (r() - 0.5) * k * 0.035, x = az / (2 * Math.PI) * Wp;
+    const rx = k * (0.02 + r() * 0.06), ry = k * (0.006 + r() * 0.012);
+    g.globalAlpha = 0.18 + r() * 0.25; g.beginPath(); g.ellipse(x, y, rx, ry, Math.cos(az - 0.55) * 0.7, 0, 6.283); g.fill();
+  }
+  g.restore();
+  for (let i = 0; i < 5200; i++) {
+    const az = r() * 2 * Math.PI, spread = (r() + r() + r() - 1.5) * k * 0.12, y = yAt(az) + spread; if (y > Hm || y < 0) continue;
+    g.globalAlpha = 0.25 + r() * 0.55; g.fillStyle = r() < 0.2 ? '#ffe9cf' : r() < 0.4 ? '#d9e6ff' : '#ffffff';
+    g.fillRect(az / (2 * Math.PI) * Wp, y, 0.6, 0.6);
+  }
+  g.globalAlpha = 1;
+  return { c, Wp, Hm };
+}
+
+const GLOWS = new Map();
+/** A star's glow, painted once for its colour. */
+function glowOf(col) {
+  if (!GLOWS.has(col)) {
+    const c = document.createElement('canvas'); c.width = c.height = 32;
+    const g = c.getContext('2d'), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gr.addColorStop(0, col); gr.addColorStop(0.22, col + 'aa'); gr.addColorStop(1, col + '00');
+    g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
+    GLOWS.set(col, c);
+  }
+  return GLOWS.get(col);
+}
+
+/** The sky's own stars: seeded, so everyone on the boat sees the same night. Brighter ones are rarer and twinkle. */
+function starfield(n = 2800) {
+  const r = rng(53), out = [];
+  for (let i = 0; i < n; i++) {
+    const m = Math.pow(r(), 2.6), el = Math.asin(r() * 0.97) * 1.05;
+    out.push({ az: r() * 2 * Math.PI, el, m, ph: r() * 6.283, f: 0.6 + r() * 2.2, col: r() < 0.16 ? '#ffe2c2' : r() < 0.34 ? '#d2e1ff' : '#ffffff' });
+  }
+  return out.sort((a, b) => a.m - b.m);
+}
+
 /** The lake: sky, three ranges of karsts with their reflections, mist, birds, glints, and a drop that rings the water. */
 export class Lake {
   constructor(canvas, { reduced = false } = {}) {
@@ -230,6 +419,22 @@ export class Lake {
     this.k = 500;
     this.birds = Array.from({ length: 8 }, (_, i) => ({ b: -0.55 + i * 0.3 + Math.random() * 0.1, e: 0.09 + Math.random() * 0.13, v: 0.01 + Math.random() * 0.01, ph: Math.random() * 6, s: 0.8 + Math.random() * 0.5 }));
     this.glints = Array.from({ length: 90 }, () => { const a = Math.random() * 6.283, rr = 240 + Math.pow(Math.random(), 0.7) * 950; return { x: Math.sin(a) * rr, z: -Math.cos(a) * rr * 1.15 - 80, ph: Math.random() * 6, l: 8 + Math.random() * 16 }; });
+    this.stars = starfield();
+    this.sky = skyAt(720);
+    this.ripples = [];
+    this.lastHit = -9;
+  }
+
+  /** The light of the hour (skyAt); the night's paintings are made the first time it is needed. */
+  setSky(sky) {
+    this.sky = sky;
+    if (sky.dark > 0.01 || sky.star > 0.01 || sky.lant > 0.01) this.night();
+  }
+
+  night() {
+    if (this.mw || !this.layers.length) return;
+    this.mw = milkyWay(this.k);
+    this.layers.forEach((Ly, i) => { Ly.sil = silhouette(Ly); if (i < 2) Ly.lights = farLights(Ly, 71 + i * 13, i === 0 ? 9 : 6); });
   }
 
   size(W, H, P, dpr) {
@@ -238,12 +443,17 @@ export class Lake {
     // A panorama is painted mountain by mountain along its width: with no width there is nothing to paint, and the
     // painter would never get to the end of it (2026-11-18, a boat measured before its CSS).
     const k = Math.max(40, Math.round(P / 2));
-    if (k !== this.k || !this.layers.length) { this.k = k; this.layers = LAYERS.map((L) => paintLayer(L, k)); }
+    if (k !== this.k || !this.layers.length) { this.k = k; this.layers = LAYERS.map((L) => paintLayer(L, k)); this.mw = null; this.setSky(this.sky); }
   }
 
-  /** One frame for camera `cv` at world time `t`; `frozen` draws what was moving with the trails of a stopped instant. */
-  draw(cv, t, frozen) {
-    const { ctx: g, W, H, P, k } = this;
+  /**
+   * One frame for camera `cv` at world time `t`; `frozen` draws what was moving with the trails of a stopped instant.
+   * `sound` is the music's shape, read by the visualiser ({ low, hit }): the mist breathes with the bass and each beat
+   * rings the water. The rings stay where they fell, in the world, so they carry on as the camera moves between places.
+   */
+  draw(cv, t, frozen, sound = null) {
+    const { ctx: g, W, H, P, k, sky: S } = this;
+    const low = sound ? Math.max(0, Math.min(1, sound.low || 0)) : 0;
     g.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     const sway = this.reduced ? 0 : Math.sin(t * 0.7) * 0.45 + Math.sin(t * 0.31) * 0.25;
     const yaw = cv.yaw * D2R, pd = cv.pd * D2R;
@@ -253,28 +463,108 @@ export class Lake {
     const hz = (R) => H / 2 + P * Math.tan(Math.atan((WATER - C.y) / R) - pd);
     const hFar = hz(4200);
     const sky = g.createLinearGradient(0, hFar - P * 0.9, 0, hFar);
-    sky.addColorStop(0, '#9cafad'); sky.addColorStop(0.65, '#c9d3cf'); sky.addColorStop(1, '#dfe5e0');
+    sky.addColorStop(0, S.top); sky.addColorStop(0.65, S.mid); sky.addColorStop(1, S.hor);
     g.fillStyle = sky; g.fillRect(-W, -H * 2, W * 3, hFar + H * 2);
-    const sx = W / 2 + wrap(2.25 - yaw) * P, sy = hFar - 0.15 * P;
+    if (S.star > 0.01 && this.mw) this.starsAt(g, yaw, hFar, t, S.star);
+    // The sun low on the sky by day, at dawn and dusk; at night a moon's pale light, higher and further round.
+    const sx = W / 2 + wrap((S.star > 0.5 ? 4.1 : 2.25) - yaw) * P, sy = hFar - S.sunEl * P;
+    const [sr, sgc, sb] = [1, 3, 5].map((i) => parseInt(S.sun.slice(i, i + 2), 16));
     const sg = g.createRadialGradient(sx, sy, 0, sx, sy, P * 0.55);
-    sg.addColorStop(0, 'rgba(255,250,236,.75)'); sg.addColorStop(1, 'rgba(255,250,236,0)');
+    sg.addColorStop(0, `rgba(${sr},${sgc},${sb},${S.sunA})`); sg.addColorStop(1, `rgba(${sr},${sgc},${sb},0)`);
     g.fillStyle = sg; g.fillRect(sx - P * 0.6, sy - P * 0.6, P * 1.2, P * 1.2);
     const wg = g.createLinearGradient(0, hFar, 0, H + P * 0.3);
-    wg.addColorStop(0, '#d2dbd6'); wg.addColorStop(0.3, '#aebdb8'); wg.addColorStop(1, '#5f7672');
+    wg.addColorStop(0, S.wHor); wg.addColorStop(0.3, S.wMid); wg.addColorStop(1, S.wNear);
     g.fillStyle = wg; g.fillRect(-W, hFar, W * 3, H * 3);
+    if (S.star > 0.01 && this.mw) this.reflectAt(g, yaw, hFar, t, S.star);
     const right = [Math.cos(yaw), Math.sin(yaw)], fwd = [Math.sin(yaw), -Math.cos(yaw)];
     const lat = C.x * right[0] + C.z * right[1], fw = C.x * fwd[0] + C.z * fwd[1];
     this.layers.forEach((Ly, i) => {
       const sc = Ly.R / Math.max(Ly.R * 0.5, Ly.R - fw), k2 = P * sc / k, imgW = Ly.Wp * k2, hy = hz(Ly.R);
       let x0 = W / 2 - yaw * k * k2 - P * lat / Ly.R;
       x0 = ((x0 % imgW) + imgW) % imgW - imgW;
-      for (let x = x0 - imgW; x < W * 1.4; x += imgW) g.drawImage(Ly.c, x, hy - Ly.hY * k2, imgW, Ly.Hp * k2);
-      if (i === 0) this.birdsAt(g, yaw, hFar, t, frozen);
-      if (i === 1) this.mistAt(g, yaw, hy, t);
+      const shine = S.lant * 0.75 * (0.8 + 0.2 * Math.sin(t * 1.3 + i * 2.1));
+      for (let x = x0 - imgW; x < W * 1.4; x += imgW) {
+        const y = hy - Ly.hY * k2, h = Ly.Hp * k2;
+        g.drawImage(Ly.c, x, y, imgW, h);
+        if (S.dark > 0.01 && Ly.sil) { g.globalAlpha = S.dark; g.drawImage(Ly.sil, x, y, imgW, h); g.globalAlpha = 1; }
+        if (shine > 0.02 && Ly.lights) { g.globalAlpha = shine; g.drawImage(Ly.lights, x, y, imgW, h); g.globalAlpha = 1; }
+      }
+      if (i === 0 && S.star < 0.6) { g.globalAlpha = 1 - S.star / 0.6; this.birdsAt(g, yaw, hFar, t, frozen); g.globalAlpha = 1; }
+      if (i === 1) this.mistAt(g, yaw, hy, t, S.mist, low);
     });
-    this.glintsAt(g, pose, t);
+    this.glintsAt(g, pose, t, (1 - 0.75 * S.star) * (0.75 + 0.6 * low), S.rip);
     this.dropAt(g, pose, t, frozen);
+    this.ripplesAt(g, pose, cv, t, frozen, sound, S.rip);
     g.restore();
+  }
+
+  /** The night sky: the Milky Way, then the stars, the brightest with a glow and a slow twinkle. */
+  starsAt(g, yaw, hFar, t, amount) {
+    const { W, P, k } = this, mw = this.mw, k2 = P / k, imgW = mw.Wp * k2;
+    g.globalAlpha = amount;
+    let x0 = W / 2 - yaw * k * k2;
+    x0 = ((x0 % imgW) + imgW) % imgW - imgW;
+    for (let x = x0 - imgW; x < W * 1.4; x += imgW) g.drawImage(mw.c, x, hFar - mw.Hm * k2, imgW, mw.Hm * k2);
+    for (const s of this.stars) {
+      const dx = wrap(s.az - yaw) * P; if (Math.abs(dx) > W * 0.8) continue;
+      const x = W / 2 + dx, y = hFar - s.el * P; if (y > hFar - 2 || y < -40) continue;
+      const tw = s.m > 0.35 ? 0.72 + 0.28 * Math.sin(t * s.f + s.ph) : 1;
+      g.globalAlpha = amount * Math.min(1, 0.22 + s.m * 1.3) * tw * Math.min(1, (hFar - y) / 40);
+      g.fillStyle = s.col;
+      if (s.m > 0.55) {
+        // A glow painted once per colour (glowOf) and stamped: a gradient per star per frame would cost too much.
+        const rr = 2 + s.m * 4.5;
+        g.drawImage(glowOf(s.col), x - rr, y - rr, rr * 2, rr * 2);
+      } else { const z = s.m > 0.2 ? 1.6 : s.m > 0.06 ? 1.15 : 0.8; g.fillRect(x - z / 2, y - z / 2, z, z); }
+    }
+    g.globalAlpha = 1;
+  }
+
+  /** The still lake gives the night back: the Milky Way's glow below the horizon, the bright stars as trembling lines. */
+  reflectAt(g, yaw, hFar, t, amount) {
+    const { W, P, k } = this, mw = this.mw, k2 = P / k, imgW = mw.Wp * k2;
+    g.save(); g.globalAlpha = amount * 0.3;
+    g.translate(0, hFar); g.scale(1, -0.75); g.translate(0, -hFar);
+    let x0 = W / 2 - yaw * k * k2;
+    x0 = ((x0 % imgW) + imgW) % imgW - imgW;
+    for (let x = x0 - imgW; x < W * 1.4; x += imgW) g.drawImage(mw.c, x, hFar - mw.Hm * k2, imgW, mw.Hm * k2);
+    g.restore();
+    for (const s of this.stars) {
+      if (s.m < 0.3) continue;
+      const dx = wrap(s.az - yaw) * P; if (Math.abs(dx) > W * 0.8) continue;
+      const y = hFar + s.el * P * 0.75, x = W / 2 + dx + Math.sin(t * 1.7 + s.ph) * 1.5;
+      g.globalAlpha = amount * s.m * 0.35; g.fillStyle = s.col;
+      g.fillRect(x - 0.6, y - 2.5, 1.2, 5 + s.m * 4);
+    }
+    g.globalAlpha = 1;
+  }
+
+  /** A ring on the water at each beat (the visualiser's onsets), where it fell; the bass sets how wide it spreads. */
+  ripplesAt(g, pose, cv, t, frozen, sound, col) {
+    const { W, H, P } = this;
+    if (!frozen && sound && sound.hit > 0 && t - this.lastHit > 0.22) {
+      this.lastHit = t;
+      const az = cv.yaw * D2R + (Math.random() - 0.5) * 1.5, dist = 220 + Math.random() * 760;
+      this.ripples.push({ x: cv.x + Math.sin(az) * dist, z: cv.z - Math.cos(az) * dist, t0: t, s: Math.min(1, 0.45 + sound.hit * 0.6 + (sound.low || 0) * 0.4) });
+      if (this.ripples.length > 14) this.ripples.shift();
+    }
+    this.ripples = this.ripples.filter((rp) => t - rp.t0 < 3.4 && t >= rp.t0);
+    g.strokeStyle = col; g.lineWidth = 1.2;
+    for (const rp of this.ripples) {
+      for (let j = 0; j < 2; j++) {
+        const age = t - rp.t0 - j * 0.4; if (age <= 0) continue;
+        const rad = 6 + age * (36 + 52 * rp.s), al = Math.max(0, 1 - age / 3) * 0.6 * rp.s; if (al <= 0.01) continue;
+        g.globalAlpha = al; g.beginPath();
+        let started = false;
+        for (let a = 0; a <= 28; a++) {
+          const th = a / 28 * 6.283, p = project(pose, [rp.x + Math.cos(th) * rad, WATER, rp.z + Math.sin(th) * rad], W, H, P, false);
+          if (!p) { started = false; continue; }
+          if (!started) { g.moveTo(p.x, p.y); started = true; } else g.lineTo(p.x, p.y);
+        }
+        g.stroke();
+      }
+    }
+    g.globalAlpha = 1;
   }
 
   birdsAt(g, yaw, hFar, t, frozen) {
@@ -292,25 +582,27 @@ export class Lake {
     g.globalAlpha = 1;
   }
 
-  mistAt(g, yaw, hy, t) {
+  /** Mist banks on the water at the foot of the middle range; they swell and brighten with the bass. */
+  mistAt(g, yaw, hy, t, col = '#eaefeb', low = 0) {
     const { W, P } = this;
+    const [r, gg, b] = [1, 3, 5].map((i) => parseInt(col.slice(i, i + 2), 16)), a = (0.3 + 0.38 * low).toFixed(3);
     for (let i = 0; i < 7; i++) {
       const dx = wrap(i * 0.9 + t * 0.006 - yaw) * P; if (Math.abs(dx) > W) continue;
-      const x = W / 2 + dx, y = hy - 6 - (i % 3) * 12, rx = P * 0.5;
+      const x = W / 2 + dx, y = hy - 6 - (i % 3) * 12 - low * 6, rx = P * 0.5 * (1 + 0.18 * low);
       const gr = g.createRadialGradient(x, y, 0, x, y, rx);
-      gr.addColorStop(0, 'rgba(234,239,235,.42)'); gr.addColorStop(1, 'rgba(234,239,235,0)');
+      gr.addColorStop(0, `rgba(${r},${gg},${b},${a})`); gr.addColorStop(1, `rgba(${r},${gg},${b},0)`);
       g.save(); g.translate(x, y); g.scale(1, 0.07); g.translate(-x, -y); g.fillStyle = gr; g.beginPath(); g.arc(x, y, rx, 0, 6.283); g.fill(); g.restore();
     }
   }
 
-  glintsAt(g, pose, t) {
+  glintsAt(g, pose, t, amount = 1, col = '#f2f6f2') {
     const { W, H, P } = this;
-    g.strokeStyle = '#f2f6f2'; g.lineWidth = 1;
+    g.strokeStyle = col; g.lineWidth = 1;
     for (const gl of this.glints) {
       const p = project(pose, [gl.x + Math.sin(t * 0.3 + gl.ph) * 6, WATER, gl.z], W, H, P, false); if (!p) continue;
       const a = Math.sin(t * 1.2 + gl.ph); if (a < 0.08) continue;
       const L = gl.l * P / p.d; if (L < 0.8) continue;
-      g.globalAlpha = a * 0.5; g.beginPath(); g.moveTo(p.x - L, p.y); g.lineTo(p.x + L, p.y); g.stroke();
+      g.globalAlpha = Math.min(1, a * 0.5 * amount); g.beginPath(); g.moveTo(p.x - L, p.y); g.lineTo(p.x + L, p.y); g.stroke();
     }
     g.globalAlpha = 1;
   }

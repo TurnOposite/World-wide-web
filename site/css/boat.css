@@ -61,7 +61,19 @@ html.boat-on,html.boat-on body{height:100%;overflow:hidden}
 .b-cam .rack.mon{background:#111;border-radius:2px}
 .b-cam .rk-scr{position:absolute;left:5px;right:5px;top:5px;height:12px;background:#0b1614;color:#7fe0b6;font:700 6px/12px "Source Sans 3",sans-serif;display:flex;gap:4px;padding:0 4px;align-items:center}
 .b-cam .rk-scr i{margin-left:auto;width:4px;height:4px;border-radius:50%;background:#ff5a4a;animation:b-blink 1.2s steps(1) infinite}
-.b-cam .rk-sel{position:absolute;left:0;top:20px}
+/* The stream lever (2026-11-22): a real button on the rack; up = the first stream, 45° the second, 90° the third. */
+.b-cam .rk-pull{position:absolute;left:0;top:20px;width:70px;height:52px;padding:0;margin:0;border:0;background:none;cursor:pointer;color:inherit}
+.b-cam .rk-pull:hover .rk-lever circle,.b-cam .rk-pull:focus-visible .rk-lever circle{fill:#ff6a4d}
+.b-cam .rk-pull:focus-visible{outline:1.5px solid #3fd3c6;outline-offset:1px}
+.b-cam .rk-sel{display:block}
+.b-cam .rk-lever{transform-box:view-box;transform-origin:14px 44px;transition:transform .5s cubic-bezier(.3,1.45,.5,1)}
+/* Pulled: the cables run with light from the machines to the mast, toward the line's digital world, then rest. */
+.b-cam .cab path{stroke-dasharray:3 6}
+.b-root.live .b-cam .cab{opacity:1}
+.b-root.live .b-cam .cab path{stroke:#8ff8ec;animation:b-cab .45s linear infinite}
+.b-root.live .b-cam .rings i{border-color:#8ff8ec}
+@keyframes b-cab{to{stroke-dashoffset:-18}}
+@media (prefers-reduced-motion:reduce){.b-cam .rk-lever{transition:none}.b-root.live .b-cam .cab path{animation:none}}
 .b-cam .rk-vu{position:absolute;left:6px;right:6px;top:78px;height:12px;display:flex;gap:2px;align-items:flex-end}
 .b-cam .rk-vu i{flex:1;background:#7cf0a6;opacity:.8;animation:b-eq .8s ease-in-out infinite alternate}
 .b-cam .rk-vu i:nth-child(3n){animation-delay:-.3s}
@@ -132,6 +144,9 @@ html.boat-on,html.boat-on body{height:100%;overflow:hidden}
 .b-intro .b-seal{font-size:22px;min-width:40px;height:40px;margin-bottom:18px}
 .b-intro h1{margin:0 0 14px;font:900 clamp(32px,4.5vw,58px)/1.06 "Noto Serif SC",Georgia,serif;color:var(--b-ink);text-wrap:balance}
 .b-intro p{margin:0 0 22px;font-size:clamp(16px,1.35vw,19px);line-height:1.5;color:#26383a}
+/* At night (the sky on the station's clock, 2026-11-22) the ink turns to starlight. */
+.b-root.night .b-intro h1{color:#eef2ff;text-shadow:0 2px 18px rgba(5,8,20,.8)}
+.b-root.night .b-intro p{color:#c9d3ec;text-shadow:0 1px 10px rgba(5,8,20,.9)}
 .b-row{display:flex;flex-wrap:wrap;gap:10px}
 .b-btn{padding:12px 18px;border-radius:4px;border:0;background:var(--b-ink);color:var(--b-paper);font:700 15px/1 "Source Sans 3",sans-serif;cursor:pointer}
 .b-btn.ghost{background:rgba(242,244,239,.7);color:var(--b-ink)}

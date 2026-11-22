@@ -7,9 +7,9 @@
  * deck in its compact form. He adds a playlist by editing
  * site/data/playlists.json.
  *
- * Under the deck, his Bandcamp (2026-11-22): plain links out, no player —
- * Bandcamp's embeds are per album, and the radio already plays what he buys
- * there. The words and links are the `bandcamp` block of playlists.json.
+ * Under the deck, his Bandcamp (2026-11-22): the Bandcamp logo, a link to his
+ * profile, and one sentence — « make it much simpler ». The address and the
+ * sentence are the `bandcamp` block of playlists.json.
  */
 import { esc } from '../ui/util.js';
 import { bandcampLinks, loadPlaylists, mountDeck } from '../ui/spotify-deck.js';
@@ -20,15 +20,13 @@ export const title = 'Playlists';
 export function bandcampSection(data) {
   const bc = bandcampLinks(data);
   if (!bc) return '';
-  const out = 'target="_blank" rel="noopener noreferrer"';
   return `
-    <section class="bc-links" aria-labelledby="bcHead">
-      <h2 id="bcHead"><span class="bc-mark" aria-hidden="true">bc</span>${esc(bc.title)}</h2>
-      ${bc.intro ? `<p class="bc-intro">${esc(bc.intro)}</p>` : ''}
-      ${bc.links.length ? `<ul class="bc-list" role="list">${bc.links.map((l) => `
-        <li><a class="bc-link" href="${esc(l.url)}" ${out}><b>${esc(l.title)} <span aria-hidden="true">↗</span></b>${l.note ? `<span>${esc(l.note)}</span>` : ''}</a></li>`).join('')}</ul>` : ''}
-      ${bc.profile ? `<p class="pl-profile bc-profile"><a href="${esc(bc.profile)}" ${out}>Tout le profil ${esc(bc.name || 'Bandcamp')} sur Bandcamp ↗</a></p>` : ''}
-    </section>`;
+    <aside class="bc-links">
+      <a class="bc-link" href="${esc(bc.profile)}" target="_blank" rel="noopener noreferrer">
+        <img class="bc-logo" src="assets/bandcamp-logo.png" alt="Bandcamp" width="230" height="38" loading="lazy" decoding="async">
+        <span class="bc-text">${esc(bc.text)}</span>
+      </a>
+    </aside>`;
 }
 
 export async function mount(root, ctx) {
