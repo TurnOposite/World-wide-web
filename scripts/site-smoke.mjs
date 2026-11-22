@@ -442,7 +442,16 @@ try {
   await b.click('#rTune');
   await b.waitForFunction(() => { const au = document.getElementById('audio'); return !au.paused && au.currentTime > 0.5; }, null, { timeout: 15000 }).catch(() => {});
   const snap = (p) => p.evaluate(() => ({ id: window.radioTower.player.onAir?.id, pos: window.radioTower.player.livePosition(), ct: document.getElementById('audio').currentTime, at: Date.now() }));
-  const [sa, sb] = await Promise.all([snap(a), snap(b)]);
+  // Read both away from a track change. On GitHub (2026-11-22, 25cf7ce) the two were read across one: A 0.30 s into
+  // the new track, B's audio still on the old one's last second. Every player hands over at its own pace there, so
+  // the comparison waits until both are on air 2 s or more from either end of the same track; the tolerance is unchanged.
+  const awayFromChange = (p) => p.waitForFunction(() => {
+    const pl = window.radioTower.player, t = pl.onAir, pos = pl.livePosition();
+    return t && pos != null && pos > 2 && (t.duration || 0) - pos > 2;
+  }, null, { timeout: 15000 }).catch(() => {});
+  await Promise.all([awayFromChange(a), awayFromChange(b)]);
+  let [sa, sb] = await Promise.all([snap(a), snap(b)]);
+  if (sa.id !== sb.id) { await Promise.all([awayFromChange(a), awayFromChange(b)]); [sa, sb] = await Promise.all([snap(a), snap(b)]); }
   check('two listeners, no server between them, are on the same track', sa.id === sb.id);
   check('…and the same second', Math.abs(sa.ct - sb.ct - (sa.at - sb.at) / 1000) < 1, `A ${sa.ct.toFixed(2)}s · B ${sb.ct.toFixed(2)}s`);
 
