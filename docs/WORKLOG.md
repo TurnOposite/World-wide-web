@@ -3519,3 +3519,32 @@ before pushing them, but the rest to do push ».
 - **Tests**: `site-boat.test.js` (the flag, every route's place, the camera framing each screen) and a smoke check
   behind `?boat=1` (it stands instead of the map, Radio on the laptop, Stop time and its labels, Playlists at its address).
 - **Self-test** on `96471ce`: 523/523 unit, 43/43 browser, 191/191 site, 26/26 Atelier.
+
+## 2026-11-22 (night) - A batch for the phone, his Bandcamp, the laptop's music, the label sheet, two guides (Claude Code, for Ortis)
+
+- **On a phone, no boat and no chat bell** (BACKLOG N8, N9): `boat/flag.js` takes `phone` (the world's
+  `PHONE_MEDIA`) and refuses, the way aboard is hidden by CSS at the same sizes, and the Booth's Line side hides the
+  bell and the iPhone hint (`line-admin.js`). A unit test and two smoke checks (a phone's `?boat=1` opens the map; the
+  Line side at 390 × 844 reads the log and shows no bell).
+- **« Sur Bandcamp » on /playlists** (N10): four links and the profile line for bandcamp.com/turnoposite, from
+  `playlists.json` `bandcamp`; `bandcampLinks` lets only bandcamp.com through. axe refused Bandcamp's own teal under
+  white (3:1): the badge is `#0e7490`.
+- **The laptop's music** (N12): a tag-reading scan of the user folder outside the library (424 audio files), then 80
+  tracks staged as zips with their tags put right and filed by the bot into `Crates/Bandcamp`: the RL folder's
+  chanson (51) and classical (14), bossa nova (4), singles (4), two long mixes from `.m4a`, the « don't even » zip.
+  Published (82 files); the tower went from 3,217 to 3,297 tracks and plays them from the next 05:00.
+- **The label sheet of every song** (N13): `Radio Tower\Claude outputs\labels-2026-11-22\`. One row per album (539),
+  a Songs tab (3,297), his 59 words kept, a right label with its confidence for the 759 the tower calls Unsorted, the
+  label list (his eight new labels « not yet »), and what was found on the laptop. `streams-from-sheet.mjs` reads the
+  new layout (dry run: 539 rows, none missing; Chill 3,004 tracks, Energy 115). **Not applied**: he edits the sheet first.
+- **The boat's files** for his upgraded version (N11), in `Radio Tower\Claude outputs\boat-files-2026-11-22\`; nine
+  additions proposed (F2). **Lines to remove** asked tab by tab (W13).
+- **Guides**: `docs/DESIGN-HANDOFF.md` (a designer joining: Axel), `docs/PHONE-APP.md`; the history half of Axel's
+  guide handed to the Cowork project (`Claude outputs\axel-handoff-2026-11-22\PROMPT-for-Cowork.md`).
+- **Reds on the way**: the first run failed three site checks: the badge's contrast (fixed), my phone bell check
+  reloading a Booth whose key the address no longer held (now opened again with the key, by a new load: `about:blank`
+  ran the push stand-in on a page without workers and failed « no console errors »), and « the Archive's tag … the
+  radio still playing » (paused), which passed on both later runs: it had run while the 4-hour conversion and the
+  800 MB upload loaded the laptop.
+- **Self-test** on `e06bc5d`: 524/524 unit, 43/43 browser, 194/194 site, 26/26 Atelier. Branch
+  `claude/batch-2026-11-22`, not pushed.
