@@ -28,16 +28,22 @@ for (let offset = 0; ; offset += 500) {
   library.push(...page.items);
   if (!page.items.length || library.length >= page.total) break;
 }
+// His labels as the tower will give them once server/data/labels.json is live (BACKLOG W1, 2026-11-22): the streams are
+// built on those, not on what the rules alone said, so a stream's genres and its lists agree.
+const LABELS = (() => { try { return JSON.parse(fs.readFileSync(new URL('../server/data/labels.json', import.meta.url), 'utf8')).tracks || {}; } catch { return {}; } })();
+const SLUG_LABEL = { 'barber-beats': 'Barber Beats', vaporwave: 'Vaporwave', vgm: 'Video Game', 'dnb-jungle': 'Atmospheric DnB', lofi: 'Lo-fi', jazz: 'Jazz', electronic: 'Electronic', 'trip-hop': 'Trip-Hop', ambient: 'Ambient', 'french-rap': 'Rap FR', chanson: 'Chanson', classical: 'Classical', 'rock-pop': 'Rock & Pop', slushwave: 'Slushwave', 'bossa-nova': 'Bossa nova', 'beat-tape': 'Beat tape', breakcore: 'Breakcore', hyperpop: 'Hyperpop', funk: 'Funk', 'hip-hop': 'Hip-hop', pop: 'Pop' };
+for (const t of library) if (LABELS[t.id] && SLUG_LABEL[LABELS[t.id]]) { t.genreSlug = LABELS[t.id]; t.genreLabel = SLUG_LABEL[t.genreSlug]; }
 
 // One sheet row per album, or per long mix, under the label the tower gave it.
 const albumOf = (artist, album) => [String(artist ?? '').trim(), String(album ?? '').trim()].join(SEP);
 const trackAlbum = (t) => albumOf(t.artist || 'Unknown artist', t.duration >= LONG_S ? `(long mix) ${t.title}` : t.album || '(no album)');
 
-const CHILL = { 'Barber Beats': 'barber-beats', Vaporwave: 'vaporwave', Ambient: 'ambient', 'Lo-fi': 'lofi', Jazz: 'jazz' };
-const ENERGY = { 'Atmospheric DnB': 'dnb-jungle', Electronic: 'electronic' };
-// His labels the tower does not have yet (BACKLOG W1): they choose a stream all the same (docs/STREAMS.md).
-const CHILL_TOO = new Set(['Slushwave', 'Bossa nova', 'Beat tape']);
-const ENERGY_TOO = new Set(['Breakcore', 'Hyperpop']);
+// His own labels are tower labels since 2026-11-22 (W1): Slushwave, Bossa nova and Beat tape feed Chill, Breakcore and
+// Hyperpop feed Energy, by their label like the others.
+const CHILL = { 'Barber Beats': 'barber-beats', Vaporwave: 'vaporwave', Ambient: 'ambient', 'Lo-fi': 'lofi', Jazz: 'jazz', Slushwave: 'slushwave', 'Bossa nova': 'bossa-nova', 'Beat tape': 'beat-tape' };
+const ENERGY = { 'Atmospheric DnB': 'dnb-jungle', Electronic: 'electronic', Breakcore: 'breakcore', Hyperpop: 'hyperpop' };
+const CHILL_TOO = new Set();
+const ENERGY_TOO = new Set();
 
 /** His own words: energy words win, then the first label he typed. */
 function fromHisWords(s) {

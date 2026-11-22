@@ -11,7 +11,7 @@ import fssync from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import config from '../config.js';
-import { classify } from './genre.js';
+import { classify, GENRE_BY_SLUG } from './genre.js';
 import { dedupeTracks } from './dedupe.js';
 
 /** relPath → playlist folder names, from `<musicDir>/playlists.json` (library/bot.mjs). */
@@ -26,6 +26,26 @@ export async function readMembership(musicDir) {
   } catch {
     return new Map();
   }
+}
+
+/**
+ * Ortis's labels, from his sheet (scripts/labels-from-sheet.mjs writes server/data/labels.json): { tracks: { id: slug } }.
+ * Kept in the code, not the music folder, so a push carries it to the tower; a missing or broken file is no labels.
+ */
+export async function readLabels(file = new URL('../data/labels.json', import.meta.url)) {
+  try { return JSON.parse(await fs.readFile(file, 'utf8')).tracks || {}; } catch { return {}; }
+}
+
+/** A track his sheet labels takes that label, slug, name and hue; a slug the tower does not know is ignored. */
+export function applyLabels(tracks, labels = {}) {
+  let n = 0;
+  for (const t of tracks) {
+    const g = GENRE_BY_SLUG.get(labels[t.id]);
+    if (!g) continue;
+    t.genreSlug = g.slug; t.genreLabel = g.label; t.genreAccent = g.accent;
+    n++;
+  }
+  return n;
 }
 
 /** Stable, filesystem-independent id for a track. */
@@ -176,6 +196,8 @@ export async function scanLibrary({
     // bucket here. `server/lib/genre.js` stays the single source of truth.
     track.genreAccent = verdict.accent;
   }
+  // His own labels win over the rules (BACKLOG W1, 2026-11-22): his sheet, track by track.
+  applyLabels(tracks, await readLabels());
 
   tracks.sort((a, b) => a.relPath.localeCompare(b.relPath));
   // Cache the full scan, duplicates included: the cache exists to avoid

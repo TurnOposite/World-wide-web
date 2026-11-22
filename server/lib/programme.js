@@ -192,6 +192,24 @@ export const DEFAULT_PROGRAMME = {
 };
 
 /**
+ * His sheet's pace on top of the programme (Ortis, 2026-11-22: « whenever there's something like, oh, it's great or
+ * it's good, have it higher, like more often. And if I say it's AI slop, have it lower »): two lanes put first, so
+ * nothing else takes their tracks — not even the long mixes' lane — named by track id (server/data/pace.json:
+ * { more: [ids], less: [ids], moreEvery, lessEvery }). A spec is returned untouched when the pace names nothing.
+ */
+export function withPace(spec, pace) {
+  if (!spec || typeof spec !== 'object' || !pace || typeof pace !== 'object') return spec;
+  const ok = (a) => (Array.isArray(a) ? a.filter((id) => /^[0-9a-f]{12}$/.test(id)) : []);
+  const less = ok(pace.less), more = ok(pace.more).filter((id) => !less.includes(id));
+  const lanes = [];
+  if (less.length) lanes.push({ name: 'Less often (his sheet)', ids: less, every: Number.isInteger(pace.lessEvery) ? pace.lessEvery : 30 });
+  if (more.length) lanes.push({ name: 'More often (his sheet)', ids: more, every: Number.isInteger(pace.moreEvery) ? pace.moreEvery : 3 });
+  if (!lanes.length) return spec;
+  const base = Array.isArray(spec.lanes) && spec.lanes.length ? spec.lanes : DEFAULT_PROGRAMME.lanes;
+  return { ...spec, lanes: [...lanes, ...base] };
+}
+
+/**
  * Make a spec safe to build days from. Unknown or malformed pieces fall
  * back rather than throw: a typo in channels.json must not take the
  * station off air (server/index.js reads it on every rescan).
@@ -208,6 +226,7 @@ export function normalizeProgramme(spec) {
       name: String(raw.name || `Lane ${lanes.length + 1}`).slice(0, 40),
       folders: (Array.isArray(raw.folders) ? raw.folders : []).map((f) => fold(String(f).replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''))).filter(Boolean),
       crates: (Array.isArray(raw.crates) ? raw.crates : []).map(fold).filter(Boolean),
+      ids: Array.isArray(raw.ids) ? raw.ids.filter((id) => typeof id === 'string') : [],
       minMinutes: Number.isFinite(raw.minMinutes) ? raw.minMinutes : null,
       maxMinutes: Number.isFinite(raw.maxMinutes) ? raw.maxMinutes : null,
       kind: 'every',
@@ -241,7 +260,13 @@ export function normalizeProgramme(spec) {
 }
 
 /** Does a track pass a lane's filter? A lane with no filter takes whatever is left. */
+const ID_SETS = new WeakMap();
 function laneMatches(t, lane) {
+  // A lane that names its tracks (withPace) takes those and nothing else.
+  if (lane.ids?.length) {
+    if (!ID_SETS.has(lane)) ID_SETS.set(lane, new Set(lane.ids));
+    return ID_SETS.get(lane).has(t.id);
+  }
   const mins = (t.duration || 0) / 60;
   if (lane.minMinutes !== null && mins < lane.minMinutes) return false;
   if (lane.maxMinutes !== null && mins >= lane.maxMinutes) return false;

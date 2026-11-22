@@ -41,10 +41,22 @@ export const GENRES = [
   { slug: 'chanson', label: 'Chanson', accent: 45 },
   { slug: 'classical', label: 'Classical', accent: 55 },
   { slug: 'rock-pop', label: 'Rock & Pop', accent: 340 },
+  // Ortis's own labels, from his sheet (2026-11-10, settled 2026-11-22: BACKLOG W1). No rule gives them: only his
+  // sheet does, track by track (server/data/labels.json, applyLabels in library.js).
+  { slug: 'slushwave', label: 'Slushwave', accent: 300 },
+  { slug: 'bossa-nova', label: 'Bossa nova', accent: 60 },
+  { slug: 'beat-tape', label: 'Beat tape', accent: 28 },
+  { slug: 'breakcore', label: 'Breakcore', accent: 355 },
+  { slug: 'hyperpop', label: 'Hyperpop', accent: 325 },
+  { slug: 'funk', label: 'Funk', accent: 20 },
+  { slug: 'hip-hop', label: 'Hip-hop', accent: 15 },
+  { slug: 'pop', label: 'Pop', accent: 345 },
   { slug: 'unsorted', label: 'Unsorted', accent: 210 },
 ];
 
 export const GENRE_BY_SLUG = new Map(GENRES.map((g) => [g.slug, g]));
+/** A label by its name as his sheet writes it (« Bossa nova », « Barber Beats »), or undefined. */
+export const GENRE_BY_LABEL = new Map(GENRES.map((g) => [g.label.toLowerCase(), g]));
 
 /**
  * Fold the wilder end of the library's filenames into something matchable:

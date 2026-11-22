@@ -13,7 +13,7 @@ import config, { ROOT } from './config.js';
 import { scanLibrary } from './lib/library.js';
 import { Station } from './lib/schedule.js';
 import { ChannelSet, DEFAULT_CHANNEL_SPEC, streamSelection, withStreams } from './lib/channels.js';
-import { DailyStation, DEFAULT_PROGRAMME } from './lib/programme.js';
+import { DailyStation, DEFAULT_PROGRAMME, withPace } from './lib/programme.js';
 import fs from 'node:fs';
 import { Listeners } from './lib/listeners.js';
 import { RateLimiter, rateLimit, isLoopback } from './lib/ratelimit.js';
@@ -64,7 +64,14 @@ function readChannelSpec() {
  * restart; editing the rules does not — they take over at the next day.
  */
 const bootSpec = readChannelSpec();
-const programmeOf = (spec) => (spec?.programme === true ? DEFAULT_PROGRAMME : spec?.programme || null);
+/** More often / less often, from his label sheet (server/data/pace.json, 2026-11-22): in the code, so a push carries it. */
+const PACE = (() => {
+  try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'server', 'data', 'pace.json'), 'utf8')); } catch { return null; }
+})();
+const programmeOf = (spec) => {
+  const p = spec?.programme === true ? DEFAULT_PROGRAMME : spec?.programme || null;
+  return p ? withPace(p, PACE) : null;
+};
 const stationOpts = { epoch: config.stationEpoch, gapSeconds: config.gapSeconds, name: config.stationName };
 const station = programmeOf(bootSpec)
   ? new DailyStation([], { ...stationOpts, programme: programmeOf(bootSpec) })

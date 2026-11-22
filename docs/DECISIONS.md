@@ -4178,3 +4178,15 @@ next lever is the lake: painting it once and keeping it still when frames drop (
   positions (`LEVER`); a pull tunes the next through `client.setChannel`, the same call as the Antenna's lane select,
   and the cables light for 1.8 s. The Antenna's camera stands a little to the right and its page beside the machines,
   so the lever stays in reach while the page is open.
+
+## 2026-11-22 — His labels and his pace live in the code, not in the music folder
+
+**Context.** His finished sheet: labels, « great » and « AI slop » notes, « deduce, like, if an artist, I labeled one
+of his tracks in a way, probably the rest is the same ». He asked to go into the music folder; the project's permission
+fence (`Write(./music/**)`) still refuses a session's writes there, and no session should lift it on its own.
+
+**Decision.** Like `streams.json`: `server/data/labels.json` (applied at each scan over the rules) and
+`server/data/pace.json` (two lanes put first by `withPace`, matched by track id). A push carries both to the tower; his
+`channels.json` is untouched. Eight new labels join `GENRES`. Reading the music folder (paths, tags) was done read-only
+at his word: it showed nothing missing but one track (`_web/grissini-project-this-is-what-you-are-warframe.mp3`, left for
+him to move into Downloads) and 65 second copies the tower plays once by design (`dedupe.js`).

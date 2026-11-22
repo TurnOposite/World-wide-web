@@ -414,8 +414,10 @@ test('the streams are the tower\'s own: a channels.json written before them gets
 test('the streams filled from his label sheet (2026-11-17): by label, by track, and a track left out', async () => {
   const { streamSelection, withSheet } = await import('../server/lib/channels.js');
   const { chill, energy } = streamSelection(JSON.parse(fs.readFileSync(path.join(ROOT, 'server/data/streams.json'), 'utf8')));
-  assert.deepEqual(chill.genres, ['barber-beats', 'vaporwave', 'ambient', 'lofi', 'jazz'], '« liminal, barber beat, jazz »');
-  assert.deepEqual(energy.genres, ['dnb-jungle', 'electronic'], '« the breakcore and the faster BPM stuff »');
+  // Since 2026-11-22 his own labels are the tower's (W1): Slushwave, Bossa nova and Beat tape join Chill by label,
+  // Breakcore and Hyperpop join Energy.
+  assert.deepEqual(chill.genres, ['barber-beats', 'vaporwave', 'ambient', 'lofi', 'jazz', 'slushwave', 'bossa-nova', 'beat-tape'], '« liminal, barber beat, jazz »');
+  assert.deepEqual(energy.genres, ['dnb-jungle', 'electronic', 'breakcore', 'hyperpop'], '« the breakcore and the faster BPM stuff »');
   for (const s of [chill, energy]) for (const id of [...s.tracks, ...s.excludeTracks]) assert.match(id, /^[0-9a-f]{12}$/);
   assert.equal(chill.tracks.filter((id) => energy.tracks.includes(id)).length, 0, 'no track listed on both');
   const sel = { chill: { genres: ['jazz'], tracks: ['aaaaaaaaaaaa'], excludeTracks: ['bbbbbbbbbbbb'] } };

@@ -48,3 +48,35 @@ node scripts\streams-from-sheet.mjs "$env:TEMP\sheet.json"
 
   then the self-test and a push: the tower takes it at its next scan after the update.
 - **Tempo (BPM)** is not measured: « faster » here is the label's word for it (BACKLOG W2).
+
+## His labels and his pace, from the sheet (2026-11-22)
+
+Since 2026-11-22 the sheet also sets **the label each track shows** and **how often it comes round**:
+
+- **Labels** (BACKLOG W1): `server/data/labels.json`, track by track, applied over the rules of `genre.js` at every
+  scan (`applyLabels` in `server/lib/library.js`). His eight labels are tower labels now: Slushwave, Bossa nova and Beat
+  tape feed Chill, Breakcore and Hyperpop feed Energy, Funk, Hip-hop and Pop stay on Everything. His words are read as
+  the label whose word comes first (« jazz lofi anime » is Jazz); an artist he labelled once keeps that label on his
+  other rows (Unknown artist excepted).
+- **Pace**: `server/data/pace.json`. « great / good / rlly good » → *More often (his sheet)*, every 3 days;
+  « AI slop / meh », and the rows nobody could place (« not even sure that's actual music ») → *Less often (his
+  sheet)*, every 30 days. `server/index.js` puts these two lanes first in the programme (`withPace`), so a loved long
+  mix leaves the long mixes' lane. His Favourites (For Radio, For The Waves) are never moved to More often. Takes effect
+  at the next 05:00.
+
+Rebuild after he edits the sheet (PowerShell, in `radio-tower-live`):
+
+```powershell
+python -I scripts\sheet-to-json.py "<his .xlsx>" "$env:TEMP\sheet.json"
+```
+
+```powershell
+node scripts\labels-from-sheet.mjs "$env:TEMP\sheet.json"
+```
+
+```powershell
+node scripts\streams-from-sheet.mjs "$env:TEMP\sheet.json"
+```
+
+The pace file is written from the sheet by the session that applies it (it needs the music folder's paths to keep his
+Favourites out); then the self-test and a push.
