@@ -28,6 +28,7 @@ would cost more than the tidiness is worth.
 | How do the line's notifications work, and how do I get them on my phone? | [`NOTIFICATIONS.md`](./NOTIFICATIONS.md) — ntfy for Ortis, Web Push for listeners who ask, the iPhone's Home Screen rule (2026-11-16) |
 | What is on Chill and Energy, and how do I move an album? | [`STREAMS.md`](./STREAMS.md) — filled from the label sheet (2026-11-17; the sheet of every song, 2026-11-22) |
 | A designer joins: what do they need to change the layout and the look? | [`DESIGN-HANDOFF.md`](./DESIGN-HANDOFF.md) — access, where the design lives, file formats, the review loop (2026-11-22) |
+| Why does the site look the way it does? What was tried, dropped, settled? | [`SITE-HISTORY.md`](./SITE-HISTORY.md) — the site's story from the Pi to the boat, what is settled and what is open (2026-11-22) |
 | Can it be a phone app, and what would a store take? | [`PHONE-APP.md`](./PHONE-APP.md) — the Home Screen app today, Android and iPhone stores, the music-rights question (2026-11-22) |
 | How does the tower update with the laptop off? | [`FIRE-FROM-CLOUD.md`](./FIRE-FROM-CLOUD.md) — the `fire` workflow and the deploy key Ortis makes (2026-11-16; off until he does) |
 | What if Oracle stops, or ends the free tier? | [`EXIT-ORACLE.md`](./EXIT-ORACLE.md) — where each of the server's jobs would go, free options first (2026-11-16; a plan) |

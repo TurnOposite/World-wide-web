@@ -3583,3 +3583,19 @@ before pushing them, but the rest to do push ».
   `pace.json` `lessEvery` 30 → **120** (and the code's default); `labels.test.js` now requires ≥ 90.
 - **BACKLOG F2 ⑧**: the three hourly-event proposals (crate boat with an album of the hour, a bottle with the line's
   latest message, a night shooting star to a surprise stream) written down, waiting for his pick.
+
+## 2026-11-22 (night) — The site's history for the designer (N15, second half)
+
+- Ortis: « when I meant the history, I meant the history of the site, not the history with him ». So the history
+  half of the handoff no longer waits for the Cowork project: it is written here, from the repository, as
+  **`docs/SITE-HISTORY.md`** — the eras from the Pi (August) to the boat (22/11), the lesson of
+  `DESIGN-POSTMORTEM.md`, where to see the past (`past/` v1–v3, the archive branches, `?classic=1`), a table of
+  what is settled (with the date and the document) and of what is open, and how Ortis gives design feedback.
+- `DESIGN-HANDOFF.md` points to it (top, §1, §3) instead of « a written brief from the conversation »;
+  `docs/README.md` gets its row; BACKLOG N15 updated.
+- Outside the repository (`Radio Tower\Claude outputs\axel-handoff-2026-11-22\`): `MESSAGE-DRAFT.md` (French and
+  English, Ortis sends it), `STEPS-FOR-ORTIS.md` (push; invite as collaborator; protect `main` with a pull request
+  and the `test` check, bypass left to the admin so `fire` keeps working). `PROMPT-for-Cowork.md` kept, marked
+  superseded.
+- Docs only: no code touched, no self-test needed. Not committed: the clone also holds the boat's uncommitted F3
+  touches from earlier tonight.

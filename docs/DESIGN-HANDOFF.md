@@ -3,8 +3,8 @@
 Written 2026-11-22 for a designer joining the project (Ortis: « what design templates and code integrations
 [he] would need to make layout and integrated design changes to the website — file formats, a direct link from
 Claude to the infrastructure, code review »). It holds the facts from the code. The project's story (why it looks
-the way it does, what was tried and dropped) is in [`DECISIONS.md`](./DECISIONS.md) and in the brief that comes
-with this page.
+the way it does, what was tried and dropped, what is settled) is [`SITE-HISTORY.md`](./SITE-HISTORY.md): read it
+first.
 
 The site: **https://globe-trotter-ochre.vercel.app**. Two halves of one world: **Zone**, the radio (dark), and
 **Echo**, the journal (paper). One synced radio stream plays under all of it. Plain HTML, CSS and JavaScript,
@@ -25,9 +25,8 @@ briefing: `CLAUDE.md` (read first by any Claude session), `BRIEF.md` (the rules)
 `.claude/skills/` (the project's own agents and know-how). Any Claude session opened on a copy of the repo gets
 all of that without being told. There is nothing else to connect.
 
-What Claude cannot get that way is the **conversation history** (the claude.ai project where most of the design was
-discussed). A claude.ai project can be shared only inside a Team or Enterprise workspace, so it reaches you as a
-written brief instead. Give that brief to your Claude as the first message, or keep it in the project folder.
+The site's story comes the same way: [`SITE-HISTORY.md`](./SITE-HISTORY.md) is in the repository, so your Claude
+can be told « read docs/SITE-HISTORY.md and docs/DESIGN-HANDOFF.md first » and needs nothing else.
 
 If you design in **Figma**: Figma's Dev Mode MCP server lets Claude Code read your frames, layers and variables
 directly (it needs a Figma plan with Dev Mode). Without it, an exported frame and its measurements work just as well.
@@ -54,7 +53,7 @@ directly (it needs a Figma plan with Dev Mode). Without it, an exported frame an
 | Fonts | `site/fonts/` (WOFF2, all under the SIL Open Font License, `OFL.txt`) |
 | Images, icons, marks | `site/assets/` |
 | Words and lists (playlists, texts, collections) | `site/data/*.json` |
-| Design history | [`DESIGN-BRIEF.md`](./DESIGN-BRIEF.md), [`WORLD.md`](./WORLD.md), [`design/MOODBOARD-globe-trotter.md`](./design/MOODBOARD-globe-trotter.md), [`IDENTITY-OPTIONS.md`](./IDENTITY-OPTIONS.md), [`DESIGN-POSTMORTEM.md`](./DESIGN-POSTMORTEM.md) |
+| Design history | [`SITE-HISTORY.md`](./SITE-HISTORY.md) (start here), [`DESIGN-BRIEF.md`](./DESIGN-BRIEF.md), [`WORLD.md`](./WORLD.md), [`design/MOODBOARD-globe-trotter.md`](./design/MOODBOARD-globe-trotter.md), [`IDENTITY-OPTIONS.md`](./IDENTITY-OPTIONS.md), [`DESIGN-POSTMORTEM.md`](./DESIGN-POSTMORTEM.md) |
 
 ### The template to start from
 
