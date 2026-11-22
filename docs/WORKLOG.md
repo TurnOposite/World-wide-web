@@ -3599,3 +3599,13 @@ before pushing them, but the rest to do push ».
   superseded.
 - Docs only: no code touched, no self-test needed. Not committed: the clone also holds the boat's uncommitted F3
   touches from earlier tonight.
+- **Pushed at Ortis's « Yes, push »** (with the boat's F3 touches, `fbe0b44`): four fires to get there, each red on a
+  different timing check, none on what changed. `25cf7ce`: the two listeners read across a track change (A 0.30 s
+  into the new one, B on the old one's last second) → they are now compared 2 s or more from either end of the same
+  track, tolerance unchanged (`3e74bda`). `3e74bda`: `telegraph-log.test.js` failed on a random sender tag starting
+  with « - », which the CSV export rightly defuses with an apostrophe (1 run in 64) → the test expects it
+  (`3711442`). `3711442`: the boat's lever read 600 ms after arrival, covered while the camera settled (green on
+  `25cf7ce` with the same boat), and the known « permutation » intermittent → the lever is read once it is in reach,
+  up to 10 s (`d8cca24`). `d8cca24` green; GitHub, the site and the tower all on it. GitHub's self-test took longer
+  than fire's 25-min wait, and the laptop ran out of GitHub API calls checking it: the last fire was run after the
+  limit reset.
