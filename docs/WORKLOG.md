@@ -3548,3 +3548,21 @@ before pushing them, but the rest to do push ».
   800 MB upload loaded the laptop.
 - **Self-test** on `e06bc5d`: 524/524 unit, 43/43 browser, 194/194 site, 26/26 Atelier. Branch
   `claude/batch-2026-11-22`, not pushed.
+
+## 2026-11-22 (afternoon) - The boat repaired for his laptop; its sky, sound and lever; his Playlists and line choices (Claude Code, for Ortis)
+
+- **« The boat is not working »**, checked in his own Chrome (Intel Iris Xe): the map's « Board the boat » only
+  changed the address (the router took the click; the front is chosen at load), and at the little phone planes that
+  straddle the camera were drawn up to 380,000 px wide. Fixed: real loads for both boat links; a camera never nearer
+  than 0.16 P to a place's screen; every camera move hides a plane that comes within 0.05 P of the eye or behind it.
+  His frame rate could not be measured: Chrome throttled its background window to 1 fps whatever it showed (the plain
+  map too), and he chose to skip measuring.
+- **The boat's additions he picked** (F2 ①④⑤): the sky on the station's clock (dawn at 06:00; a night of 2,800
+  stars and the Milky Way, its glow on the still lake, the karsts dark, faint far lanterns; `?sky=HH:MM`); the bass on
+  the lake (the visualiser's `listen()`; rings where the beats fall, world-anchored; the mist swelling); the Antenna's
+  lever as a real three-position stream switch, the page beside the machines, the cables lit on a pull.
+- **Playlists** opens on « On deck »; his Bandcamp is now the logo linking to his profile and his sentence.
+- **Lines removed** at his word (R7, O1, A4, A6, B1, T1, T2, T3); `site-telegraph.test.js` now checks the line's
+  « empties every morning at 5 » stays gone.
+- **Tests**: boat unit tests for the sky, the lever and the clipping geometry; the smoke clicks the map's button, measures
+  every place (no plane over eight screens), pulls the lever, and opens a night at 23:30.

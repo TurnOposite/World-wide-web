@@ -4146,3 +4146,35 @@ of 22/11 has one row per artist and album (long mixes alone), the tower's labels
 words of 10/11 untouched in « Your label », and a « Right label »: his, else the tower's, else a guess marked sure /
 likely / guess. `streams-from-sheet.mjs` reads both layouts; his eight new labels choose a stream there (Slushwave,
 Bossa nova, Beat tape → Chill; Breakcore, Hyperpop → Energy) though the tower cannot show them yet (BACKLOG W1).
+
+## 2026-11-22 — The boat clips what comes near the eye, and keeps its camera back
+
+**Context.** « The boat is not working » on Ortis's laptop (Intel Iris Xe, 1536 × 695 at 125 %). In his Chrome the
+map's button changed the address and nothing else (the router took it as an in-page move: the front is chosen at
+load), and once aboard, at the little phone, Chrome reported planes 380,000 × 150,000 px: CSS 3D projects a plane that
+straddles the eye to near infinity and has no near plane to clip it. The self-test never saw either: it opened
+`?boat=1` directly, rendered in software, and checked only Radio and Playlists for presence.
+
+**Decision.** Both boat links carry `data-external`. A place's camera stands at least `MIN_D` = 0.16 P from its screen
+(the page is on its own 620 px panel anyway, so the thing may stay smaller than the panel), and every camera move hides
+each plane with a corner nearer than `NEAR` = 0.05 P or behind the eye (`cornersOf` reads the plane's own CSS numbers;
+`depthOf` is the projection's depth). The smoke clicks the button and measures every place (no plane over 8 screens).
+
+**Not settled.** His real frame rate: his Chrome window was in the background and Chrome throttled it to 1 fps
+whatever was drawn (the plain map too), and he chose to skip measuring. If the boat is still slow on his laptop, the
+next lever is the lake: painting it once and keeping it still when frames drop (BACKLOG F2 ⑨).
+
+## 2026-11-22 — The boat's sky, sound and lever
+
+- **The sky** follows Paris time through keyframes (`SKY` in `scene.js`, dawn at 06:00). The night is painted once and
+  only when first needed: the Milky Way at half size drawn double (soft light), 2,800 seeded stars drawn crisp each
+  frame with sprite glows for the brightest (a gradient per star per frame was too dear), a silhouette per range for
+  the karsts' dark, warm lights placed inside the far ranges' rock. The boat's planes are dimmed by one filter on the
+  whole view, not seventy.
+- **The sound** comes from the visualiser that rests behind the boat: `Stage.listen()` runs the same `_readAudio`
+  without drawing. A beat rings the water at a point in the world, not on the screen, so a flight between places
+  carries the rings along; the bass swells the mist. Nothing moves under reduced motion that did not move before.
+- **The lever** is the rack's existing drawing made a button: the streams on air in their order take its three
+  positions (`LEVER`); a pull tunes the next through `client.setChannel`, the same call as the Antenna's lane select,
+  and the cables light for 1.8 s. The Antenna's camera stands a little to the right and its page beside the machines,
+  so the lever stays in reach while the page is open.

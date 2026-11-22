@@ -1229,6 +1229,9 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 .page-enter[data-enter="atlas"]{animation:pe-zoom .3s cubic-bezier(.2,1,.3,1) both}
 @keyframes pe-zoom{from{transform:scale(1.07);opacity:0}}
 @media (prefers-reduced-motion:reduce){.page-enter,.page-enter li{animation:none!important}.echo-crawl span{animation:none}}
+/* Paper takes the page as it stands, never mid-entrance (2026-11-22: an article printed in its first half-second came
+   out scaled 1.06 by the Une's stamp, 842 px on a 794 px sheet, and R9's print check went red by timing). */
+@media print{.page-enter,.page-enter li{animation:none!important}}
 /* MB-08: in a long read, the captions, the kicker and any pull quote arrive from alternating sides as they come into
    view, at a slight angle, and land straight. Scroll-driven, no script; where the browser has no view timeline, or the
    reader asked for less motion, they are simply there. Paragraphs never move. */
