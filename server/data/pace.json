@@ -2,7 +2,7 @@
  "_readme": "His pace, from his label sheet (2026-11-22): « great / good » → more often (every moreEvery days), « AI slop / meh » and what may not be music → less often (every lessEvery days). server/index.js puts these two lanes first (programme.js withPace). The reasons are in why.",
  "built": "2026-11-22",
  "moreEvery": 3,
- "lessEvery": 30,
+ "lessEvery": 120,
  "more": [
   "12a81e018387",
   "08c3dbed6d28",

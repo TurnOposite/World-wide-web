@@ -202,7 +202,7 @@ export function withPace(spec, pace) {
   const ok = (a) => (Array.isArray(a) ? a.filter((id) => /^[0-9a-f]{12}$/.test(id)) : []);
   const less = ok(pace.less), more = ok(pace.more).filter((id) => !less.includes(id));
   const lanes = [];
-  if (less.length) lanes.push({ name: 'Less often (his sheet)', ids: less, every: Number.isInteger(pace.lessEvery) ? pace.lessEvery : 30 });
+  if (less.length) lanes.push({ name: 'Less often (his sheet)', ids: less, every: Number.isInteger(pace.lessEvery) ? pace.lessEvery : 120 });
   if (more.length) lanes.push({ name: 'More often (his sheet)', ids: more, every: Number.isInteger(pace.moreEvery) ? pace.moreEvery : 3 });
   if (!lanes.length) return spec;
   const base = Array.isArray(spec.lanes) && spec.lanes.length ? spec.lanes : DEFAULT_PROGRAMME.lanes;

@@ -1304,6 +1304,27 @@ try {
   check('…the Antenna\'s lever stands beside its page, in reach, and pulled it tunes the next stream and turns to it, the cables lit',
     Boolean(lever0) && (lever0.hidden ? /Streams lever/.test(lever0.label) : lever0.reach && lever1 && lever1.ch !== lever0.ch && lever1.arm !== lever0.arm && lever1.live && /^Now on /.test(lever1.say)),
     JSON.stringify({ lever0, lever1 }));
+  // The things themselves (Ortis, 2026-11-22: « the boat button still doesn't work »): a real click on the little phone,
+  // seen from the laptop, goes to Playlists. The lever, just pulled, left the Antenna where it was.
+  const afterLever = await bp.evaluate(() => window.radioTower.world.current);
+  await bp.evaluate(() => window.radioTower.router.go('/radio'));
+  await bp.waitForFunction(() => window.radioTower.world.current === 'radio' && !document.querySelector('.b-panel').hidden, null, { timeout: 30000 }).catch(() => {});
+  await bp.waitForTimeout(600);
+  const phoneAt = await bp.evaluate(() => {
+    const ph = document.querySelector('.b-cam .ph[data-go="playlists"]'); if (!ph) return null;
+    const r = ph.getBoundingClientRect();
+    for (let fy = 0.2; fy < 0.95; fy += 0.1) for (let fx = 0.2; fx < 0.9; fx += 0.15) {
+      const x = r.x + r.width * fx, y = r.y + r.height * fy, hit = document.elementFromPoint(x, y);
+      if (hit && ph.contains(hit)) return { x, y };
+    }
+    return { x: -1, y: -1 };
+  });
+  if (phoneAt && phoneAt.x >= 0) await bp.mouse.click(phoneAt.x, phoneAt.y);
+  await bp.waitForFunction(() => window.radioTower.world.current === 'playlists', null, { timeout: 30000 }).catch(() => {});
+  const byThing = await bp.evaluate(() => ({ place: window.radioTower.world.current, path: location.pathname, tagged: [...new Set([...document.querySelectorAll('.b-cam [data-go]')].map((e) => e.dataset.go))].sort().join(' ') }));
+  check('…and the things themselves are the way in: a click on the little phone opens Playlists, every place has its thing, and the lever does not move you',
+    afterLever === 'antenna' && Boolean(phoneAt) && phoneAt.x >= 0 && byThing.place === 'playlists' && byThing.path === '/playlists'
+    && byThing.tagged === 'antenna booth echo ondes playlists radio', JSON.stringify({ afterLever, phoneAt, byThing }));
   await boatCtx.close();
   // The sky on the station's clock (2026-11-22), at a night given by the address: the stars out, the boat in the dark,
   // the lake listening to the visualiser (which rests behind it).

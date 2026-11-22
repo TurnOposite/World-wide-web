@@ -282,6 +282,14 @@ export function mountBoat({ router, player = null }) {
     labels.querySelector('.b-lb')?.focus({ preventScroll: true });
   }
   labels.addEventListener('click', (e) => { const b = e.target.closest('[data-go]'); if (b) pick(b.dataset.go); });
+  // The things themselves (Ortis, 2026-11-22: « the boat button still doesn't work »): the laptop, the phone, the
+  // machines, the scroll, the lantern and the desk are what a visitor clicks, so each goes to its place. The lever is a
+  // control of its own; the place already open stays as it is; the arrival keeps its own two buttons.
+  cam.addEventListener('click', (e) => {
+    if (arriving || e.target.closest('button, a, input')) return;
+    const o = e.target.closest('[data-go]');
+    if (o && !(o.dataset.go === place && mode === 'room')) pick(o.dataset.go);
+  });
 
   /* ---- the dock and the keys */
   dock.innerHTML = ORDER.map((k, i) => `<button class="b-dk" type="button" data-go="${k}" aria-keyshortcuts="${i + 1}" aria-label="${PLACES[k].name}: ${PLACES[k].obj}"><span class="g" aria-hidden="true">${PLACES[k].glyph}</span><span class="t">${PLACES[k].name}</span></button>`).join('')

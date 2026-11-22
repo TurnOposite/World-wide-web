@@ -3566,3 +3566,20 @@ before pushing them, but the rest to do push ».
   « empties every morning at 5 » stays gone.
 - **Tests**: boat unit tests for the sky, the lever and the clipping geometry; the smoke clicks the map's button, measures
   every place (no plane over eight screens), pulls the lever, and opens a night at 23:30.
+
+
+## 2026-11-22 (evening) — the boat's things are clickable; « Less often » made slower than the albums
+
+- **« The boat button still doesn't work »** (Ortis). In his Chrome every control worked (the map's button, the dock,
+  Stop time, Step aboard, on both hosts), and the boat ran a steady **30 fps** on his Iris Xe with the window in front
+  (the first real measure). What did nothing: clicking the things in the scene — the laptop, the phone, the machines,
+  the scroll, the lantern, the desk. Each plane of a place's thing now carries `data-go` (`scene.js`) and a click
+  goes there (`boat.js`); the lever stays its own control, the place already open does not re-fly, the arrival keeps
+  its two buttons. The smoke clicks the phone for real and checks every place has its thing.
+- **How often each song plays** (his ask): the tower's own `planLibrary`/`buildDay` run over the next 365 broadcast
+  days on the laptop library with the tower's rules → a « How often » and a « How often (lanes) » tab in
+  `Claude outputs\labels-2026-11-22\…_v3-how-often.xlsx`. It showed the albums' pass is about **52 days**, so
+  « Less often (his sheet) » at every 30 days played his « AI slop » rows more often than an ordinary track.
+  `pace.json` `lessEvery` 30 → **120** (and the code's default); `labels.test.js` now requires ≥ 90.
+- **BACKLOG F2 ⑧**: the three hourly-event proposals (crate boat with an album of the hour, a bottle with the line's
+  latest message, a night shooting star to a surprise stream) written down, waiting for his pick.

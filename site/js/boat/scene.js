@@ -155,10 +155,10 @@ function parts() {
   add({ cls: 'tabletop', w: 270, h: 150, x: 0, y: -70, z: -40, t: 'rotateX(90deg)' });
   add({ cls: 'tedge', w: 270, h: 12, x: 0, y: -64, z: 35 });
   for (const x of [-120, 120]) for (const z of [28, -108]) add({ cls: 'leg', w: 10, h: 64, x, y: -32, z });
-  add({ cls: 'lt-base', w: 140, h: 95, x: -30, y: -71, z: -50, t: 'rotateX(90deg)' });
-  add({ cls: '', w: 140, h: 92, x: -30, y: -71, z: -97.5, origin: 'bottom', t: 'rotateX(15deg)',
+  add({ go: 'radio', cls: 'lt-base', w: 140, h: 95, x: -30, y: -71, z: -50, t: 'rotateX(90deg)' });
+  add({ go: 'radio', cls: '', w: 140, h: 92, x: -30, y: -71, z: -97.5, origin: 'bottom', t: 'rotateX(15deg)',
     html: '<div class="lid"><div class="disp"><b>RADIO TOWER</b><div class="eq anim">' + Array.from({ length: 14 }, (_, i) => `<i style="animation-delay:-${((i * 0.37) % 1.1).toFixed(2)}s;animation-duration:${(0.7 + (i % 5) * 0.13).toFixed(2)}s"></i>`).join('') + '</div><span class="b-now"></span></div></div>' });
-  add({ cls: 'ph', w: 34, h: 74, x: 52, y: -71, z: -62, origin: 'bottom', t: 'rotateX(8deg)',
+  add({ go: 'playlists', cls: 'ph', w: 34, h: 74, x: 52, y: -71, z: -62, origin: 'bottom', t: 'rotateX(8deg)',
     html: '<div class="ph-ant"></div><div class="ph-led anim"></div><div class="ph-scr"><b>Playlists</b><i></i><i style="width:70%"></i><i></i><i style="width:55%"></i></div><div class="ph-keys"></div>' });
   add({ cls: '', w: 26, h: 34, x: 98, y: -71, z: -28, origin: 'bottom',
     html: '<svg viewBox="0 0 26 34" width="26" height="34"><g class="steam anim" stroke="#fff" stroke-opacity=".7" fill="none" stroke-width="1.2"><path d="M10 15 q-3 -4 0 -8 q3 -4 0 -7"/><path d="M16 15 q3 -4 0 -8 q-3 -4 0 -7"/></g><path d="M3 19 h20 q-1 12 -10 14 q-9 -2 -10 -14z" fill="#9cc2b0"/><ellipse cx="13" cy="19" rx="10" ry="2.4" fill="#5d4532"/></svg>' });
@@ -166,19 +166,19 @@ function parts() {
   const R = -36;
   add({ cls: 'deck', w: 150, h: 110, x: 230.9, y: -4, z: 51.6, t: `rotateY(${R}deg) rotateX(90deg)`,
     html: '<svg viewBox="0 0 150 110" width="150" height="110" preserveAspectRatio="none"><g fill="none" stroke="#141414" stroke-width="2.2" stroke-linecap="round"><path d="M44 84 C 40 60, 18 46, 14 0"/><path d="M50 86 C 52 58, 34 34, 36 0"/><path d="M56 86 C 64 60, 66 30, 60 0"/></g><g class="cab" fill="none" stroke="#3fd3c6" stroke-width=".8" opacity=".55"><path d="M44 84 C 40 60, 18 46, 14 0"/><path d="M56 86 C 64 60, 66 30, 60 0"/></g></svg>' });
-  add({ cls: 'rack', w: 70, h: 120, x: 191.9, y: -62, z: 54.1, t: `rotateY(${R}deg)`,
+  add({ go: 'antenna', cls: 'rack', w: 70, h: 120, x: 191.9, y: -62, z: 54.1, t: `rotateY(${R}deg)`,
     html: `<div class="rk-scr"><b>TX</b><span>天線</span><i class="anim"></i></div>
     <button class="rk-pull" type="button" aria-label="Streams lever"><svg class="rk-sel" viewBox="0 0 70 52" width="70" height="52" aria-hidden="true"><path d="M14 44 A 26 26 0 0 1 40 18" fill="none" stroke="#e9e3d2" stroke-width="1.2" opacity=".6"/>
     <g stroke="#e9e3d2" stroke-width="1.4"><line x1="14" y1="16" x2="14" y2="10"/><line x1="32.4" y1="25.6" x2="36.6" y2="21.4"/><line x1="40" y1="44" x2="46" y2="44"/></g>
     <g fill="#e9e3d2" font-size="4.6" font-family="sans-serif" font-weight="700" letter-spacing=".3"><text x="18" y="9">ALL</text><text x="38" y="19">CHILL</text><text x="48" y="40">ENERGY</text></g>
     <g class="rk-lever"><line x1="14" y1="44" x2="14" y2="19" stroke="#c2432d" stroke-width="3" stroke-linecap="round"/><circle cx="14" cy="19" r="3.4" fill="#c2432d"/></g><circle cx="14" cy="44" r="5" fill="#2b2b2b" stroke="#777" stroke-width="1"/></svg></button>
     <div class="rk-vu anim">${'<i></i>'.repeat(9)}</div><div class="rk-sock"><i></i><i></i><i></i></div>` });
-  add({ cls: 'rack side', w: 40, h: 120, x: 232, y: -62, z: 58.5, t: 'rotateY(54deg)' });
-  add({ cls: 'rack top', w: 70, h: 40, x: 203.7, y: -122, z: 37.9, t: `rotateY(${R}deg) rotateX(90deg)` });
-  add({ cls: 'rack mon', w: 40, h: 26, x: 195.4, y: -135, z: 49.2, t: `rotateY(${R}deg)`, html: '<div class="mon-scr"><b>ANTENNA</b><span>streams on air</span></div>' });
-  add({ cls: 'rack', w: 46, h: 84, x: 250.3, y: -44, z: 79.3, t: `rotateY(${R}deg)`,
+  add({ go: 'antenna', cls: 'rack side', w: 40, h: 120, x: 232, y: -62, z: 58.5, t: 'rotateY(54deg)' });
+  add({ go: 'antenna', cls: 'rack top', w: 70, h: 40, x: 203.7, y: -122, z: 37.9, t: `rotateY(${R}deg) rotateX(90deg)` });
+  add({ go: 'antenna', cls: 'rack mon', w: 40, h: 26, x: 195.4, y: -135, z: 49.2, t: `rotateY(${R}deg)`, html: '<div class="mon-scr"><b>ANTENNA</b><span>streams on air</span></div>' });
+  add({ go: 'antenna', cls: 'rack', w: 46, h: 84, x: 250.3, y: -44, z: 79.3, t: `rotateY(${R}deg)`,
     html: `<div class="srv">${Array.from({ length: 7 }, (_, i) => `<div class="blade"><i class="anim" style="animation-delay:-${((i * 0.53) % 1.7).toFixed(2)}s"></i><i class="anim g" style="animation-delay:-${((i * 0.31) % 1.3).toFixed(2)}s"></i><span></span></div>`).join('')}</div>` });
-  add({ cls: 'rack side', w: 36, h: 84, x: 279.5, y: -44, z: 78.2, t: 'rotateY(54deg)' });
+  add({ go: 'antenna', cls: 'rack side', w: 36, h: 84, x: 279.5, y: -44, z: 78.2, t: 'rotateY(54deg)' });
   add({ cls: '', w: 70, h: 125, x: 262.1, y: -172, z: 68, t: `rotateY(${R}deg)`,
     html: '<svg viewBox="0 0 70 125" width="70" height="125"><g fill="none" stroke="#141414" stroke-width="1.6"><path d="M2 123 Q 30 110 68 8"/><path d="M8 124 Q 40 118 68 22"/></g><g class="cab" fill="none" stroke="#3fd3c6" stroke-width=".9" opacity=".0"><path d="M2 123 Q 30 110 68 8"/><path d="M8 124 Q 40 118 68 22"/></g></svg>' });
   add({ cls: 'mast', w: 4, h: 300, x: 292.3, y: -152, z: 77.6 });
@@ -187,21 +187,21 @@ function parts() {
   add({ cls: '', w: 220, h: 220, x: 292.3, y: -300, z: 77.6, t: `rotateY(${R}deg)`, html: '<div class="rings anim"><i></i><i></i><i></i></div>' });
   // the hanging scroll (Ondes) and the lantern (Booth) swing from pivots
   add({ cls: 'string', w: 1.5, h: 42, x: -128, y: -289, z: 58 });
-  add({ pivot: true, x: -128, y: -268, z: 58, t: 'rotateY(30deg)', child: { cls: 'sway anim', w: 46, h: 118, origin: 'top',
+  add({ pivot: true, x: -128, y: -268, z: 58, t: 'rotateY(30deg)', child: { go: 'ondes', cls: 'sway anim', w: 46, h: 118, origin: 'top',
     html: `<svg viewBox="0 0 46 118" width="46" height="118"><path d="M23 0 L9 7 M23 0 L37 7" stroke="#2a2018" stroke-width=".8"/><rect x="3" y="6" width="40" height="4" rx="2" fill="#3b2a1d"/><rect x="5" y="10" width="36" height="97" fill="#4b7d6d"/><rect x="9" y="17" width="28" height="83" fill="#ece4cf"/>
     <text x="23" y="37" font-family="Ma Shan Zheng, KaiTi, serif" font-size="14" text-anchor="middle" fill="#1d1a16">電</text><text x="23" y="54" font-family="Ma Shan Zheng, KaiTi, serif" font-size="14" text-anchor="middle" fill="#1d1a16">波</text>
     <g stroke="#5a5247" stroke-width=".7"><line x1="14" y1="62" x2="14" y2="94"/><line x1="18" y1="62" x2="18" y2="88"/><line x1="23" y1="62" x2="23" y2="92"/><line x1="28" y1="62" x2="28" y2="84"/></g><rect x="29" y="88" width="6" height="6" fill="#c2432d"/>
     <rect x="2" y="105" width="42" height="6" rx="3" fill="#3b2a1d"/></svg>` } });
-  add({ pivot: true, x: 8, y: -334, z: -20, t: 'rotateX(-26.6deg)', child: { cls: 'swing anim', w: 40, h: 64, origin: 'top',
+  add({ pivot: true, x: 8, y: -334, z: -20, t: 'rotateX(-26.6deg)', child: { go: 'booth', cls: 'swing anim', w: 40, h: 64, origin: 'top',
     html: `<div class="lamp-glow"></div><svg viewBox="0 0 40 64" width="40" height="64" style="position:relative"><defs><radialGradient id="bLg" cx=".45" cy=".45" r=".6"><stop offset="0" stop-color="#ffd79a"/><stop offset=".45" stop-color="#e2553a"/><stop offset="1" stop-color="#8e2318"/></radialGradient></defs>
     <line x1="20" y1="0" x2="20" y2="10" stroke="#2a2018" stroke-width=".8"/><rect x="13" y="9" width="14" height="4" rx="1" fill="#c9a24a"/><ellipse cx="20" cy="30" rx="16" ry="18" fill="url(#bLg)"/>
     <rect x="13" y="46" width="14" height="4" rx="1" fill="#c9a24a"/><path d="M20 50 v12" stroke="#c2432d" stroke-width="2"/></svg>` } });
   // the hammock across the stern posts, and the writing desk behind it (Echo)
   add({ cls: 'hm', w: 173, h: 60, x: -74, y: -155, z: 380, t: 'rotateZ(31.3deg) rotateX(90deg)' });
   add({ cls: 'hm', w: 173, h: 60, x: 74, y: -155, z: 380, t: 'rotateZ(-31.3deg) rotateX(90deg)' });
-  add({ cls: 'tabletop', w: 170, h: 70, x: 0, y: -48, z: 440, t: 'rotateX(90deg)' });
-  add({ cls: 'tedge', w: 170, h: 48, x: 0, y: -24, z: 405, t: 'rotateY(180deg)' });
-  add({ cls: '', w: 84, h: 58, x: -20, y: -49, z: 455, origin: 'bottom', t: 'rotateY(180deg) rotateX(18deg)',
+  add({ go: 'echo', cls: 'tabletop', w: 170, h: 70, x: 0, y: -48, z: 440, t: 'rotateX(90deg)' });
+  add({ go: 'echo', cls: 'tedge', w: 170, h: 48, x: 0, y: -24, z: 405, t: 'rotateY(180deg)' });
+  add({ go: 'echo', cls: '', w: 84, h: 58, x: -20, y: -49, z: 455, origin: 'bottom', t: 'rotateY(180deg) rotateX(18deg)',
     html: '<div class="np"><b>Echo</b><strong>La une</strong><span></span><span></span><span></span></div>' });
   add({ cls: '', w: 64, h: 46, x: 112, y: -1, z: 430, origin: 'bottom', t: 'rotateY(205deg)',
     html: '<svg viewBox="0 0 64 46" width="64" height="46"><g fill="#2a2a2a"><rect x="8" y="2" width="3" height="20"/><rect x="12" y="4" width="3" height="18"/><rect x="16" y="1" width="3" height="21"/></g><g fill="#7b2d26"><rect x="34" y="5" width="6" height="17"/></g><g fill="#c9a24a"><rect x="47" y="3" width="6" height="19"/></g><rect x="2" y="16" width="60" height="30" fill="#8a6440"/></svg>' });
@@ -217,6 +217,7 @@ function mk(o, el = document.createElement('div')) {
   if (o.x !== undefined) el.style.transform = `translate3d(${o.x}px,${o.y}px,${o.z}px) ${o.t || ''}`;
   if (o.clip) { el.style.clipPath = o.clip; el.style.webkitClipPath = o.clip; }
   if (o.html) el.innerHTML = o.html;
+  if (o.go) el.dataset.go = o.go;
   return el;
 }
 

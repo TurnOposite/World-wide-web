@@ -63,7 +63,7 @@ test('his pace (2026-11-22): two lanes put first, by track id; a long mix he lov
   assert.equal(withPace(spec, null), spec, 'no pace: untouched');
   assert.equal(withPace(spec, { more: [], less: ['nope'] }), spec, 'nothing usable: untouched');
   const paced = normalizeProgramme(withPace(spec, { more: ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'], less: ['bbbbbbbbbbbb', 'cccccccccccc'] }));
-  assert.deepEqual(paced.lanes.map((l) => [l.name, l.every]).slice(0, 2), [['Less often (his sheet)', 30], ['More often (his sheet)', 3]]);
+  assert.deepEqual(paced.lanes.map((l) => [l.name, l.every]).slice(0, 2), [['Less often (his sheet)', 120], ['More often (his sheet)', 3]]);
   assert.deepEqual(paced.lanes[1].ids, ['aaaaaaaaaaaa'], 'a track in both goes less often');
   const t = (id, mins) => ({ id, relPath: `x/${id}.mp3`, duration: mins * 60, artist: id, title: id });
   const plan = planLibrary([t('aaaaaaaaaaaa', 90), t('cccccccccccc', 4), t('dddddddddddd', 90), t('eeeeeeeeeeee', 4)], paced, makeCalendar(paced));
@@ -80,4 +80,8 @@ test('pace.json: well-formed ids, reasons for each, and nothing both loved and l
   for (const id of [...doc.more, ...doc.less]) { assert.match(id, /^[0-9a-f]{12}$/); assert.ok(doc.why[id], id); }
   assert.equal(doc.more.filter((id) => doc.less.includes(id)).length, 0);
   assert.ok(doc.more.length >= 1 && doc.less.length >= 1);
+  // « Less often » has to be slower than an ordinary album track, which comes round once per pass of the albums
+  // (about every 58 days on 2026-11-22). At 30 it played his « AI slop » twice as often as the rest.
+  assert.ok(doc.lessEvery >= 90, `lessEvery ${doc.lessEvery}`);
+  assert.ok(doc.moreEvery <= 7, `moreEvery ${doc.moreEvery}`);
 });

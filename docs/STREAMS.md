@@ -60,7 +60,7 @@ Since 2026-11-22 the sheet also sets **the label each track shows** and **how of
   other rows (Unknown artist excepted).
 - **Pace**: `server/data/pace.json`. « great / good / rlly good » → *More often (his sheet)*, every 3 days;
   « AI slop / meh », and the rows nobody could place (« not even sure that's actual music ») → *Less often (his
-  sheet)*, every 30 days. `server/index.js` puts these two lanes first in the programme (`withPace`), so a loved long
+  sheet)*, every 120 days (an ordinary album track comes round about every 58 days: 30 was more often, not less — fixed 2026-11-22 evening). `server/index.js` puts these two lanes first in the programme (`withPace`), so a loved long
   mix leaves the long mixes' lane. His Favourites (For Radio, For The Waves) are never moved to More often. Takes effect
   at the next 05:00.
 

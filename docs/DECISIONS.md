@@ -4190,3 +4190,14 @@ fence (`Write(./music/**)`) still refuses a session's writes there, and no sessi
 `channels.json` is untouched. Eight new labels join `GENRES`. Reading the music folder (paths, tags) was done read-only
 at his word: it showed nothing missing but one track (`_web/grissini-project-this-is-what-you-are-warframe.mp3`, left for
 him to move into Downloads) and 65 second copies the tower plays once by design (`dedupe.js`).
+
+
+## 2026-11-22 (evening) — « Less often » is every 120 days, slower than the albums' pass
+
+**Context.** Counting plays over a year with the tower's own code: Favourites daily, the loop every 2 days, Snowpoint
+every 4, long mixes about every 26, and the albums — the rest of the day — one pass of 2,821 tracks about every 52
+days. « Less often (his sheet) » at 30 days was therefore *more* often than an ordinary album track.
+
+**Decision.** `lessEvery` 120 in `server/data/pace.json` (the default in `withPace` too): about half as often as the
+rest, without taking his doubtful rows off air. If the albums' pass grows past 120 days (a bigger library), revisit:
+the test only holds the floor (≥ 90).

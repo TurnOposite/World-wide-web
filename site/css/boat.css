@@ -62,6 +62,7 @@ html.boat-on,html.boat-on body{height:100%;overflow:hidden}
 .b-cam .rk-scr{position:absolute;left:5px;right:5px;top:5px;height:12px;background:#0b1614;color:#7fe0b6;font:700 6px/12px "Source Sans 3",sans-serif;display:flex;gap:4px;padding:0 4px;align-items:center}
 .b-cam .rk-scr i{margin-left:auto;width:4px;height:4px;border-radius:50%;background:#ff5a4a;animation:b-blink 1.2s steps(1) infinite}
 /* The stream lever (2026-11-22): a real button on the rack; up = the first stream, 45° the second, 90° the third. */
+.b-cam [data-go]{cursor:pointer}
 .b-cam .rk-pull{position:absolute;left:0;top:20px;width:70px;height:52px;padding:0;margin:0;border:0;background:none;cursor:pointer;color:inherit}
 .b-cam .rk-pull:hover .rk-lever circle,.b-cam .rk-pull:focus-visible .rk-lever circle{fill:#ff6a4d}
 .b-cam .rk-pull:focus-visible{outline:1.5px solid #3fd3c6;outline-offset:1px}
