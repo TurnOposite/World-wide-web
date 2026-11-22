@@ -128,7 +128,8 @@ test('the history: everything kept, across both files, with what happened to eac
   const [head, first] = csv.split('\r\n');
   assert.equal(head, 'id,time,name,character,stream,text,station,track_id,track_title,sender_tag,state,taken_off,silenced,restored');
   assert.match(first, /,"'=HYPERLINK\(""x""\), she said\n""hi""",/,'a cell that would run as a formula is defused, quotes doubled');
-  assert.match(csv, /good morning,,,,[\w-]{22},on,,,\r\n$/);
+  // The tag is random; one in 64 starts with « - », and the export defuses that cell like any other formula start.
+  assert.match(csv, /good morning,,,,(?:'-|\w)[\w-]{21},on,,,\r\n$/);
 });
 
 test('restore: exactly one message back, with its id and its time — for listeners who ask by id, and after a restart', async () => {
