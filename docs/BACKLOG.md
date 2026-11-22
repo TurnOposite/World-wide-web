@@ -28,6 +28,29 @@ Size: **S** = under an hour of work, **M** = a session, **L** = several sessions
 | U1 | **The Oracle account is on the Free Tier** (screenshots, 2026-11-13: plan type Free Tier, the trial's Universal Credits suspended since 5 Nov). Oracle can stop an Always Free server that looks idle for 7 days — CPU, network and memory all under 20 % — and the tower looks idle (0 listeners, 128 MB of 12 GB). Stopped is not deleted: it can be started again from the console. | Explained to him 2026-11-13; his worry: a budget alert does not stop spending | **needs Ortis**: go Pay As You Go or not. If yes, B1 first or right after |
 | U2 | **The same song twice across 05:00.** `scripts/repeats.mjs` on 2026-11-13, 14 days ahead: 13 tracks play in the last hours of a broadcast day and again in the first hour of the next, as close as 12 min (« zanzibar » 17/11 04:40 → 05:00, « Heavy Smoke » 21/11 04:52 → 05:13). Each day is dealt on its own (`buildDay`), and nothing looks at the day before. | Found, not fixed | **needs Ortis**: changing `buildDay` changes what plays from the moment the tower takes it (see the note under B2) |
 
+## New on 2026-11-22 — a batch of updates, two guides, the music and the label sheet
+
+Ortis, 2026-11-22: « remove the boat option from the phone version only, send what files u have so far on the boat
+design and integration so I can give u an upgraded version to integrate instead, also remove from phone version the
+option to get notified about chats, make a link section in the Spotify playlist page to my Bandcamp, ask me questions
+about which lines in the different tabs to entirely remove, determine additions to enhance the boat experience and
+propose them to me // make sure all my music in this computer's files is addressed in the website radio and update
+the excel file I modified to get the right labels on all the songs », plus « a comprehensible guide for a phone app »
+and what Axel needs « to make layout and integrated design changes to the website ».
+
+| # | What | State |
+|---|---|---|
+| N8 | No boat on a phone (the button hidden, `?boat=1` refused at phone sizes) | **Built** (`b0514d9`, branch `claude/batch-2026-11-22`) — waits for « push » |
+| N9 | No chat notifications on a phone (the Booth's bell and iPhone hint hidden at phone sizes) | **Built** (`b0514d9`) — waits for « push » |
+| N10 | « Sur Bandcamp » on /playlists: bandcamp.com/turnoposite (collection, Bandcamp playlists, wishlist, following), from `playlists.json` `bandcamp` | **Built** (`b0514d9`, `5ac6293`) — waits for « push »; the words are his to change |
+| N11 | The boat's files, for his upgraded version | **Sent** 2026-11-22: `Radio Tower\Claude outputs\boat-files-2026-11-22\` (+ `.zip`) |
+| N12 | All the music on the laptop on the radio | **Done** 2026-11-22: 80 tracks filed and published (the RL folder's chanson and classical, bossa nova, singles, two long mixes, the « don't even » zip); the tower 3,217 → 3,297. The rest of the 424 audio files found are recordings, interviews, game sounds, or 5 unknown files in Downloads (his call). The USB key (W12) was not plugged in |
+| N13 | The label sheet, every song | **Made** 2026-11-22: `Radio Tower\Claude outputs\labels-2026-11-22\Radio-Tower_labels-and-streams_2026-11-22.xlsx` (539 album rows, 3,297 songs, his 59 words kept; « Right label » with a confidence). **He edits it next**; then `scripts/sheet-to-json.py` + `scripts/streams-from-sheet.mjs` (reads this layout since `5ac6293`) |
+| N14 | A phone app | **Guide written**: [`PHONE-APP.md`](./PHONE-APP.md). Needs Ortis: the music-rights question before any store |
+| N15 | What Axel needs to change the design | **Technical half written**: [`DESIGN-HANDOFF.md`](./DESIGN-HANDOFF.md). The history half: a prompt for the Cowork project, `Radio Tower\Claude outputs\axel-handoff-2026-11-22\PROMPT-for-Cowork.md` |
+| W13 | **Lines to remove entirely, tab by tab** | **Asked** 2026-11-22 (numbered list in the session's reply); his numbers → one commit |
+| F2 | **Additions to the boat** (proposed 2026-11-22, his pick): ① the lake keeps the station's time (dawn at 05:00, night with lanterns lit, stars); ② what's on air as a paper poster by the laptop, swapped at each track; ③ listeners as lanterns on the water; ④ the Antenna's three-position lever for the streams, cables lighting toward the line's digital world (his 18/11 correction); ⑤ ripples and mist that breathe with the bass; ⑥ a lake sound, off by default; ⑦ weather by the calendar (rain some days, snow in winter, the same sky for everyone); ⑧ a small boat crossing on the hour, opening Ondes; ⑨ a still lake on slow laptops | **needs Ortis**: which, and whether they wait for his upgraded boat |
+
 ## New on 2026-11-16 — the handoff to Claude Code
 
 Ortis, 2026-11-16: « first task for him is code all of the list … with those items as well », then, the same
@@ -127,6 +150,9 @@ a concept that you shouldn't push now because it might be hard. »
 | 2026-11-16 | N4 — `npm run compare`: every route at three sizes on one page, with flags | `08a9c25` |
 | 2026-11-16 | N5 — fire from GitHub (built; waits for his deploy key) | `65bd575` |
 | 2026-11-16 | N7 — `docs/EXIT-ORACLE.md` | `0a78fcb` |
+| 2026-11-22 | N8, N9, N10 — no boat and no chat bell on a phone; his Bandcamp on /playlists | `b0514d9`, `5ac6293` (not pushed) |
+| 2026-11-22 | N12, N13 — the laptop's music on the radio (80 tracks); the label sheet of every song | library (no commit); `5ac6293` for the script |
+| 2026-11-22 | N14, N15 — `docs/PHONE-APP.md`, `docs/DESIGN-HANDOFF.md` | (this commit) |
 
 ## Touch-ups chosen by Ortis, 2026-11-16 (night) — **built 2026-11-17** (`74b3f86`): T1, T2, T4; T3 superseded (« the notifications should only be accessible to me »: the bell is in the Booth)
 

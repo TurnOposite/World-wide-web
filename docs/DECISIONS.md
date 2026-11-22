@@ -4105,3 +4105,44 @@ MB-01: a selection shard that snaps from item to item and replaces the amber out
 
 **Revisit if** the boat should become the front (his word), or if a phone finds it too heavy: the lake can be painted
 once and kept still.
+
+## 2026-11-22 — A phone gets no boat and no chat bell; « phone » is the world's own size test
+
+**Context.** Ortis: « remove the boat option from the phone version only », « remove from phone version the option to
+get notified about chats ».
+
+**Decision.** « Phone » means what the world already means by it: `PHONE_MEDIA` in `site/js/world/layout.js` (width
+≤ 760 px or height ≤ 500 px), not a user-agent guess. The way aboard is hidden there by CSS, and `boat/flag.js`
+refuses the boat at load on a phone even from a `?boat=1` link, without remembering it for the tab. The Booth's
+Line side hides the bell and the iPhone hint at the same sizes (`line-admin.js` `phoneSized`). A desktop window
+narrowed after the boat is up keeps it until the next load: a resize is not a reason to pull the scene away.
+Notifications to Ortis's own phone are unaffected: they go through ntfy (`NOTIFICATIONS.md`), not the site.
+
+## 2026-11-22 — His Bandcamp on /playlists: links out, not a player
+
+Bandcamp has embeds per album or track, none for a fan's collection, and the radio already plays what he buys there.
+So the section is four links (collection, Bandcamp playlists, wishlist, artists and labels followed) and the profile
+line, from a `bandcamp` block in `playlists.json`; `bandcampLinks` lets through bandcamp.com and its subdomains only.
+The badge is Bandcamp's teal darkened to `#0e7490`: the brand's own `#1da0c3` puts white at 3:1 and axe refuses it.
+
+## 2026-11-22 — The music found elsewhere on the laptop goes to the normal crates
+
+**Context.** « Make sure all my music in this computer's files is addressed in the website radio. » A scan of the user
+folder outside the library found 424 audio files: 100 already on air, about 210 recordings, interviews, podcasts and
+game sounds, and the rest music that never reached the library.
+
+**Decision.** Filed through the bot, as staged zips with their tags put right (`albums --from … --no-downloads`, then
+`publish`), all in `Crates/Bandcamp`, his « normal crates » pace: the `Desktop\Music\RL` folder (51 chanson, 14
+classical: on the Pi in August, `genre.js` still had its rules, never brought to the laptop's library), four bossa nova
+and four singles from Downloads, two long mixes converted from `.m4a` to MP3 192 kbps, and the Spotify-downloader zip
+« don't even », under the 2026-10-07 rule (« Ortis gets the music however he chooses; everything after the file
+exists is automated »). Five files in Downloads with no name or tag were left for him. Moving a folder into `Less
+often` or `More often` and publishing changes its pace.
+
+## 2026-11-22 — The label sheet is one row per album, with its right label
+
+His sheet of 10/11 had a row per (label, album), so an album the tower split across labels took two rows. The sheet
+of 22/11 has one row per artist and album (long mixes alone), the tower's labels for it in « Labels today (all) », his
+words of 10/11 untouched in « Your label », and a « Right label »: his, else the tower's, else a guess marked sure /
+likely / guess. `streams-from-sheet.mjs` reads both layouts; his eight new labels choose a stream there (Slushwave,
+Bossa nova, Beat tape → Chill; Breakcore, Hyperpop → Energy) though the tower cannot show them yet (BACKLOG W1).
