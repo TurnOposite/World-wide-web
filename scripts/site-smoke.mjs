@@ -334,6 +334,14 @@ try {
   const firstId = onAir[0]?.id;
   check('Playlists: one Spotify player, loaded (not lazy), with every playlist as a card', pl.picks.length >= 50 && pl.iframes.length === 1 && onAir.length === 1 && pl.iframes[0].startsWith(SPOTIFY + firstId) && pl.lazy !== 'lazy' && asked(firstId) && pl.now === onAir[0].title,
     `${pl.picks.length} cards, ${pl.iframes.join()}, asked ${spotifyAsked.length}`);
+  // His Bandcamp under the deck (2026-11-22): links out to bandcamp.com, in a new tab, after the cards.
+  const bcl = await a.evaluate(() => {
+    const s = document.querySelector('#view .bc-links');
+    const deck = document.querySelector('#view .sp-deck');
+    return s && { links: [...s.querySelectorAll('a')].map((x) => ({ href: x.href, blank: x.target === '_blank', safe: /noopener/.test(x.rel) })), after: Boolean(deck && (deck.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING)), head: s.querySelector('h2')?.textContent };
+  });
+  check('Playlists: under the deck, a Bandcamp section links out to his profile and its pages', Boolean(bcl) && bcl.after && bcl.links.length >= 5
+    && bcl.links.every((l) => l.href.startsWith('https://bandcamp.com/turnoposite') && l.blank && l.safe) && /Bandcamp/.test(bcl.head || ''), JSON.stringify(bcl));
   const picked = pl.picks.find((p, i) => i >= 2 && !p.on);
   await a.click(`#view .sp-pick[data-id="${picked.id}"]`);
   // 2026-11-11: this check failed 1 run in 3 on untouched code. It read the page a fixed 800 ms after the click,
@@ -1496,6 +1504,18 @@ try {
   const flewTo = await wm.evaluate(() => ({ path: location.pathname, here: document.querySelector('.w-tag[aria-current="true"]')?.dataset.go }));
   check('world shell on a phone: the tags are one strip that scrolls, nothing overflows, a tap flies', strip.rows === 1 && strip.scrolls && strip.overflow <= 1
     && strip.minimap === 'none' && flewTo.path === '/echo' && flewTo.here === 'une', JSON.stringify({ ...strip, ...flewTo }));
+  // No boat on a phone (Ortis, 2026-11-22: « remove the boat option from the phone version only »): the way aboard is
+  // not shown, and a ?boat=1 link opens the map.
+  const noBoat1 = await wm.evaluate(() => ({ aboard: Boolean(document.querySelector('.w-aboard')), shown: document.querySelector('.w-aboard') ? getComputedStyle(document.querySelector('.w-aboard')).display !== 'none' : false }));
+  const wb = await wm.context().newPage();
+  watch(wb, 'world, phone, ?boat=1');
+  await wb.goto(dev + 'radio?boat=1', { waitUntil: 'domcontentloaded' });
+  await wb.waitForFunction(() => window.radioTower?.world?.current === 'radio', null, { timeout: 10000 }).catch(() => {});
+  const noBoat2 = await wb.evaluate(() => ({ boat: Boolean(document.querySelector('.b-root')), map: Boolean(document.querySelector('.w-root')), kept: (() => { try { return sessionStorage.getItem('gt.boat'); } catch { return 'blocked'; } })() }));
+  await wb.close();
+  await wm.bringToFront();
+  check('…and no boat there: the way aboard is not shown, and a ?boat=1 link opens the map, not remembered',
+    noBoat1.aboard && !noBoat1.shown && !noBoat2.boat && noBoat2.map && noBoat2.kept === null, JSON.stringify({ ...noBoat1, ...noBoat2 }));
   const phoneSkin = await wm.evaluate(() => ({ screen: getComputedStyle(document.querySelector('.w-screen-btn')).display, glass: getComputedStyle(document.querySelector('#w-radio .w-win')).backdropFilter,
     bubbles: window.radioTower.world.bubbles.list.length }));
   check('…the Zone skin on a phone: no « Écran » in the public header (the Booth\'s Lights have its settings), clear glass, half the bubbles', phoneSkin.screen === 'none'
@@ -1916,6 +1936,15 @@ try {
         await new Promise((r) => setTimeout(r, 1500));
         const stopped = await np.evaluate(() => ({ label: document.getElementById('laNotifyText')?.textContent ?? null, sub: Boolean(window.__push.sub) }));
         check('…and the same bell stops it: the tower forgets the subscription, the browser too, and nothing more is sent', stopped.label === 'Notify this device' && !stopped.sub && mine().length === 0, JSON.stringify({ ...stopped, sent: mine().length }));
+        // Not on a phone (Ortis, 2026-11-22: « remove from phone version the option to get notified about chats »):
+        // the same browser at a phone's size, the log read with the same key — no bell, no iPhone hint.
+        await np.setViewportSize({ width: 390, height: 844 });
+        await np.reload({ waitUntil: 'domcontentloaded' });
+        await np.waitForSelector('#bTabs [data-tab="line"]', { timeout: 10000 }).catch(() => {});
+        await np.evaluate(() => document.querySelector('#bTabs [data-tab="line"]')?.click());
+        await np.waitForFunction(() => { const s = document.getElementById('laState')?.textContent || ''; return s && !/^Reading/.test(s); }, null, { timeout: 10000 }).catch(() => {});
+        const small = await np.evaluate(() => ({ state: document.getElementById('laState')?.textContent || null, bell: document.getElementById('laNotify')?.hidden ?? null, ios: document.getElementById('laIos')?.hidden ?? null }));
+        check('…and at a phone\'s size the Line side offers no notifications: no bell, no hint', /message|Nothing/.test(small.state || '') && small.bell === true && small.ios === true, JSON.stringify(small));
         await nctx.close();
         await new Promise((r) => pushService.close(r));
       }

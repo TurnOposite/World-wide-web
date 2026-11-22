@@ -16,7 +16,7 @@ import { initBanner, markHalf } from './ui/banner.js';
 import { ONDES_LABEL } from './labels.js';
 import { atelierWanted, worldWanted } from './world/flag.js';
 import { boatWanted } from './boat/flag.js';
-import { DISTRICTS } from './world/layout.js';
+import { DISTRICTS, PHONE_MEDIA } from './world/layout.js';
 import { DRAFT_KEY, applyPages, mergeDraft, resolveLayout } from './world/model.js';
 import { resolveRef } from './refs.js';
 import { watchRefLinks } from './ui/reflinks.js';
@@ -135,8 +135,9 @@ async function boot() {
   let world = null;
   let session = null;
   try { session = sessionStorage; } catch { /* storage blocked: the flag lasts this page */ }
-  // The boat (docs/BACKLOG.md F1): a parallel front behind ?boat=1, never the default. On, the map stays unloaded.
-  const wantBoat = boatWanted({ search: location.search, storage: session });
+  // The boat (docs/BACKLOG.md F1): a parallel front behind ?boat=1, never the default, never on a phone (2026-11-22).
+  // On, the map stays unloaded.
+  const wantBoat = boatWanted({ search: location.search, storage: session, phone: matchMedia(PHONE_MEDIA).matches });
   const wantWorld = !wantBoat && worldWanted({ config: client.config, search: location.search, storage: session });
 
   // The map (docs/ATELIER.md): site/data/layout.json — where each window stands, and the versions

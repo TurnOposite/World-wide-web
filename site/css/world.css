@@ -490,4 +490,5 @@ body.on-echo .w-badge{visibility:hidden}
 .w-aboard span{display:grid;place-items:center;width:24px;height:24px;background:#c2432d;color:#fff4ea;font:400 14px/1 "Ma Shan Zheng","KaiTi",serif;letter-spacing:0}
 .w-aboard:hover,.w-aboard:focus-visible{background:var(--w-neon-a);color:var(--w-night);outline:none}
 body.on-echo .w-aboard{background:var(--w-paper);color:var(--w-ink);border-color:var(--w-rule)}
-@media (max-width:760px),(max-height:500px){.w-aboard b{display:none}.w-aboard{padding:5px}}
+/* No boat on a phone (Ortis, 2026-11-22): the way aboard is not offered there (boat/flag.js refuses it too). */
+@media (max-width:760px),(max-height:500px){.w-aboard{display:none}}

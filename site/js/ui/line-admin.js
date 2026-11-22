@@ -18,15 +18,21 @@
  * only be accessible to me, so it doesn't have to appear on the antenna »):
  * the bell in the head asks this browser to be told when someone writes —
  * Web Push, behind the same key (ui/push.js). His phone through ntfy is the
- * other way (docs/NOTIFICATIONS.md).
+ * other way (docs/NOTIFICATIONS.md). Not on a phone (Ortis, 2026-11-22:
+ * « remove from phone version the option to get notified about chats »): the
+ * bell and the iPhone hint stay hidden at the phone sizes of world/layout.js.
  *
  * The top of this file is pure (no DOM) so node:test can check it.
  */
 import * as push from './push.js';
 import { castFace } from './cast.js';
+import { PHONE_MEDIA } from '../world/layout.js';
 
 /** How many messages a page of the log holds. */
 export const PAGE = 50;
+
+/** A phone's size, as the world reads it (world/layout.js): no notifications offered there. */
+const phoneSized = () => Boolean(globalThis.matchMedia?.(PHONE_MEDIA).matches);
 
 const PARIS = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' });
 
@@ -208,11 +214,14 @@ export class LineAdmin {
     $('laMore').hidden = this.entries.length >= this.total;
   }
 
-  /** The bell: shown when the tower sends notifications and this browser can receive them; on an iPhone tab, how to. */
+  /**
+   * The bell: shown when the tower sends notifications and this browser can receive them; on an iPhone tab, how to.
+   * Never at a phone's size (2026-11-22): neither the bell nor the hint.
+   */
   _paintNotify() {
     const b = this.$?.('laNotify');
     if (!b) return;
-    const can = push.support();
+    const can = phoneSized() ? 'phone' : push.support();
     const ios = this.$('laIos');
     b.hidden = !this.pushKey || can !== 'ok';
     ios.hidden = !this.pushKey || can !== 'ios-home';

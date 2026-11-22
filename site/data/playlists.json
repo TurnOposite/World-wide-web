@@ -1,6 +1,34 @@
 {
  "intro": "No internet? No problem! Download one of my Spotify playlists and listen on the go!",
  "profile": "https://open.spotify.com/user/o8cvfba151z9uzmex53vzkacl",
+ "bandcamp": {
+  "title": "Sur Bandcamp",
+  "name": "turnoposite",
+  "intro": "Les albums que j’achète sur Bandcamp : beaucoup passent ensuite à la radio.",
+  "profile": "https://bandcamp.com/turnoposite",
+  "links": [
+   {
+    "title": "Ma collection",
+    "url": "https://bandcamp.com/turnoposite",
+    "note": "les albums achetés ou offerts"
+   },
+   {
+    "title": "Mes playlists Bandcamp",
+    "url": "https://bandcamp.com/turnoposite/playlists",
+    "note": "faites dans l’appli Bandcamp"
+   },
+   {
+    "title": "Ma liste d’envies",
+    "url": "https://bandcamp.com/turnoposite/wishlist",
+    "note": "ce qui attend d’être acheté"
+   },
+   {
+    "title": "Artistes et labels suivis",
+    "url": "https://bandcamp.com/turnoposite/following/artists_and_labels",
+    "note": "ceux dont je suis les sorties"
+   }
+  ]
+ },
  "featured": {
   "title": "Greetings",
   "url": "https://open.spotify.com/playlist/0XeQKa4xS4I74EsGKl8GpI",

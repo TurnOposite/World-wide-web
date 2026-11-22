@@ -323,6 +323,21 @@ test('Playlists (Zone): playlists.json is well formed, and every playlist plays 
   assert.equal(new Set(list.map((p) => p.id)).size, list.length, 'each playlist once');
   assert.ok(list.length >= data.playlists.length);
   assert.ok(list.every((p) => p.url === `https://open.spotify.com/playlist/${p.id}`));
+  // His Bandcamp under the deck (2026-11-22): only bandcamp.com links get through, and no block means no section.
+  const { bandcampLinks } = await import('../site/js/ui/spotify-deck.js');
+  const bc = bandcampLinks(data);
+  assert.equal(bc.profile, 'https://bandcamp.com/turnoposite');
+  assert.ok(bc.links.length >= 4 && bc.links.every((l) => l.url.startsWith('https://bandcamp.com/turnoposite')), JSON.stringify(bc.links));
+  assert.equal(bandcampLinks({}), null);
+  assert.equal(bandcampLinks({ bandcamp: { profile: 'javascript:alert(1)', links: [{ url: 'https://evil.example/bandcamp.com' }] } }), null);
+  assert.deepEqual(bandcampLinks({ bandcamp: { links: [{ title: 'x', url: 'https://bandcamp.com.evil.example/' }, { title: 'Label', url: 'https://some-label.bandcamp.com/album/a-b' }] } }).links.map((l) => l.url),
+    ['https://some-label.bandcamp.com/album/a-b']);
+  const { bandcampSection } = await import('../site/js/pages/playlists.js');
+  const html = bandcampSection({ bandcamp: { profile: 'https://bandcamp.com/x', name: '<b>', links: [{ title: '<img onerror=1>', url: 'https://bandcamp.com/x' }] } });
+  assert.doesNotMatch(html, /<img/, 'his words go on the page as text');
+  assert.match(html, /&lt;img onerror=1&gt;/);
+  assert.match(html, /profil &lt;b&gt; sur Bandcamp/);
+  assert.equal(bandcampSection({}), '');
   const { ONDES_LABEL } = await import('../site/js/labels.js');
   assert.equal(ONDES_LABEL, 'Ondes');
 });

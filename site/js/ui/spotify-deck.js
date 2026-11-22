@@ -60,6 +60,26 @@ export function deckList(data) {
   return out;
 }
 
+/** His Bandcamp: the profile and the pages under it, or an artist's or label's own subdomain. Nothing else. */
+const BANDCAMP = /^https:\/\/(?:[a-z0-9-]+\.)?bandcamp\.com(?:\/[A-Za-z0-9_\-/]*)?$/;
+
+/**
+ * The Bandcamp links on /playlists (Ortis, 2026-11-22: « make a link section in the Spotify playlist page to my
+ * Bandcamp »), from the `bandcamp` block of playlists.json: { title, intro, profile, links: [{ title, url, note }] }.
+ * A link that is not on bandcamp.com is dropped; with no profile and no link left, there is no section (null).
+ */
+export function bandcampLinks(data) {
+  const b = data?.bandcamp;
+  if (!b || typeof b !== 'object') return null;
+  const text = (v) => (typeof v === 'string' ? v.trim() : '');
+  const links = (Array.isArray(b.links) ? b.links : [])
+    .filter((l) => BANDCAMP.test(String(l?.url || '')))
+    .map((l) => ({ title: text(l.title) || 'Bandcamp', url: l.url, note: text(l.note) }));
+  const profile = BANDCAMP.test(String(b.profile || '')) ? b.profile : '';
+  if (!profile && !links.length) return null;
+  return { title: text(b.title) || 'Sur Bandcamp', intro: text(b.intro), profile, name: text(b.name), links };
+}
+
 let DATA = null;
 /** site/data/playlists.json, fetched once per visit. */
 export async function loadPlaylists() {

@@ -23,6 +23,15 @@ test('never on by default; on and off by the address, remembered for the tab', (
   assert.equal(boatWanted({ search: '?boat=1', storage: { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); } } }), true, 'storage blocked: this page only');
 });
 
+test('never on a phone (2026-11-22): a ?boat=1 link gets the map there, and the tab does not remember it', () => {
+  const s = store();
+  assert.equal(boatWanted({ search: '?boat=1', storage: s, phone: true }), false);
+  assert.equal(s.getItem('gt.boat'), null, 'nothing kept for the tab');
+  assert.equal(boatWanted({ search: '', storage: s, phone: false }), false, 'widened to a desktop: still the map until asked');
+  boatWanted({ search: '?boat=1', storage: s });
+  assert.equal(boatWanted({ search: '', storage: s, phone: true }), false, 'chosen on a desktop, then narrowed: the map');
+});
+
 test('every route finds its place; every place but the lake opens a page', () => {
   const routes = { radio: 'radio', home: 'radio', playlists: 'playlists', antenna: 'antenna', zone: 'antenna', ondes: 'ondes', booth: 'booth',
     echo: 'echo', articles: 'echo', portfolio: 'echo', atlas: 'echo', lectures: 'echo', missing: 'radio' };
