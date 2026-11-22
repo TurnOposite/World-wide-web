@@ -35,6 +35,9 @@ const trackAlbum = (t) => albumOf(t.artist || 'Unknown artist', t.duration >= LO
 
 const CHILL = { 'Barber Beats': 'barber-beats', Vaporwave: 'vaporwave', Ambient: 'ambient', 'Lo-fi': 'lofi', Jazz: 'jazz' };
 const ENERGY = { 'Atmospheric DnB': 'dnb-jungle', Electronic: 'electronic' };
+// His labels the tower does not have yet (BACKLOG W1): they choose a stream all the same (docs/STREAMS.md).
+const CHILL_TOO = new Set(['Slushwave', 'Bossa nova', 'Beat tape']);
+const ENERGY_TOO = new Set(['Breakcore', 'Hyperpop']);
 
 /** His own words: energy words win, then the first label he typed. */
 function fromHisWords(s) {
@@ -54,10 +57,11 @@ function decide(r) {
     return { stream: /energy/.test(y) ? 'energy' : /focus|easy|chill/.test(y) ? 'chill' : null, why: `his stream « ${r['Your stream']} »` };
   }
   if (r['Your label']) return fromHisWords(String(r['Your label']));
-  const label = r['Label today'] !== 'Unsorted' ? r['Label today'] : r['Suggested label'];
-  if (label in CHILL) return { stream: 'chill', why: `label ${label}` };
-  if (label in ENERGY) return { stream: 'energy', why: `label ${label}` };
-  if (r['Suggested stream'] === 'Focus') return { stream: 'chill', why: 'sheet suggestion Focus' };
+  // The sheet of 2026-11-22 says each row's right label itself, his eight new labels included.
+  const label = r['Right label'] ?? (r['Label today'] !== 'Unsorted' ? r['Label today'] : r['Suggested label']);
+  if (label in CHILL || CHILL_TOO.has(label)) return { stream: 'chill', why: `label ${label}` };
+  if (label in ENERGY || ENERGY_TOO.has(label)) return { stream: 'energy', why: `label ${label}` };
+  if (r['Suggested stream'] === 'Focus' || r['Suggested stream'] === 'Chill') return { stream: 'chill', why: `sheet suggestion ${r['Suggested stream']}` };
   if (r['Suggested stream'] === 'Energy') return { stream: 'energy', why: 'sheet suggestion Energy' };
   return { stream: null, why: label ? `label ${label}` : 'no label' };
 }
@@ -78,7 +82,9 @@ const covered = new Set();
 for (const r of sheet.rows) {
   report.rows++;
   const album = albumOf(r.Artist, r['Album, or the long mix']);
-  let tracks = byRow.get([r['Label today'], album].join(SEP)) || [];
+  // The 2026-11-22 sheet has one row per album whatever the tower's labels (« Labels today (all) »): all of it.
+  let tracks = r['Labels today (all)'] !== undefined ? library.filter((t) => trackAlbum(t) === album && !covered.has(t.id))
+    : byRow.get([r['Label today'], album].join(SEP)) || [];
   // A label the tower's rules changed since the sheet was made: the same artist and album under any label.
   if (!tracks.length) tracks = library.filter((t) => trackAlbum(t) === album && !covered.has(t.id));
   if (!tracks.length) { report.unmatched.push(album); continue; }

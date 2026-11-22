@@ -1938,8 +1938,10 @@ try {
         check('…and the same bell stops it: the tower forgets the subscription, the browser too, and nothing more is sent', stopped.label === 'Notify this device' && !stopped.sub && mine().length === 0, JSON.stringify({ ...stopped, sent: mine().length }));
         // Not on a phone (Ortis, 2026-11-22: « remove from phone version the option to get notified about chats »):
         // the same browser at a phone's size, the log read with the same key — no bell, no iPhone hint.
+        // The key in the address is read once and dropped from it, so the Booth is opened again with it, not reloaded.
         await np.setViewportSize({ width: 390, height: 844 });
-        await np.reload({ waitUntil: 'domcontentloaded' });
+        await np.goto('about:blank');
+        await np.goto(`${dev}booth?tower=${encodeURIComponent(towerUrl)}#key=selftest-key`, { waitUntil: 'domcontentloaded' });
         await np.waitForSelector('#bTabs [data-tab="line"]', { timeout: 10000 }).catch(() => {});
         await np.evaluate(() => document.querySelector('#bTabs [data-tab="line"]')?.click());
         await np.waitForFunction(() => { const s = document.getElementById('laState')?.textContent || ''; return s && !/^Reading/.test(s); }, null, { timeout: 10000 }).catch(() => {});

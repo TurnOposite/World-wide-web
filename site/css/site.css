@@ -825,7 +825,8 @@ h1.echo-name{font-size:clamp(64px,12.5cqw,140px)}
 /* His Bandcamp under the deck (pages/playlists.js, 2026-11-22): links out, in the deck's own cards. */
 .bc-links{margin:34px 0 0;padding-top:20px;border-top:1px solid var(--line)}
 .bc-links h2{display:flex;align-items:center;gap:10px;margin:0;font-size:20px}
-.bc-mark{display:grid;place-items:center;width:26px;height:26px;border-radius:4px;background:#1da0c3;color:#fff;font:700 12px/1 var(--mono);letter-spacing:0}
+/* Bandcamp's teal, darkened until white on it reads at AA (#1da0c3 gives 3:1; this gives 5.4:1). */
+.bc-mark{display:grid;place-items:center;width:26px;height:26px;border-radius:4px;background:#0e7490;color:#fff;font:700 12px/1 var(--mono);letter-spacing:0}
 .bc-intro{margin:8px 0 0;color:var(--text-dim);font-size:14px;max-width:62ch}
 .bc-list{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
 .bc-link{display:flex;flex-direction:column;gap:3px;height:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--bg-glass);color:var(--text);text-decoration:none}
