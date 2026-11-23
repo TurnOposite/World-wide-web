@@ -3609,3 +3609,15 @@ before pushing them, but the rest to do push ».
   up to 10 s (`d8cca24`). `d8cca24` green; GitHub, the site and the tower all on it. GitHub's self-test took longer
   than fire's 25-min wait, and the laptop ran out of GitHub API calls checking it: the last fire was run after the
   limit reset.
+
+## 2026-11-22 (night, later) — the boat froze for a minute after dark
+
+The site smoke failed at the boat's first load on the laptop, every time, from about 21:30 — not on GitHub, which ran
+earlier. Not the zoom (`fbe0b44`): timed with and without it, the same. `?sky=12:00` → ready in 2 s; `?sky=00:30` →
+75 s. A CPU profile put 80 s in `farLights` (scene.js): the warm lights in the mountains looked for rock by reading the
+whole far panorama back (`getImageData` on 11,781 × 1,200 px), 55 s in headless Chrome. Anyone boarding at night on a
+slow machine got the same frozen start. **Fix:** `paintLayer` keeps its `peaks`; `farLights` asks the peaks' own shape
+(`karstProfile`, shared with `karst`) whether a point is inside the rock, same seeds, same tries. Night start 2.3 s.
+Not seen: a screenshot of the night lights (the headless screenshot waits on fonts and timed out); the shape test is the
+formula the karst is drawn with. Left: `silhouette` and `farLights` each make a canvas the panorama's full size
+(≈ 100 MB at this width) — memory on a phone-sized machine; the boat is off on phones.

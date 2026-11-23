@@ -277,11 +277,14 @@ const LAYERS = [
 ];
 const wrap = (a) => ((a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
 
+/** A karst's height across its width, t from -1 to 1 (0 at the summit). */
+const karstProfile = (t, q) => Math.pow(Math.max(0, 1 - Math.pow(Math.abs(t), 2.3)), q);
+
 function karst(g, cx, base, pk, L, r) {
   const { w, h, q, ph } = pk, n = 40;
   g.beginPath(); g.moveTo(cx - w / 2, base);
   for (let i = 0; i <= n; i++) {
-    const t = -1 + 2 * i / n, prof = Math.pow(Math.max(0, 1 - Math.pow(Math.abs(t), 2.3)), q);
+    const t = -1 + 2 * i / n, prof = karstProfile(t, q);
     g.lineTo(cx + t * w / 2, base - h * prof * (1 + 0.035 * Math.sin(t * 9 + ph)));
   }
   g.lineTo(cx + w / 2, base); g.closePath();
@@ -319,7 +322,7 @@ function paintLayer(L, k) {
   g.save(); g.globalCompositeOperation = 'destination-out';
   for (let i = 0; i < 320; i++) { const y = hY + 2 + Math.pow(r(), 1.5) * (Hp - hY), x = r() * Wp; g.globalAlpha = 0.2 + r() * 0.55; g.fillRect(x, y, k * (0.02 + r() * 0.14), 1 + r() * 1.6); }
   g.restore();
-  return { c, Wp, hY, Hp, R: L.R };
+  return { c, Wp, hY, Hp, R: L.R, peaks };
 }
 
 /** A layer's shape in one dark colour, laid over it as the night falls (the karsts sink into the dark, the sky stays). */
@@ -335,11 +338,16 @@ function silhouette(Ly) {
 function farLights(Ly, seed, n) {
   const s = document.createElement('canvas'); s.width = Ly.Wp; s.height = Ly.Hp;
   const g = s.getContext('2d'), r = rng(seed);
-  let alpha = null;
-  try { alpha = Ly.c.getContext('2d').getImageData(0, 0, Ly.Wp, Ly.hY).data; } catch { return s; }
+  // Inside the rock, near its foot: asked of the peaks' own shapes, not read back from the painting. Reading the
+  // painting (getImageData on 11,781 × 1,200 px) took 55 s in headless Chrome and froze the boat's start at night
+  // (2026-11-22: the site smoke failed only after dark).
+  const inside = (x, y) => Ly.peaks.some((pk) => [-Ly.Wp, 0, Ly.Wp].some((off) => {
+    const t = (x - pk.cx - off) / (pk.w / 2);
+    return Math.abs(t) < 1 && y >= Ly.hY - pk.h * karstProfile(t, pk.q) * (1 + 0.035 * Math.sin(t * 9 + pk.ph)) + 2;
+  }));
   for (let tries = 0, put = 0; put < n && tries < n * 60; tries++) {
     const x = Math.floor(r() * Ly.Wp), y = Math.floor(Ly.hY * (0.7 + r() * 0.28));
-    if (alpha[(y * Ly.Wp + x) * 4 + 3] < 250) continue; // inside the rock, near its foot
+    if (!inside(x, y)) continue;
     const rad = 1.3 + r() * 1.5, gr = g.createRadialGradient(x, y, 0, x, y, rad * 2.4);
     gr.addColorStop(0, 'rgba(255,214,150,.7)'); gr.addColorStop(0.3, 'rgba(255,170,90,.22)'); gr.addColorStop(1, 'rgba(255,150,80,0)');
     g.fillStyle = gr; g.fillRect(x - rad * 2.4, y - rad * 2.4, rad * 4.8, rad * 4.8);
