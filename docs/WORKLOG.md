@@ -3675,3 +3675,38 @@ again only if nothing stopped it since (it used to unfreeze the boat while you w
 was cancelled at the job's 30-minute limit with no test run: `apt-get install ffmpeg` took 26 min (the 24.04 image
 rebuilds the manual pages' index after installs). `ci.yml`: man-db's auto-update removed first, ffmpeg without its
 recommends, the step capped at 8 min so a slow mirror fails fast instead of eating the job.
+
+## 2026-11-24 (evening) — Lighter, step 1: GitHub's self-test without Ubuntu's package servers
+
+Ortis: « go over the updates of the last few weeks to see if there isn't a way to simplify the code and the tests so it
+loads faster and the GitHub verification doesn't take that long … gimme a run down of what u plan on rewriting », then
+« Yes, start step 1 ». The rundown is `docs/plans/LIGHTER-2026-11-24.md` (five steps); this is the first.
+
+**Measured first.** The last 50 GitHub runs: a normal one 5–7.5 min, the self-test itself 4.8–6.3 of it; four of the
+last twenty over 20 min, each an install (apt's ffmpeg 12, 16, 26 min; Chromium's packages 3–4), never a test; 12 of
+50 red, of the four read since the annotations one real (the Archive, `aa0831b`) and three timing reads in the site
+smoke. The laptop baseline on `2ca325b`, green: 534 unit (31 s), 43/43 (29 s), 201/201 site (6 min 48 s), 26/26
+Atelier (38 s), 8 min 47 s in all.
+
+**Built** (branch `claude/lighter-2026-11-24`, DECISIONS 2026-11-24):
+- `ci.yml`: the browser stages in the runner's own Google Chrome (`TOWER_BROWSER_EXECUTABLE`), Playwright's Chromium
+  only if the image has none; ffmpeg a static 7.0.2 (eugeneware/ffmpeg-static b6.1.1, URL and sha256 pinned) in the
+  Actions cache, apt only as the fallback, its MP3 encoder checked; the job's permissions down to `contents` and
+  `actions`, read; « What failed » no longer quotes a PASS line whose detail holds a ✗ (every red run's annotations
+  had one).
+- `scripts/ci-scope.mjs`: a push whose files differ from **the last green commit on its branch** only in `docs/`, the
+  root's `*.md` or `control.json` gets the unit tests and no browser (~1 min instead of ~7). Compared with the last green
+  run, not the previous push, so a code push whose run a docs push cancelled is still tested in full; a rename into
+  `docs/` counts as a deletion of code; anything unsettled is a full run, and the workflow takes the short run only on
+  an explicit `full=no`. On this history it would have shortened `3af1425`, `0070c3c`, `650af35` and the like.
+- `tests/ci-scope.test.js` (6): what may skip and what may not; docs after code since the last green commit; the move
+  into docs/; by hand, a pull request, no green run, the API down, an unfetchable commit, no difference; and ci.yml's
+  wiring read as text (only GitHub runs it). Broken on purpose (`--no-renames` dropped), the move test went red.
+- The ffmpeg step's own shell run on the laptop against a stand-in served from a file: the right sum puts it on PATH,
+  a wrong one warns, takes the (stubbed) apt way, and leaves no cache to save.
+
+**Self-test after:** green — 540 unit (the 6 new ones included), 43/43, 201/201 site, 26/26 Atelier. The site stage took 16 min 30 s instead of 6 min 48 s: a real Chrome was open on the laptop from 20:56 (the lesson of 18/11, another Chrome slows a run); every check passed.
+
+**Not proven until GitHub runs it** (the branch is not pushed): the runner's Chrome 157 with the image's fonts instead
+of Playwright's packages could move a layout check by a pixel; the first run downloads ffmpeg (29 MB), the next ones
+should find it in the cache.

@@ -4219,3 +4219,27 @@ flight. Phones keep the flat window.
 **Consequences.** A new painted panorama must use `paper()`, not `getContext('2d')`. A place that shows a page on its
 thing needs a rectangle (`c`, `r`, `u`, `w`, `h`) whose projected size is at least the page's readable size; the smoke
 holds ≥ 18 % of the window.
+
+## 2026-11-24 — GitHub's self-test needs nothing from Ubuntu's package servers; a docs-only push skips the browsers
+
+**Context.** Ortis: « simplify the code and the tests so … the GitHub verification doesn't take that long »
+(`docs/plans/LIGHTER-2026-11-24.md`). Of the last twenty runs, four took 20–30 minutes, and each time it was an install:
+ffmpeg from apt 12, 16 and 26 minutes (the last one cancelled the run before any test), Chromium's system packages
+3–4. The tests themselves take 5–6 minutes. About one commit in six changes only the docs and ran all of it.
+
+**Decision.** (1) The browser stages use the Google Chrome the ubuntu-24.04 image already carries (the laptop has always
+run them on stable Chrome); Playwright's Chromium is installed only if an image comes without it. (2) ffmpeg is
+johnvansickle's static 7.0.2 as eugeneware/ffmpeg-static republishes it (release b6.1.1, on GitHub's release servers),
+pinned by URL and the sha256 GitHub lists, kept in the Actions cache; apt only as the fallback, with a warning. It is a
+binary from a third party, run only on GitHub's runner to make the fixture tones — never on the tower, never shipped. (3)
+`scripts/ci-scope.mjs` gives the short run (the unit tests, no browser) to a push whose files differ **from the last
+green commit on its branch** only in `docs/`, the root's `*.md` or `site/station/control.json`. Against the last green
+run, not the previous push: a code push cancelled by a docs push right after it is still in the difference. The
+workflow takes the short run only on an explicit `full=no`; anything unsettled is the full run.
+
+**Consequences.** Nothing a browser or a `build-test.sh` stage loads may be read from `docs/` or a root `*.md` — if
+that ever changes, `SKIPPABLE` in `ci-scope.mjs` must lose that path (its test lists what may skip). Moving to a new
+ffmpeg build means a new URL, sum and cache key together. The job keeps the name `test` (Vercel's Deployment Checks)
+and the workflow `self-test` (fire, the tower's updater). The job now asks for `contents: read` and `actions: read`
+only. Not proven until it runs on GitHub: the runner's fonts with Chrome instead of Playwright's packages may move a
+layout check by a pixel.
