@@ -278,7 +278,8 @@ export function mountBoat({ router, player = null }) {
     hideBanner();
     place = k; mode = 'room';
     bloomAt(k);
-    setTimeout(() => freeze(false), reduced ? 0 : 120);
+    // Time flows again only if nothing has stopped it since (Stop time pressed in these 120 ms, another flight begun).
+    setTimeout(() => { if (!busy && mode === 'room' && place === k) freeze(false); }, reduced ? 0 : 120);
     if (k === 'lake') { intro.hidden = false; intro.querySelector('.b-aboard').focus({ preventScroll: true }); } else openPanel(k);
     paintDock();
     busy = false;
@@ -302,6 +303,9 @@ export function mountBoat({ router, player = null }) {
     root.classList.add('seated');
     mode = 'choosing'; busy = false;
     showLabels();
+    // A page asked for while the camera rose (2026-11-24: an address changed during this flight was kept and never
+    // flown to, the page's address and the boat's place left apart).
+    if (queued) { const q = queued; queued = null; pick(q); }
   }
   function showLabels() {
     labels.replaceChildren();

@@ -3664,3 +3664,9 @@ same look, and its comments no longer give that reason.
 its racks; a record picked up under the pointer, its card shown; the phone pile. Fixed: the Archive's « no description »
 check counted the Elsewhere line of `aa0831b` (that commit's CI was red on it); the folder tab's count was below AA
 contrast. Not seen: a real phone; the drawer on a slow machine with its 300 covers loading.
+
+**Later that night — a page asked for while time was stopping was lost.** Found by the new on-thing check: Stop time
+pressed in the 120 ms after arriving somewhere (the button still reads « Resume ») sent the camera up again, and a
+page chosen during that flight was queued and never flown to — the address said `/radio`, the boat stayed at the
+phone, its panel shut. `choose()` now flies to what was queued, like `goTo` does; and the 120 ms timer lets time flow
+again only if nothing stopped it since (it used to unfreeze the boat while you were choosing). Site smoke 165/165.
