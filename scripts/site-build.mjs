@@ -104,7 +104,7 @@ export function builtFrom(env = process.env) {
   try { return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() || null; } catch { return null; }
 }
 
-export async function build({ base = process.env.SITE_BASE || '/', repo = process.env.GITHUB_REPOSITORY || '', siteUrl = process.env.SITE_URL || '', tower = process.env.SITE_TOWER ?? null, quiet = false, dist = DIST, shells = true, past = shells } = {}) {
+export async function build({ base = process.env.SITE_BASE || '/', repo = process.env.GITHUB_REPOSITORY || '', siteUrl = process.env.SITE_URL || '', tower = process.env.SITE_TOWER ?? null, quiet = false, dist = DIST } = {}) {
   const DIST = dist;
   base = normaliseBase(base);
   const log = (...a) => { if (!quiet) console.log(...a); };
@@ -138,22 +138,16 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   // The map: the versions of the past it has online, and every page's short link (docs/ATELIER.md).
   const { pages, problems } = resolveLayout(JSON.parse(await fsp.readFile(path.join(DIST, 'data/layout.json'), 'utf8')));
   if (problems.length) throw new Error(`site/data/layout.json: ${problems.join('; ')}`);
-  const shown = past ? pages : pages.filter((p) => p.era !== 'past');
-  // A build without the past (the claude.ai preview) says so in its own copy of the map: no window opens on nothing.
-  if (!past) {
-    const file = JSON.parse(await fsp.readFile(path.join(DIST, 'data/layout.json'), 'utf8'));
-    file.pages = file.pages.map((p) => (p.era === 'past' ? { ...p, status: 'offline' } : p));
-    await fsp.writeFile(path.join(DIST, 'data/layout.json'), JSON.stringify(file, null, 1) + '\n');
-  }
-  if (shells) await fsp.writeFile(path.join(DIST, '404.html'), shell);
+  // (Until 2026-11-25 the claude.ai preview built without the past and without route shells: `past`, `shells`.)
+  const shown = pages;
+  await fsp.writeFile(path.join(DIST, '404.html'), shell);
   const root = siteUrl ? new URL(base.replace(/^\//, ''), siteUrl.endsWith('/') ? siteUrl : `${siteUrl}/`).href : '';
   const bySlug = new Map(echo.map((a) => [`echo/${a.slug}`, a]));
-  for (const r of shells ? routes(texts, echo, shown, clips) : []) {
+  for (const r of routes(texts, echo, shown, clips)) {
     await fsp.mkdir(path.join(DIST, r), { recursive: true });
     const a = bySlug.get(r);
     await fsp.writeFile(path.join(DIST, r, 'index.html'), a ? articleShell(shell, a, { root }) : shell);
   }
-  // A build without route shells (the claude.ai preview) has made no echo/ folder yet.
   await fsp.mkdir(path.join(DIST, 'echo'), { recursive: true });
   await fsp.writeFile(path.join(DIST, 'echo/feed.xml'), atomFeed(echo, { root }));
 

@@ -8,21 +8,9 @@
  * Pages — scripts/site-build.mjs rewrites <base> and writes a copy of the
  * shell at every route so a cold link to /atlas answers 200, not 404.
  *
- * `mode: 'hash'` keeps the page's own URL still and puts the route after a
- * `#/` instead. That is for hosts that serve exactly one page and nothing at
- * /radio — the claude.ai preview (scripts/site-preview.mjs). Links stay the
- * same relative hrefs either way; only where the route is written changes.
+ * (Until 2026-11-25 a `mode: 'hash'` put the route after `#/` for the claude.ai preview, a host serving one page.
+ * It was retired with the preview: archive/claude-preview-2026-11-25/.)
  */
-
-/** The route in a `#/…` fragment, or null when the fragment is not a route (e.g. #view). */
-export function routeFromHash(hash) {
-  const h = String(hash || '');
-  if (h === '' || h === '#') return '';
-  if (!h.startsWith('#/')) return null;
-  let r = h.slice(2);
-  try { r = decodeURIComponent(r); } catch { /* keep it raw */ }
-  return r.replace(/^\/+|\/+$/g, '');
-}
 
 export class Router {
   /**
@@ -30,10 +18,9 @@ export class Router {
    * @param {Array<{pattern: RegExp, load: () => Promise<object>, name: string}>} o.routes
    * @param {(page: object, match: object) => void} o.render
    */
-  constructor({ routes, render, mode = 'history' }) {
+  constructor({ routes, render }) {
     this.routes = routes;
     this.render = render;
-    this.mode = mode === 'hash' ? 'hash' : 'history';
     // The directory the site lives in: '/' at a domain root, '/<repo>/' on
     // github.io, or wherever a host serves index.html from.
     this.basePath = new URL('./', document.baseURI).pathname;
@@ -53,13 +40,12 @@ export class Router {
 
   href(route) {
     const r = route.replace(/^\/+/, '');
-    return this.mode === 'hash' ? `${location.pathname}${location.search}#/${r}` : this.basePath + r;
+    return this.basePath + r;
   }
 
   /** The route being shown. */
   currentRoute() {
-    if (this.mode !== 'hash') return this.routeOf();
-    return routeFromHash(location.hash) ?? this.current?.route ?? '';
+    return this.routeOf();
   }
 
   start() {
@@ -88,26 +74,13 @@ export class Router {
       e.preventDefault();
       this.go(url.pathname + url.search + url.hash);
     });
-    window.addEventListener('popstate', () => {
-      // In hash mode an in-page anchor (#view) also pops: not a new page.
-      if (this.mode === 'hash' && this.current && this.currentRoute() === this.current.route) return;
-      this.resolve({ fromPop: true });
-    });
+    window.addEventListener('popstate', () => this.resolve({ fromPop: true }));
     return this.resolve();
   }
 
   go(to, { replace = false } = {}) {
     // Relative to the site root (<base>), like every link on the site.
     const url = new URL(to, document.baseURI);
-    if (this.mode === 'hash') {
-      const route = this.routeOf(url.pathname);
-      if (this.current && route === this.current.route) {
-        if (url.hash) document.getElementById(url.hash.slice(1))?.scrollIntoView({ behavior: 'smooth' });
-        return Promise.resolve();
-      }
-      history[replace ? 'replaceState' : 'pushState']({}, '', `${location.pathname}${location.search}#/${route}`);
-      return this.resolve();
-    }
     if (url.pathname === location.pathname && url.search === location.search) {
       if (url.hash) document.getElementById(url.hash.slice(1))?.scrollIntoView({ behavior: 'smooth' });
       return Promise.resolve();

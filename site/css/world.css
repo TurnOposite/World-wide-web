@@ -33,7 +33,6 @@
 html.world-on,html.world-on body{height:100%;overflow:hidden}
 /* The classic shell stays in the document, empty since phase 2 (the pages open in their districts), unseen and inert. */
 .world-on body>.masthead,.world-on body>main,.world-on body>.sitefoot{visibility:hidden}
-.world-on .preview-note{position:fixed;z-index:26;left:0;right:0;bottom:calc(var(--mb-h) + 6px);margin:0 auto;text-align:center}
 .world-on body.theatre .w-root{opacity:0;pointer-events:none;transition:opacity .4s}
 /* The world draws its own scan lines (« Écran »); the classic overlay steps aside. */
 .world-on .scanlines{display:none}

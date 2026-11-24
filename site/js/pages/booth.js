@@ -37,9 +37,6 @@ export async function mount(root, ctx) {
   const { client, player, settings, toast } = ctx;
   const gh = client.config.github || {};
   const planeText = () => ({
-    artifact: client.canWrite
-      ? 'Shared preview: changes are saved with this preview on claude.ai, and everyone it is shared with hears them within seconds.'
-      : 'Shared preview, <b>view-only for you</b>: the person who shared it can change the queue.',
     github: `Changes are committed to <b>${esc(gh.owner)}/${esc(gh.repo)}</b> (<code>${esc(gh.controlPath || 'site/station/control.json')}</code>). Every listener picks them up within a minute or two.`,
     local: 'Preview mode: changes are kept <b>in this browser only</b> — open two tabs to see two listeners agree. Nobody else hears them.',
     static: 'This copy of the site has no repository configured, so the music booth is closed. Try it in preview mode, or publish the site from GitHub.',
@@ -278,7 +275,7 @@ export async function mount(root, ctx) {
   paint();
   if (client.planeKind === 'tower' && client.canWrite) { await verify(); paint(); }
 
-  // The preview's shared database can arrive after the booth has drawn.
+  // Where changes go can change after the booth has drawn (a key the tower refuses, a plane that answers late).
   let shownPlane = `${client.planeKind}:${client.canWrite}`;
   const repaintPlane = () => {
     const now = `${client.planeKind}:${client.canWrite}`;
