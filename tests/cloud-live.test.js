@@ -102,3 +102,57 @@ test('no repository in config.json is a warning: the site plays, the booth is re
   assert.equal(levels(rs)['the booth knows its repository'], 'WARN');
   assert.equal(rs.filter((r) => r.level === 'FAIL').length, 0);
 });
+
+/* ------------------------------------------------- the tower (tower mode) --- */
+// The live site is in tower mode since November (config.json): what listeners hear comes from the tower.
+const TOWER = 'https://tower.example';
+function towerWorld({ health = { ok: true, status: 'on_air', tracks: 3312, nowPlayingId: 'cccccccccccc', commit: 'abc1234def' }, healthStatus = 200, cors = '*', stream = { status: 206, cors: '*' }, commit = 'abc1234def', down = false } = {}) {
+  const base = world();
+  const seen = base.seen;
+  const fetchImpl = async (url, opts = {}) => {
+    const u = String(url);
+    if (u.endsWith('config.json') && u.startsWith(SITE)) { seen.push({ url, opts }); return res(200, { github: { owner: 'ortis', repo: 'radio-tower' }, mode: 'tower', tower: { url: `${TOWER}/` }, commit }); }
+    if (u.startsWith(TOWER)) {
+      seen.push({ url, opts });
+      if (down) throw new Error('connect ECONNREFUSED');
+      if (u === `${TOWER}/api/health`) return res(healthStatus, health, cors ? { 'Access-Control-Allow-Origin': cors } : {});
+      if (u === `${TOWER}/api/track/cccccccccccc/stream`) return res(stream.status, '', { 'Content-Type': 'audio/mpeg', ...(stream.cors ? { 'Access-Control-Allow-Origin': stream.cors } : {}) });
+      return res(404);
+    }
+    return base.fetchImpl(url, opts);
+  };
+  return { fetchImpl, seen };
+}
+
+test('tower mode: the tower on the air, answering this site, the track on air streaming, the same commit', async () => {
+  const w = towerWorld();
+  const rs = await liveCheck(SITE, { fetchImpl: w.fetchImpl });
+  assert.deepEqual(rs.filter((r) => r.level !== 'PASS'), []);
+  const l = levels(rs);
+  for (const name of ['the tower is on the air', 'the tower answers this site\'s pages (CORS)', 'the track on air streams to a browser', 'the site and the tower run the same code']) assert.equal(l[name], 'PASS', name);
+  const stream = w.seen.find((s) => String(s.url).endsWith('/stream'));
+  assert.equal(stream.opts.headers.Range, 'bytes=0-1');
+  assert.equal(stream.opts.headers.Origin, ORIGIN, 'asked from the site\'s own origin, as its pages ask');
+  assert.ok(w.seen.every((s) => !s.opts.method || s.opts.method === 'GET'), 'it only ever reads');
+});
+
+test('tower mode: a tower down, or warming up, is a failure that says where to look', async () => {
+  for (const w of [towerWorld({ down: true }), towerWorld({ healthStatus: 503, health: { ok: false, status: 'scanning' } })]) {
+    const r = (await liveCheck(SITE, { fetchImpl: w.fetchImpl })).find((x) => x.name === 'the tower is on the air');
+    assert.equal(r.level, 'FAIL');
+    assert.match(r.fix, /LIVE\.md/);
+  }
+});
+
+test('tower mode: no CORS for this site, a stream that will not play, and two commits each say so', async () => {
+  const l = levels(await liveCheck(SITE, { fetchImpl: towerWorld({ cors: 'https://elsewhere.example', stream: { status: 206, cors: null }, commit: 'fff0000aaa' }).fetchImpl }));
+  assert.equal(l['the tower answers this site\'s pages (CORS)'], 'FAIL');
+  assert.equal(l['the track on air streams to a browser'], 'FAIL');
+  assert.equal(l['the site and the tower run the same code'], 'WARN', 'a push moves the site before fire moves the tower: a warning, not a failure');
+});
+
+test('a site not in tower mode asks no tower anything', async () => {
+  const w = world();
+  const rs = await liveCheck(SITE, { fetchImpl: w.fetchImpl });
+  assert.ok(!rs.some((r) => /tower/.test(r.name)));
+});

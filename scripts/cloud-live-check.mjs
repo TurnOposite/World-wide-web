@@ -1,27 +1,28 @@
 #!/usr/bin/env node
 /**
- * Is the published site actually working? One command, after going live.
+ * Is the published site actually working? One command, from outside.
  *
- *   node scripts/cloud-live-check.mjs https://YOUR-NAME.github.io/radio-tower/
+ *   node scripts/cloud-live-check.mjs                 # the live site (deploy/fire.json's « site »)
+ *   node scripts/cloud-live-check.mjs https://…/      # any copy of it
  *
- * The build container that wrote this site could never reach github.io or
- * static.wixstatic.com, so the two things the self-test cannot prove —
- * the real Pages deploy and the real audio host — are exactly what this
- * checks, from wherever it is run (the laptop, a phone-tethered terminal, a
- * Claude session with network):
+ * What the self-test cannot prove — the real host, the real audio, the real tower — checked from wherever it is
+ * run (the laptop, a phone-tethered terminal, a Claude session with network). Written in October for GitHub Pages;
+ * aimed at the live site (Vercel and the Oracle tower) on 2026-11-25 (LIGHTER step 3, at Ortis's word):
  *
  *   - the page, a deep link, and the link-preview picture;
  *   - config.json names the repository the booth writes to;
  *   - library.json is valid;
  *   - every track's audio answers a byte-range request, as an <audio
  *     crossorigin> element will ask for it, with the CORS header the
- *     visualiser needs — the one thing most likely to go wrong (Wix
- *     bandwidth, hotlink protection);
- *   - control.json, and the GitHub API the booth and listeners read it through.
+ *     visualiser needs (Wix bandwidth, hotlink protection);
+ *   - control.json, and the GitHub API the booth and listeners read it through;
+ *   - in tower mode (the live site): the tower is on the air and answers this site's pages, the track on air
+ *     streams the same way, and the site and the tower run the same commit.
  *
  * Prints PASS / WARN / FAIL with what to do; exits 1 on any FAIL. Changes
  * nothing anywhere: every request is a GET.
  */
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateLibrary } from './cloud-library.mjs';
@@ -66,25 +67,25 @@ export async function liveCheck(siteUrl, { fetchImpl = globalThis.fetch, concurr
   try {
     const res = await get(fetchImpl, root.href);
     html = await res.text();
-    if (!res.ok) add('FAIL', 'the site answers', `HTTP ${res.status}`, 'Settings → Pages → Source: GitHub Actions, then Actions → pages → Run workflow (GO-LIVE step 3).');
+    if (!res.ok) add('FAIL', 'the site answers', `HTTP ${res.status}`, 'Is the last deployment of main ready? Vercel → the project → Deployments (docs/LIVE.md).');
     else add('PASS', 'the site answers', root.href);
   } catch (err) {
-    add('FAIL', 'the site answers', err.message, 'Check the address; a new Pages site can take a few minutes to appear.');
+    add('FAIL', 'the site answers', err.message, 'Check the address (deploy/fire.json names the live site); a new deployment can take a minute.');
     return results;
   }
   const base = html.match(/<base href="([^"]*)">/)?.[1];
   if (base === root.pathname) add('PASS', 'the site knows where it lives', `<base href="${base}">`);
-  else add('FAIL', 'the site knows where it lives', `<base href="${base}"> but the address path is ${root.pathname}`, 'Re-run the pages workflow; it sets the base from the repository name.');
+  else add('FAIL', 'the site knows where it lives', `<base href="${base}"> but the address path is ${root.pathname}`, 'The build sets <base> from SITE_BASE (site-build.mjs): the live site is at a domain root, « / ».');
 
   try {
     const res = await get(fetchImpl, at('atlas'));
     if (res.ok) add('PASS', 'a deep link opens (…/atlas)');
-    else add('FAIL', 'a deep link opens (…/atlas)', `HTTP ${res.status}`, 'The build writes a page at every route; re-run the pages workflow.');
+    else add('FAIL', 'a deep link opens (…/atlas)', `HTTP ${res.status}`, 'The build writes a page at every route (site-build.mjs): redeploy.');
   } catch (err) { add('FAIL', 'a deep link opens (…/atlas)', err.message); }
 
   const og = html.match(/<meta property="og:image" content="([^"]+)">/)?.[1];
   if (!og) add('WARN', 'the link-preview picture', 'no og:image in the page');
-  else if (!/^https?:\/\//.test(og)) add('WARN', 'the link-preview picture', `relative (${og}): chat apps will not show it`, 'The pages workflow passes SITE_URL; re-run it.');
+  else if (!/^https?:\/\//.test(og)) add('WARN', 'the link-preview picture', `relative (${og}): chat apps will not show it`, 'The build needs SITE_URL for an absolute og:image: Vercel → Settings → Environment Variables.');
   else {
     try {
       const res = await get(fetchImpl, og);
@@ -99,7 +100,7 @@ export async function liveCheck(siteUrl, { fetchImpl = globalThis.fetch, concurr
     config = await (await get(fetchImpl, at('config.json'))).json();
     const gh = config.github || {};
     if (gh.owner && gh.repo) add('PASS', 'the booth knows its repository', `${gh.owner}/${gh.repo}`);
-    else add('WARN', 'the booth knows its repository', 'config.json has no github.owner/repo — the booth is read-only', 'Built outside GitHub Actions? The pages workflow fills these in.');
+    else add('WARN', 'the booth knows its repository', 'config.json has no github.owner/repo — the booth is read-only', 'The build fills them from GITHUB_REPOSITORY: Vercel → Settings → Environment Variables.');
   } catch (err) { add('FAIL', 'config.json', err.message); }
 
   // 3. library
@@ -129,7 +130,7 @@ export async function liveCheck(siteUrl, { fetchImpl = globalThis.fetch, concurr
     else {
       const first = dead[0][0];
       add('FAIL', 'every track\'s audio loads in a browser', `${byTrack.size - dead.length}/${byTrack.size} play; e.g. “${first.t.title}”: ${first.why}`,
-        /bandwidth|refused/.test(first.why) ? 'Wix dashboard → Media → usage. GO-LIVE "Bandwidth": add a second source per track (Cloudflare R2).' : 'Check that source URL in site/station/library.json.');
+        /bandwidth|refused/.test(first.why) ? 'Wix dashboard → Media → usage. Add a second source per track (Cloudflare R2), or let the tower serve the audio.' : 'Check that source URL in site/station/library.json.');
     }
   }
 
@@ -149,18 +150,46 @@ export async function liveCheck(siteUrl, { fetchImpl = globalThis.fetch, concurr
       const left = hdr(res, 'X-RateLimit-Remaining');
       if (res.ok) add('PASS', 'listeners can read the queue through GitHub', `${left != null ? `${left} API calls left this hour from here` : 'ok'}`);
       else if (res.status === 404) add('WARN', 'listeners can read the queue through GitHub', '404 — the repository is private, or the file is missing', 'A private repo still works, but listeners only hear a reorder after each redeploy (1–2 min). Make it public for live changes.');
-      else if (res.status === 403 || res.status === 429) add('WARN', 'listeners can read the queue through GitHub', `${res.status} — rate limited from this network`, 'Normal on a busy network: listeners fall back to the Pages copy.');
+      else if (res.status === 403 || res.status === 429) add('WARN', 'listeners can read the queue through GitHub', `${res.status} — rate limited from this network`, 'Normal on a busy network: listeners fall back to the copy the site serves.');
       else add('WARN', 'listeners can read the queue through GitHub', `HTTP ${res.status}`);
     } catch (err) { add('WARN', 'listeners can read the queue through GitHub', err.message); }
+  }
+  // 6. the tower — what a listener actually hears when config.json says « tower », as the live site does: the
+  // programme and the audio come from there, not from the site's own library (which stays the in-browser fallback).
+  if (config.mode === 'tower' && config.tower?.url) {
+    const tower = String(config.tower.url).replace(/\/$/, '');
+    const fix = 'The tower: docs/LIVE.md (ssh in, then systemctl status radio-tower).';
+    let health = null;
+    try {
+      const res = await get(fetchImpl, `${tower}/api/health`, { Origin: origin });
+      health = await res.json().catch(() => null);
+      if (res.ok && health?.ok) add('PASS', 'the tower is on the air', `${tower} — ${health.tracks} tracks`);
+      else add('FAIL', 'the tower is on the air', `HTTP ${res.status}${health?.status ? `, ${health.status}` : ''}`, fix);
+      const acao = hdr(res, 'Access-Control-Allow-Origin');
+      if (acao === '*' || acao === origin) add('PASS', 'the tower answers this site\'s pages (CORS)', acao);
+      else add('FAIL', 'the tower answers this site\'s pages (CORS)', `no Access-Control-Allow-Origin for ${origin}`, 'The browser will refuse every answer: server/index.js sets the header on /api.');
+    } catch (err) { add('FAIL', 'the tower is on the air', err.message, fix); }
+    if (health?.nowPlayingId) {
+      const a = await checkAudio(fetchImpl, `${tower}/api/track/${encodeURIComponent(health.nowPlayingId)}/stream`, origin);
+      add(a.ok ? (a.warn ? 'WARN' : 'PASS') : 'FAIL', 'the track on air streams to a browser', a.ok ? (a.warn || `track ${health.nowPlayingId}`) : a.why, a.ok ? '' : fix);
+    }
+    if (config.commit && health?.commit) {
+      if (config.commit === health.commit) add('PASS', 'the site and the tower run the same code', config.commit.slice(0, 7));
+      else add('WARN', 'the site and the tower run the same code', `site ${config.commit.slice(0, 7)}, tower ${health.commit.slice(0, 7)}`, '`fire` (docs/ATELIER.md) brings both to main; a push alone moves only the site.');
+    }
   }
   return results;
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isMain) {
-  const url = process.argv[2];
+  // No address: the live site, as deploy/fire.json names it (the address fire publishes to).
+  let url = process.argv[2];
+  if (!url) {
+    try { url = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../deploy/fire.json'), 'utf8')).site; } catch { /* below */ }
+  }
   if (!url || !/^https?:\/\//.test(url)) {
-    console.log('Usage: node scripts/cloud-live-check.mjs https://YOUR-NAME.github.io/radio-tower/');
+    console.log('Usage: node scripts/cloud-live-check.mjs [https://the-site/]   (no address: deploy/fire.json\'s site)');
     process.exit(2);
   }
   console.log(`Checking ${url}\n`);
