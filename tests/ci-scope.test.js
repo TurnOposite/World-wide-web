@@ -12,7 +12,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { docsOnly, decide } from '../scripts/ci-scope.mjs';
+import { docsOnly, decide, gate } from '../scripts/ci-scope.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -106,15 +106,58 @@ test('whatever cannot be settled is a full run: by hand, a pull request, no gree
 // The short run only on an explicit « full=no »: a scope step that answered nothing must give the full run.
 test('ci.yml: the browsers and the self-test unless told « short », the unit tests then, and the check still named test', () => {
   const ci = fs.readFileSync(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8');
-  const step = (name) => {
-    const at = ci.indexOf(`- name: ${name}`);
+  const setup = fs.readFileSync(path.join(ROOT, '.github/actions/tower-setup/action.yml'), 'utf8');
+  const stepOf = (text, indent) => (name) => {
+    const at = text.indexOf(`- name: ${name}`);
     assert.ok(at > 0, name);
-    return ci.slice(at, ci.indexOf('\n      - ', at + 1));
+    const end = text.indexOf(`\n${indent}- `, at + 1);
+    return text.slice(at, end < 0 ? undefined : end);
   };
+  const step = stepOf(ci, '      ');
+  const setupStep = stepOf(setup, '    ');
   assert.match(ci, /^ {2}test:$/m, 'the job Vercel\'s Deployment Checks wait for');
   assert.match(step('What changed'), /id: scope[\s\S]*node scripts\/ci-scope\.mjs/);
-  for (const name of ['A browser for the browser stages', 'Self-test']) assert.match(step(name), /if: steps\.scope\.outputs\.full != 'no'\n/, name);
-  assert.match(step('Unit tests (a docs-only push)'), /if: steps\.scope\.outputs\.full == 'no'\n[\s\S]*npm test/);
-  assert.match(step('ffmpeg (fixture audio for the live stages)'), /SHA256: [0-9a-f]{64}\n[\s\S]*sha256sum -c/, 'the static build is checked against its sum');
-  assert.doesNotMatch(ci, /^\s*-?\s*run: npx playwright install/m, 'Playwright\'s download only as the fallback');
+  assert.match(ci, /^ {6}full: \$\{\{ steps\.scope\.outputs\.full \}\}$/m, 'the scope job hands its answer on');
+  assert.match(step('Self-test'), /if: needs\.scope\.outputs\.full != 'no'\n/);
+  assert.match(ci, /browser: \$\{\{ needs\.scope\.outputs\.full != 'no' \}\}/, 'the self-test job finds a browser unless told « short »');
+  assert.match(setupStep('A browser for the browser stages'), /if: inputs\.browser == 'true'\n/);
+  assert.match(step('Unit tests (a docs-only push)'), /if: needs\.scope\.outputs\.full == 'no'\n[\s\S]*npm test/);
+  assert.match(setupStep('ffmpeg (fixture audio for the live stages)'), /SHA256: [0-9a-f]{64}\n[\s\S]*sha256sum -c/, 'the static build is checked against its sum');
+  for (const text of [ci, setup]) assert.doesNotMatch(text, /^\s*-?\s*run: npx playwright install/m, 'Playwright\'s download only as the fallback');
+});
+
+// The site smoke's parts (scripts/site-smoke.mjs) are split between the self-test job and the site job's matrix:
+// each must run in exactly one, or a part added later would silently run nowhere on GitHub.
+test('ci.yml: every part of the site smoke runs on GitHub, once, and the `test` job is the verdict of all', () => {
+  const ci = fs.readFileSync(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8');
+  const smoke = fs.readFileSync(path.join(ROOT, 'scripts/site-smoke.mjs'), 'utf8');
+  const parts = /export const PARTS = \[([^\]]*)\]/.exec(smoke)[1].match(/'[^']+'/g).map((s) => s.slice(1, -1));
+  const inSelfTest = /SITE_SMOKE_ONLY: ([\w,]+)/.exec(ci)[1].split(',');
+  const inMatrix = /part: \[([^\]]*)\]/.exec(ci)[1].split(',').map((s) => s.trim());
+  assert.deepEqual([...inSelfTest, ...inMatrix].sort(), [...parts].sort());
+  assert.ok(inSelfTest.includes('tower'), 'tower mode needs the live server only the self-test starts');
+  assert.match(ci, /^ {2}site:\n {4}needs: scope\n {4}if: needs\.scope\.outputs\.full != 'no'\n/m);
+  assert.match(ci, /--only \$\{\{ matrix\.part \}\}/);
+  const gateJob = ci.slice(ci.indexOf('\n  test:\n'));
+  assert.match(gateJob, /needs: \[scope, self-test, site\]\n {4}if: always\(\)\n/, 'it reports even when a job it waits for did not run');
+  assert.match(gateJob, /NEEDS: \$\{\{ toJSON\(needs\) \}\}\n\s+run: node scripts\/ci-scope\.mjs --gate/);
+});
+
+test('the `test` job: green only when every job is, the site skipped only on a run scope called short', () => {
+  const ok = (r) => ({ result: r });
+  const needs = (scope, self, site, full = 'yes') => ({ scope: { result: scope, outputs: { full } }, 'self-test': ok(self), site: ok(site) });
+  for (const [n, want] of [
+    [needs('success', 'success', 'success'), true],
+    [needs('success', 'success', 'skipped', 'no'), true],
+    [needs('success', 'success', 'success', 'no'), true],
+    [needs('success', 'success', 'skipped'), false], // a full run whose site parts never ran
+    [needs('success', 'success', 'skipped', ''), false], // scope answered nothing: that is a full run
+    [needs('success', 'success', 'failure'), false],
+    [needs('success', 'success', 'cancelled'), false],
+    [needs('success', 'failure', 'success'), false],
+    [needs('success', 'skipped', 'success'), false],
+    [needs('failure', 'skipped', 'skipped', 'no'), false],
+    [{}, false],
+  ]) assert.equal(gate(n).ok, want, JSON.stringify(n));
+  assert.match(gate(needs('success', 'success', 'failure')).why, /site smoke: failure/);
 });

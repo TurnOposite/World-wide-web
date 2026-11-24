@@ -16,6 +16,7 @@
  *
  *   node scripts/ci-scope.mjs                  # in CI (GITHUB_*, GH_TOKEN): writes full=yes|no to $GITHUB_OUTPUT
  *   node scripts/ci-scope.mjs --against <sha>  # here: what a push of HEAD would get, the last green being <sha>
+ *   node scripts/ci-scope.mjs --gate           # the `test` job: NEEDS='<toJSON(needs)>', exits 1 unless all is green
  */
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -72,7 +73,31 @@ export async function decide({ event, repo, branch, token, against = null, cwd =
   return { full: true, why: `code changed since the last green commit ${base.slice(0, 7)}`, files };
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+/**
+ * The `test` job's verdict (ci.yml, step 2 of the plan): green only when every job it stands for is. `needs` is
+ * GitHub's own `toJSON(needs)`: { scope, 'self-test', site } with their `result` and the scope's `outputs.full`.
+ * The site's parts may be skipped only on a short run that scope asked for in so many words; a part that was
+ * cancelled, skipped on a full run or never reported is red. Pure.
+ */
+export function gate(needs = {}) {
+  const result = (job) => needs[job]?.result || 'missing';
+  if (result('scope') !== 'success') return { ok: false, why: `the scope job: ${result('scope')}` };
+  if (result('self-test') !== 'success') return { ok: false, why: `the self-test: ${result('self-test')}` };
+  const short = needs.scope.outputs?.full === 'no';
+  const site = result('site');
+  if (site === 'success') return { ok: true, why: 'the self-test and every part of the site smoke passed' };
+  if (short && site === 'skipped') return { ok: true, why: 'a short run (docs only): the unit tests passed' };
+  return { ok: false, why: `the site smoke: ${site}${short ? '' : ' on a full run'}` };
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1] && process.argv.includes('--gate')) {
+  let needs;
+  try { needs = JSON.parse(process.env.NEEDS || '{}'); } catch { needs = {}; }
+  const g = gate(needs);
+  console.log(`${g.ok ? 'Green' : 'Red'}: ${g.why}.`);
+  if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${g.ok ? 'Green' : 'Red'}: ${g.why}.\n`);
+  process.exit(g.ok ? 0 : 1);
+} else if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const i = process.argv.indexOf('--against');
   const local = i > 0;
   const env = process.env;

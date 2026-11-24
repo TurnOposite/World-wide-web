@@ -1,0 +1,79 @@
+# What every job of the self-test needs before its tests: Node, the packages, ffmpeg for the fixture audio, and
+# (unless told not to) a browser. One copy for the jobs of .github/workflows/ci.yml (2026-11-24, LIGHTER step 2).
+#
+# Step 1 of docs/plans/LIGHTER-2026-11-24.md: no step depends on Ubuntu's package servers. Four of the twenty runs
+# before it took 20–30 minutes, and every time it was an install (ffmpeg from apt 12, 16 and 26 minutes; Chromium's
+# system packages 3–4), never a test. Each keeps its old way as a fallback, with a warning.
+name: tower setup
+description: Node 22, npm ci, a pinned static ffmpeg from the cache, and the runner's own Chrome
+inputs:
+  browser:
+    description: "'true' to find (or fetch) a browser for the browser stages"
+    default: 'true'
+runs:
+  using: composite
+  steps:
+    # v5: the first versions on Node 24 (GitHub retired Node 20 for actions).
+    - uses: actions/setup-node@v5
+      with:
+        node-version: 22
+        cache: npm
+
+    - name: Install
+      shell: bash
+      run: npm ci --no-audit --no-fund
+
+    # ffmpeg makes the test station's fixture audio. Not from apt: on 2026-11-24 apt took 26 of the job's 30 minutes
+    # and the run was cancelled before any test. This is johnvansickle's static ffmpeg 7.0.2 as eugeneware/ffmpeg-static
+    # republishes it (release b6.1.1) on GitHub's own release servers, checked against the sha256 GitHub lists for
+    # it, and kept in the Actions cache, so most runs download nothing.
+    - name: ffmpeg from the cache
+      uses: actions/cache@v5
+      with:
+        path: ~/.cache/ffmpeg-static
+        key: ffmpeg-static-b6.1.1-linux-x64
+
+    # A composite action's step has no timeout-minutes: the download has --max-time, apt has `timeout`.
+    - name: ffmpeg (fixture audio for the live stages)
+      shell: bash
+      env:
+        URL: https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/ffmpeg-linux-x64.gz
+        SHA256: bfe8a8fc511530457b528c48d77b5737527b504a3797a9bc4866aeca69c2dffa
+      run: |
+        set -euo pipefail
+        dir="$HOME/.cache/ffmpeg-static"
+        if [ ! -x "$dir/ffmpeg" ]; then
+          mkdir -p "$dir"
+          if curl -fsSL --retry 3 --max-time 180 "$URL" -o "$dir/ffmpeg.gz" && echo "$SHA256  $dir/ffmpeg.gz" | sha256sum -c --status; then
+            gunzip -f "$dir/ffmpeg.gz" && chmod +x "$dir/ffmpeg"
+          else
+            echo "::warning title=ffmpeg::the static build could not be fetched or did not match its checksum: apt instead"
+            # Gone, so the cache saves nothing under this key and the next run tries the download again.
+            rm -rf "$dir"
+            sudo rm -f /var/lib/man-db/auto-update
+            sudo timeout 480 apt-get update -qq && sudo timeout 480 apt-get install -y -qq --no-install-recommends ffmpeg
+            ffmpeg -hide_banner -version | sed -n 1p
+            exit 0
+          fi
+        fi
+        # The fixtures are MP3s: a build without the encoder would fail every live stage further down, less clearly.
+        # Read from a file, not a pipe into grep -q: under pipefail, grep leaving early can fail a good ffmpeg.
+        "$dir/ffmpeg" -hide_banner -encoders > "$RUNNER_TEMP/encoders.txt" 2>/dev/null
+        grep -q libmp3lame "$RUNNER_TEMP/encoders.txt" || { echo "::error title=ffmpeg::this build cannot write MP3"; exit 1; }
+        echo "$dir" >> "$GITHUB_PATH"
+        "$dir/ffmpeg" -hide_banner -version | sed -n 1p
+
+    # The browser stages run in the Google Chrome the runner image already has (Chrome 157 on ubuntu-24.04 in
+    # November 2026), as they do on the laptop: no Playwright download, no apt for its system packages. An image
+    # without it gets Playwright's own Chromium, as before.
+    - name: A browser for the browser stages
+      if: inputs.browser == 'true'
+      shell: bash
+      run: |
+        if exe="$(command -v google-chrome || command -v google-chrome-stable)"; then
+          echo "TOWER_BROWSER_EXECUTABLE=$exe" >> "$GITHUB_ENV"
+          "$exe" --version
+        else
+          echo "::warning title=browser::no Google Chrome on this runner image: Playwright's Chromium instead"
+          npx playwright install --with-deps chromium
+        fi

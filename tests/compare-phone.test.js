@@ -20,7 +20,7 @@ import { ROUTES, VIEWPORTS, MIN_TEXT_PX, parseArgs, fileOf, flagsFor, reportHtml
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 test('every address the site smoke\'s phone pass visits, at 1440×900, 390×844 and 375×667', () => {
-  const smoke = fs.readFileSync(path.join(ROOT, 'scripts/site-smoke.mjs'), 'utf8');
+  const smoke = fs.readFileSync(path.join(ROOT, 'scripts/smoke/phone.mjs'), 'utf8');
   const list = /const PHONE_ROUTES = \[([\s\S]*?)\];/.exec(smoke)[1].match(/'[^']*'/g).map((s) => s.slice(1, -1));
   assert.deepEqual([...ROUTES].sort(), [...list].sort(), 'a route added to the phone pass is added here too');
   assert.deepEqual(VIEWPORTS.map((v) => [v.id, v.width, v.height, v.mobile]), [['desktop', 1440, 900, false], ['phone', 390, 844, true], ['small', 375, 667, true]]);

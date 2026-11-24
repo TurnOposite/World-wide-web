@@ -353,6 +353,8 @@ for chk in "site-sync.mjs --check" "site-texts.mjs --check" "site-collections.mj
   if OUT="$(node scripts/$chk 2>&1)"; then ok "$(tail -1 <<<"$OUT" | sed 's/^ *✓ *//')"; else bad "$(tail -1 <<<"$OUT" | sed 's/^ *✗ *//')"; fi
 done
 if [[ $DO_BROWSER -eq 1 ]] && node -e "import('playwright').then(()=>process.exit(0)).catch(()=>process.exit(1))" 2>/dev/null; then
+  # On GitHub the parts that need no live server run in jobs of their own (ci.yml); here, unset, all of them run.
+  [[ -n "${SITE_SMOKE_ONLY:-}" ]] && info "site smoke: only $SITE_SMOKE_ONLY (SITE_SMOKE_ONLY; the other parts run elsewhere)"
   if TOWER_PUSH_STUB="http://127.0.0.1:$PUSH_STUB_PORT" node scripts/site-smoke.mjs "http://127.0.0.1:$PORT" 2>&1 | sed 's/^/  /'; then
     ok "the site plays, syncs, reorders and renders in a real browser"
   else

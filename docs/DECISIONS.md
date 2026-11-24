@@ -4243,3 +4243,35 @@ ffmpeg build means a new URL, sum and cache key together. The job keeps the name
 and the workflow `self-test` (fire, the tower's updater). The job now asks for `contents: read` and `actions: read`
 only. Not proven until it runs on GitHub: the runner's fonts with Chrome instead of Playwright's packages may move a
 layout check by a pixel.
+
+## 2026-11-24 — The site smoke in five parts that share nothing, run side by side on GitHub; `test` is a verdict job
+
+Lighter, step 2 (docs/plans/LIGHTER-2026-11-24.md). The site smoke was three quarters of every run (6 min 48 s of
+8 min 47 s on the laptop) and one 2 300-line file in which any check could, in principle, lean on a value an earlier
+one made. It is now `scripts/smoke/{classic,world,phone,dist,tower}.mjs`, each `export default async function (h)`
+over one harness (`scripts/smoke/harness.mjs`: the fixtures, the dev server, the browser with Spotify stubbed, `check`),
+and `scripts/site-smoke.mjs` runs them — all, in that order, by default; `--only a,b` or `SITE_SMOKE_ONLY=a,b` some.
+
+**Why these five, and why it is safe to run them apart.** The cut follows what each part reads, measured on the parse
+tree (acorn, with inner scopes resolved), not by eye: across the five, no part reads a name another part declared,
+except two accessibility checks that gathered findings from two places — the world shell's axe (laptop addresses and the
+phone) and the phone pass's axe (every page and the unlocked booth). Each became two checks, each in the part whose
+pages it reads, with the same pages under axe: 201 checks became 203, none weaker. The part files were written by a
+script from the old file's own lines, so no check's text was retyped.
+
+**On GitHub** (ci.yml): `scope` (ci-scope.mjs) → `self-test` (build-test.sh with `SITE_SMOKE_ONLY=dist,tower`: the
+parts that need its live server) and `site` (a matrix: `classic`, `world`, `phone`, each `--only`) side by side → `test`,
+which keeps the name Vercel's Deployment Checks wait for and is a verdict: `ci-scope.mjs --gate` over `toJSON(needs)`,
+`if: always()`, green only when every job is, the site's parts skipped only on a short run scope asked for in so many
+words (`gate()`, a table of cases in tests/ci-scope.test.js). The workflow's conclusion — what fire.mjs and the tower's
+update.sh read — is red whenever a job is. A test reads ci.yml and site-smoke.mjs's `PARTS` and fails unless every part
+runs in exactly one job. Setup is one local composite action (`.github/actions/tower-setup`) and the failure annotations
+another (`what-failed`); a composite step has no `timeout-minutes`, so apt's fallback has `timeout 480`.
+
+**A part that throws** is one failure, `site smoke ran to completion (<part>)`, and the next part still runs (before, a
+throw ended the smoke). Each part prints its count and time.
+
+**Not done, on purpose:** the parts run one after another on the laptop, not two or three at once as the plan said.
+The laptop's Chrome is its bottleneck (a second Chrome open slows a run by minutes), and most red runs this month were
+timing reads in this very smoke; three pages fighting for one CPU would make more of them. `--only` is there for
+whoever wants one part. Revisit if a laptop run ever matters more than GitHub's.

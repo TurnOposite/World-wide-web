@@ -1,0 +1,22 @@
+# What failed, where anyone can read it without signing in: as annotations on the run (the public API lists them)
+# and on the run's summary page. The log itself needs a GitHub login (BACKLOG B5, 2026-11-17).
+# Only lines that start with a failure mark: a passing check whose detail quotes a ✗ is not one (2026-11-24).
+# Each job of ci.yml calls it with `if: failure()`, its output in selftest.log.
+name: what failed
+description: The failure lines of selftest.log as annotations and on the summary page
+inputs:
+  title:
+    description: the annotations' title, so the parts can be told apart
+    default: self-test
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        TITLE: ${{ inputs.title }}
+      run: |
+        # A job that failed in its setup has no log: say so rather than fail here too.
+        [ -f selftest.log ] || echo "FAIL  the job stopped before its tests (see its set-up steps)" > selftest.log
+        tr -d "\033" < selftest.log | sed "s/\[[0-9;]*m//g" | grep -E "^ *(FAIL|not ok|✖|✗)" | head -20 > failed.txt || true
+        while IFS= read -r line; do echo "::error title=$TITLE::$(printf '%s' "$line" | cut -c1-900)"; done < failed.txt
+        { echo "### What failed ($TITLE)"; echo; echo '```'; cat failed.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

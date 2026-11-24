@@ -112,6 +112,10 @@ cannot change it without colliding. **Proposal:** one file per room (`radio`, `a
 `phone`, `tower`) sharing one browser, one fixture tower and the `check()` reporter, run in a row by
 `build-test.sh`. Same checks, readable failures, a crash costs one room.
 
+**Done 2026-11-24** (LIGHTER step 2, DECISIONS 2026-11-24), cut by what the checks read rather than by room: five parts,
+`scripts/smoke/{classic,world,phone,dist,tower}.mjs`, over `scripts/smoke/harness.mjs`; `site-smoke.mjs` runs them
+(`--only` some). A part that throws costs that part. On GitHub `classic`, `world` and `phone` run in jobs of their own.
+
 ## 5. Make red mean red
 
 - **« phone on its side (844×390) »** is red on every Windows run by 0.125 px (the mini-player's edge, tolerance

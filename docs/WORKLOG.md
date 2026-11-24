@@ -3721,3 +3721,33 @@ one. Still unseen: a run that finds ffmpeg in the cache, and the short run of a 
 only `docs/WORKLOG.md` since the last green commit `99e7c65`; ffmpeg restored from the cache in 2 s (nothing to save
 after); the browser and the self-test skipped; `npm test` 6 s (Linux runs the files in parallel; the laptop takes 31).
 Step 1 is proven on GitHub end to end. The run's log needs a GitHub sign-in, so the test count was not read from it.
+
+## 2026-11-24 (night) — Lighter, step 2: the site smoke in five parts, side by side on GitHub
+
+Ortis: « Yes, start step 2 ». DECISIONS 2026-11-24 (« The site smoke in five parts… ») says why each choice.
+
+**Measured first.** What each of the old file's sections reads from another, on the parse tree (acorn with inner
+scopes resolved; a regex found dozens of false crossings, all shadowed locals): nothing, across five groups, but two axe
+checks that gathered findings from two places. Those are the seams.
+
+**Built** (branch `claude/lighter-2026-11-24`):
+- `scripts/smoke/harness.mjs` (fixtures, dev server, browser with Spotify stubbed, `check`, axe, the témoin) and five
+  parts, `classic` (A, B, the booth, the rooms), `world` (laptop, boat, caption, print, still), `phone`, `dist`,
+  `tower`, written by a script from the old lines. `scripts/site-smoke.mjs` is the runner: all parts in a row, or
+  `--only a,b` / `SITE_SMOKE_ONLY`; a part that throws is one failure and the next still runs; each prints its count
+  and time. The one file-relative import that moved (`tower`'s webpush) failed the first run and was fixed.
+- The two gathered axe checks are two checks each (the booth's in `classic`, the world shell's phone in `phone`).
+- `ci.yml`: `scope` → `self-test` (build-test.sh, `SITE_SMOKE_ONLY=dist,tower`, the parts that need its server) and
+  `site` (matrix `classic`, `world`, `phone`) side by side → `test`, the verdict Vercel waits for (`ci-scope.mjs --gate`
+  over `toJSON(needs)`, `if: always()`). Setup in `.github/actions/tower-setup`, the annotations in `what-failed`.
+  `build-test.sh` says when it runs only some parts.
+- `tests/ci-scope.test.js` (8): the wiring read again, every part of the smoke in exactly one job, the gate's table
+  (11 cases: a full run with its parts skipped, cancelled or missing is red). Broken on purpose: `phone` out of the
+  matrix → red; the gate's `if: always()` → red. `tests/compare-phone.test.js` reads the phone routes from `phone.mjs`.
+
+**Self-test after** (laptop): green, 542 unit, 43/43, **203/203** site, 26/26 Atelier, 9 min 51 s. Against the run
+before the split, the site stage's check names: 199 identical, the two gathered axe checks now four. Part times:
+classic 78 s, world 149 s, phone 103 s (242 s in the first run, with the tower failing), dist 8 s, tower 42 s.
+
+**Not proven until GitHub runs it** (not pushed): the workflow's YAML (no parser here), the composite actions, the
+matrix and the gate; the wall clock should be the longest job's, about 3 minutes.
