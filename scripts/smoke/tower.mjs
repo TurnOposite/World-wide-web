@@ -112,9 +112,9 @@ export default async function tower({ towerUrl, check, dev, browser, errors, wat
     // says something, and it is on the tower's line for everyone; what a stranger types stays text; and the browser
     // keeps who they are only when asked.
     await t.evaluate(() => { try { localStorage.removeItem('gt.telegraph.me'); } catch { /* nothing kept */ } window.radioTower.router.go('antenna'); });
-    await t.waitForSelector('#view .tg-join', { timeout: 8000 }).catch(() => {});
+    await t.waitForSelector('.w-box > .page .tg-join', { timeout: 8000 }).catch(() => {});
     const bank = await t.evaluate(async () => (await (await fetch(new URL('data/telegraph.json', document.baseURI))).json()).icons?.length || 0);
-    await t.click('#view .tg-join').catch(() => {});
+    await t.click('.w-box > .page .tg-join').catch(() => {});
     await t.waitForSelector('#tgName', { timeout: 4000 }).catch(() => {});
     const form = await t.evaluate(() => ({ picks: document.querySelectorAll('.cast-strip .cast-thumb').length, step: document.querySelector('.cast')?.dataset.step, keep: document.getElementById('tgKeep')?.checked, focus: document.activeElement?.id }));
     check('the telegraph line: joining asks for a name and a character — the cast, then the bank\'s pictures — and « remember me » starts unticked', bank >= 1 && form.picks === CAST.length + bank && form.step === 'who' && form.keep === false && form.focus === 'tgName', JSON.stringify({ bank, cast: CAST.length, ...form }));
@@ -216,7 +216,7 @@ export default async function tower({ towerUrl, check, dev, browser, errors, wat
         const np = await nctx.newPage();
         watch(np, 'tower, notifications');
         await np.goto(`${dev}antenna?tower=${encodeURIComponent(towerUrl)}`, { waitUntil: 'domcontentloaded' });
-        await np.waitForSelector('#view .tg-join', { timeout: 10000 }).catch(() => {});
+        await np.waitForSelector('.w-box > .page .tg-join', { timeout: 10000 }).catch(() => {});
         const antennaHas = await np.evaluate(() => ({ bell: Boolean(document.querySelector('#tgNotify, #laNotify')), words: /tell me when someone writes|notify this device/i.test(document.getElementById('view')?.textContent || '') }));
         check('the Antenna offers listeners no notifications: they are the station\'s', !antennaHas.bell && !antennaHas.words, JSON.stringify(antennaHas));
         await np.goto(`${dev}booth?tower=${encodeURIComponent(towerUrl)}#key=selftest-key`, { waitUntil: 'domcontentloaded' });
