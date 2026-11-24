@@ -35,8 +35,13 @@ jobs:
       - name: Install
         run: npm ci --no-audit --no-fund
 
+      # 2026-11-24: this step took 26 of the job's 30 minutes and the run was cancelled before any test. On the 24.04
+      # images apt rebuilds the manual pages' index after each install; ffmpeg's recommends add many more packages.
       - name: ffmpeg (fixture audio for the live stages)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+        timeout-minutes: 8
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends ffmpeg
 
       - name: Chromium for the browser stages
         run: npx playwright install --with-deps chromium

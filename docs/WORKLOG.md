@@ -3670,3 +3670,8 @@ pressed in the 120 ms after arriving somewhere (the button still reads « Resume
 page chosen during that flight was queued and never flown to — the address said `/radio`, the boat stayed at the
 phone, its panel shut. `choose()` now flies to what was queued, like `goTo` does; and the 120 ms timer lets time flow
 again only if nothing stopped it since (it used to unfreeze the boat while you were choosing). Site smoke 165/165.
+
+**Morning of 24/11 — the push of `2e2f9e6` and GitHub's cancelled run.** `2e2f9e6` reached GitHub's main; its self-test
+was cancelled at the job's 30-minute limit with no test run: `apt-get install ffmpeg` took 26 min (the 24.04 image
+rebuilds the manual pages' index after installs). `ci.yml`: man-db's auto-update removed first, ffmpeg without its
+recommends, the step capped at 8 min so a slow mirror fails fast instead of eating the job.
