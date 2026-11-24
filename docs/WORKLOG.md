@@ -3710,3 +3710,9 @@ Atelier (38 s), 8 min 47 s in all.
 **Not proven until GitHub runs it** (the branch is not pushed): the runner's Chrome 157 with the image's fonts instead
 of Playwright's packages could move a layout check by a pixel; the first run downloads ffmpeg (29 MB), the next ones
 should find it in the cache.
+
+**On GitHub, the same evening** (branch pushed at Ortis's « Yes, push the branch »; `99e7c65`, run 45484394740):
+green in 5.7 min. Checkout + Node 14 s, « What changed » 1 s (a full run: no green run on the branch yet), the
+ffmpeg download and its sum under a second, Chrome found in 5 s, the self-test 5 min 13 s, the cache saved in 3 s. No
+annotation, so neither fallback was taken. Before, the installs alone took 39 s on a good day and 12–26 min on a bad
+one. Still unseen: a run that finds ffmpeg in the cache, and the short run of a docs-only push.
