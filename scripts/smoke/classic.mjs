@@ -222,10 +222,19 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
     `${vign.cards} vignettes, ${vign.imgs} covers, ${coversAsked.length} asked`);
 
   /* ------------------------------------------- music survives navigation -- */
+  // Read the player away from a track change. At a change the <audio> is between two tracks for an instant: paused,
+  // or still on the old one's last second while the clock is on the new one's first. On GitHub (2026-11-17, 2fc0529)
+  // both reads below landed there: « 24.4 s → 26.0 s », the end of a 26 s fixture, and « playing: false ». The wait
+  // is for the clock, never for the music: a player that stopped is still paused when it is read.
+  const awayFromChange = (p) => p.waitForFunction(() => {
+    const pl = window.radioTower.player, t = pl.onAir, pos = pl.livePosition();
+    return t && pos != null && pos > 2 && (t.duration || 0) - pos > 2;
+  }, null, { timeout: 15000 }).catch(() => {});
   const audioBefore = await a.evaluate(() => { window.__sameAudio = document.getElementById('audio'); return document.getElementById('audio').currentTime; });
   await tab(a, 'atlas');
   await a.waitForSelector('.mapbox svg .pin', { timeout: 5000 });
   await a.waitForTimeout(1200);
+  await awayFromChange(a);
   // Compare against the clock, not the previous position: a short fixture can
   // roll over to the next track between the two readings, which is correct.
   const nav = await a.evaluate(() => {
@@ -269,6 +278,7 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   const oldAddr = await a.evaluate(() => ({ title: document.querySelector('#view h1')?.textContent, tab: document.title }));
   await a.evaluate(() => window.radioTower.router.go('antenna'));
   await a.waitForFunction(() => location.pathname === '/antenna' && document.querySelector('#view #anDial button[data-ch]') && document.querySelector('#view .tg-log li'), null, { timeout: 8000 }).catch(() => {});
+  await awayFromChange(a); // « the music plays on » is read below
   const zone = await a.evaluate(() => ({
     path: location.pathname, title: document.querySelector('#view h1')?.textContent,
     dial: [...document.querySelectorAll('#view #anDial button[data-ch]')].map((x) => x.dataset.ch),
@@ -300,10 +310,6 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   // Read both away from a track change. On GitHub (2026-11-22, 25cf7ce) the two were read across one: A 0.30 s into
   // the new track, B's audio still on the old one's last second. Every player hands over at its own pace there, so
   // the comparison waits until both are on air 2 s or more from either end of the same track; the tolerance is unchanged.
-  const awayFromChange = (p) => p.waitForFunction(() => {
-    const pl = window.radioTower.player, t = pl.onAir, pos = pl.livePosition();
-    return t && pos != null && pos > 2 && (t.duration || 0) - pos > 2;
-  }, null, { timeout: 15000 }).catch(() => {});
   await Promise.all([awayFromChange(a), awayFromChange(b)]);
   let [sa, sb] = await Promise.all([snap(a), snap(b)]);
   if (sa.id !== sb.id) { await Promise.all([awayFromChange(a), awayFromChange(b)]); [sa, sb] = await Promise.all([snap(a), snap(b)]); }
@@ -383,7 +389,7 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   await booth.waitForSelector('#bQueue li[data-movable="1"]', { timeout: 8000 }).catch(() => {});
   const movable = await booth.$$('#bQueue li[data-movable="1"]');
   check('with a token, the movable part of the queue gets handles', movable.length >= 2, `${movable.length} movable`);
-  const lockedCount = await booth.$$eval('#bQueue li.locked', (els) => els.length);
+  let lockedCount = await booth.$$eval('#bQueue li.locked', (els) => els.length);
   let beforeIds = await b.evaluate(() => window.radioTower.client.engine.get('/api/queue').body.slots.map((s) => s.id));
   // 2026-11-11: this failed 1 full run in 6 with « 0 commit(s) ». The row was found, then focused, then moved — and
   // the list is redrawn whenever the programme advances (a track ends every half minute on the fixture), so now
@@ -393,7 +399,10 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   // moved in one step on the page, and what counts is a commit reaching « GitHub ».
   const putsBefore = devServer.fakeGithub.puts;
   for (let attempt = 0; attempt < 4 && devServer.fakeGithub.puts === putsBefore && movable.length >= 2; attempt++) {
+    // The fence is counted at the same moment as the queue it fences: it grows as the programme runs, and an attempt
+    // can come up to 18 s after the first (2026-11-24; red once on GitHub with « slid 0 », 3711442).
     beforeIds = await b.evaluate(() => window.radioTower.client.engine.get('/api/queue').body.slots.map((s) => s.id));
+    lockedCount = await booth.$$eval('#bQueue li.locked', (els) => els.length);
     await booth.evaluate(() => { const rows = document.querySelectorAll('#bQueue li[data-movable="1"]'); rows[rows.length - 1]?.focus(); });
     await booth.keyboard.press('ArrowUp');
     for (let waited = 0; waited < 6000 && devServer.fakeGithub.puts === putsBefore; waited += 150) await booth.waitForTimeout(150);
@@ -418,7 +427,8 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   const fenced = afterIds.slice(0, Math.max(0, lockedCount - slid)).join() === beforeIds.slice(slid, lockedCount).join();
   check('a second listener adopts it on its next poll', status === 'applied' && afterIds.join() !== beforeIds.join(), `status ${status}`);
   check('…and it is a permutation: nothing added, nothing removed, the fence untouched', beforeIds.includes(afterIds[0]) && slid <= 1 && sameMultiset && fenced,
-    `slid ${slid}, ${afterIds.length} slots, fence ${lockedCount}`);
+    `slid ${slid}, ${afterIds.length} slots, fence ${lockedCount}${beforeIds.includes(afterIds[0]) && slid <= 1 && sameMultiset && fenced ? ''
+      : ` — before ${beforeIds.join(' ')} · after ${afterIds.join(' ')} · multiset ${sameMultiset} · fence kept ${fenced}`}`);
 
   await booth.click('#bMoods [data-mood]');
   await booth.waitForTimeout(800);
