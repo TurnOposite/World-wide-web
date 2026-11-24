@@ -3751,3 +3751,9 @@ classic 78 s, world 149 s, phone 103 s (242 s in the first run, with the tower f
 
 **Not proven until GitHub runs it** (not pushed): the workflow's YAML (no parser here), the composite actions, the
 matrix and the gate; the wall clock should be the longest job's, about 3 minutes.
+
+**On GitHub** (pushed at Ortis's word, run 45503496463 on `0089287`): green in **2.3 min** wall clock, against 5.7 for
+step 1 alone and 5–7.5 for the month before. `scope` 12 s; then side by side `self-test` 1.8 min (its build-test.sh
+88 s), `site (classic)` 1.5 (the smoke 81 s), `site (world)` 1.4 (76 s), `site (phone)` 1.5 (66 s); `test` 12 s.
+Setup 2–14 s a job (ffmpeg from the cache). The smoke steps' lengths say the parts ran their checks (a skip takes
+two seconds); their counts are in the logs, which need a GitHub login.
