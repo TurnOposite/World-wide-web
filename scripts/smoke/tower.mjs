@@ -113,6 +113,8 @@ export default async function tower({ towerUrl, check, dev, browser, errors, wat
     // keeps who they are only when asked.
     await t.evaluate(() => { try { localStorage.removeItem('gt.telegraph.me'); } catch { /* nothing kept */ } window.radioTower.router.go('antenna'); });
     await t.waitForSelector('.w-box > .page .tg-join', { timeout: 8000 }).catch(() => {});
+    // In the world the camera flies to the Antenna: a drag before it lands is the world's, not the character select's.
+    await t.waitForFunction(() => window.radioTower.world?.current === 'zone' && !window.radioTower.world.camera.moving, null, { timeout: 8000 }).catch(() => {});
     const bank = await t.evaluate(async () => (await (await fetch(new URL('data/telegraph.json', document.baseURI))).json()).icons?.length || 0);
     await t.click('.w-box > .page .tg-join').catch(() => {});
     await t.waitForSelector('#tgName', { timeout: 4000 }).catch(() => {});
