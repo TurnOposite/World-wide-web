@@ -299,8 +299,8 @@ test('Playlists (Zone): playlists.json is well formed, and every playlist plays 
   for (const page of ['playlists', 'atlas', 'antenna']) {
     const src = fs.readFileSync(new URL(`../site/js/pages/${page}.js`, import.meta.url), 'utf8');
     assert.equal((src.match(/<iframe/g) || []).length, 0, `${page}: no frame of its own, only the deck's`);
-    if (page === 'playlists') assert.match(src, /mountDeck\(/, 'Playlists carries the deck');
-    else assert.doesNotMatch(src, /mountDeck|spotify-deck/, `${page}: no playlists on the Atlas, nor in the Antenna`);
+    // Which page carries the deck: the site smoke opens all three (scripts/smoke/pages.mjs — one Spotify player on
+    // Playlists, none on the Atlas, none in the Antenna); a read of the pages for mountDeck until 2026-11-25.
   }
   // Every card keeps room for a few words that help a listener choose (2026-11-01), written or not yet.
   assert.match(deck, /pl-desc/);

@@ -98,7 +98,7 @@ jobs:
       # Every part reports, even when one is red: the annotations then say all that failed, not the first.
       fail-fast: false
       matrix:
-        part: [classic, world, phone]
+        part: [pages, world, phone]
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/tower-setup

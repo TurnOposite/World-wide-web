@@ -1,40 +1,18 @@
 /**
- * The site smoke, classic: the classic shell (?classic=1): listener A — the stage, Canopy, Ondes, Playlists, the music across pages, the Antenna —, listener B and the channels dial, the booth over a stand-in GitHub, the rooms (Écrits, Atlas, Portfolio).
- * One part of scripts/site-smoke.mjs (`--only classic` runs it alone); scripts/smoke/harness.mjs is what it is handed.
+ * The site smoke, pages: the classic shell's set until 2026-11-25 (`classic`, behind ?classic=1), on the world shell now: listener A — the stage, Canopy, Ondes, Playlists, the music across pages, the Antenna —, listener B and the channels dial, the booth over a stand-in GitHub, the rooms (Écrits, Atlas, Portfolio).
+ * One part of scripts/site-smoke.mjs (`--only pages` runs it alone); scripts/smoke/harness.mjs is what it is handed.
  */
-export default async function classic({ check, AXE, axeRun, devServer, dev, browser, SPOTIFY, spotifyAsked, coversAsked, watch, serveTemoin, tab }) {
+export default async function pages({ check, AXE, axeRun, devServer, dev, browser, SPOTIFY, spotifyAsked, coversAsked, watch, serveTemoin, tab }) {
   /* --------------------------------------------------------- listener A -- */
   const ctxA = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   const a = await ctxA.newPage();
   watch(a, 'A');
-  // The classic shell, kept one release behind ?classic=1 since the world became the default (phase 5b):
-  // every check down to the world shell's section runs on it.
-  await a.goto(dev + 'radio?classic=1', { waitUntil: 'domcontentloaded' });
-  await a.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
-  const tabs = await a.$$eval('.tabs a', (els) => els.map((e) => e.textContent.trim()));
-  // Since 2026-11-01 Zone's half is Radio, Ondes, Playlists, Atlas: the Zone page is part of the Atlas, the Portfolio off Zone's side.
-  // One Atlas since 2026-11-10, Echo's: the window Zone's stood in is the Antenna (the streams, the telegraph line).
-  // The Bibliothèque (the Portfolio) among Echo's since 2026-11-03, renamed the Archive that evening, in Archives' place;
-  // Lectures went into the Livre miroir.
-  check('the site shell has two halves: Zone (radio) and Echo (journal)', tabs.join(',') === 'Radio,Ondes,Playlists,Antenna,Une,Articles,Archive,Atlas', tabs.join(', '));
-  check('…each under its own label', (await a.$$eval('.half-btn', (els) => els.map((e) => e.textContent.trim()))).join() === 'Zone,Echo');
-  // The banner: two doors only; hover, focus, tap, Esc, outside tap.
-  const open = () => a.$$eval('.half.open', (e) => e.map((x) => x.dataset.half).join());
-  check('banner: both menus closed at rest', (await open()) === '');
-  await a.hover('.half-zone .half-btn');
-  check('banner: hovering ZONE opens its sub-menu (and only it)', (await open()) === 'zone' && await a.isVisible('.half-zone .half-menu a[href="playlists"]') && !(await a.isVisible('.half-echo .half-menu a')));
-  await a.hover('.half-echo .half-btn');
-  check('banner: hovering ECHO opens ECHO, closes ZONE', (await open()) === 'echo');
-  await a.mouse.move(5, 400);
-  check('banner: leaving closes it', (await open()) === '');
-  await a.focus('.half-zone .half-btn'); await a.keyboard.press('Shift+Tab'); await a.keyboard.press('Tab');
-  check('banner: keyboard focus opens it', (await open()) === 'zone');
-  await a.keyboard.press('ArrowDown');
-  check('banner: arrows move into the menu', await a.evaluate(() => document.activeElement?.getAttribute('href') === 'radio'));
-  await a.keyboard.press('Escape');
-  check('banner: Esc closes and returns to the word', (await open()) === '' && await a.evaluate(() => document.activeElement?.id === 'halfZone'));
-  await a.mouse.move(5, 400);
-  check('the mark is the green hybrid tower', await a.$eval('.brand .mark', (el) => getComputedStyle(el).color === 'rgb(52, 211, 153)'));
+  // The world shell, what the site ships. Until 2026-11-25 this part ran on the classic shell behind ?classic=1.
+  await a.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
+  await a.waitForFunction(() => window.radioTower?.player?.onAir && window.radioTower.world?.current === 'radio', null, { timeout: 15000 });
+  // Until 2026-11-25 eleven checks here pinned the classic shell's banner (its two halves, their menus by hover, focus,
+  // arrows and Esc) and its mark. The world draws its own way round (the tags, the Zone|Echo switch: scripts/smoke/world.mjs);
+  // the banner stays in the document under it, hidden and inert, and is no longer checked.
 
   const title = await a.textContent('#rTitle');
   const expected = await a.evaluate(() => window.radioTower.client.engine.station.at(window.radioTower.client.now()).track.title);
@@ -128,9 +106,9 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   // Ortis 2026-10-19: Up next, Just played and the next hours left /radio
   // for /ondes; 2026-11-01: the queue left too (the Booth rearranges it) — Radio is the card and the channels.
   const radioRest = await a.evaluate(() => ({
-    lists: ['rNext', 'rRecent', 'rGuide', 'rTz'].filter((id) => document.getElementById(id)).concat(document.querySelector('#view .echoes, #view .guide') ? ['.echoes'] : []),
+    lists: ['rNext', 'rRecent', 'rGuide', 'rTz'].filter((id) => document.getElementById(id)).concat(document.querySelector('.w-box > .page .echoes, .w-box > .page .guide') ? ['.echoes'] : []),
     queue: Boolean(document.querySelector('#rQueue .tracklist, #rQueue li')),
-    link: Boolean(document.querySelector('#view a[href="ondes"]')),
+    link: Boolean(document.querySelector('.w-box > .page a[href="ondes"]')),
   }));
   check('Radio is the on-air card: no Ondes lists, no queue, nothing to scroll to', radioRest.lists.length === 0 && !radioRest.queue && !radioRest.link && Boolean(await a.$('#rTitle')),
     radioRest.lists.join(', ') || JSON.stringify(radioRest));
@@ -177,9 +155,9 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   await a.waitForSelector('.sp-pick', { timeout: 8000 }).catch(() => {});
   const asked = (id) => spotifyAsked.some((u) => u.startsWith(SPOTIFY + id));
   const deckState = () => a.evaluate(() => ({
-    picks: [...document.querySelectorAll('#view .sp-pick')].map((b) => ({ id: b.dataset.id, on: b.getAttribute('aria-pressed') === 'true', title: b.querySelector('b').textContent })),
-    iframes: [...document.querySelectorAll('#view iframe')].map((f) => f.src), lazy: document.querySelector('#view .sp-frame')?.loading,
-    now: document.querySelector('#view .sp-title')?.textContent, open: document.querySelector('#view .sp-open')?.href,
+    picks: [...document.querySelectorAll('.w-box > .page .sp-pick')].map((b) => ({ id: b.dataset.id, on: b.getAttribute('aria-pressed') === 'true', title: b.querySelector('b').textContent })),
+    iframes: [...document.querySelectorAll('.w-box > .page iframe')].map((f) => f.src), lazy: document.querySelector('.w-box > .page .sp-frame')?.loading,
+    now: document.querySelector('.w-box > .page .sp-title')?.textContent, open: document.querySelector('.w-box > .page .sp-open')?.href,
     playing: !document.getElementById('audio').paused,
   }));
   await a.waitForTimeout(800); // the frame's request reaches the stub
@@ -191,10 +169,12 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
     `${pl.picks.length} cards, ${pl.iframes.join()}, asked ${spotifyAsked.length}`);
   // His Bandcamp at the end of the window (2026-11-22, « much simpler »): the logo, a link to his profile in a new tab,
   // and his sentence; the logo loads.
-  await a.waitForFunction(() => document.querySelector('#view .bc-logo')?.complete, null, { timeout: 8000 }).catch(() => {});
+  // loading="lazy": the end of Playlists is below its window's fold, so scroll there as a reader does.
+  await a.evaluate(() => document.querySelector('.w-box > .page .bc-links')?.scrollIntoView({ block: 'center' }));
+  await a.waitForFunction(() => document.querySelector('.w-box > .page .bc-logo')?.naturalWidth > 0, null, { timeout: 8000 }).catch(() => {});
   const bcl = await a.evaluate(() => {
-    const s = document.querySelector('#view .bc-links');
-    const deck = document.querySelector('#view .sp-deck');
+    const s = document.querySelector('.w-box > .page .bc-links');
+    const deck = document.querySelector('.w-box > .page .sp-deck');
     const img = s?.querySelector('img.bc-logo');
     return s && { links: [...s.querySelectorAll('a')].map((x) => ({ href: x.href, blank: x.target === '_blank', safe: /noopener/.test(x.rel) })), after: Boolean(deck && (deck.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING)),
       logo: img ? { alt: img.alt, w: img.naturalWidth } : null, text: s.querySelector('.bc-text')?.textContent };
@@ -203,7 +183,7 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
     && bcl.links[0].href === 'https://bandcamp.com/turnoposite' && bcl.links[0].blank && bcl.links[0].safe && bcl.logo?.alt === 'Bandcamp' && bcl.logo.w > 0
     && bcl.text === 'Check out more playlists and albums on my Bandcamp page!', JSON.stringify(bcl));
   const picked = pl.picks.find((p, i) => i >= 2 && !p.on);
-  await a.click(`#view .sp-pick[data-id="${picked.id}"]`);
+  await a.click(`.w-box > .page .sp-pick[data-id="${picked.id}"]`);
   // 2026-11-11: this check failed 1 run in 3 on untouched code. It read the page a fixed 800 ms after the click,
   // and two things it asks for are not instant: the frame's request reaching the stub, and — the fixture's tracks
   // being half a minute long — the radio being between two tracks at that very moment (paused for a blink while
@@ -217,7 +197,7 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   const sw = swapped(pl2);
   check('Playlists: a card loads its playlist into the same player, and the radio plays on', Object.values(sw).every(Boolean),
     `${picked.title} → ${pl2.iframes.join()}${Object.values(sw).every(Boolean) ? '' : ` — missing: ${Object.keys(sw).filter((k) => !sw[k]).join(', ')}`}`);
-  const vign = await a.evaluate(() => ({ cards: document.querySelectorAll('#view .sp-pick .pl-cover').length, imgs: document.querySelectorAll('#view .sp-pick .pl-cover img').length }));
+  const vign = await a.evaluate(() => ({ cards: document.querySelectorAll('.w-box > .page .sp-pick .pl-cover').length, imgs: document.querySelectorAll('.w-box > .page .sp-pick .pl-cover img').length }));
   check('Playlists: every card has its vignette, and the covers are Ortis\'s photos from Spotify\'s CDN', vign.cards === pl.picks.length && vign.imgs >= 40 && coversAsked.length > 0,
     `${vign.cards} vignettes, ${vign.imgs} covers, ${coversAsked.length} asked`);
 
@@ -251,7 +231,7 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   const dossier = await a.textContent('#aDossier');
   check('Atlas: every place is a pin, and focusing one opens its dossier', pins.length >= 5 && /Paris/.test(dossier), `${pins.length} pins`);
   // The one Atlas (2026-11-10): the map of the places. The tower's own point is not drawn in the world for now.
-  check('Atlas (the map of the places): no tower point and no playlists on it', !(await a.$('.mapbox .tower-pin')) && !(await a.$('#view .sp-deck')));
+  check('Atlas (the map of the places): no tower point and no playlists on it', !(await a.$('.mapbox .tower-pin')) && !(await a.$('.w-box > .page .sp-deck')));
   const places = await a.$$eval('.mapbox .pin', (ps) => ps.map((p) => p.getAttribute('aria-label')));
   // Geneva came off the map at Ortis's request (2026-10-13).
   check('Atlas: the cities lived in are on the map (Kuala Lumpur, Stockholm, Novo Hamburgo), Geneva is not',
@@ -274,35 +254,31 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   // telegraph line runs through the tower, so on this site without one it says so and offers nothing to fill in.
   // /zone, the window's address until then, still opens it.
   await a.evaluate(() => window.radioTower.router.go('zone'));
-  await a.waitForFunction(() => location.pathname === '/zone' && document.querySelector('#view #anDial button[data-ch]') && document.querySelector('#view .tg-log li'), null, { timeout: 8000 }).catch(() => {});
-  const oldAddr = await a.evaluate(() => ({ title: document.querySelector('#view h1')?.textContent, tab: document.title }));
+  await a.waitForFunction(() => location.pathname === '/zone' && document.querySelector('.w-box > .page #anDial button[data-ch]') && document.querySelector('.w-box > .page .tg-log li'), null, { timeout: 8000 }).catch(() => {});
+  const oldAddr = await a.evaluate(() => ({ title: document.querySelector('.w-box > .page h1')?.textContent, tab: document.title }));
   await a.evaluate(() => window.radioTower.router.go('antenna'));
-  await a.waitForFunction(() => location.pathname === '/antenna' && document.querySelector('#view #anDial button[data-ch]') && document.querySelector('#view .tg-log li'), null, { timeout: 8000 }).catch(() => {});
+  await a.waitForFunction(() => location.pathname === '/antenna' && document.querySelector('.w-box > .page #anDial button[data-ch]') && document.querySelector('.w-box > .page .tg-log li'), null, { timeout: 8000 }).catch(() => {});
   await awayFromChange(a); // « the music plays on » is read below
   const zone = await a.evaluate(() => ({
-    path: location.pathname, title: document.querySelector('#view h1')?.textContent,
-    dial: [...document.querySelectorAll('#view #anDial button[data-ch]')].map((x) => x.dataset.ch),
-    on: document.querySelectorAll('#view #anDial button[aria-pressed="true"]').length,
-    line: document.querySelector('#view .tg-log')?.textContent || '',
-    join: Boolean(document.querySelector('#view .tg-join, #view .tg-say, #view .tg-joinform')),
-    map: Boolean(document.querySelector('#view svg.world-map, #view .tower-pin')), deck: Boolean(document.querySelector('#view .sp-deck')),
+    path: location.pathname, title: document.querySelector('.w-box > .page h1')?.textContent,
+    dial: [...document.querySelectorAll('.w-box > .page #anDial button[data-ch]')].map((x) => x.dataset.ch),
+    on: document.querySelectorAll('.w-box > .page #anDial button[aria-pressed="true"]').length,
+    line: document.querySelector('.w-box > .page .tg-log')?.textContent || '',
+    join: Boolean(document.querySelector('.w-box > .page .tg-join, .w-box > .page .tg-say, .w-box > .page .tg-joinform')),
+    map: Boolean(document.querySelector('.w-box > .page svg.world-map, .w-box > .page .tower-pin')), deck: Boolean(document.querySelector('.w-box > .page .sp-deck')),
     playing: !document.getElementById('audio').paused,
-    menu: [...document.querySelectorAll('.half-zone .half-menu a')].map((x) => x.getAttribute('href')),
-    echoMenu: [...document.querySelectorAll('.half-echo .half-menu a')].map((x) => x.getAttribute('href')),
   }));
   check('the Antenna (/antenna): the streams\' dial, one marked on air here; /zone, its old address, opens the same window', zone.path === '/antenna' && zone.title === 'Antenna'
     && zone.dial.length >= 2 && zone.on === 1 && oldAddr.title === 'Antenna', JSON.stringify({ ...zone, line: undefined, oldAddr }));
   check('…the telegraph line says it runs through the tower, and offers nothing to fill in without one', /through the tower/.test(zone.line) && !zone.join, zone.line);
   check('…no map and no playlists in it, and the music plays on', !zone.map && !zone.deck && zone.playing, JSON.stringify({ map: zone.map, deck: zone.deck, playing: zone.playing }));
-  // Since 2026-11-03 (evening): Echo's menu is the Une, Articles (its own list now), the Archive, the map's Atlas.
-  check('the menus: Zone\'s is Radio, Ondes, Playlists and the Antenna; Echo\'s is the Une, Articles, the Archive and the Atlas', zone.menu?.join() === 'radio,ondes,playlists,antenna' && zone.echoMenu?.join() === 'echo,echo/articles,portfolio,atlas',
-    JSON.stringify({ zone: zone.menu, echo: zone.echoMenu }));
+  // « the menus: Zone's is Radio, Ondes, Playlists and the Antenna; Echo's is … » pinned the classic banner (retired 2026-11-25).
 
   /* --------------------------------------------------------- listener B -- */
   const ctxB = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   const b = await ctxB.newPage();
   watch(b, 'B');
-  await b.goto(dev + 'radio?classic=1', { waitUntil: 'domcontentloaded' });
+  await b.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await b.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 });
   await b.click('#rTune');
   await b.waitForFunction(() => { const au = document.getElementById('audio'); return !au.paused && au.currentTime > 0.5; }, null, { timeout: 15000 }).catch(() => {});
@@ -325,7 +301,7 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   // stream ») /radio has a switch of the streams' names; what each is playing stays the Antenna's.
   await b.waitForFunction(() => document.querySelectorAll('#rStream button[data-ch]').length >= 2, null, { timeout: 8000 }).catch(() => {});
   const lead = await b.evaluate(() => ({ chs: [...document.querySelectorAll('#rStream button[data-ch]')].map((x) => x.dataset.ch + (x.getAttribute('aria-pressed') === 'true' ? '*' : '')),
-    dial: Boolean(document.querySelector('#view .dial')) }));
+    dial: Boolean(document.querySelector('.w-box > .page .dial')) }));
   check('/radio has a switch of the streams, the one on air here marked; the dial with what each plays is not on it', lead.chs.length >= 2 && lead.chs.filter((c) => c.endsWith('*')).length === 1 && !lead.dial, JSON.stringify(lead));
   const fromRadio = lead.chs.find((c) => !c.endsWith('*'));
   if (fromRadio) {
@@ -381,7 +357,7 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   /* --------------------------------------- the booth, over "GitHub" ------ */
   const booth = await ctxA.newPage();
   watch(booth, 'booth');
-  await booth.goto(dev + 'booth?classic=1', { waitUntil: 'domcontentloaded' });
+  await booth.goto(dev + 'booth', { waitUntil: 'domcontentloaded' });
   await booth.waitForSelector('#bTok', { timeout: 8000 });
   check('the booth is read-only until a token is saved', (await booth.$$('#bQueue li[data-movable="1"]')).length === 0);
   await booth.fill('#bTok', 'github_pat_selftest');
@@ -441,7 +417,7 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
     const vis = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0; };
     const canvases = [...document.querySelectorAll('#stage, #stageFront, #mbSpec')].filter(vis).map((c) => c.id);
     const veils = [...document.querySelectorAll('body *')].filter((el) => {
-      const cs = getComputedStyle(el); if (cs.position !== 'fixed' || !vis(el)) return false;
+      const cs = getComputedStyle(el); if (el.id === 'world' || cs.position !== 'fixed' || !vis(el)) return false;
       const r = el.getBoundingClientRect(); return r.width >= innerWidth * 0.9 && r.height >= innerHeight * 0.9;
     }).map((el) => el.id || el.className);
     return { canvases, veils, running: window.radioTower.stage.running, onEcho: document.body.classList.contains('on-echo') };
@@ -451,7 +427,7 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   // Since 2026-11-03 (evening) the Lectures window is gone: the texts are found in the Livre miroir, on the Archive's
   // top shelf, on purpose a little harder to come upon — the Une no longer points at them.
   const uneC = await a.evaluate(() => ({
-    lectures: document.querySelectorAll('#view a[href^="echo/lectures"]').length,
+    lectures: document.querySelectorAll('.w-box > .page a[href^="echo/lectures"]').length,
     groups: [...document.querySelectorAll('.echo-groups .echo-group')].map((g) => ({ href: g.getAttribute('href'), name: g.querySelector('b')?.textContent, fan: g.querySelectorAll('.echo-fan img').length })),
     cards: document.querySelectorAll('.echo-card').length,
   }));
@@ -459,15 +435,25 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
     uneC.lectures === 0 && uneC.groups.map((g) => g.href).join() === 'echo/articles#metro,echo/articles#jogos' && uneC.groups[0].name === 'Um passeio de metrô por Paris'
     && uneC.groups[1].name === 'Jogos Olímpicos' && uneC.groups.every((g) => g.fan === 3), JSON.stringify(uneC));
   check('Echo lists its articles and filters by tag', uneC.cards >= 1);
-  check('Echo front page is a newspaper: masthead, lead with title link, side silhouettes, ash canvas', Boolean(
-    await a.$('.echo-front .echo-mast h1') && await a.$('.echo-lead h2 a[href^="echo/"]') && (await a.$$('.echo-side .sil')).length >= 6 && await a.$('canvas.echo-ash')));
+  // In the world the window is the sheet: the silhouettes and the ash are the world's Echo ground (scripts/smoke/world.mjs, phase 4).
+  check('Echo front page is a newspaper: masthead, lead with title link', Boolean(
+    await a.$('.w-box > .page .echo-front .echo-mast h1') && await a.$('.w-box > .page .echo-lead h2 a[href^="echo/"]')));
   const frontPage = await echoClean();
   check('Echo front page: no Zone visualiser drawn or running, no full-page overlay', frontPage.onEcho && frontPage.canvases.length === 0 && frontPage.veils.length === 0 && frontPage.running === false, JSON.stringify(frontPage));
-  check('Echo front page: thin 1 px ink rules (nav, masthead, lead text, footer) on a white paper', await a.evaluate(() => {
-    const w = (sel, side) => getComputedStyle(document.querySelector(sel))[`border${side}Width`];
-    return w('.echo-znav', 'Bottom') === '1px' && w('.echo-mast', 'Bottom') === '1px' && w('.echo-lead-txt', 'Top') === '1px' && w('.echo-foot', 'Top') === '1px'
-      && getComputedStyle(document.querySelector('.echo-col')).backgroundColor === 'rgb(245, 244, 241)';
-  }));
+  const ink = await a.evaluate(() => {
+    const w = (sel, side) => { const el = document.querySelector(`.w-box > .page ${sel}`); return el ? getComputedStyle(el)[`border${side}Width`] : null; };
+    const col = document.querySelector('.w-box > .page .echo-col');
+    // The paper: in the world the window is the sheet, so the first painted ground at or above the column.
+    let el = col, paper = null;
+    while (el && !paper) { const bg = getComputedStyle(el).backgroundColor; if (bg && !/rgba\(0, 0, 0, 0\)|transparent/.test(bg)) paper = bg; el = el.parentElement; }
+    return { mast: w('.echo-mast', 'Bottom'), lead: w('.echo-lead-txt', 'Top'), foot: w('.echo-foot', 'Top'), paper };
+  });
+  // 1 px at the window's own scale (world.js draws a page smaller to fit, ≥ 0.62, or at the camera's zoom): a hairline,
+  // never none, the same for every rule.
+  const thin = (v) => parseFloat(v) > 0.5 && parseFloat(v) < 2 && v === ink.mast;
+  const light = (c) => { const m = String(c).match(/\d+(\.\d+)?/g)?.map(Number) || []; return m.length >= 3 && m.slice(0, 3).every((x) => x >= 225); };
+  check('Echo front page: thin 1 px ink rules (masthead, lead text, footer; the rubriques line was the classic shell\'s) on a white paper',
+    thin(ink.mast) && thin(ink.lead) && (ink.foot === null || thin(ink.foot)) && light(ink.paper), JSON.stringify(ink));
   // A group opens Articles at its series: every clipping is there, under the series' name, in a box of its own.
   await a.click('.echo-group[href="echo/articles#jogos"]');
   await a.waitForSelector('.echo-articles .echo-series#jogos .echo-clip', { timeout: 5000 }).catch(() => {});
@@ -476,7 +462,7 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
     const tableBox = (id) => document.querySelector(`.echo-series#${id}`);
     const r = tableBox('jogos')?.getBoundingClientRect();
     return {
-      path: location.pathname, hash: location.hash, on: document.querySelector('.echo-znav a.on')?.getAttribute('href'),
+      path: location.pathname, hash: location.hash, on: document.querySelector('.w-tag[aria-current="true"]')?.dataset.go,
       order: [...document.querySelectorAll('.echo-series')].map((x) => x.id), articles: document.querySelectorAll('.echo-articles .echo-grid .echo-card').length,
       metro: tableBox('metro')?.querySelectorAll('.echo-clip[href^="echo/presse/"]').length, jogos: tableBox('jogos')?.querySelectorAll('.echo-clip[href^="echo/presse/"]').length,
       names: [...document.querySelectorAll('.echo-series h2')].map((h) => h.textContent), framed: tableBox('metro') ? getComputedStyle(tableBox('metro')).borderTopWidth : null,
@@ -484,8 +470,8 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
     };
   })) };
   check('Articles: every article, then the metro walk and the Olympics, each clipping on its own under its series\' name, framed — opened at the series asked for',
-    artsC.path === '/echo/articles' && artsC.hash === '#jogos' && artsC.on === 'echo/articles' && artsC.order.join() === 'metro,jogos' && artsC.articles >= 1 && artsC.metro === 4 && artsC.jogos === 26
-    && artsC.names.join() === 'Um passeio de metrô por Paris,Jogos Olímpicos' && artsC.framed === '1px' && artsC.atTop && artsC.canvases.length === 0 && artsC.veils.length === 0, JSON.stringify(artsC));
+    artsC.path === '/echo/articles' && artsC.hash === '#jogos' && artsC.on === 'articles' && artsC.order.join() === 'metro,jogos' && artsC.articles >= 1 && artsC.metro === 4 && artsC.jogos === 26
+    && artsC.names.join() === 'Um passeio de metrô por Paris,Jogos Olímpicos' && parseFloat(artsC.framed) > 0.5 && parseFloat(artsC.framed) < 2 && artsC.atTop && artsC.canvases.length === 0 && artsC.veils.length === 0, JSON.stringify(artsC));
   await a.click('.echo-series#metro .echo-clip[href="echo/presse/2024-07-22-p12"]');
   await a.waitForSelector('.echo-presse .echo-scan', { timeout: 5000 }).catch(() => {});
   const clipC = await a.evaluate(() => ({
@@ -496,9 +482,9 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   check('…a clipping is an article: its page of the paper in the column (a link to the PDF where it cannot show), the episodes before and after',
     clipC.path === '/echo/presse/2024-07-22-p12' && clipC.title === 'Por dentro do coração de Paris' && clipC.pages === 2 && clipC.fallback === 2
     && clipC.prev === 'echo/presse/2024-07-19-p1' && clipC.next === 'echo/presse/2024-07-23-p12' && clipC.series === 'echo/articles#metro', JSON.stringify(clipC));
-  await a.click('.echo-znav a[href="echo"]');
-  await a.waitForSelector('.echo-lead h2 a[href^="echo/"]', { timeout: 5000 });
-  await a.click('.echo-lead h2 a[href^="echo/"]');
+  await tab(a, 'echo');
+  await a.waitForSelector('.w-box > .page .echo-lead h2 a[href^="echo/"]', { timeout: 5000 });
+  await a.click('.w-box > .page .echo-lead h2 a[href^="echo/"]');
   await a.waitForSelector('.echo-article .echo-body', { timeout: 5000 });
   const art = await echoClean();
   check('Echo article page: no Zone visualiser, no overlay, nameplate links back to /echo', art.canvases.length === 0 && art.veils.length === 0 && art.running === false && await a.$('.echo-mast-small a.echo-name[href="echo"]') !== null, JSON.stringify(art));
@@ -507,7 +493,7 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
     const t = await ctxA.newPage();
     watch(t, 'A-témoin');
     await serveTemoin(t);
-    await t.goto(dev + 'echo/article-temoin?classic=1', { waitUntil: 'domcontentloaded' });
+    await t.goto(dev + 'echo/article-temoin', { waitUntil: 'domcontentloaded' });
     await t.waitForSelector('.echo-article .echo-body .pull', { timeout: 8000 }).catch(() => {});
     check('an Echo article opens: standfirst, hero with credit, pull quote, notes (the témoin, as a fixture)', Boolean(await t.$('.echo-standfirst') && await t.$('.echo-hero figcaption .credit') && await t.$('.echo-body .pull') && await t.$('.echo-notes li')));
     await t.close();
@@ -517,13 +503,10 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   await a.evaluate(() => window.radioTower.router.go('echo/archives'));
   await a.waitForFunction(() => location.pathname === '/portfolio' && document.querySelector('.room .book'), null, { timeout: 8000 }).catch(() => {});
   check('the old /echo/archives address answers and moves to the Archive', await a.evaluate(() => location.pathname === '/portfolio' && document.querySelector('.page-head h1')?.textContent === 'Archive'), await a.evaluate(() => location.pathname));
-  await a.click('.echo-znav a[href="echo"]').catch(() => tab(a, 'echo'));
-  await a.waitForSelector('.echo-znav', { timeout: 5000 });
-  // The Portfolio left Zone's side (2026-11-01), came back on Echo's as the Bibliothèque (11-03) and became the Archive that evening.
-  // One Atlas since 11-10, the map's (/atlas) among Echo's; beside Radio stands the Antenna.
-  const rubriques = await a.$$eval('.echo-znav a', (as) => as.map((x) => x.getAttribute('href')));
-  check('Echo\'s rubriques: Zone is Radio and the Antenna; Média is the Une, Articles, the Archive and the Atlas', rubriques.join() === 'radio,antenna,echo,echo/articles,portfolio,atlas', rubriques.join());
-  await a.click('#view a[href="portfolio"]');
+  // « Echo's rubriques: Zone is Radio and the Antenna; Média is … » pinned the classic shell's rubriques line (retired
+  // 2026-11-25): in the world the tags are the navigation (scripts/smoke/world.mjs). Into the Archive by its tag.
+  await tab(a, 'echo');
+  await tab(a, 'portfolio');
   await a.waitForSelector('.room .book', { timeout: 8000 });
   const books = (await a.$$('.room .book')).length;
   check('the Archive: the library puts every book on a shelf', books >= 20, `${books} spines`);
@@ -732,7 +715,7 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
     router.go('echo/lectures/voyages');
     router.go('radio');
     await new Promise((r) => setTimeout(r, 1500));
-    const onRadio = { path: location.pathname, radio: Boolean(document.querySelector('#view #rTitle')), pages: document.querySelectorAll('#view > .page').length, flag: document.body.classList.contains('on-radio') };
+    const onRadio = { path: location.pathname, radio: Boolean(document.querySelector('.w-box > .page #rTitle')), pages: document.querySelectorAll('.w-box > .page').length, flag: document.body.classList.contains('on-radio') };
     await router.go('atlas');
     await new Promise((r) => setTimeout(r, 400));
     client.get = get;
@@ -775,9 +758,6 @@ export default async function classic({ check, AXE, axeRun, devServer, dev, brow
   });
   check('one track that will not load waits for the next; two in a row say the music is unreachable', /will not load/.test(outage.first) && /not reachable/.test(outage.second), outage.second);
 
-  // The classic site above (?classic=1) never loaded any of it.
-  check('the classic shell (?classic=1): no world, no world.css', await a.evaluate(() => !document.querySelector('.w-root')
-    && !document.documentElement.classList.contains('world-on') && ![...document.querySelectorAll('link[rel="stylesheet"]')].some((l) => l.href.includes('world.css'))));
 
   // Until 2026-11-24 this was one check with the phone's pages (scripts/smoke/phone.mjs); the booth lives here.
   if (AXE) {

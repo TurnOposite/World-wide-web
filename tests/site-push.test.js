@@ -13,6 +13,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { support, keyBytes, plainSubscription, HINTS } from '../site/js/ui/push.js';
@@ -49,28 +50,68 @@ test('the tower\'s key reaches the browser as bytes; a subscription leaves it as
   assert.equal(plainSubscription(null), null);
 });
 
-test('nothing is registered, asked or subscribed until the station taps the bell — and the Antenna has none', () => {
-  const src = read('site/js/ui/push.js');
-  const cur = src.slice(src.indexOf('export async function current()'), src.indexOf('export async function subscribe'));
-  assert.doesNotMatch(cur, /requestPermission|\.register\(|\.subscribe\(|create: true/, 'looking for an existing subscription asks for nothing');
-  // Ortis, 2026-11-17: « the notifications should only be accessible to me, so it doesn't have to appear on the antenna ».
-  assert.doesNotMatch(read('site/js/ui/telegraph.js'), /push\.|tgNotify|tell me when someone writes/, 'the listener\'s line offers nothing of it');
-  const admin = read('site/js/ui/line-admin.js');
-  assert.match(admin, /\$\('laNotify'\)\.addEventListener\('click', \(\) => this\._toggleNotify\(\)\)/, 'subscribing happens from the Booth\'s bell');
-  assert.equal(admin.match(/push\.subscribe\(/g).length, 1);
-  assert.ok(admin.indexOf('push.subscribe(') > admin.indexOf('async _toggleNotify('), '…and from nowhere else');
-  assert.match(read('site/js/engine/transport.js'), /telegraph\/subscribe`, \{ method: 'POST', headers: \{ 'Content-Type': 'application\/json', 'x-station-key': this\.key/, 'with the station key');
-  for (const f of ['site/js/main.js', 'site/index.html']) assert.doesNotMatch(read(f), /serviceWorker\.register|requestPermission/, `${f} registers nothing on arrival`);
-});
+// « nothing is registered, asked or subscribed until the station taps the bell — and the Antenna has none » read push.js,
+// telegraph.js, line-admin.js, transport.js, main.js and index.html for words until 2026-11-25 (TESTS-REVIEW §3). The site
+// smoke does it for real (scripts/smoke/tower.mjs, the line's notifications): the Antenna has no bell; on the Booth
+// nothing is asked, registered or subscribed before the tap; the tap asks once, registers sw.js and subscribes with the
+// tower's key — which the tower refuses without the station key.
 
-test('the service worker caches nothing, answers no request, and only opens a page of the site', () => {
-  const sw = read('site/sw.js');
-  const code = sw.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
-  assert.doesNotMatch(code, /addEventListener\('fetch'|caches\.|importScripts/, 'no fetch handler, no cache: it can never serve an old site');
-  assert.match(code, /showNotification\(/);
-  assert.match(code, /!target\.href\.startsWith\(scope\)/, 'a route that would leave the site is replaced by the Antenna');
-  assert.match(code, /postMessage\(\{ type: 'go'/, 'an open page is asked to go there itself — reloading it would cut the music');
-  assert.match(read('site/js/main.js'), /e\.data\?\.type === 'go'[\s\S]{0,120}router\.go\(/);
+/**
+ * The service worker, run (TESTS-REVIEW §3: behaviour, not source text — until 2026-11-25 this read sw.js for words).
+ * A stand-in `self` records what it listens to and what it does; there is no `caches` and no `importScripts` in it,
+ * so a worker that reached for either would throw here.
+ */
+function runWorker({ scope = 'https://site.example/', pages = [] } = {}) {
+  const on = {};
+  const did = { shown: [], opened: [], posted: [], focused: 0, skipped: 0 };
+  const self = {
+    addEventListener: (type, fn) => { on[type] = fn; },
+    skipWaiting: () => { did.skipped++; },
+    clients: {
+      claim: async () => {},
+      matchAll: async () => pages.map((url) => ({ url, postMessage: (m) => did.posted.push(m), focus: async () => { did.focused++; } })),
+      openWindow: async (href) => { did.opened.push(href); },
+    },
+    registration: { scope, showNotification: async (title, opts) => { did.shown.push({ title, ...opts }); } },
+  };
+  vm.runInNewContext(read('site/sw.js'), { self, URL, String });
+  const fire = async (type, event) => { let wait = null; on[type]({ waitUntil: (p) => { wait = p; }, ...event }); await wait; };
+  return { on, did, fire };
+}
+
+test('the service worker caches nothing, answers no request, and only opens a page of the site', async () => {
+  const { on, did, fire } = runWorker();
+  assert.deepEqual(Object.keys(on).sort(), ['activate', 'install', 'notificationclick', 'push'], 'no fetch handler: it can never serve an old site');
+  on.install();
+  assert.equal(did.skipped, 1);
+
+  await fire('push', { data: { json: () => ({ title: 'Ada wrote', body: 'hello', url: 'antenna' }) } });
+  assert.equal(did.shown.length, 1, 'every push shows a notification');
+  assert.equal(did.shown[0].title, 'Ada wrote');
+  await fire('push', { data: { json: () => { throw new Error('not JSON'); }, text: () => 'plain words' } });
+  assert.equal(did.shown[1].body, 'plain words', 'a push that is not JSON still shows, as text');
+
+  const click = (url) => ({ notification: { data: { url }, close() {} } });
+  for (const away of ['https://elsewhere.example/x', 'javascript:alert(1)', 'data:text/html,hi']) {
+    const w = runWorker();
+    await w.fire('notificationclick', click(away));
+    assert.deepEqual(w.did.opened, ['https://site.example/antenna'], `${away}: a route that would leave the site is replaced by the Antenna`);
+  }
+  // A protocol-relative address loses its leading slashes and is read inside the site (a page of it, maybe a missing one).
+  const rel = runWorker();
+  await rel.fire('notificationclick', click('//elsewhere.example/'));
+  assert.ok(rel.did.opened[0].startsWith('https://site.example/'), `//elsewhere.example/ stays on the site: ${rel.did.opened[0]}`);
+  const home = runWorker();
+  await home.fire('notificationclick', click('/echo/articles'));
+  assert.deepEqual(home.did.opened, ['https://site.example/echo/articles'], 'with no page open, it opens the one asked for, on the site');
+
+  const playing = runWorker({ pages: ['https://site.example/radio'] });
+  await playing.fire('notificationclick', click('antenna'));
+  // (made in the worker's own realm: compared as plain data)
+  assert.deepEqual(JSON.parse(JSON.stringify(playing.did.posted)), [{ type: 'go', route: 'antenna' }], 'an open page is asked to go there itself — reloading it would cut the music');
+  assert.equal(playing.did.focused, 1);
+  assert.deepEqual(playing.did.opened, [], 'and no second window opens');
+  // The page's half (main.js: a 'go' message → its router, the music playing on) is the site smoke's, world part.
 });
 
 test('the site can be added to a Home Screen: a manifest, its icons, and the page says so', () => {

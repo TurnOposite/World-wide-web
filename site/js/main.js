@@ -14,7 +14,7 @@ import { VisualsPanel } from './ui/visuals.js';
 import { toast, esc } from './ui/util.js';
 import { initBanner, markHalf } from './ui/banner.js';
 import { ONDES_LABEL } from './labels.js';
-import { atelierWanted, worldWanted } from './world/flag.js';
+import { atelierWanted } from './world/flag.js';
 import { boatWanted } from './boat/flag.js';
 import { DISTRICTS, PHONE_MEDIA } from './world/layout.js';
 import { DRAFT_KEY, applyPages, mergeDraft, resolveLayout } from './world/model.js';
@@ -118,16 +118,16 @@ async function boot() {
 
   document.querySelectorAll('[data-ondes-label]').forEach((el) => { el.textContent = ONDES_LABEL; });
 
-  // The world shell (docs/WORLD.md): on when config.world says so (it ships on), off for a tab
-  // that asked for ?classic=1. Off, the site is the classic one: of world/ it loads only the flag
-  // and the map's data (layout.js, model.js), which the short links and the past versions need.
+  // The world shell (docs/WORLD.md) is the site; only the boat stands instead of it. (Until 2026-11-25 a tab could ask
+  // for the classic shell, ?classic=1.) With the boat, of world/ the site loads only the flag and the map's data
+  // (layout.js, model.js), which the short links and the past versions need.
   let world = null;
   let session = null;
   try { session = sessionStorage; } catch { /* storage blocked: the flag lasts this page */ }
   // The boat (docs/BACKLOG.md F1): a parallel front behind ?boat=1, never the default, never on a phone (2026-11-22).
   // On, the map stays unloaded.
   const wantBoat = boatWanted({ search: location.search, storage: session, phone: matchMedia(PHONE_MEDIA).matches });
-  const wantWorld = !wantBoat && worldWanted({ config: client.config, search: location.search, storage: session });
+  const wantWorld = !wantBoat;
 
   // The map (docs/ATELIER.md): site/data/layout.json — where each window stands, and the versions
   // of the past, online or not. Without it the world keeps its designed map and there is no past.
@@ -196,7 +196,7 @@ async function boot() {
       }
       try { cleanup?.(); } catch (e) { console.error(e); }
       cleanup = null;
-      // In the world the map's Atlas stands on Echo's side (2026-11-01); the classic shell keeps it with Zone.
+      // In the world the map's Atlas stands on Echo's side (2026-11-01); the boat keeps it with Zone.
       const echoRoute = ['echo', 'articles', 'presse', 'lectures', 'ecrits'].includes(match.name) || (Boolean(world) && ['atlas', 'portfolio', 'archives'].includes(match.name));
       document.body.classList.toggle('on-echo', echoRoute);
       globalThis.__echoStage?.(echoRoute);

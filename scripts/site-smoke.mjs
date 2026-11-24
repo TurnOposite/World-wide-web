@@ -29,20 +29,19 @@
  *     nothing that is not a swipe does, and every page fits and passes axe;
  *     the built dist/ and a tower-mode visit (the live site's set-up) open it
  *     too;
- *   - the classic shell, kept one release behind ?classic=1 (remembered for
- *     the tab): the checks on listeners A and B, the booth, the rooms and the
- *     classic phone pass run on it.
+ *   - the pages one by one (`pages`, the classic shell's set until that shell
+ *     was retired on 2026-11-25): listeners A and B, the booth, the rooms.
  *
  * Since 2026-11-24 the checks live in five parts, scripts/smoke/<part>.mjs, that share one harness
  * (scripts/smoke/harness.mjs: the fixtures, the dev server, the browser) and read nothing from each other, so GitHub
  * runs them side by side (docs/plans/LIGHTER-2026-11-24.md, step 2). This file runs them, all in turn by default.
  *
  * Usage: node scripts/site-smoke.mjs [towerUrl] [--only part,part]   (or SITE_SMOKE_ONLY=part,part)
- *        parts: classic, world, phone, dist, tower; « tower » checks nothing without a towerUrl
+ *        parts: pages, world, phone, dist, tower; « tower » checks nothing without a towerUrl
  */
 import { open } from './smoke/harness.mjs';
 
-export const PARTS = ['classic', 'world', 'phone', 'dist', 'tower'];
+export const PARTS = ['pages', 'world', 'phone', 'dist', 'tower'];
 
 const args = process.argv.slice(2);
 const towerUrl = args.find((a) => a.startsWith('http')) || null;

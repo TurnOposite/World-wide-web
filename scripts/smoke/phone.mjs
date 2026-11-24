@@ -1,5 +1,5 @@
 /**
- * The site smoke, phone: phones: the world shell upright and on its side (swipes, and what is not a swipe), the classic phone pass on every page, the world shell on every page.
+ * The site smoke, phone: phones: the world shell upright and on its side (swipes, and what is not a swipe), the Archive, the mini-player, the world shell on every page.
  * One part of scripts/site-smoke.mjs (`--only phone` runs it alone); scripts/smoke/harness.mjs is what it is handed.
  */
 export default async function phone({ check, AXE, axeRun, dev, browser, watch }) {
@@ -152,39 +152,13 @@ export default async function phone({ check, AXE, axeRun, dev, browser, watch })
   await wl.context().close();
 
   /* ------------------------------------------------------------- phone -- */
-  // The classic shell's phone pass, kept one release: ?classic=1 once, then every cold load in this tab stays classic.
+  // Until 2026-11-25 the classic shell's phone pass ran here: ?classic=1, then a cold load of every address with axe, and the
+  // banner by touch. The world's pass at the end of this part loads the same addresses (PHONE_ROUTES) and checks the same two things.
   const PHONE_ROUTES = ['', 'radio', 'ondes', 'playlists', 'atlas', 'antenna', 'ecrits', 'ecrits/l-ascenceur-tombe', 'echo/lectures', 'echo/lectures/voyages', 'echo',
     'echo/dont-shoot-the-pianist', 'echo/articles', 'echo/presse/2024-07-22-p12', 'echo/archives', 'portfolio', 'portfolio/photos', 'portfolio/crates', 'booth'];
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const m = await phone.newPage();
   watch(m, 'phone');
-  await m.goto(dev + '?classic=1', { waitUntil: 'domcontentloaded' });
-  await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
-  const overflow = [];
-  const a11y = [];
-  const notClassic = [];
-  for (const r of PHONE_ROUTES) {
-    await m.goto(dev + r, { waitUntil: 'domcontentloaded' });
-    await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
-    await m.waitForTimeout(700);
-    const o = await m.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-    if (o > 1) overflow.push(`/${r} ${o}px`);
-    if (await m.evaluate(() => Boolean(document.querySelector('.w-root') || window.radioTower.world))) notClassic.push(`/${r}`);
-    for (const v of (await axeRun(m)) || []) a11y.push(`/${r}: ${v}`);
-  }
-  check(`?classic=1 is remembered for the tab: ${PHONE_ROUTES.length} cold loads after it, every one the classic shell`, notClassic.length === 0, notClassic.join(', '));
-  // Touch: a tap opens a half's menu, a second tap closes it, a tap outside closes it.
-  await m.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
-  await m.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
-  const mopen = () => m.$$eval('.half.open', (e) => e.length);
-  await m.tap('.half-zone .half-btn');
-  check('banner (touch): a tap opens the half\'s menu', (await mopen()) === 1 && await m.isVisible('.half-zone .half-menu a[href="playlists"]'));
-  await m.tap('.half-zone .half-btn');
-  check('banner (touch): a second tap closes it', (await mopen()) === 0);
-  await m.tap('.half-echo .half-btn');
-  await m.tap('.brand-text');
-  check('banner (touch): a tap outside closes it', (await mopen()) === 0);
-  check('nothing overflows a 390 px phone', overflow.length === 0, overflow.join(', ') || 'every page fits');
   // The Archive's books on a phone (Ortis, 2026-11-24: « piled up vertically instead of horizontally, bc right now you
   // have to scroll to the side to see it »): every shelf a pile, one book above the next, nothing to scroll sideways.
   await m.goto(dev + 'portfolio', { waitUntil: 'domcontentloaded' });
@@ -196,10 +170,6 @@ export default async function phone({ check, AXE, axeRun, dev, browser, watch })
   });
   check('on a phone the Archive\'s books lie in piles, one above the next, with nothing to scroll sideways',
     pile.shelves >= 1 && pile.books >= 6 && pile.piled && pile.sideways <= 1 && pile.doc <= 1, JSON.stringify(pile));
-  if (AXE) {
-    // The unlocked booth has its own check since 2026-11-24 (scripts/smoke/classic.mjs).
-    check('no accessibility violations above minor (axe-core, every page)', a11y.length === 0, a11y.slice(0, 3).join(' | ') || 'contrast, names, roles, headings');
-  } else console.log('SKIP  accessibility (axe-core not installed — npm install)');
   check('the mini-player stays on screen on a phone', await m.$eval('#minibar', (el) => el.getBoundingClientRect().bottom <= innerHeight + 1 && el.offsetHeight > 40));
 
   // A tap, not a click: the gesture path a phone takes (tower-mobile-check).

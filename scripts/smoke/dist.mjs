@@ -22,13 +22,7 @@ export default async function dist({ check, listen, fixtures, browser, watch }) 
   // A text opens in the Articles window since 2026-11-03 (its list went into the Livre miroir).
   check('the built site answers a cold deep link under /<repo>/, in the world as shipped', dh === 'Opal Orre' && dWorld === 'articles', `${dh || 'no heading'}, ${dWorld}`);
   check('…and knows which repository its booth writes to', cfg?.owner === 'ortis' && cfg?.repo === 'radio-tower');
-  const dc = await (await browser.newContext()).newPage();
-  watch(dc, 'dist, classic');
-  await dc.goto(`http://127.0.0.1:${distPort}/radio-tower/echo/lectures/opal-orre?classic=1`, { waitUntil: 'domcontentloaded' });
-  await dc.waitForSelector('.reading h1', { timeout: 10000 }).catch(() => {});
-  const dch = await dc.evaluate(() => ({ h1: document.querySelector('.reading h1')?.textContent, world: Boolean(window.radioTower?.world || document.querySelector('.w-root')) }));
-  check('…and so does its classic shell, under ?classic=1', dch.h1 === 'Opal Orre' && !dch.world, JSON.stringify(dch));
-  await dc.context().close();
+  // « …and so does its classic shell, under ?classic=1 » left with that shell on 2026-11-25.
   // The go-live checker (GO-LIVE §4) against the same build on a Pages-shaped
   // server with a stand-in GitHub API: nothing to fail on a site that works.
   const liveServer = await createSiteServer({ dist: true, base: '/radio-tower/', fixtures, fakeGithub: true });

@@ -82,7 +82,7 @@ export function flagsFor(m) {
 }
 
 /**
- * Runs in the page. The page in view: the world's current window, or the classic shell's #view. The first screen
+ * Runs in the page. The page in view: the world's current window (the classic shell's #view until 2026-11-25). The first screen
  * ends where the mini-player begins. Only what is shown counts (display, visibility, size).
  */
 /* c8 ignore start */

@@ -109,12 +109,17 @@ export async function open({ towerUrl = null } = {}) {
     await target.route('**/assets/echo/temoin.svg', (r) => r.fulfill({ status: 200, contentType: 'image/svg+xml', body: fs.readFileSync(path.join(TEMOIN_DIR, 'temoin.svg')) }));
   }
 
-  /** Sub-menus are closed until a half is opened: hover its half, then click the link. */
+  /**
+   * Go to a page the way a reader does in the world: its tag on the map, then wait for the camera to land.
+   * Until 2026-11-25 this opened a half of the classic banner and clicked its link (?classic=1, retired).
+   * A window's id is its route's, but for the Une (/echo) and the Antenna (/antenna, the window that was Zone's).
+   */
+  const WINDOW_OF = { echo: 'une', antenna: 'zone' };
   const tab = async (pg, href) => {
-    const half = await pg.evaluateHandle((h) => document.querySelector(`.tabs a[href="${h}"]`).closest('.half'), href);
-    await pg.mouse.move(2, 300); // leave first: pointerenter only fires on entering
-    await half.asElement().hover();
-    await pg.click(`.tabs a[href="${href}"]`);
+    const id = WINDOW_OF[href] || href;
+    await pg.click(`.w-tag[data-go="${id}"]`);
+    await pg.waitForFunction((i) => window.radioTower?.world?.current === i && !window.radioTower.world.camera.moving
+      && document.querySelector(`#w-${i} .w-box > .page`), id, { timeout: 8000 }).catch(() => {});
   };
 
   async function close() {

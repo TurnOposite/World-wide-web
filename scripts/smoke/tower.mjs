@@ -9,9 +9,9 @@ export default async function tower({ towerUrl, check, dev, browser, errors, wat
   if (towerUrl) {
     const t = await (await browser.newContext()).newPage();
     watch(t, 'tower');
-    // The classic shell first (its checks use the banner), then the world — the live site's own set-up.
-    await t.goto(`${dev}radio?tower=${encodeURIComponent(towerUrl)}&classic=1`, { waitUntil: 'domcontentloaded' });
-    await t.waitForFunction(() => window.radioTower?.player?.onAir, null, { timeout: 15000 }).catch(() => {});
+    // The world shell, the live site's own set-up (the classic shell went first here until 2026-11-25).
+    await t.goto(`${dev}radio?tower=${encodeURIComponent(towerUrl)}`, { waitUntil: 'domcontentloaded' });
+    await t.waitForFunction(() => window.radioTower?.player?.onAir && window.radioTower.world?.current === 'radio', null, { timeout: 15000 }).catch(() => {});
     // The self-test's fixture tracks are 7–15 s long, so a reading can straddle
     // a rollover. Read both sides back to back, and retry across a boundary.
     let shown, server;
@@ -80,7 +80,7 @@ export default async function tower({ towerUrl, check, dev, browser, errors, wat
         const q = await (await fetch(`${tw}/api/queue${ch ? `?channel=${encodeURIComponent(ch)}` : ''}`, { cache: 'no-store' })).json();
         return { ids: (q.slots || []).map((x) => x.id), override: Boolean(q.override) };
       }, towerUrl);
-      // As in the cloud booth (classic.mjs): the programme moves under the hand — a track ends, the list is redrawn —
+      // As in the cloud booth (pages.mjs): the programme moves under the hand — a track ends, the list is redrawn —
       // so an attempt counts only when the tower holds an override over the same tracks in another order; anything
       // else is put back and tried again, four times at most. `slid` tracks left the front while it was moved.
       let moved = null;

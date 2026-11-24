@@ -97,15 +97,9 @@ test('a page left open overnight lets yesterday go at the tower\'s 05:00', () =>
   assert.doesNotMatch(read('site/js/ui/telegraph.js'), /empties every morning at 5/, 'the sentence he removed stays removed');
 });
 
-test('a stranger\'s text is put on the page as text, never as markup or a link', () => {
-  const src = read('site/js/ui/telegraph.js');
-  const html = [...src.matchAll(/innerHTML\s*=\s*`([\s\S]*?)`/g)].map((x) => x[1]);
-  assert.equal(html.length, 1, 'one innerHTML: the empty frame of the line');
-  assert.doesNotMatch(html[0], /\$\{/, '…with nothing interpolated into it');
-  assert.doesNotMatch(src, /insertAdjacentHTML|outerHTML|document\.write/);
-  assert.doesNotMatch(src, /createElement\(['"]a['"]\)|\.href\s*=\s*m\./, 'nothing in a message becomes a link');
-  assert.match(src, /h\('p', 'tg-text', m\.text\)/, 'the text goes through textContent');
-});
+// « a stranger's text is put on the page as text, never as markup or a link » read telegraph.js for words until 2026-11-25
+// (TESTS-REVIEW §3). The site smoke does it for real (scripts/smoke/tower.mjs): a message with <img onerror>, <b> and a link
+// is posted to the tower, and the Antenna shows it as text — no markup, no link, nothing run.
 
 test('the icon bank is the folder: pictures only, names a message may carry, nothing too heavy', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rt-icons-'));

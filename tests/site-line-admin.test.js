@@ -80,5 +80,6 @@ test('a message the station put back stays on a listener\'s page until the next 
   assert.deepEqual(sinceDay([{ ...old, restored: day - 60_000 }], day), [], 'restored yesterday: gone with yesterday');
   // The tower names what it put back apart (it keeps its old id): the page merges both lists.
   assert.deepEqual(mergeMessages([fresh], [old]).map((m) => m.id), [1, 3], 'it takes its place in order');
-  assert.match(read('site/js/ui/telegraph.js'), /\.\.\.\(out\.restored \|\| \[\]\)/, 'the poll reads the tower\'s « restored » list');
+  // That the poll reads the tower's « restored » list: the site smoke puts one back and a listener's page shows it again
+  // (scripts/smoke/tower.mjs; a read of telegraph.js for the words until 2026-11-25).
 });

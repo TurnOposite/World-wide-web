@@ -552,8 +552,9 @@ export default async function world({ ROOT, check, AXE, axeRun, dev, browser, wa
     && toPortfolio.current === 'portfolio' && toPortfolio.title === 'Archive' && toPortfolio.code === 'E-04' && toPortfolio.books >= 20 && toPortfolio.table >= 8
     && toPortfolio.tabs === 'Bibliothèque,Crates' && !toPortfolio.lost && toPortfolio.echo && toPortfolio.same && !toPortfolio.paused, JSON.stringify(toPortfolio));
 
-  // R9's own check for this phase: an article prints from the world as it does from the classic site. Measured at the
-  // paper's width (A4 at 96 dpi), then printed to PDF.
+  // R9's own check: an article prints from the world as a plain column. Measured at the paper's width (A4 at 96 dpi), then
+  // printed to PDF. Until 2026-11-25 the yardstick was the same article printed from the classic shell (?classic=1); the
+  // numbers it gave that day are the yardstick now (PRINT_COLUMN), so a change to the print rules still shows.
   const printOf = async (q) => {
     const ctx = await browser.newContext({ viewport: { width: 794, height: 1123 } });
     const p = await ctx.newPage();
@@ -578,12 +579,17 @@ export default async function world({ ROOT, check, AXE, axeRun, dev, browser, wa
     await ctx.close();
     return r;
   };
-  const printClassic = await printOf('classic=1');
   const printWorld = await printOf('');
-  check('R9\'s check: an article prints from the world as from the classic site — the same column, headline, body and notes laid out alike, the same pages, nothing of the world on paper',
-    printWorld.world && !printClassic.world && printWorld.article === printClassic.article && printWorld.h1 === printClassic.h1 && printWorld.body === printClassic.body && printWorld.notes === printClassic.notes
-    && printWorld.size === printClassic.size && printWorld.shown.length === 0 && printClassic.shown.length === 0 && printWorld.pages === printClassic.pages && printWorld.pages >= 1,
-    JSON.stringify({ classic: printClassic, world: printWorld }));
+  // What the classic print gave, on every run of 2026-11-24/25 (and the world's the same): article 0,794; h1 0,38,794,45;
+  // body 0,613,760,699; notes 0,1329,794,107; 42.876px; 2 pages. The heights hang on the fonts a machine renders, so the
+  // yardstick is the part that does not: the column at the paper's edge and full width, the body's 760, the headline's
+  // size, headline above body above notes.
+  const at = (b) => b.split(',').map(Number);
+  const [h1, body, notes] = [printWorld.h1, printWorld.body, printWorld.notes].map(at);
+  const column = printWorld.article === '0,794' && h1[0] === 0 && h1[2] === 794 && body[0] === 0 && body[2] === 760 && notes[0] === 0 && notes[2] === 794
+    && printWorld.size === '42.876px' && h1[1] < body[1] && body[1] < notes[1];
+  check('R9\'s check: an article prints from the world as a plain column — the column, headline, body and notes where the classic site laid them, nothing of the world on paper',
+    printWorld.world && column && printWorld.shown.length === 0 && printWorld.pages >= 1, JSON.stringify(printWorld));
 
   await w.goto(dev + 'echo', { waitUntil: 'domcontentloaded' });
   await settled('une');
@@ -651,23 +657,34 @@ export default async function world({ ROOT, check, AXE, axeRun, dev, browser, wa
   await w.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
   await settled('radio');
 
-  // Phase 5b: the classic shell stays one release behind ?classic=1, for the rest of the tab (a relative link drops the query).
-  const shellNow = () => w.evaluate(() => ({ world: Boolean(document.querySelector('.w-root')) && window.radioTower.world !== null,
-    view: getComputedStyle(document.getElementById('view')).visibility, path: location.pathname }));
-  await w.goto(dev + 'radio?classic=1', { waitUntil: 'domcontentloaded' });
-  await w.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
-  const classicAsked = await shellNow();
+  // A tap on a notification while the site is open (sw.js, run in tests/site-push.test.js): the worker posts { type: 'go' }
+  // and the page goes there with its own router — no reload, so the music would play on. Until 2026-11-25 a unit test
+  // read main.js for the words; here the page is sent the message the worker sends.
+  const goMsg = await w.evaluate(async () => {
+    const before = { audio: document.getElementById('audio'), boots: performance.getEntriesByType('navigation').length };
+    if (!navigator.serviceWorker) return { none: true };
+    navigator.serviceWorker.dispatchEvent(new MessageEvent('message', { data: { type: 'go', route: 'echo/articles' } }));
+    const t0 = performance.now();
+    while (location.pathname !== '/echo/articles' && performance.now() - t0 < 5000) await new Promise((r) => setTimeout(r, 50));
+    return { path: location.pathname, at: window.radioTower.world?.current, sameAudio: document.getElementById('audio') === before.audio,
+      sameDocument: performance.getEntriesByType('navigation').length === before.boots };
+  });
+  check('a notification tapped while the site is open: the page goes to the route the worker names, with its own router, no reload',
+    goMsg.path === '/echo/articles' && goMsg.sameAudio && goMsg.sameDocument, JSON.stringify(goMsg));
+
+  // The classic shell was retired on 2026-11-25 (until then ?classic=1 opened it, remembered for the tab as gt.world = '0').
+  // Links to it were handed out: one still opens the world, and so does a tab that remembered the choice from before.
+  const shellNow = () => w.evaluate(() => ({ world: Boolean(document.querySelector('.w-root')) && Boolean(window.radioTower.world),
+    at: window.radioTower.world?.current || null, view: getComputedStyle(document.getElementById('view')).visibility, path: location.pathname }));
+  await w.goto(dev + 'antenna?classic=1', { waitUntil: 'domcontentloaded' });
+  await w.waitForFunction(() => window.radioTower?.world?.current === 'zone', null, { timeout: 10000 }).catch(() => {});
+  const oldLink = await shellNow();
+  await w.evaluate(() => { try { sessionStorage.setItem('gt.world', '0'); } catch { /* blocked: nothing to remember */ } });
   await w.goto(dev + 'atlas', { waitUntil: 'domcontentloaded' });
-  await w.waitForFunction(() => window.radioTower?.router?.current, null, { timeout: 10000 });
-  const classicNext = await shellNow();
-  check('?classic=1 opens the classic shell, and the next page in the tab stays classic', !classicAsked.world && classicAsked.view === 'visible' && !classicNext.world
-    && classicNext.view === 'visible', JSON.stringify({ classicAsked, classicNext }));
-  await w.goto(dev + 'atlas?world=1', { waitUntil: 'domcontentloaded' });
   await w.waitForFunction(() => window.radioTower?.world?.current === 'atlas', null, { timeout: 10000 }).catch(() => {});
-  await w.goto(dev + 'zone', { waitUntil: 'domcontentloaded' });
-  await w.waitForFunction(() => window.radioTower?.world?.current === 'atlas', null, { timeout: 10000 }).catch(() => {});
-  const backOn = await shellNow();
-  check('…?world=1 brings the world back, for the rest of the tab too', backOn.world && backOn.path === '/zone', JSON.stringify(backOn));
+  const oldTab = await shellNow();
+  check('an old ?classic=1 link opens the world, and so does a tab that remembered the classic shell from before', oldLink.world && oldLink.at === 'zone'
+    && oldLink.view === 'hidden' && oldTab.world && oldTab.at === 'atlas' && oldTab.view === 'hidden', JSON.stringify({ oldLink, oldTab }));
   await wctx.close();
 
   const still = await (await browser.newContext({ viewport: { width: 1280, height: 860 }, reducedMotion: 'reduce' })).newPage();
