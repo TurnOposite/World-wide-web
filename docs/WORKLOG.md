@@ -3716,3 +3716,8 @@ green in 5.7 min. Checkout + Node 14 s, « What changed » 1 s (a full run: no g
 ffmpeg download and its sum under a second, Chrome found in 5 s, the self-test 5 min 13 s, the cache saved in 3 s. No
 annotation, so neither fallback was taken. Before, the installs alone took 39 s on a good day and 12–26 min on a bad
 one. Still unseen: a run that finds ffmpeg in the cache, and the short run of a docs-only push.
+
+**And the docs-only push** (`ba18e64`, run 45490417427, at « Yes, push it »): green in **26 s**. « What changed » found
+only `docs/WORKLOG.md` since the last green commit `99e7c65`; ffmpeg restored from the cache in 2 s (nothing to save
+after); the browser and the self-test skipped; `npm test` 6 s (Linux runs the files in parallel; the laptop takes 31).
+Step 1 is proven on GitHub end to end. The run's log needs a GitHub sign-in, so the test count was not read from it.
