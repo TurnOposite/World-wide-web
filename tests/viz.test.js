@@ -1,29 +1,23 @@
 /**
  * The visualiser's maths, checked without a browser.
  *
- * `public/viz.js` keeps every pure helper above the `Visualizer` class and
+ * `site/js/lib/viz-core.js` keeps every pure helper above the `Visualizer` class and
  * free of `window`, `document` and `AudioContext` specifically so this file
  * can import it in plain Node. The rendering itself is proved by the browser
  * smoke test; what is proved here is the part that is easy to get subtly
  * wrong and impossible to eyeball: band splits, onset thresholds, the
- * hysteresis that stops the quality tier oscillating, and the one cross-file
- * invariant this design rests on (the artwork inset).
+ * hysteresis that stops the quality tier oscillating.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import {
   palette, bands, OnsetDetector, squirclePoint, binForAngle, magAt,
-  nextTier, TIERS, clamp, lerp, DEFAULT_HUE, ART_FRACTION,
+  nextTier, TIERS, clamp, lerp, DEFAULT_HUE,
   defaultKnobs, PRESETS, DEFAULT_PRESET,
   stageTierFor, stageBloomPosition,
-} from '../public/viz.js';
+} from '../site/js/lib/viz-core.js';
 import { GENRE_BY_SLUG } from '../server/lib/genre.js';
-
-const REPO_ROOT = path.resolve(fileURLToPath(import.meta.url), '../..');
 
 /* ------------------------------------------------------------- palette --- */
 
@@ -323,23 +317,9 @@ test('stageBloomPosition degrades gracefully with no side room (e.g. a narrow ph
   }
 });
 
-/* ------------------------------------------------------------ invariant --- */
-
-test('ART_FRACTION matches --art-fraction in styles.css', async () => {
-  // The one cross-file invariant this design rests on. viz.js places its ring
-  // from ART_FRACTION rather than measuring the <img>, so if the CSS inset and
-  // this constant drift apart the visualiser silently starts drawing *over*
-  // the album art — the exact thing Ortis asked it never to do. Nothing else
-  // in the suite would notice.
-  const css = await fs.readFile(path.join(REPO_ROOT, 'public/styles.css'), 'utf8');
-  const m = css.match(/--art-fraction:\s*([\d.]+)%/);
-  assert.ok(m, '--art-fraction not found in styles.css');
-  assert.equal(
-    Number(m[1]) / 100,
-    ART_FRACTION,
-    `styles.css says ${m[1]}% but viz.js ART_FRACTION is ${ART_FRACTION}`,
-  );
-});
+/* The artwork-inset test (ART_FRACTION against --art-fraction in public/styles.css) left with the Pi-era player
+   on 2026-11-25: the site draws no ring around an <img>, so there is no CSS for it to match
+   (archive/pi-player-2026-11-25/README.md). */
 
 /* --------------------------------------------------------------- basics --- */
 

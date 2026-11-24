@@ -18,7 +18,6 @@ import fs from 'node:fs';
 import { Listeners } from './lib/listeners.js';
 import { RateLimiter, rateLimit, isLoopback } from './lib/ratelimit.js';
 import { apiRouter } from './routes/api.js';
-import { attachDevReload } from './lib/devReload.js';
 import { Collections, isPrivatePath } from './lib/collections.js';
 import { Telegraph, dailyReset } from './lib/telegraph.js';
 import { LineNotifier, PushStore } from './lib/notify.js';
@@ -151,15 +150,9 @@ async function rescan({ useCache = true } = {}) {
 
 /**
  * @param {object} [opts]
- * @param {boolean} [opts.devReload] wire up the dev-only hot-reload SSE
- *   endpoint (server/lib/devReload.js). Must be decided *here*, before the
- *   catch-all 404 handler below is registered — Express matches routes in
- *   registration order, so a route added to `app` after `createApp()`
- *   returns is unreachable, shadowed by that handler. Defaults to false so
- *   the test suite, which imports and calls this with no arguments, never
- *   opens an fs.watch handle of its own.
+ * @param {() => number} [opts.now] the budgets' clock, for tests
  */
-export function createApp({ devReload = false, now } = {}) {
+export function createApp({ now } = {}) {
   const app = express();
   app.disable('x-powered-by');
   // Behind cloudflared (the Pi) or Caddy (the cloud tower), both on this
@@ -217,8 +210,6 @@ export function createApp({ devReload = false, now } = {}) {
     }),
   );
 
-  if (devReload) attachDevReload(app, path.join(ROOT, 'public'));
-
   // The cloud tower serves the whole website, tuned to itself (config.siteDir).
   // The build writes one index.html per route, so plain static serving covers
   // every page; anything else gets the site's own 404 page, which boots the
@@ -235,34 +226,14 @@ export function createApp({ devReload = false, now } = {}) {
     });
   }
 
-  // Cache policy. The old `maxAge: '1h'` put `Cache-Control: public,
-  // max-age=3600` on every .js and .css file, which made two correct deploys
-  // look like silent failures (docs/HANDOFF-2026-08-20.md): the browser kept
-  // running the ES modules it had already cached and never asked the server
-  // whether they had changed. Diagnosed live — `fetch('/viz.js',
-  // {cache:'no-store'})` returned the new file while `await import('/viz.js')`
-  // returned the old module, and #vizStage's CSS was in the served stylesheet
-  // but in no entry of document.styleSheets.
-  //
-  // That is a listener-facing bug, not a developer annoyance: a stranger who
-  // opened the link cannot be told to press Ctrl+Shift+R.
-  //
-  // `no-cache` does not mean "do not store" — the browser still keeps the file
-  // and still revalidates with If-None-Match, so the common case is a 304 with
-  // an empty body, not a re-download. express.static's ETag stays on, so this
-  // costs one conditional request per file per load and nothing else.
-  //
-  // /assets/ is the exception: images are large, change rarely, and are
-  // referenced by a name that changes when their content does. A week rather
-  // than `immutable`, so replacing one in place still resolves itself.
-  app.use(
-    express.static(path.join(ROOT, 'public'), {
-      setHeaders: (res, filePath) => {
-        const isAsset = filePath.split(path.sep).includes('assets');
-        res.setHeader('Cache-Control', isAsset ? 'public, max-age=604800' : 'no-cache');
-      },
-    }),
-  );
+  // Without SITE_DIR (a laptop's `npm start`, the tests) this is the tower alone: its API. Until 2026-11-25 it
+  // also served the Pi-era player in public/; that player is retired (archive/pi-player-2026-11-25/), the
+  // website is the one face, and its cache rule lives in siteCache above (pinned by tests/static-cache.test.js).
+  if (!config.siteDir) {
+    app.get('/', (req, res) => res.type('text/plain').set('Cache-Control', 'no-cache').send(
+      `${config.stationName}: a Radio Tower. Its API is under /api/ (try /api/station).\n`
+      + 'The website is served apart: npm run site (it reads this tower with ?tower=), or SITE_DIR=dist after npm run site:build.\n'));
+  }
 
   app.use((req, res) => res.status(404).json({ error: 'not_found' }));
 
@@ -292,11 +263,7 @@ export { station, channels, listeners, state, rescan, collections, telegraph, no
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 
 if (isMain) {
-  // Hot reload for public/, dev only. Nothing in the deploy path sets
-  // NODE_ENV except the systemd unit (deploy/cloud/install.sh writes it), which
-  // sets NODE_ENV=production explicitly so this stays off on a real station.
-  const devReload = process.env.NODE_ENV !== 'production';
-  const app = createApp({ devReload });
+  const app = createApp();
   const server = createServer(app);
 
   // Listen first, scan second. A cold scan of a large library over slow USB
@@ -312,7 +279,6 @@ if (isMain) {
     console.log(`  music: ${config.musicDir}`);
     console.log(`  epoch: ${new Date(config.stationEpoch).toISOString()}`);
     if (station instanceof DailyStation) console.log(`  programme: daily, from ${station.rules.dayStarts} ${station.rules.timeZone} (docs/PROGRAMME.md)`);
-    if (devReload) console.log(`  dev hot-reload: watching public/ (SSE at /api/dev/reload)`);
     console.log(`  warming up — scanning the library now...\n`);
   });
 

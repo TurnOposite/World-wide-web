@@ -1,4 +1,3 @@
-// GENERATED — copied verbatim from public/viz.js by scripts/site-sync.mjs. Edit the source, not this file.
 /**
  * Radio Tower — the visualiser.
  *
@@ -199,7 +198,7 @@ export function palette(hue, drift = 0, look = NEUTRAL_LOOK) {
 export const NEUTRAL_LOOK = Object.freeze({ span: 0, satScale: 1, lightShift: 0 });
 
 /**
- * What a cover (public/cover-palette.js coverLook()) does to the palette.
+ * What a cover (cover-palette.js coverLook()) does to the palette.
  * `span` is the signed way round from the main hue to the answering one. A
  * black-and-white sleeve keeps a trace of colour (0.18), never none, so the
  * stage still reads as alive; a pale sleeve lifts the stage a little, a dark

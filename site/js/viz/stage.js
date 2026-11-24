@@ -11,7 +11,7 @@
  * card carries paint while the music plays.
  *
  * The maths (palette, bands, onset detection, squircle, tiers) is the tested
- * core of public/viz.js, copied in verbatim as ../lib/viz-core.js.
+ * core of the Pi-era player, ../lib/viz-core.js (the original since 2026-11-25).
  *
  * One AudioContext, two analysers (smoothed for the shapes, raw for onsets
  * and the waveform), created on the first Tune in and never again:

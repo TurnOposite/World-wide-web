@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { coverLook, rgbToHsl } from '../public/cover-palette.js';
+import { coverLook, rgbToHsl } from '../site/js/lib/cover-palette.js';
 
 /** A w×h RGBA image from a function (x, y) → [r, g, b]. */
 function image(w, h, paint) {
@@ -55,7 +55,7 @@ test('the same pixels always give the same look', () => {
 });
 
 test('the palette: no cover changes nothing; a cover leans every role toward its second colour', async () => {
-  const { palette, lookParams, NEUTRAL_LOOK } = await import('../public/viz.js');
+  const { palette, lookParams, NEUTRAL_LOOK } = await import('../site/js/lib/viz-core.js');
   const plain = palette(285, 4);
   const neutral = palette(285, 4, NEUTRAL_LOOK);
   for (const k of ['ring', 'ringGlow', 'bloomA', 'bloomB', 'shock', 'spark', 'ribbon']) assert.equal(neutral[k](), plain[k]());

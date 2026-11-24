@@ -5,10 +5,10 @@
 # This is the script the build agent runs to answer "is the platform still
 # working?". It goes further than `npm test`: it boots a real server against a
 # generated music library, exercises the HTTP surface with curl, and — if a
-# browser is available — drives the actual player.
+# browser is available — drives the website, against that server too.
 #
 #   bash scripts/build-test.sh              # everything
-#   bash scripts/build-test.sh --no-browser # skip the browser stage
+#   bash scripts/build-test.sh --no-browser # skip the browser checks
 #   bash scripts/build-test.sh --keep       # leave the server running
 #
 # Exit code 0 = the tower is sound. Non-zero = something is broken; the output
@@ -302,15 +302,18 @@ if [[ -n "$RSS" ]]; then
   [[ "$RSS" -lt 250 ]] && ok "resident memory ${RSS}MB (fits a Pi Zero 2 W)" || bad "resident memory ${RSS}MB is high for a Pi"
 fi
 
-# ------------------------------------------------------------- 6. browser ----
+# ------------------------------------------------- which browser, for 6 and 7 --
+# Until 2026-11-25 a stage of its own drove the Pi-era player in public/ here (scripts/browser-smoke.mjs). That
+# player is retired (archive/pi-player-2026-11-25/); its checks of the tower itself — a listener in step with the
+# tower's own stream, the rollover, a booth move the tower records, « Back to the station clock » — are the site
+# smoke's `tower` part now, in the stage below. What stays here is finding a browser for the two stages that drive one.
 if [[ $DO_BROWSER -eq 1 ]]; then
-  stage "Browser"
   if node -e "import('playwright').then(()=>process.exit(0)).catch(()=>process.exit(1))" 2>/dev/null; then
     # Playwright pins an exact Chromium revision per release and refuses to
     # launch anything else. A machine can easily have a perfectly good
     # Chromium on disk — a different Playwright install's download, a system
     # package — under a version that doesn't match. Rather than re-download,
-    # look for one and hand it to browser-smoke.mjs as TOWER_BROWSER_EXECUTABLE.
+    # look for one and hand it to the smokes as TOWER_BROWSER_EXECUTABLE.
     # First hit wins; if nothing is found Playwright falls back to its own
     # managed download path, so this is additive, not a requirement.
     if [[ -z "${TOWER_BROWSER_EXECUTABLE:-}" ]]; then
@@ -330,19 +333,10 @@ if [[ $DO_BROWSER -eq 1 ]]; then
         [[ -x "$candidate" ]] && { export TOWER_BROWSER_EXECUTABLE="$candidate"; break; }
       done
     fi
-    [[ -n "${TOWER_BROWSER_EXECUTABLE:-}" ]] && info "using browser: $TOWER_BROWSER_EXECUTABLE"
-
-    if node scripts/browser-smoke.mjs "http://127.0.0.1:$PORT" 2>&1 | sed 's/^/  /'; then
-      ok "player drives correctly in a real browser"
-    else
-      bad "browser smoke test failed"
-    fi
-  else
-    info "playwright not installed — skipping (npm i -D playwright to enable)"
   fi
 fi
 
-# ------------------------------------------------------- 7. the static site --
+# ------------------------------------------------------- 6. the static site --
 # The cloud half (docs/CLOUD.md): the same station computed in the browser,
 # served as static files. Generated inputs must match their sources, then a
 # real browser drives the site — and, pointed at the server started above,
@@ -353,6 +347,7 @@ for chk in "site-sync.mjs --check" "site-texts.mjs --check" "site-collections.mj
   if OUT="$(node scripts/$chk 2>&1)"; then ok "$(tail -1 <<<"$OUT" | sed 's/^ *✓ *//')"; else bad "$(tail -1 <<<"$OUT" | sed 's/^ *✗ *//')"; fi
 done
 if [[ $DO_BROWSER -eq 1 ]] && node -e "import('playwright').then(()=>process.exit(0)).catch(()=>process.exit(1))" 2>/dev/null; then
+  [[ -n "${TOWER_BROWSER_EXECUTABLE:-}" ]] && info "using browser: $TOWER_BROWSER_EXECUTABLE"
   # On GitHub the parts that need no live server run in jobs of their own (ci.yml); here, unset, all of them run.
   [[ -n "${SITE_SMOKE_ONLY:-}" ]] && info "site smoke: only $SITE_SMOKE_ONLY (SITE_SMOKE_ONLY; the other parts run elsewhere)"
   if TOWER_PUSH_STUB="http://127.0.0.1:$PUSH_STUB_PORT" node scripts/site-smoke.mjs "http://127.0.0.1:$PORT" 2>&1 | sed 's/^/  /'; then
@@ -364,7 +359,7 @@ else
   info "site browser checks skipped (--no-browser, or playwright missing)"
 fi
 
-# ---------------------------------------------------------- 8. the Atelier --
+# ---------------------------------------------------------- 7. the Atelier ---
 # The map as data (docs/ATELIER.md): site/data/layout.json must hold, and the
 # world, the versions of the past, the short links and the Atelier itself are
 # driven in a real browser — with the server above for an old page in tower mode.

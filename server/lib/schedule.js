@@ -826,7 +826,7 @@ export function publicTrack(t) {
     genreSlug: t.genreSlug || null,
     genreLabel: t.genreLabel || null,
     // Degrees on the colour wheel, set by server/lib/genre.js. The player
-    // passes this straight to public/viz.js so barber beats (285, violet) and
+    // passes this straight to site/js/lib/viz-core.js so barber beats (285, violet) and
     // atmospheric DnB (165, sea-green) do not paint the same picture.
     genreAccent: Number.isFinite(t.genreAccent) ? t.genreAccent : null,
   };

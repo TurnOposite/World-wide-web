@@ -1,5 +1,8 @@
 /**
- * The cache policy on `public/`.
+ * The cache policy on the website the tower serves (SITE_DIR — the cloud tower serves its own site).
+ *
+ * Until 2026-11-25 this pinned the Pi-era player in `public/`; that player is retired
+ * (archive/pi-player-2026-11-25/) and the same rule is pinned on the site, served from `site/` as-is.
  *
  * Why this file exists: `express.static` was configured with `maxAge: '1h'`,
  * which put `Cache-Control: public, max-age=3600` on every ES module and
@@ -28,15 +31,15 @@ import http from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { startTower } from './helpers/tower.js';
 
-const tower = await startTower({ prefix: 'rt-cache-' });
+const SITE = fileURLToPath(new URL('../site', import.meta.url));
+const tower = await startTower({ prefix: 'rt-cache-', env: { SITE_DIR: SITE } });
 const { base } = tower;
 test.after(() => tower.close());
 
-/** Every path here is something the browser parses and runs. */
+/** Every path here is something the browser parses and runs — or, config.json, what a deploy changes. */
 const EXECUTABLE = [
-  '/', '/index.html', '/app.js', '/viz.js', '/backdrops.js', '/styles.css', '/schedule.html',
-  // The rooms added 2026-09-23 (Library, Photos, Crates) follow the same rule.
-  '/library.html', '/library.js', '/photos.html', '/photos.js', '/crates.html', '/crates.js', '/collections.css', '/sitenav.js',
+  '/', '/index.html', '/js/main.js', '/js/router.js', '/js/player.js', '/js/lib/viz-core.js', '/js/lib/schedule.js',
+  '/css/site.css', '/css/world.css', '/sw.js', '/config.json',
 ];
 
 for (const url of EXECUTABLE) {
@@ -58,7 +61,7 @@ for (const url of EXECUTABLE) {
  */
 const request = (headers = {}) =>
   new Promise((resolve, reject) => {
-    const req = http.get({ host: '127.0.0.1', port: tower.server.address().port, path: '/app.js', headers }, (res) => {
+    const req = http.get({ host: '127.0.0.1', port: tower.server.address().port, path: '/js/main.js', headers }, (res) => {
       let body = '';
       res.setEncoding('utf8');
       res.on('data', (c) => (body += c));
@@ -80,17 +83,12 @@ test('no-cache still means "keep it, but ask" — a conditional request gets a 3
 test('/assets/ may be cached hard — images are large and their names change with their contents', async () => {
   // fileURLToPath, not URL.pathname: on Windows the latter is "/C:/…", the
   // readdir below failed, and this test passed without checking anything.
-  const dir = fileURLToPath(new URL('../public/assets/backdrops', import.meta.url));
-  let sample;
-  try {
-    const entries = await fs.readdir(dir);
-    sample = entries.find((f) => /\.(webp|png|jpe?g|svg)$/i.test(f));
-  } catch {
-    /* no assets dir on this checkout */
-  }
-  if (!sample) return; // nothing to assert against; not a failure
+  // The site's assets are committed, so a missing sample is a failure here, not a skip (the old one, on
+  // public/assets/backdrops, passed without checking anything on a checkout that had none).
+  const sample = (await fs.readdir(path.join(SITE, 'assets'))).find((f) => /\.(webp|png|jpe?g|svg)$/i.test(f));
+  assert.ok(sample, 'site/assets/ holds an image to check');
 
-  const res = await fetch(`${base}/assets/backdrops/${encodeURIComponent(sample)}`);
+  const res = await fetch(`${base}/assets/${encodeURIComponent(sample)}`);
   assert.equal(res.status, 200);
   const cc = res.headers.get('cache-control') ?? '';
   assert.match(cc, /max-age=\d{4,}/, `assets should stay cacheable, got "${cc}"`);

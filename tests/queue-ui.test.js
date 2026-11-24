@@ -1,7 +1,7 @@
 /**
  * The queue editor's window arithmetic.
  *
- * `public/queue.js` keeps its pure helpers DOM-free so this file can check
+ * `site/js/lib/queue-core.js` keeps its pure helpers DOM-free so this file can check
  * them in Node. The drag gestures are proved in the browser; what is proved
  * here is the part that decides *which slots may be touched at all* — and
  * getting that wrong means either offering a move the server will reject, or
@@ -16,7 +16,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { movableWindow, applyMove, isPermutation, untilAir } from '../public/queue.js';
+import { movableWindow, applyMove, isPermutation, untilAir } from '../site/js/lib/queue-core.js';
 
 /** Build a slot list: `L` = locked, digits = cycleIndex. */
 const slots = (spec) =>

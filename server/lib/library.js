@@ -192,7 +192,7 @@ export async function scanLibrary({
     // The hue the visualiser keys its palette off. Carried on the track (and
     // so through publicTrack to the API) rather than looked up client-side,
     // because that would mean a second copy of the GENRES table living in
-    // public/ — and a copy that silently drifts the first time someone adds a
+    // the site — and a copy that silently drifts the first time someone adds a
     // bucket here. `server/lib/genre.js` stays the single source of truth.
     track.genreAccent = verdict.accent;
   }

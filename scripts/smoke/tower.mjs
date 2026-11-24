@@ -35,6 +35,79 @@ export default async function tower({ towerUrl, check, dev, browser, errors, wat
     }));
     check('…and its Ondes page reads Up next and the next hours from the tower', tEcho.next >= 1 && tEcho.guide >= 5, tEcho.empty || `${tEcho.next} next, ${tEcho.guide} in the guide`);
 
+    // What the Pi-era player's browser stage (scripts/browser-smoke.mjs) proved about the tower, on the site since that
+    // player was retired (2026-11-25, LIGHTER step 3, archive/pi-player-2026-11-25/): a listener in step with the tower
+    // and across a track change, and a reorder from the booth that the tower itself records, undone by « Back to the
+    // station clock ». In the world shell, as the live site is. Every reading names the slot it reads (each cycle is
+    // its own shuffle, so a title can open the next cycle too) and is taken again when a track ends between.
+    {
+      const enc = encodeURIComponent(towerUrl);
+      const lp = await (await browser.newContext()).newPage();
+      watch(lp, 'tower, listening');
+      await lp.goto(`${dev}radio?tower=${enc}`, { waitUntil: 'domcontentloaded' });
+      await lp.waitForFunction(() => window.radioTower?.player?.onAir && document.getElementById('rTune'), null, { timeout: 15000 }).catch(() => {});
+      await lp.evaluate(() => { if (/Tune in/.test(document.getElementById('rTuneLabel')?.textContent || '')) document.getElementById('rTune').click(); });
+      await lp.waitForFunction(() => { const au = document.getElementById('audio'); return au && !au.paused && au.currentTime > 0.5; }, null, { timeout: 15000 }).catch(() => {});
+      const onTower = () => lp.evaluate(async (tw) => {
+        const au = document.getElementById('audio');
+        const ch = window.radioTower.client.channel;
+        const { onAir } = await (await fetch(`${tw}/api/station${ch ? `?channel=${encodeURIComponent(ch)}` : ''}`, { cache: 'no-store' })).json();
+        return { id: onAir.id, title: onAir.title, startsAt: onAir.startsAt, endsAt: onAir.endsAt, offset: onAir.offset, remaining: onAir.remaining,
+          playingId: (au.currentSrc.match(/track\/([0-9a-f]{12})\//) || [])[1], ct: au.currentTime, paused: au.paused };
+      }, towerUrl);
+      let s = await onTower();
+      for (let i = 0; i < 4 && !(s.id === s.playingId && s.offset > 0.5); i++) { await lp.waitForTimeout(1200); s = await onTower(); }
+      check('a listener on the site plays the tower\'s own stream, in step with the tower', !s.paused && s.id === s.playingId && Math.abs(s.ct - s.offset) < 2,
+        `${s.title}: ${s.ct.toFixed(2)} s here, ${s.offset.toFixed(2)} s on the tower`);
+      // Across a track change: a later slot, its track in the <audio>, at its position — not the end of the old file.
+      if (s.remaining < 20) {
+        const before = s;
+        await lp.waitForTimeout((before.remaining + 3) * 1000);
+        let after = await onTower();
+        for (let i = 0; i < 3 && (after.playingId !== after.id || Math.abs(after.ct - after.offset) >= 2); i++) { await lp.waitForTimeout(700); after = await onTower(); }
+        check('…and it rolls over to the next track by itself, still playing', after.startsAt >= before.endsAt && after.playingId === after.id && Math.abs(after.ct - after.offset) < 2 && !after.paused,
+          `${before.title} → ${after.title}, ${after.ct.toFixed(1)} s here vs ${after.offset.toFixed(1)} s on the tower`);
+      } else console.log(`SKIP  the rollover: ${Math.round(s.remaining)} s left on the track`);
+      await lp.context().close();
+
+      // The booth on the tower, unlocked by the shortcut's key: a row moved up, and the tower holds the override.
+      const qb = await (await browser.newContext()).newPage();
+      watch(qb, 'tower, booth queue');
+      await qb.goto(`${dev}booth?tower=${enc}#key=selftest-key`, { waitUntil: 'domcontentloaded' });
+      await qb.waitForSelector('#bQueue li[data-movable="1"]', { timeout: 10000 }).catch(() => {});
+      const queueOn = () => qb.evaluate(async (tw) => {
+        const ch = window.radioTower.client.channel;
+        const q = await (await fetch(`${tw}/api/queue${ch ? `?channel=${encodeURIComponent(ch)}` : ''}`, { cache: 'no-store' })).json();
+        return { ids: (q.slots || []).map((x) => x.id), override: Boolean(q.override) };
+      }, towerUrl);
+      // As in the cloud booth (classic.mjs): the programme moves under the hand — a track ends, the list is redrawn —
+      // so an attempt counts only when the tower holds an override over the same tracks in another order; anything
+      // else is put back and tried again, four times at most. `slid` tracks left the front while it was moved.
+      let moved = null;
+      let first = null;
+      for (let attempt = 0; attempt < 4 && !moved; attempt++) {
+        first = await queueOn();
+        if ((await qb.$$('#bQueue li[data-movable="1"]')).length < 2) { await qb.waitForTimeout(1200); continue; }
+        await qb.evaluate(() => { const r = document.querySelectorAll('#bQueue li[data-movable="1"]'); r[r.length - 1]?.focus(); });
+        await qb.keyboard.press('ArrowUp');
+        for (let waited = 0; waited < 6000 && !(await queueOn()).override; waited += 300) await qb.waitForTimeout(300);
+        const now = await queueOn();
+        const slid = Math.max(0, first.ids.indexOf(now.ids[0]));
+        const was = first.ids.slice(slid);
+        const is = now.ids.slice(0, was.length);
+        if (now.override && [...was].sort().join() === [...is].sort().join() && was.join() !== is.join()) moved = { now, slid };
+        else if (now.override) { await qb.evaluate(() => document.querySelector('#bQueue [data-clear]')?.click()); await qb.waitForTimeout(1500); }
+      }
+      check('the booth on the tower moves a track, and the tower itself records it (not just the page): the same tracks, in another order',
+        Boolean(moved), moved ? `slid ${moved.slid}, ${moved.now.ids.length} slots` : `no attempt moved a row — the tower's queue ${first?.ids.join(' ')}`);
+      if (moved) {
+        await qb.evaluate(() => document.querySelector('#bQueue [data-clear]')?.click());
+        for (let waited = 0; waited < 8000 && (await queueOn()).override; waited += 300) await qb.waitForTimeout(300);
+        check('…and « Back to the station clock » gives the tower its natural order back', !(await queueOn()).override);
+      }
+      await qb.context().close();
+    }
+
     // The Antenna on a tower (2026-11-10): the telegraph line. A listener joins with a name and an icon from the bank,
     // says something, and it is on the tower's line for everyone; what a stranger types stays text; and the browser
     // keeps who they are only when asked.

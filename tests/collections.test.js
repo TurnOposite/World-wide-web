@@ -172,15 +172,9 @@ test('a broken manifest is an empty room with a reason, not a 500', async () => 
   assert.equal(back.ok, true, 'fixing the file is picked up without a restart');
 });
 
-test('the three rooms are reachable from every page through the section bar', async () => {
-  for (const page of ['/', '/schedule.html', '/library.html', '/photos.html', '/crates.html']) {
-    const html = await (await fetch(base + page)).text();
-    for (const href of ['/library.html', '/photos.html', '/crates.html', '/schedule.html']) {
-      assert.ok(html.includes(`href="${href}"`), `${page} has no link to ${href}`);
-    }
-    assert.match(html, /<script src="\/sitenav\.js" type="module"><\/script>/);
-  }
-});
+// « the three rooms are reachable from every page through the section bar » pinned the Pi-era player's pages
+// (public/sitenav.js), retired 2026-11-25. The site's rooms are /portfolio/library, /portfolio/crates (and
+// /portfolio/photos, no tab), driven by the site smoke; the tower still serves /api/collections and /collections/.
 
 test('the manifest shipped in the repo parses and every file it lists is present', { skip: !(await fs.stat(path.join(ROOT, 'collections', 'university')).catch(() => null)) && 'collections/ not present on this machine' }, async () => {
   const { Collections } = await import('../server/lib/collections.js');

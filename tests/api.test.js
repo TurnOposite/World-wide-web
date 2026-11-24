@@ -253,25 +253,8 @@ test('path traversal through the track id is not possible', async () => {
   }
 });
 
-test('the player HTML and assets are served', async () => {
-  const html = await get('/');
-  assert.equal(html.status, 200);
-  assert.match(html.headers.get('content-type'), /text\/html/);
-  const body = await html.text();
-  assert.ok(body.includes('Radio Tower'));
-
-  assert.equal((await get('/app.js')).status, 200);
-  assert.equal((await get('/styles.css')).status, 200);
-});
-
-test('the programme guide page and its script are served', async () => {
-  const html = await get('/schedule.html');
-  assert.equal(html.status, 200);
-  assert.match(html.headers.get('content-type'), /text\/html/);
-  assert.ok((await html.text()).includes('Programme guide'));
-
-  assert.equal((await get('/schedule.js')).status, 200);
-});
+// « the player HTML and assets are served » and « the programme guide page and its script are served » pinned the
+// Pi-era player in public/, retired 2026-11-25: the last test in this file says what the root serves now.
 
 test('unknown routes return JSON 404, not an HTML error page', async () => {
   const res = await get('/api/nope');
@@ -303,4 +286,18 @@ test('POST /api/rescan with no STATION_KEY configured is refused, not run', asyn
 
 test.after(async () => {
   await fs.rm(MUSIC, { recursive: true, force: true });
+});
+
+// Since 2026-11-25 a tower without SITE_DIR serves no player of its own (the Pi-era one in public/ is retired):
+// its root says what it is and where the website is, and nothing else is served outside /api/.
+test('without SITE_DIR the root says where the website is, and serves no old player', async () => {
+  const root = await get('/');
+  assert.equal(root.status, 200);
+  assert.match(root.headers.get('content-type') || '', /text\/plain/);
+  const text = await root.text();
+  assert.match(text, /\/api\/station/);
+  assert.match(text, /npm run site/);
+  for (const old of ['/app.js', '/index.html', '/styles.css', '/viz.js']) {
+    assert.equal((await get(old)).status, 404, `${old} belonged to the retired player`);
+  }
 });

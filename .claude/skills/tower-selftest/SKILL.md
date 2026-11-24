@@ -55,17 +55,22 @@ directory, boots the real `server/index.js` against them on `:8199`, waits for
 and resident memory (must be under 250MB, so it fits a Pi Zero 2 W). These are
 Pi-fitness gates, not micro-optimisation.
 
-**6 — Browser.** `scripts/browser-smoke.mjs` in headless Chromium: loads the
-player, clicks Tune in, and asserts the audio element is actually playing within
-2 seconds of where the tower says it should be. Then it waits for a track
-boundary and checks the player rolls over on its own. This catches what unit
-tests structurally cannot — autoplay policy, seeking before metadata is ready,
-CORS on the Web Audio graph, and the drift-correction loop.
+**6 — Static site.** `scripts/site-smoke.mjs` in headless Chromium, in parts
+(`scripts/smoke/`). Its `tower` part points the website at the server started in
+stage 3: a listener on the site plays the tower's own stream within 2 seconds of
+where the tower says, rolls over to the next track on its own, a booth move is
+recorded by the tower itself, and « Back to the station clock » undoes it. This
+catches what unit tests structurally cannot — autoplay policy, seeking before
+metadata is ready, CORS, and the drift-correction loop.
 
-Set `CHROME_PATH` to use a system Chromium instead of a Playwright download:
+*(Until 2026-11-25 a stage of its own, `scripts/browser-smoke.mjs`, drove the
+Pi-era player in `public/`. Both are in `archive/pi-player-2026-11-25/`.)*
+
+Set `CHROME_PATH` (or `TOWER_BROWSER_EXECUTABLE`) to use a system Chromium
+instead of a Playwright download; `--only tower` runs one part:
 
 ```bash
-CHROME_PATH=/usr/bin/chromium node scripts/browser-smoke.mjs http://127.0.0.1:8080
+TOWER_BROWSER_EXECUTABLE=/usr/bin/chromium node scripts/site-smoke.mjs http://127.0.0.1:8080 --only tower
 ```
 
 ## Reading a failure
@@ -98,17 +103,17 @@ options — the bug is almost always forgetting that twice or once.
 twice, buffering whole tracks, or leaking listeners. Check `Listeners.seen`
 expiry and any new caching.
 
-**Browser stage fails but everything else passes.** Look at which check. "audio
-element is playing" failing usually means autoplay policy — the smoke script
-passes `--autoplay-policy=no-user-gesture-required`, so if it fails there,
-playback genuinely broke. "playback is in sync" failing with a large drift means
-the seek-on-`loadedmetadata` path regressed.
+**Site stage fails but everything else passes.** Look at which check and which
+part (each part prints `----  part: N checks`). "plays the tower's own stream, in
+step with the tower" failing with a large drift means the seek-on-`loadedmetadata`
+path regressed; the smoke passes `--autoplay-policy=no-user-gesture-required`, so
+no sound at all is a real playback break.
 
 ## Adding checks
 
 Put pure logic in `tests/*.test.js` — they are fast and run everywhere. Put
 anything needing a live server in `tests/api.test.js`. Put anything needing a
-real browser in `scripts/browser-smoke.mjs`. Add a curl-level check to
+real browser in the right part of `scripts/smoke/` (`tower` when it needs the live server). Add a curl-level check to
 `build-test.sh` only when it is an operational property (a status code, a header,
 a timing) rather than a behaviour.
 

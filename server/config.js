@@ -69,8 +69,8 @@ export const config = {
   allowUploads: process.env.ALLOW_UPLOADS === '1',
 
   // Serve the full website (the site/ edition, built into a folder by
-  // scripts/site-build.mjs with SITE_TOWER='') instead of the Pi's own page
-  // in public/. Set by deploy/cloud/install.sh on the cloud tower.
+  // scripts/site-build.mjs with SITE_TOWER='') instead of the API alone (the Pi-era
+  // player in public/ was retired 2026-11-25). Set by deploy/cloud/install.sh on the cloud tower.
   siteDir: process.env.SITE_DIR ? path.resolve(process.env.SITE_DIR) : null,
   uploadMaxMb: envInt('UPLOAD_MAX_MB', 1024),
 

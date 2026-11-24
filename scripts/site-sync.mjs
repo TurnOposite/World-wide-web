@@ -2,8 +2,8 @@
 /**
  * Copy the station's shared, dependency-free modules into the site.
  *
- * The static site runs the *same* clock as the Pi, not a port of it. Rather
- * than a bundler (BRIEF.md: no build step) the two files are copied verbatim;
+ * The static site runs the *same* clock as the tower, not a port of it. Rather
+ * than a bundler (BRIEF.md: no build step) the files are copied verbatim;
  * tests/site-sync.test.js fails if a copy ever drifts from its source.
  *
  *   node scripts/site-sync.mjs          # copy
@@ -22,16 +22,9 @@ export const SYNCED = [
   // library; pinned by tests/channels.test.js.
   ['server/lib/channels.js', 'site/js/lib/channels.js'],
   ['dj/moods.json', 'site/station/moods.json'],
-  // The visualiser's pure maths (palette, bands, onset detection, squircle,
-  // tiers) — pinned by tests/viz.test.js. The site's full-page stage builds
-  // on these rather than re-deriving them.
-  ['public/viz.js', 'site/js/lib/viz-core.js'],
-  // The colours of a cover, read in the browser — the stage tints itself
-  // with them (docs/PROGRAMME.md). Pinned by tests/cover-palette.test.js.
-  ['public/cover-palette.js', 'site/js/lib/cover-palette.js'],
-  // The queue editor's pure helpers (movableWindow, applyMove, isPermutation)
-  // — pinned by tests/queue-ui.test.js.
-  ['public/queue.js', 'site/js/lib/queue-core.js'],
+  // Until 2026-11-25 viz-core.js, cover-palette.js and queue-core.js were copied here from the Pi-era
+  // player in public/. That player is retired (archive/pi-player-2026-11-25/): the site's copies are the
+  // originals now, edited in place, still pinned by tests/viz.test.js, cover-palette.test.js, queue-ui.test.js.
 ];
 
 const BANNER = (src) => `// GENERATED — copied verbatim from ${src} by scripts/site-sync.mjs. Edit the source, not this file.\n`;

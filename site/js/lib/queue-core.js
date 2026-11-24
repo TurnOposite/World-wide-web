@@ -1,4 +1,3 @@
-// GENERATED — copied verbatim from public/queue.js by scripts/site-sync.mjs. Edit the source, not this file.
 /**
  * Radio Tower — the queue editor.
  *

@@ -1,4 +1,3 @@
-// GENERATED — copied verbatim from public/cover-palette.js by scripts/site-sync.mjs. Edit the source, not this file.
 /**
  * The look of a cover: what the visuals take from an album's artwork
  * instead of from its genre (docs/PROGRAMME.md, "Visuals from the cover").
@@ -7,7 +6,7 @@
  * (server/lib/genre.js) — and the library is almost all "Barber Beats", so
  * almost everything was violet. A cover says much more: a hue, a second hue
  * that answers it, how saturated it is, how dark. Those four numbers are
- * enough to tint every layer of the stage (public/viz.js palette()).
+ * enough to tint every layer of the stage (viz-core.js palette()).
  *
  * Read in the listener's browser: the player already downloads the cover
  * (/api/track/:id/art), and a browser decodes JPEG for free — the tower
