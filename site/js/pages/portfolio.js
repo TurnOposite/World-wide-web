@@ -15,6 +15,14 @@ const ROOMS = {
   photos: { label: 'Photos', load: () => import('./rooms/photos.js'), tab: false },
 };
 
+/** His other places on the internet, by short name (Ortis, 2026-11-24: the full addresses were « not pretty »). */
+export const ELSEWHERE = [
+  ['@Warframe', 'https://warframe.market/profile/maxn3'],
+  ['@Discord', 'https://discord.com/users/595913529132056596'],
+  ['@Instagram', 'https://www.instagram.com/definetlynotn/'],
+  ['@YouTube', 'https://www.youtube.com/@TurnOposite'],
+];
+
 export async function mount(root, ctx) {
   if (ctx.router.current?.name === 'archives') {
     ctx.router.go('portfolio', { replace: true });
@@ -23,7 +31,8 @@ export async function mount(root, ctx) {
   const room = ROOMS[ctx.params.room] ? ctx.params.room : 'library';
   // In the world the Archive stands on Echo (E-04): rooms.css dresses it in the Gazette's paper there.
   root.classList.add('pf');
-  root.innerHTML = `<div class="page-head"><h1>Archive</h1></div>
+  root.innerHTML = `<div class="page-head"><h1>Archive</h1>
+    <p class="pf-elsewhere">Elsewhere: ${ELSEWHERE.map(([n, u]) => `<a href="${u}" target="_blank" rel="me noopener">${n}</a>`).join(' · ')}</p></div>
     <nav class="room-tabs" aria-label="Rooms">${Object.entries(ROOMS).filter(([k, r]) => r.tab !== false || k === room).map(([k, r]) =>
       `<a href="portfolio/${k}" data-link${k === room ? ' aria-current="page"' : ''}>${r.label}</a>`).join('')}</nav>
     <div class="room" id="room"></div>`;

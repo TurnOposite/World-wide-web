@@ -3621,3 +3621,9 @@ slow machine got the same frozen start. **Fix:** `paintLayer` keeps its `peaks`;
 Not seen: a screenshot of the night lights (the headless screenshot waits on fonts and timed out); the shape test is the
 formula the karst is drawn with. Left: `silhouette` and `farLights` each make a canvas the panorama's full size
 (≈ 100 MB at this width) — memory on a phone-sized machine; the boat is off on phones.
+
+## 2026-11-24 — his other profiles on the Archive
+
+Under the Archive's title (Echo side, `/portfolio`): « Elsewhere: @Warframe · @Discord · @Instagram · @YouTube », each
+opening in a new tab (`rel="me noopener"`), his short names instead of the full addresses (« not pretty »). The list is
+`ELSEWHERE` in `site/js/pages/portfolio.js`. Seen in a browser: four links, no page error.

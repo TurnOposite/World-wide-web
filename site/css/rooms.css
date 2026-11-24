@@ -402,6 +402,8 @@
 }
 .w-echo-d .pf .page-head h1,.w-echo-d .pf .room-head h2{font-family:"Old Standard TT",Georgia,serif;font-weight:700;color:var(--text);letter-spacing:0}
 .w-echo-d .pf .page-head p{color:var(--text-dim);font-style:italic}
+.pf .pf-elsewhere{margin:4px 0 10px;font-size:13px;font-style:normal}
+.pf .pf-elsewhere a{color:inherit;text-underline-offset:3px}
 .w-echo-d .pf .room-tabs{border-bottom:1px solid var(--text);padding-bottom:10px;gap:6px}
 .w-echo-d .pf .room-tabs a{font:13px "Libre Caslon Text",Georgia,serif;color:var(--text);background:none;border:1px solid var(--text);border-radius:0;padding:4px 12px}
 .w-echo-d .pf .room-tabs a[aria-current="page"]{background:var(--text);color:var(--bg)}
