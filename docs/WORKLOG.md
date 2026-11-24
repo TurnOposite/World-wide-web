@@ -3627,3 +3627,40 @@ formula the karst is drawn with. Left: `silhouette` and `farLights` each make a 
 Under the Archive's title (Echo side, `/portfolio`): « Elsewhere: @Warframe · @Discord · @Instagram · @YouTube », each
 opening in a new tab (`rel="me noopener"`), his short names instead of the full addresses (« not pretty »). The list is
 `ELSEWHERE` in `site/js/pages/portfolio.js`. Seen in a browser: four links, no page error.
+
+## 2026-11-24 (night) — the boat lived in: each page on its thing, the records in a drawer, the books in a pile on phones
+
+**Asked (Ortis, 24/11 evening):** a more seamless boat, more detail inside and outside it, each window as big as
+possible, angled so it seems to come from its object; the Crates as racks of records that pick up under the pointer, in
+folders, in a drawer under the desk; on a phone, the Archive's books piled vertically instead of scrolled sideways.
+
+**Done.**
+- *Each page on its thing* (`boat.js` `placeOnThing`, `scene.js` `quadOf`/`quadMatrix`): the page is laid onto the
+  object's projected corners by one `matrix3d` — the laptop's screen, the Antenna's screen, the scroll, the lantern, the
+  paper flat on the desk, the drawer — at 0.82 of the projected size, and opens from its middle line (a clip, no zoom).
+  The poses fill 86 % × 78 % of the window. The Playlists stay a flat window over the phone (too small to read on);
+  phones keep the flat window everywhere.
+- *BACKLOG F3, all six:* each window skinned for its object (glass, scanlines, the scroll's silk, the lantern's ring);
+  the phone on a little wooden stand; two rugs in the Persian manner, cushions, a chest, small lanterns lit at night,
+  lotus leaves and two floating lamps on the water, the coffee kept; seen when time stops, the hammock's two striped
+  wedges became its rim (rope, fringe of 36 tassels); the Antenna's machines against the starboard rail at 90°; Echo's
+  paper flat on the desk, the camera at an angle, water in view.
+- *The Crates* (`crates.js`, `rooms.css`): racks of sleeves standing overlapped, each tilted a little (from its id), in
+  kraft folders with tabs, in a wooden drawer with a brass pull. Pointer or focus picks a record up (−24 px, its disc
+  slides out) and shows its card: title, artist, when it next plays. On the boat the drawer under the desk is a place of
+  its own (`drawer`, `/portfolio/crates`), its records seen from above.
+- *Phone:* the Archive's shelves stack, one under the other; nothing scrolls sideways at 390 px.
+
+**Found on the way — the boat's first frame took 15–25 s** on this laptop (headless and real-GPU Chrome alike), so the
+flight to the first page did too, and the smoke's 30 s waits ran out. Bisected: all filters off, the same; the whole 3D
+scene hidden, the same; the boat hidden, the same. A trace: one 7 s GPU task, `DoRasterCHROMIUM::Deserializing`, on the
+renderer *main thread's* command buffer — a 2D canvas: the lake's panoramas, recorded arc by arc on the GPU and sent as
+one batch the first time they were drawn. **Fix:** they are painted in page memory (`paper()` in `scene.js`,
+`willReadFrequently`). Flights 1.0–1.2 s, day and night, no frame over 200 ms. HEAD had it too (radio → antenna 17 s).
+Before finding it the planes were trimmed from 155 to 109 (HEAD 70) on a wrong guess (Chrome's 3D sort); the trim stays,
+same look, and its comments no longer give that reason.
+
+**Tests.** Site smoke: every page laid onto its thing, angled and ≥ 18 % of the window (Playlists flat); the drawer has
+its racks; a record picked up under the pointer, its card shown; the phone pile. Fixed: the Archive's « no description »
+check counted the Elsewhere line of `aa0831b` (that commit's CI was red on it); the folder tab's count was below AA
+contrast. Not seen: a real phone; the drawer on a slow machine with its 300 covers loading.

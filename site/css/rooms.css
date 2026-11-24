@@ -224,11 +224,7 @@
 .room .book.face-out .cv-title{font-size:16px;-webkit-line-clamp:5}
 .room .book.face-out .cv-art svg{max-width:150px}
 .room .book.dim .bf{filter:saturate(.25) brightness(.45)}
-@media (max-width:760px){
-  /* Phones: the shelf scrolls sideways; the case turns a little less. */
-  .room .shelf{overflow-x:auto;overflow-y:hidden;perspective:1100px;scrollbar-width:thin;scrollbar-color:#4a3727 transparent;padding-top:40px;pointer-events:auto}
-  .room .shelf-3d{transform:rotateY(-9deg);width:max-content;min-width:100%}
-}
+/* Phones: each shelf is a pile of books lying on their side (at the end of this file, so it wins over every book rule). */
 @media (prefers-reduced-motion:reduce){.room .b3d,.room .book .slot{transition:none}}
 
 /* The peek card: spines truncate, so the lifted book's full title and class
@@ -344,40 +340,63 @@
 @media (max-width:560px){.room .lb-inner{padding:52px 8px 70px}.room .lb-nav{top:auto;bottom:12px;transform:none}}
 
 /* =====================================================================
-   CRATES — sleeves with the record sliding out
+   CRATES — a drawer of folders, each folder a rack of records (Ortis, 2026-11-24: « have the crates be racks of
+   vinyl piles with all the albums, kind of picking up when hovered over, and those stay in folders under the desk, in
+   a drawer »). The sleeves overlap like records standing in a bin; the one under the pointer is lifted out, its disc
+   rising from it, and its card says what it is and when it next plays.
    ===================================================================== */
-.room .category{margin-top:30px}
-.room .category-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.room .category-head h3{margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);font-weight:680}
-.room .category-head .count{font-size:12px}
-.room .category-head::after{content:"";flex:1;height:1px;background:var(--line)}
-.room .crate-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:22px 18px}
-.room .sleeve{
-  position:relative;background:none;border:none;padding:0;cursor:pointer;text-align:left;color:inherit;font-family:inherit;
-}
-.room .sleeve-art{position:relative;aspect-ratio:1;display:block}
+.room .crate-drawer{--rack:172px;--step:64px;--sleeve:150px;margin-top:22px;padding:6px 14px 0;border:9px solid #5a3322;border-bottom:0;border-radius:6px 6px 0 0;
+  background:linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,0) 70px),repeating-linear-gradient(90deg,#2e1a10 0 46px,#28160d 46px 47px);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.4),0 18px 40px rgba(0,0,0,.18)}
+.room .crate-drawer .empty-room{color:#e9dcc3;padding:24px 4px}
+.room .crate-drawer .category{position:relative;margin:40px 0 16px;padding:16px 10px 2px;border-radius:2px 8px 6px 6px;
+  background:linear-gradient(#d8b67f,#c39960);box-shadow:0 10px 18px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.35)}
+.room .crate-drawer .category-head{position:absolute;left:0;bottom:100%;display:flex;align-items:center;gap:10px;height:27px;margin:0;padding:0 14px;max-width:100%;
+  border-radius:7px 7px 0 0;background:#d8b67f;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+.room .crate-drawer .category-head h3{margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#3b2a1d;font-weight:720;white-space:nowrap}
+.room .crate-drawer .category-head .count{font-size:11.5px;color:#4e3621;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.room .crate-row{display:grid;grid-template-columns:repeat(auto-fill,var(--step));grid-auto-rows:var(--rack);
+  padding:0 calc(var(--sleeve) - var(--step) + 8px) 0 4px;background-origin:content-box;
+  background-image:repeating-linear-gradient(to bottom,transparent 0 calc(var(--rack) - 17px),rgba(60,36,18,.6) calc(var(--rack) - 17px) calc(var(--rack) - 15px),#a87f49 calc(var(--rack) - 15px) calc(var(--rack) - 4px),transparent calc(var(--rack) - 4px) var(--rack))}
+.room .sleeve{position:relative;background:none;border:none;padding:0;cursor:pointer;text-align:left;color:inherit;font-family:inherit}
+.room .crate-row .sleeve{width:var(--sleeve);height:calc(var(--rack) - 15px);display:flex;align-items:flex-end;
+  transform:rotate(var(--tilt,0deg));transform-origin:50% 100%;transition:transform .3s cubic-bezier(.2,.8,.2,1.12)}
+.room .sleeve-art{position:relative;aspect-ratio:1;display:block;width:100%}
 .room .sleeve-art .disc{
   position:absolute;top:4%;left:4%;width:92%;height:92%;border-radius:50%;
   background:
     radial-gradient(circle,var(--label,#ffb340) 0 15%,#111 15.5% 16.5%,transparent 17%),
     repeating-radial-gradient(circle,#161616 0 2px,#1d1d1d 2px 3px);
   box-shadow:0 6px 18px rgba(0,0,0,.5);
-  transition:transform .45s cubic-bezier(.2,.8,.2,1.1);
+  transition:transform .4s cubic-bezier(.2,.8,.2,1.1);
 }
 .room .sleeve-art .cover{
-  position:absolute;inset:0;border-radius:6px;overflow:hidden;background:var(--bg-raise-2);
-  box-shadow:0 10px 24px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.06);
+  position:absolute;inset:0;border-radius:3px;overflow:hidden;background:#1d1611;
+  box-shadow:-8px 0 12px rgba(0,0,0,.42),0 0 0 1px rgba(0,0,0,.28);
   display:grid;place-items:center;
 }
 .room .sleeve-art .cover img{width:100%;height:100%;object-fit:cover}
 .room .sleeve-art .cover .gen{width:100%;height:100%;display:grid;place-items:center;font-size:32px;font-weight:760;letter-spacing:-.02em;color:rgba(255,255,255,.85);padding:14px;text-align:center;line-height:1.05}
-.room .sleeve:hover .disc, .room .sleeve:focus-visible .disc{transform:translateX(34%) rotate(40deg)}
+.room .crate-row .sleeve:hover,.room .crate-row .sleeve:focus-visible{z-index:4;transform:translateY(-24px) scale(1.06)}
+.room .sleeve:hover .disc,.room .sleeve:focus-visible .disc{transform:translateY(-34%) rotate(40deg)}
 .room .sleeve:focus-visible{outline:none}
 .room .sleeve:focus-visible .cover{outline:2px solid var(--signal);outline-offset:3px}
-.room .sleeve .s-title{display:block;margin-top:10px;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.room .sleeve .s-artist{display:block;color:var(--text-faint);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.room .sleeve .s-next{display:block;margin-top:4px;font-family:var(--mono);font-size:11px;color:var(--signal)}
+.room .sleeve .s-cap{position:absolute;left:50%;top:calc(100% + 6px);z-index:2;width:max(100%,210px);padding:7px 10px 8px;border-radius:4px;
+  background:rgba(24,16,10,.96);color:#f4ead6;box-shadow:0 10px 24px rgba(0,0,0,.4);opacity:0;transform:translate(-50%,-4px);
+  transition:opacity .16s ease,transform .16s ease;pointer-events:none}
+.room .sleeve:hover .s-cap,.room .sleeve:focus-visible .s-cap{opacity:1;transform:translate(-50%,0)}
+.room .sleeve .s-title{display:block;font-weight:650;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room .sleeve .s-artist{display:block;color:rgba(244,234,214,.72);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room .sleeve .s-next{display:block;margin-top:4px;font-family:var(--mono);font-size:11px;color:#7fe0b6}
 .room .sleeve .s-next.now{color:var(--live)}
+.room .sleeve .s-next.later{color:rgba(244,234,214,.5)}
+/* the drawer's front, pulled toward you: its brass pull and its label */
+.room .drawer-front{position:relative;height:46px;margin:8px -23px 0;border-radius:0 0 8px 8px;background:linear-gradient(#70432c,#4f2e1f);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.08),inset 0 -3px 6px rgba(0,0,0,.35),0 10px 18px rgba(0,0,0,.22)}
+.room .drawer-front i{position:absolute;left:50%;top:18px;width:64px;height:9px;margin-left:-32px;border-radius:5px;background:linear-gradient(#e6c887,#a9843d);box-shadow:0 2px 2px rgba(0,0,0,.45)}
+.room .drawer-front span{position:absolute;left:16px;top:15px;font:400 15px/1 "Ma Shan Zheng","KaiTi",serif;color:#efe3c6;opacity:.75;white-space:nowrap}
+@media (max-width:560px){.room .crate-drawer{--rack:146px;--step:50px;--sleeve:122px;padding:4px 8px 0}.room .drawer-front{margin:8px -17px 0}}
+@media (prefers-reduced-motion:reduce){.room .crate-row .sleeve,.room .sleeve-art .disc,.room .sleeve .s-cap{transition:none}}
 .room .crate-desk .desk-cover{aspect-ratio:1;object-fit:cover}
 .room .crate-desk .tracklist .idx{width:54px}
 .room .crate-desk .tracklist li.now .t{color:var(--live)}
@@ -782,3 +801,37 @@ dialog.map-close.is-up::backdrop{background:rgba(10,8,6,.72);backdrop-filter:blu
 }
 .mirror-book .mb-intro .mb-text{right:calc(11% + 14px)}
 .mirror-book .mb-intro .mb-run,.mirror-book .mb-intro .mb-folio{right:14px}
+
+/* =====================================================================
+   Phones (Ortis, 2026-11-24: the books « piled up vertically instead of horizontally », the sideways scroll « not
+   ergonomic »). Each shelf becomes a pile of books lying on their side, spines out, read from the top down; the shelf's
+   board is the table it stands on. A tap still opens the book (library.js does not know the difference).
+   ===================================================================== */
+@media (max-width:760px){
+  .room .shelf{overflow:visible;perspective:none;padding:22px 8px 30px;pointer-events:auto}
+  .room .shelf-3d{transform:none;width:auto;min-width:0}
+  .room .shelf-row{flex-direction:column;align-items:center;min-height:0;padding:0;gap:1px}
+  .room .case-back,.room .case-side,.room .board-top,.room .bookend,.room .book .slot,.room .bcover,.room .top{display:none}
+  .room .board-front{left:2px;right:2px}
+  .room .shelf .book,.room .shelf .book.face-out,.room .shelf .book.mirror{
+    width:min(100%,calc(var(--h) + 70px));height:calc(var(--t) * .7 + 12px);margin:0;transform:translateX(var(--nudge,0px))}
+  .room .shelf-row > .book:nth-of-type(3n){--nudge:-9px}
+  .room .shelf-row > .book:nth-of-type(3n+1){--nudge:7px}
+  .room .shelf .b3d{display:block;position:relative;width:100%;height:100%;translate:0 0;rotate:none !important;transform:none !important;
+    transition:translate .3s cubic-bezier(.2,.9,.25,1)}
+  /* Touched: slides a little out of the pile, as a book does when you reach for it. */
+  .room .shelf .book:hover .b3d,.room .shelf .book:focus-visible .b3d,.room .shelf .book.lifted .b3d{translate:14px 0}
+  .room .shelf .spine{width:100%;height:100%;flex-direction:row;align-items:center;justify-content:space-between;gap:10px;padding:0 16px;
+    border-radius:2px 1px 1px 2px;
+    background:
+      linear-gradient(90deg,transparent 11px,var(--foil) 11px 12px,transparent 12px calc(100% - 12px),var(--foil) calc(100% - 12px) calc(100% - 11px),transparent calc(100% - 11px)),
+      linear-gradient(180deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,.04) 40%,rgba(0,0,0,.45) 100%),
+      var(--c)}
+  .room .shelf .book-title,.room .shelf .book-course{writing-mode:horizontal-tb;margin:0}
+  .room .shelf .book-title{flex:1;min-width:0;max-height:none;text-align:left}
+  .room .shelf .book-course{flex:none;padding:2px 5px}
+  .room .shelf .book.thesis .book-title{font-size:12.5px}
+  /* the Livre miroir lying down: its two bands at the ends, its sheen across */
+  .room .shelf .book.mirror .spine{background:linear-gradient(90deg,transparent 14px,#3a4248 14px 15px,transparent 15px calc(100% - 15px),#3a4248 calc(100% - 15px) calc(100% - 14px),transparent calc(100% - 14px)),linear-gradient(180deg,#4f585e 0%,#e9eef1 28%,#b5bfc6 52%,#f5f8f9 66%,#4a5258 100%)}
+  .room .shelf-label{left:6px;right:6px;overflow:hidden;text-overflow:ellipsis;font-size:9.5px}
+}

@@ -13,27 +13,78 @@ export const WATER = 40;
 export const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 export const norm = (a) => { const l = Math.hypot(...a); return [a[0] / l, a[1] / l, a[2] / l]; };
 const ry = (deg) => [Math.cos(deg * D2R), 0, -Math.sin(deg * D2R)];
-const c15 = Math.cos(15 * D2R), s15 = Math.sin(15 * D2R), c8 = Math.cos(8 * D2R), s8 = Math.sin(8 * D2R);
+const cs = (deg) => [Math.cos(deg * D2R), Math.sin(deg * D2R)];
+const [c15, s15] = cs(15), [c16, s16] = cs(16), [c27, s27] = cs(26.6);
+const add3 = (a, b, k = 1) => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k];
+
+/* The laptop (Radio), the phone on its stand (Playlists), the machines against the starboard rail (Antenna): shared
+   between the places below and the planes that draw them, so a page always lies exactly on its thing. */
+const LT = { x: -46, z: -46, w: 188, base: 112, lid: 112 };            // base 188 × 112 on the table, lid 188 × 112
+const LT_HINGE = [LT.x, -71, LT.z - LT.base / 2];
+const PH = { x: 72, z: -62, y: -75, w: 34, h: 70 };                     // the phone stands on its stand's lip, leaning 16°
+const RK = { x: 108, z: 127 };                                          // the main rack's face, turned to the boat's middle
+const AW = { c: [100, -93, 258], deg: -115, w: 180, h: 124 };           // the Antenna's window: a screen on the deck beside it
 
 /**
- * The places, and the routes each one holds. Zone's five face you from the hammock; Echo is the desk behind you; the
- * lake is the way out. `glyph` is the seal's text, `jp` nothing more than a second line.
+ * The places, and the routes each one holds. Zone's five face you from the hammock; Echo is the desk behind you, its
+ * drawer the Crates; the lake is the way out. `glyph` is the seal's text.
+ *
+ * A place's `c r u w h` is its WINDOW: the rectangle in the world the page is drawn on, in perspective (boat.js
+ * windowQuad), so the page is the laptop's screen, the paper on the desk, the scroll (Ortis, 2026-11-24: « make each
+ * window as big as possible … angle the windows to make it seem the object they emanate from are really in this
+ * world »). `view` is what the camera frames when it is more than the window (the Antenna's rack and lever beside its
+ * screen, the lantern over the Booth's light); `look` the camera's direction when it is not straight at the window (the
+ * paper is read from the hammock's side, not from above); `shift` where the framed thing sits on the screen, as parts
+ * of its width and height; `a` the point a label or a bloom marks; `flat` a page lifted flat instead (the little phone).
  */
 export const PLACES = {
-  radio: { name: 'Radio', glyph: '電台', obj: 'The laptop on the table', routes: ['radio', 'home'], c: [-30, -115.4, -109.4], r: [1, 0, 0], u: [0, -c15, -s15], w: 140, h: 92 },
-  playlists: { name: 'Playlists', glyph: '歌單', obj: 'The little phone', routes: ['playlists'], c: [52, -71 - 48 * c8, -62 - 48 * s8], r: [1, 0, 0], u: [0, -c8, -s8], w: 28, h: 36 },
-  antenna: { name: 'Antenna', glyph: '天線', obj: 'The machines on the side', routes: ['antenna', 'zone'], c: [191.9, -62, 54.1], r: ry(-36), u: [0, -1, 0], w: 70, h: 120 },
-  ondes: { name: 'Ondes', glyph: '電波', obj: 'The hanging scroll', routes: ['ondes'], c: [-128, -209, 58], r: ry(30), u: [0, -1, 0], w: 46, h: 118 },
-  booth: { name: 'Booth', glyph: '燈', obj: 'The lantern', routes: ['booth'], c: [8, -334 + 30 * Math.cos(26.6 * D2R), -20 + 30 * Math.sin(26.6 * D2R)], r: [1, 0, 0], u: [0, -Math.cos(26.6 * D2R), Math.sin(26.6 * D2R)], w: 40, h: 56 },
-  echo: { name: 'Echo', glyph: '回聲', obj: 'The desk behind you', routes: ['echo', 'articles', 'presse', 'lectures', 'ecrits', 'portfolio', 'archives', 'atlas'], c: [-20, -49 - 29 * Math.cos(18 * D2R), 455 + 29 * Math.sin(18 * D2R)], r: [-1, 0, 0], u: [0, -Math.cos(18 * D2R), Math.sin(18 * D2R)], w: 84, h: 58 },
+  radio: { name: 'Radio', glyph: '電台', obj: 'The laptop on the table', routes: ['radio', 'home'],
+    c: add3(LT_HINGE, [0, -c15, -s15], 8 + 49), r: [1, 0, 0], u: [0, -c15, -s15], w: 176, h: 98, shift: [-0.12, -0.01], fit: [0.7, 0.74] },
+  playlists: { name: 'Playlists', glyph: '歌單', obj: 'The little phone on its stand', routes: ['playlists'], flat: true,
+    c: [PH.x, PH.y - 45 * c16, PH.z - 45 * s16], r: [1, 0, 0], u: [0, -c16, -s16], w: 28, h: 34 },
+  antenna: { name: 'Antenna', glyph: '天線', obj: 'The machines along the side', routes: ['antenna', 'zone'],
+    c: AW.c, r: ry(AW.deg), u: [0, -1, 0], w: AW.w, h: AW.h, a: [RK.x, -62, RK.z],
+    view: { c: [106, -80, 214], r: [0, 0, 1], u: [0, -1, 0], w: 300, h: 176 }, look: [1, 0, 0] },
+  ondes: { name: 'Ondes', glyph: '電波', obj: 'The hanging scroll', routes: ['ondes'],
+    c: [-128, -187, 58], r: ry(30), u: [0, -1, 0], w: 100, h: 118 },
+  booth: { name: 'Booth', glyph: '燈', obj: 'The lantern', routes: ['booth'],
+    c: [8, -222, -10], r: [1, 0, 0], u: [0, -c27, s27], w: 120, h: 78, a: [8, -334 + 30 * c27, -20 - 30 * s27],
+    view: { c: [8, -252, -18], r: [1, 0, 0], u: [0, -c27, s27], w: 132, h: 128 }, shift: [0, -0.07] },
+  echo: { name: 'Echo', glyph: '回聲', obj: 'The paper on the desk behind you', routes: ['echo', 'articles', 'presse', 'lectures', 'ecrits', 'portfolio', 'archives', 'atlas'],
+    c: [-6, -49.4, 430], r: [-1, 0, 0], u: [0, 0, 1], w: 126, h: 74, look: [0, Math.sin(40 * D2R), Math.cos(40 * D2R)], shift: [0, 0.1] },
+  drawer: { name: 'Crates', glyph: '唱片', obj: 'The drawer under the desk', routes: [],
+    c: [0, -45, 352], r: [-1, 0, 0], u: [0, 0, 1], w: 136, h: 60, look: [0, Math.sin(66 * D2R), Math.cos(66 * D2R)], shift: [0, 0.04] },
   lake: { name: 'The lake', glyph: '湖', obj: 'Step off the boat', routes: [] },
 };
 export const ORDER = ['radio', 'playlists', 'antenna', 'ondes', 'booth', 'echo', 'lake'];
 export const FRONT = ['radio', 'playlists', 'antenna', 'ondes', 'booth'];
-/** The place that holds a route; a route no place names opens on the laptop. */
-export const placeOf = (route) => ORDER.find((k) => PLACES[k].routes.includes(route)) || 'radio';
+/** The place that holds a route; a route no place names opens on the laptop. The Archive's Crates are in the drawer. */
+export const placeOf = (route, params = {}) => (route === 'portfolio' && params.room === 'crates' ? 'drawer' : ORDER.find((k) => PLACES[k].routes.includes(route)) || 'radio');
 /** The page a place opens, by its first route. */
-export const routeOf = (place) => ({ radio: 'radio', playlists: 'playlists', antenna: 'antenna', ondes: 'ondes', booth: 'booth', echo: 'echo' }[place] ?? null);
+export const routeOf = (place) => ({ radio: 'radio', playlists: 'playlists', antenna: 'antenna', ondes: 'ondes', booth: 'booth', echo: 'echo', drawer: 'portfolio/crates' }[place] ?? null);
+/** The point a place's label and bloom mark. */
+export const anchorOf = (place) => PLACES[place].a || PLACES[place].c;
+
+/** A window's four corners in the world, top-left, top-right, bottom-left, bottom-right (u is up the page). */
+export function quadOf(q) {
+  const hw = q.w / 2, hh = q.h / 2;
+  return [[-hw, hh], [hw, hh], [-hw, -hh], [hw, -hh]].map(([a, b]) => [0, 1, 2].map((i) => q.c[i] + q.r[i] * a + q.u[i] * b));
+}
+
+/**
+ * The CSS matrix3d that lays a w × h box (its origin at 0 0) onto a quadrilateral on the screen, corners in quadOf's
+ * order — the square-to-quad mapping (Heckbert 1989), scaled to the box. The page keeps its layout, its scroll and its
+ * clicks: the browser draws it in perspective and maps the pointer back.
+ */
+export function quadMatrix(w, h, q) {
+  const [[x0, y0], [x1, y1], [x3, y3], [x2, y2]] = q.map((p) => [p.x, p.y]);
+  const dx1 = x1 - x2, dx2 = x3 - x2, dy1 = y1 - y2, dy2 = y3 - y2, sx = x0 - x1 + x2 - x3, sy = y0 - y1 + y2 - y3;
+  const den = dx1 * dy2 - dx2 * dy1;
+  const g = den ? (sx * dy2 - dx2 * sy) / den : 0, k = den ? (dx1 * sy - sx * dy1) / den : 0;
+  const a = x1 - x0 + g * x1, b = x3 - x0 + k * x3, d = y1 - y0 + g * y1, e = y3 - y0 + k * y3;
+  const f = (n) => +n.toFixed(9);
+  return `matrix3d(${f(a / w)},${f(d / w)},0,${f(g / w)},${f(b / h)},${f(e / h)},0,${f(k / h)},0,0,1,0,${f(x0)},${f(y0)},0,1)`;
+}
 
 /* --------------------------------------------------------------------------------- the sky on the station's clock */
 /**
@@ -114,13 +165,57 @@ export function depthOf(pose, p) {
  * everything around it magnified twenty times and more, and an ordinary laptop GPU drew one frame a second. The page is
  * lifted onto its own 620 px panel anyway, so the thing can stay smaller than the panel.
  */
-export function poseFor(place, { W, H, P, fitW = 0.8, fitH = 0.76, minD = 0 }) {
-  const s = PLACES[place], dir = cross(s.r, s.u);
-  const d = Math.max(minD, P * Math.max(s.w / (fitW * W), s.h / (fitH * H)));
-  return { x: s.c[0] - dir[0] * d, y: s.c[1] - dir[1] * d, z: s.c[2] - dir[2] * d, yaw: Math.atan2(dir[0], -dir[2]) / D2R, pd: Math.asin(dir[1]) / D2R, roll: 0 };
+export function poseFor(place, { W, H, P, fitW = 0.8, fitH = 0.76, minD = 0, shift = true }) {
+  const s = PLACES[place], v = s.view || s, dir = norm(s.look || cross(s.r, s.u));
+  if (s.fit) [fitW, fitH] = [Math.min(fitW, s.fit[0]), Math.min(fitH, s.fit[1])];
+  const yaw = Math.atan2(dir[0], -dir[2]), pd = Math.asin(dir[1]) / D2R;
+  const at = (d) => ({ x: v.c[0] - dir[0] * d, y: v.c[1] - dir[1] * d, z: v.c[2] - dir[2] * d, yaw: yaw / D2R, pd, roll: 0 });
+  // Framed when what it shows fits: straight on that is one division; at an angle (the paper on the desk) the nearest
+  // distance whose picture fits, found by halving, since the picture only shrinks as the camera backs away.
+  const corners = quadOf(v);
+  const fits = (d) => {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const c of corners) {
+      const q = project(at(d), c, W, H, P, false); if (!q) return false;
+      x0 = Math.min(x0, q.x); y0 = Math.min(y0, q.y); x1 = Math.max(x1, q.x); y1 = Math.max(y1, q.y);
+    }
+    return x1 - x0 <= fitW * W && y1 - y0 <= fitH * H;
+  };
+  let d = Math.max(minD, 1);
+  if (!fits(d)) {
+    let lo = d, hi = d * 2;
+    while (!fits(hi) && hi < 1e6) { lo = hi; hi *= 2; }
+    for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (fits(m)) hi = m; else lo = m; }
+    d = hi;
+  }
+  const p = at(d);
+  if (shift && s.shift) {
+    // The thing off centre (the laptop a little left, so the phone on its stand stays in sight): the camera moves the
+    // other way, along its own right and down.
+    const R = [Math.cos(yaw), 0, Math.sin(yaw)], D = cross(R, dir);
+    const dx = -s.shift[0] * W * d / P, dy = -s.shift[1] * H * d / P;
+    p.x += R[0] * dx + D[0] * dy; p.y += R[1] * dx + D[1] * dy; p.z += R[2] * dx + D[2] * dy;
+  }
+  return p;
 }
 
 /* ------------------------------------------------------------------------------------------------ the boat's planes */
+/**
+ * A rug in the old Persian manner, as one SVG: a field, a lozenge medallion with its corner pieces, a guard border of
+ * small rosettes, and a fringe at both ends. `id` keeps two rugs' patterns apart.
+ */
+function rug(id, field, border, gold, ivory) {
+  return `<svg viewBox="0 -8 236 194" width="100%" height="100%" preserveAspectRatio="none"><defs>
+    <pattern id="${id}g" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="${border}"/><path d="M6 1 L11 6 L6 11 L1 6Z" fill="${gold}"/><circle cx="6" cy="6" r="1.6" fill="${field}"/></pattern>
+    <pattern id="${id}f" width="18" height="18" patternUnits="userSpaceOnUse"><rect width="18" height="18" fill="${field}"/><path d="M9 4 l2 5 -2 5 -2 -5z" fill="${border}" opacity=".45"/><circle cx="0" cy="0" r="1.4" fill="${gold}" opacity=".5"/><circle cx="18" cy="18" r="1.4" fill="${gold}" opacity=".5"/></pattern></defs>
+    <g stroke="${ivory}" stroke-width="1.2" opacity=".85">${Array.from({ length: 30 }, (_, i) => `<line x1="${10 + i * 7.4}" y1="0" x2="${10 + i * 7.4}" y2="-7"/><line x1="${10 + i * 7.4}" y1="178" x2="${10 + i * 7.4}" y2="185"/>`).join('')}</g>
+    <rect x="8" y="0" width="220" height="178" fill="url(#${id}g)"/>
+    <rect x="18" y="10" width="200" height="158" fill="${ivory}"/><rect x="21" y="13" width="194" height="152" fill="url(#${id}f)"/>
+    <path d="M118 30 L176 89 L118 148 L60 89Z" fill="${border}"/><path d="M118 40 L166 89 L118 138 L70 89Z" fill="${ivory}"/><path d="M118 50 L156 89 L118 128 L80 89Z" fill="${field}"/>
+    <circle cx="118" cy="89" r="12" fill="${gold}"/><circle cx="118" cy="89" r="6" fill="${border}"/>
+    <g fill="${border}"><path d="M21 13 h34 L21 47Z"/><path d="M215 13 h-34 L215 47Z"/><path d="M21 165 h34 L21 131Z"/><path d="M215 165 h-34 L215 131Z"/></g></svg>`;
+}
+
 function parts() {
   const out = [];
   const add = (o) => out.push(o);
@@ -144,67 +239,132 @@ function parts() {
     add({ cls: 'post', w: 9, h: 290, x, y: -145, z });
     add({ cls: 'post', w: 9, h: 290, x, y: -145, z, t: 'rotateY(90deg)' });
   }
-  add({ cls: 'canopy', w: 150, h: 590, x: 0, y: -335, z: 125, t: 'rotateX(90deg)' });
-  add({ cls: 'canopy', w: 103.3, h: 590, x: 121.5, y: -312.5, z: 125, t: 'rotateZ(25.8deg) rotateX(90deg)' });
-  add({ cls: 'canopy', w: 103.3, h: 590, x: -121.5, y: -312.5, z: 125, t: 'rotateZ(-25.8deg) rotateX(90deg)' });
-  for (const x of [-168, 168]) add({ cls: 'beam', w: 590, h: 7, x, y: -287, z: 125, t: 'rotateY(90deg)' });
+  // The roof and its beams in two lengths, cut at the middle posts (2026-11-24): a plane that passes behind the eye is
+  // left out whole, and under the lantern that took the entire roof away, the posts standing on nothing against the sky.
+  // Two are enough to keep the roof over the booth's view, and every plane is one more for the browser to place each frame.
+  for (const [z0, z1] of [[-170, 60], [60, 420]]) {
+    const z = (z0 + z1) / 2, L = z1 - z0;
+    add({ cls: 'canopy', w: 150, h: L, x: 0, y: -335, z, t: 'rotateX(90deg)' });
+    add({ cls: 'canopy', w: 103.3, h: L, x: 121.5, y: -312.5, z, t: 'rotateZ(25.8deg) rotateX(90deg)' });
+    add({ cls: 'canopy', w: 103.3, h: L, x: -121.5, y: -312.5, z, t: 'rotateZ(-25.8deg) rotateX(90deg)' });
+    for (const x of [-168, 168]) add({ cls: 'beam', w: L, h: 7, x, y: -287, z, t: 'rotateY(90deg)' });
+  }
   add({ cls: 'mast', w: 3, h: 170, x: 40, y: -420, z: 330 });
   add({ cls: 'mast', w: 26, h: 2, x: 40, y: -470, z: 330 });
   add({ cls: '', w: 30, h: 15, x: 56, y: -497, z: 330, html: '<svg viewBox="0 0 30 15" width="30" height="15"><path d="M0 0 L30 7 L0 15Z" fill="#c2432d"/></svg>' });
-  // the table, the laptop (Radio), the phone (Playlists), a cup
-  add({ cls: 'tabletop', w: 270, h: 150, x: 0, y: -70, z: -40, t: 'rotateX(90deg)' });
-  add({ cls: 'tedge', w: 270, h: 12, x: 0, y: -64, z: 35 });
-  for (const x of [-120, 120]) for (const z of [28, -108]) add({ cls: 'leg', w: 10, h: 64, x, y: -32, z });
-  add({ go: 'radio', cls: 'lt-base', w: 140, h: 95, x: -30, y: -71, z: -50, t: 'rotateX(90deg)' });
-  add({ go: 'radio', cls: '', w: 140, h: 92, x: -30, y: -71, z: -97.5, origin: 'bottom', t: 'rotateX(15deg)',
-    html: '<div class="lid"><div class="disp"><b>RADIO TOWER</b><div class="eq anim">' + Array.from({ length: 14 }, (_, i) => `<i style="animation-delay:-${((i * 0.37) % 1.1).toFixed(2)}s;animation-duration:${(0.7 + (i % 5) * 0.13).toFixed(2)}s"></i>`).join('') + '</div><span class="b-now"></span></div></div>' });
-  add({ go: 'playlists', cls: 'ph', w: 34, h: 74, x: 52, y: -71, z: -62, origin: 'bottom', t: 'rotateX(8deg)',
+  // Rugs under the table and before the hammock (Ortis, 2026-11-24: « rugs with oriental motifs … show that a space is
+  // being lived in »): a field, a medallion, borders of small motifs, a fringe at each end.
+  add({ cls: 'rug', w: 236, h: 178, x: 0, y: -1.6, z: -38, t: 'rotateX(90deg)', html: rug('r1', '#7c1f22', '#1f2c4c', '#d4b06a', '#efe3c6') });
+  add({ cls: 'rug', w: 150, h: 104, x: -6, y: -1.6, z: 236, t: 'rotateX(90deg) rotateZ(4deg)', html: rug('r2', '#1f3a4c', '#7c1f22', '#d4b06a', '#efe3c6') });
+  // the table, the laptop (Radio), the phone on its stand (Playlists), the coffee, a teapot
+  add({ cls: 'tabletop', w: 280, h: 150, x: 0, y: -70, z: -40, t: 'rotateX(90deg)' });
+  add({ cls: 'tedge', w: 280, h: 12, x: 0, y: -64, z: 35 });
+  for (const x of [-130, 130]) for (const z of [28, -108]) add({ cls: 'leg', w: 10, h: 64, x, y: -32, z });
+  add({ go: 'radio', cls: 'lt-base', w: LT.w, h: LT.base, x: LT.x, y: -71, z: LT.z, t: 'rotateX(90deg)' });
+  add({ go: 'radio', cls: '', w: LT.w, h: LT.lid, x: LT.x, y: -71, z: LT_HINGE[2], origin: 'bottom', t: 'rotateX(15deg)',
+    html: '<div class="lid"><div class="disp"><b>RADIO TOWER</b><div class="eq anim">' + Array.from({ length: 18 }, (_, i) => `<i style="animation-delay:-${((i * 0.37) % 1.1).toFixed(2)}s;animation-duration:${(0.7 + (i % 5) * 0.13).toFixed(2)}s"></i>`).join('') + '</div><span class="b-now"></span></div><i class="lt-cam"></i></div>' });
+  // The phone no longer stands up on nothing (Ortis, 2026-11-22): a little wooden stand, its back leaning, a lip in front.
+  add({ cls: 'stand', w: 40, h: 22, x: PH.x, y: -71.2, z: PH.z - 4, t: 'rotateX(90deg)' });
+  add({ cls: 'stand back', w: 26, h: 56, x: PH.x, y: -71, z: PH.z - 14, origin: 'bottom', t: 'rotateX(34deg)' });
+  add({ go: 'playlists', cls: 'ph', w: PH.w, h: PH.h, x: PH.x, y: PH.y, z: PH.z, origin: 'bottom', t: 'rotateX(16deg)',
     html: '<div class="ph-ant"></div><div class="ph-led anim"></div><div class="ph-scr"><b>Playlists</b><i></i><i style="width:70%"></i><i></i><i style="width:55%"></i></div><div class="ph-keys"></div>' });
-  add({ cls: '', w: 26, h: 34, x: 98, y: -71, z: -28, origin: 'bottom',
+  add({ cls: 'stand lip', w: 40, h: 6, x: PH.x, y: -71, z: PH.z + 3, origin: 'bottom' });
+  add({ cls: '', w: 26, h: 34, x: 122, y: -71, z: -6, origin: 'bottom',
     html: '<svg viewBox="0 0 26 34" width="26" height="34"><g class="steam anim" stroke="#fff" stroke-opacity=".7" fill="none" stroke-width="1.2"><path d="M10 15 q-3 -4 0 -8 q3 -4 0 -7"/><path d="M16 15 q3 -4 0 -8 q-3 -4 0 -7"/></g><path d="M3 19 h20 q-1 12 -10 14 q-9 -2 -10 -14z" fill="#9cc2b0"/><ellipse cx="13" cy="19" rx="10" ry="2.4" fill="#5d4532"/></svg>' });
-  // the Antenna: machines on the starboard side, on their own platform
-  const R = -36;
-  add({ cls: 'deck', w: 150, h: 110, x: 230.9, y: -4, z: 51.6, t: `rotateY(${R}deg) rotateX(90deg)`,
-    html: '<svg viewBox="0 0 150 110" width="150" height="110" preserveAspectRatio="none"><g fill="none" stroke="#141414" stroke-width="2.2" stroke-linecap="round"><path d="M44 84 C 40 60, 18 46, 14 0"/><path d="M50 86 C 52 58, 34 34, 36 0"/><path d="M56 86 C 64 60, 66 30, 60 0"/></g><g class="cab" fill="none" stroke="#3fd3c6" stroke-width=".8" opacity=".55"><path d="M44 84 C 40 60, 18 46, 14 0"/><path d="M56 86 C 64 60, 66 30, 60 0"/></g></svg>' });
-  add({ go: 'antenna', cls: 'rack', w: 70, h: 120, x: 191.9, y: -62, z: 54.1, t: `rotateY(${R}deg)`,
+  add({ cls: '', w: 34, h: 28, x: 118, y: -71, z: -92, origin: 'bottom',
+    html: '<svg viewBox="0 0 34 28" width="34" height="28"><path d="M3 12 q-3 4 1 7 l4 0" fill="none" stroke="#3d5a52" stroke-width="2"/><path d="M27 13 q6 -2 6 -7" fill="none" stroke="#3d5a52" stroke-width="2.4" stroke-linecap="round"/><path d="M7 10 h20 q2 15 -10 16 q-12 -1 -10 -16z" fill="#4f7a6e"/><path d="M8 13 h18" stroke="#c9a24a" stroke-width="1.2"/><ellipse cx="17" cy="10" rx="10" ry="2.2" fill="#3d5a52"/><circle cx="17" cy="6.5" r="2.2" fill="#3d5a52"/><g fill="#ece4cf"><ellipse cx="2" cy="25" rx="2" ry="1"/></g></svg>' });
+  // The Antenna (Ortis, 2026-11-22: « put the machines that have the antenna on the boat … on the side, a 90-degree
+  // angle, and the pole as well »): the racks stand on the deck against the starboard rail, faced to the boat's middle;
+  // the mast is at the bow on the same side, the cables along the rail; the page is a screen standing beside them.
+  add({ cls: 'rack side', w: 40, h: 84, x: RK.x + 20, y: -44, z: 88 });
+  add({ go: 'antenna', cls: 'rack', w: 46, h: 84, x: RK.x, y: -44, z: 65, t: 'rotateY(-90deg)',
+    html: `<div class="srv">${Array.from({ length: 7 }, (_, i) => `<div class="blade"><i class="anim" style="animation-delay:-${((i * 0.53) % 1.7).toFixed(2)}s"></i><i class="anim g" style="animation-delay:-${((i * 0.31) % 1.3).toFixed(2)}s"></i><span></span></div>`).join('')}</div>` });
+  add({ go: 'antenna', cls: 'rack', w: 70, h: 120, x: RK.x, y: -62, z: RK.z, t: 'rotateY(-90deg)',
     html: `<div class="rk-scr"><b>TX</b><span>天線</span><i class="anim"></i></div>
     <button class="rk-pull" type="button" aria-label="Streams lever"><svg class="rk-sel" viewBox="0 0 70 52" width="70" height="52" aria-hidden="true">
     <g stroke="#e9e3d2" stroke-width="1.4"><line x1="14" y1="16" x2="14" y2="10"/><line x1="32.4" y1="25.6" x2="36.6" y2="21.4"/><line x1="40" y1="44" x2="46" y2="44"/></g>
     <g fill="#e9e3d2" font-size="4.6" font-family="sans-serif" font-weight="700" letter-spacing=".3"><text x="18" y="9">ALL</text><text x="38" y="19">CHILL</text><text x="48" y="40">ENERGY</text></g>
     <g class="rk-lever"><line x1="14" y1="44" x2="14" y2="19" stroke="#c2432d" stroke-width="3" stroke-linecap="round"/><circle cx="14" cy="19" r="3.4" fill="#c2432d"/></g><circle cx="14" cy="44" r="5" fill="#2b2b2b" stroke="#777" stroke-width="1"/></svg></button>
     <div class="rk-vu anim">${'<i></i>'.repeat(9)}</div><div class="rk-sock"><i></i><i></i><i></i></div>` });
-  add({ go: 'antenna', cls: 'rack side', w: 40, h: 120, x: 232, y: -62, z: 58.5, t: 'rotateY(54deg)' });
-  add({ go: 'antenna', cls: 'rack top', w: 70, h: 40, x: 203.7, y: -122, z: 37.9, t: `rotateY(${R}deg) rotateX(90deg)` });
-  add({ go: 'antenna', cls: 'rack mon', w: 40, h: 26, x: 195.4, y: -135, z: 49.2, t: `rotateY(${R}deg)`, html: '<div class="mon-scr"><b>ANTENNA</b><span>streams on air</span></div>' });
-  add({ go: 'antenna', cls: 'rack', w: 46, h: 84, x: 250.3, y: -44, z: 79.3, t: `rotateY(${R}deg)`,
-    html: `<div class="srv">${Array.from({ length: 7 }, (_, i) => `<div class="blade"><i class="anim" style="animation-delay:-${((i * 0.53) % 1.7).toFixed(2)}s"></i><i class="anim g" style="animation-delay:-${((i * 0.31) % 1.3).toFixed(2)}s"></i><span></span></div>`).join('')}</div>` });
-  add({ go: 'antenna', cls: 'rack side', w: 36, h: 84, x: 279.5, y: -44, z: 78.2, t: 'rotateY(54deg)' });
-  add({ cls: '', w: 70, h: 125, x: 262.1, y: -172, z: 68, t: `rotateY(${R}deg)`,
-    html: '<svg viewBox="0 0 70 125" width="70" height="125"><g fill="none" stroke="#141414" stroke-width="1.6"><path d="M2 123 Q 30 110 68 8"/><path d="M8 124 Q 40 118 68 22"/></g><g class="cab" fill="none" stroke="#3fd3c6" stroke-width=".9" opacity=".0"><path d="M2 123 Q 30 110 68 8"/><path d="M8 124 Q 40 118 68 22"/></g></svg>' });
-  add({ cls: 'mast', w: 4, h: 300, x: 292.3, y: -152, z: 77.6 });
-  add({ cls: 'mast', w: 4, h: 300, x: 292.3, y: -152, z: 77.6, t: 'rotateY(90deg)' });
-  for (const [y, w] of [[-282, 44], [-258, 30], [-236, 20]]) add({ cls: 'mast', w, h: 3, x: 292.3, y, z: 77.6, t: `rotateY(${R}deg)` });
-  add({ cls: '', w: 220, h: 220, x: 292.3, y: -300, z: 77.6, t: `rotateY(${R}deg)`, html: '<div class="rings anim"><i></i><i></i><i></i></div>' });
+  add({ go: 'antenna', cls: 'rack side', w: 40, h: 120, x: RK.x + 20, y: -62, z: RK.z + 35 });
+  add({ go: 'antenna', cls: 'rack top', w: 40, h: 70, x: RK.x + 20, y: -122, z: RK.z, t: 'rotateX(90deg)' });
+  add({ go: 'antenna', cls: 'rack mon', w: 40, h: 26, x: RK.x + 2, y: -135, z: RK.z, t: 'rotateY(-90deg)', html: '<div class="mon-scr"><b>ANTENNA</b><span>streams on air</span></div>' });
+  // The screen the Antenna's page is drawn on: its frame and two feet are the boat's; the page fills it when open.
+  {
+    const r = ry(AW.deg), dir = cross(r, [0, -1, 0]), back = add3(AW.c, dir, 1.2);
+    add({ go: 'antenna', cls: 'scr-frame', w: AW.w + 12, h: AW.h + 12, x: back[0], y: back[1], z: back[2], t: `rotateY(${AW.deg}deg)`,
+      html: '<div class="scr-idle"><b>天線 ANTENNA</b><span>the streams · the line</span></div>' });
+    for (const s of [-1, 1]) {
+      const f = add3(back, r, s * (AW.w / 2 - 14));
+      const foot = -(AW.c[1] + AW.h / 2 + 6); // from the frame's lower edge down to the deck
+      add({ cls: 'scr-foot', w: 5, h: foot, x: f[0], y: -foot / 2, z: f[2], t: `rotateY(${AW.deg}deg)` });
+    }
+  }
+  add({ cls: '', w: 280, h: 300, x: 141, y: -152, z: -75, t: 'rotateY(-90deg)',
+    html: '<svg viewBox="0 0 280 300" width="280" height="300"><g fill="none" stroke="#141414" stroke-width="1.8"><path d="M276 218 C 220 296, 96 286, 8 62"/><path d="M268 222 C 196 300, 70 276, 10 92"/></g><g class="cab" fill="none" stroke="#3fd3c6" stroke-width=".9" opacity="0"><path d="M276 218 C 220 296, 96 286, 8 62"/><path d="M268 222 C 196 300, 70 276, 10 92"/></g></svg>' });
+  add({ cls: 'mast', w: 4, h: 300, x: 128, y: -152, z: -215 });
+  add({ cls: 'mast', w: 4, h: 300, x: 128, y: -152, z: -215, t: 'rotateY(90deg)' });
+  for (const [y, w] of [[-282, 44], [-258, 30], [-236, 20]]) add({ cls: 'mast', w, h: 3, x: 128, y, z: -215, t: 'rotateY(-15deg)' });
+  add({ cls: 'mast', w: 22, h: 10, x: 128, y: -6, z: -215, t: 'rotateY(-15deg)' });
+  add({ cls: '', w: 220, h: 220, x: 128, y: -300, z: -215, t: 'rotateY(-15deg)', html: '<div class="rings anim"><i></i><i></i><i></i></div>' });
   // the hanging scroll (Ondes) and the lantern (Booth) swing from pivots
-  add({ cls: 'string', w: 1.5, h: 42, x: -128, y: -289, z: 58 });
-  add({ pivot: true, x: -128, y: -268, z: 58, t: 'rotateY(30deg)', child: { go: 'ondes', cls: 'sway anim', w: 46, h: 118, origin: 'top',
-    html: `<svg viewBox="0 0 46 118" width="46" height="118"><path d="M23 0 L9 7 M23 0 L37 7" stroke="#2a2018" stroke-width=".8"/><rect x="3" y="6" width="40" height="4" rx="2" fill="#3b2a1d"/><rect x="5" y="10" width="36" height="97" fill="#4b7d6d"/><rect x="9" y="17" width="28" height="83" fill="#ece4cf"/>
-    <text x="23" y="37" font-family="Ma Shan Zheng, KaiTi, serif" font-size="14" text-anchor="middle" fill="#1d1a16">電</text><text x="23" y="54" font-family="Ma Shan Zheng, KaiTi, serif" font-size="14" text-anchor="middle" fill="#1d1a16">波</text>
-    <g stroke="#5a5247" stroke-width=".7"><line x1="14" y1="62" x2="14" y2="94"/><line x1="18" y1="62" x2="18" y2="88"/><line x1="23" y1="62" x2="23" y2="92"/><line x1="28" y1="62" x2="28" y2="84"/></g><rect x="29" y="88" width="6" height="6" fill="#c2432d"/>
-    <rect x="2" y="105" width="42" height="6" rx="3" fill="#3b2a1d"/></svg>` } });
+  add({ cls: 'string', w: 1.5, h: 26, x: -128, y: -275, z: 58 });
+  add({ pivot: true, x: -128, y: -262, z: 58, t: 'rotateY(30deg)', child: { go: 'ondes', cls: 'sway anim', w: 124, h: 150, origin: 'top',
+    html: `<svg viewBox="0 0 124 150" width="124" height="150"><path d="M62 0 L30 5 M62 0 L94 5" stroke="#2a2018" stroke-width=".8"/><rect x="2" y="4" width="120" height="5" rx="2.5" fill="#3b2a1d"/><rect x="6" y="9" width="112" height="132" fill="#4b7d6d"/><rect x="8" y="11" width="108" height="128" fill="none" stroke="#c9a24a" stroke-width=".6"/><rect x="12" y="16" width="100" height="118" fill="#ece4cf"/>
+    <text x="62" y="58" font-family="Ma Shan Zheng, KaiTi, serif" font-size="26" text-anchor="middle" fill="#1d1a16">電</text><text x="62" y="88" font-family="Ma Shan Zheng, KaiTi, serif" font-size="26" text-anchor="middle" fill="#1d1a16">波</text>
+    <g stroke="#5a5247" stroke-width=".7"><line x1="40" y1="98" x2="40" y2="124"/><line x1="48" y1="98" x2="48" y2="118"/><line x1="56" y1="98" x2="56" y2="122"/><line x1="64" y1="98" x2="64" y2="114"/><line x1="72" y1="98" x2="72" y2="120"/></g><rect x="80" y="116" width="8" height="8" fill="#c2432d"/>
+    <rect x="0" y="140" width="124" height="7" rx="3.5" fill="#3b2a1d"/><circle cx="2" cy="143.5" r="4" fill="#2a1d14"/><circle cx="122" cy="143.5" r="4" fill="#2a1d14"/></svg>` } });
   add({ pivot: true, x: 8, y: -334, z: -20, t: 'rotateX(-26.6deg)', child: { go: 'booth', cls: 'swing anim', w: 40, h: 64, origin: 'top',
     html: `<div class="lamp-glow"></div><svg viewBox="0 0 40 64" width="40" height="64" style="position:relative"><defs><radialGradient id="bLg" cx=".45" cy=".45" r=".6"><stop offset="0" stop-color="#ffd79a"/><stop offset=".45" stop-color="#e2553a"/><stop offset="1" stop-color="#8e2318"/></radialGradient></defs>
     <line x1="20" y1="0" x2="20" y2="10" stroke="#2a2018" stroke-width=".8"/><rect x="13" y="9" width="14" height="4" rx="1" fill="#c9a24a"/><ellipse cx="20" cy="30" rx="16" ry="18" fill="url(#bLg)"/>
     <rect x="13" y="46" width="14" height="4" rx="1" fill="#c9a24a"/><path d="M20 50 v12" stroke="#c2432d" stroke-width="2"/></svg>` } });
-  // the hammock across the stern posts, and the writing desk behind it (Echo)
+  // Small paper lanterns along both beams under the canopy: lit at night (boat.css .night).
+  // Four, hung over the rack's side and the table's legs.
+  for (const x of [-150, 150]) for (const z of [-108, 162]) {
+    add({ cls: 'lantlet', w: 14, h: 30, x, y: -270, z, origin: 'top',
+      html: '<svg viewBox="0 0 14 30" width="14" height="30"><line x1="7" y1="0" x2="7" y2="9" stroke="#2a2018" stroke-width=".7"/><rect x="4" y="8" width="6" height="2" fill="#c9a24a"/><ellipse cx="7" cy="17" rx="6" ry="7.5" fill="#d9472f"/><path d="M7 9.5 v15 M3 13 q4 4 8 0 M3 21 q4 -4 8 0" stroke="#8e2318" stroke-width=".5" fill="none"/><rect x="4" y="24" width="6" height="2" fill="#c9a24a"/><line x1="7" y1="26" x2="7" y2="30" stroke="#c2432d" stroke-width="1"/></svg>' });
+  }
+  // Floor cushions on the rug, a camphor chest by the port rail with books and a little pine on it, a potted bamboo.
+  for (const [x, z, col, rot] of [[-92, 70, '#7c1f22', 8], [66, 84, '#1f3a4c', -6]]) {
+    add({ cls: 'cushion', w: 46, h: 46, x, y: -7, z, t: `rotateY(${rot}deg) rotateX(90deg)`, html: `<i style="background:${col}"></i>` });
+  }
+  add({ cls: 'chest', w: 80, h: 44, x: -120, y: -22, z: 196, t: 'rotateY(90deg)', html: '<i class="ch-band"></i><i class="ch-band b2"></i><i class="ch-lock"></i>' });
+  add({ cls: 'chest', w: 40, h: 44, x: -140, y: -22, z: 236 });
+  add({ cls: 'chest top', w: 40, h: 80, x: -140, y: -44, z: 196, t: 'rotateX(90deg)' });
+  add({ cls: '', w: 34, h: 30, x: -138, y: -44, z: 176, origin: 'bottom', t: 'rotateY(20deg)',
+    html: '<svg viewBox="0 0 34 30" width="34" height="30"><rect x="2" y="22" width="30" height="8" fill="#7c1f22"/><rect x="4" y="15" width="27" height="7" fill="#1f3a4c"/><rect x="3" y="9" width="28" height="6" fill="#c9a24a"/><rect x="6" y="3" width="24" height="6" fill="#efe3c6"/><g stroke="rgba(0,0,0,.25)" stroke-width=".6"><line x1="2" y1="26" x2="32" y2="26"/><line x1="4" y1="18" x2="31" y2="18"/></g></svg>' });
+  add({ cls: '', w: 36, h: 40, x: -136, y: -44, z: 214, origin: 'bottom', t: 'rotateY(30deg)',
+    html: '<svg viewBox="0 0 36 40" width="36" height="40"><path d="M11 33 h14 l-2 7 h-10z" fill="#5a3a26"/><path d="M18 33 q-1 -10 3 -16 q4 -5 2 -10" stroke="#4a3322" stroke-width="2.2" fill="none"/><g fill="#3d6b4f"><ellipse cx="10" cy="17" rx="9" ry="4"/><ellipse cx="25" cy="10" rx="10" ry="4"/><ellipse cx="22" cy="21" rx="7" ry="3"/></g></svg>' });
+  add({ cls: '', w: 44, h: 120, x: -132, y: -1, z: -140, origin: 'bottom', t: 'rotateY(25deg)',
+    html: '<svg viewBox="0 0 44 120" width="44" height="120"><path d="M10 98 h24 l-3 22 h-18z" fill="#2f4a5c"/><path d="M10 101 h24" stroke="#c9a24a" stroke-width="1.4"/><g stroke="#6f8a3a" stroke-width="2"><path d="M18 98 V18"/><path d="M24 98 V8"/><path d="M28 98 V34"/></g><g stroke="#54702c" stroke-width=".8"><path d="M18 40 h0 M18 62 h0 M24 30 h0 M24 56 h0 M28 60 h0"/></g><g fill="#6b8f3a"><path d="M18 30 q-12 -2 -16 4 q10 0 16 -2z"/><path d="M24 20 q12 -4 18 0 q-10 2 -18 2z"/><path d="M24 46 q-14 -2 -20 4 q12 0 20 -2z"/><path d="M28 44 q10 -4 15 0 q-8 2 -15 2z"/><path d="M18 64 q-10 -2 -14 3 q8 0 14 -1z"/><path d="M28 70 q10 -3 14 1 q-8 1 -14 1z"/></g></svg>' });
+  // the hammock across the stern posts, and the writing desk behind it (Echo), its drawer pulled out (the Crates)
   add({ cls: 'hm', w: 173, h: 60, x: -74, y: -155, z: 380, t: 'rotateZ(31.3deg) rotateX(90deg)' });
   add({ cls: 'hm', w: 173, h: 60, x: 74, y: -155, z: 380, t: 'rotateZ(-31.3deg) rotateX(90deg)' });
-  add({ go: 'echo', cls: 'tabletop', w: 170, h: 70, x: 0, y: -48, z: 440, t: 'rotateX(90deg)' });
-  add({ go: 'echo', cls: 'tedge', w: 170, h: 48, x: 0, y: -24, z: 405, t: 'rotateY(180deg)' });
-  add({ go: 'echo', cls: '', w: 84, h: 58, x: -20, y: -49, z: 455, origin: 'bottom', t: 'rotateY(180deg) rotateX(18deg)',
-    html: '<div class="np"><b>Echo</b><strong>La une</strong><span></span><span></span><span></span></div>' });
-  add({ cls: '', w: 64, h: 46, x: 112, y: -1, z: 430, origin: 'bottom', t: 'rotateY(205deg)',
-    html: '<svg viewBox="0 0 64 46" width="64" height="46"><g fill="#2a2a2a"><rect x="8" y="2" width="3" height="20"/><rect x="12" y="4" width="3" height="18"/><rect x="16" y="1" width="3" height="21"/></g><g fill="#7b2d26"><rect x="34" y="5" width="6" height="17"/></g><g fill="#c9a24a"><rect x="47" y="3" width="6" height="19"/></g><rect x="2" y="16" width="60" height="30" fill="#8a6440"/></svg>' });
+  add({ go: 'echo', cls: 'tabletop desk', w: 170, h: 90, x: 0, y: -48, z: 430, t: 'rotateX(90deg)' });
+  add({ go: 'echo', cls: 'tedge desk', w: 170, h: 48, x: 0, y: -24, z: 385, t: 'rotateY(180deg)', html: '<i class="dw-hole"></i>' });
+  for (const x of [-80, 80]) add({ cls: 'leg', w: 8, h: 48, x, y: -24, z: 470 });
+  // The paper lies flat on the desk (Ortis, 2026-11-22: « lay it flat on the table, but don't put the camera directly
+  // above it »): the page is drawn on it, seen from the hammock's side, the water beyond the stern.
+  add({ go: 'echo', cls: 'np flat', w: 138, h: 86, x: -6, y: -48.6, z: 430, t: 'rotateY(180deg) rotateX(90deg)',
+    html: '<b>Echo</b><strong>La une</strong><div class="np-cols"><span></span><span></span><span></span></div>' });
+  add({ cls: '', w: 26, h: 22, x: 66, y: -48, z: 456, origin: 'bottom', t: 'rotateY(200deg)',
+    html: '<svg viewBox="0 0 26 22" width="26" height="22"><path d="M3 8 h20 q-1 12 -10 14 q-9 -2 -10 -14z" fill="#efe3c6"/><path d="M5 11 h16" stroke="#3d5a52" stroke-width="1"/><ellipse cx="13" cy="8" rx="10" ry="2.2" fill="#6b4a2e"/></svg>' });
+  add({ go: 'drawer', cls: 'dw side', w: 66, h: 30, x: -72, y: -29, z: 352, t: 'rotateY(90deg)' });
+  add({ go: 'drawer', cls: 'dw side', w: 66, h: 30, x: 72, y: -29, z: 352, t: 'rotateY(90deg)' });
+  add({ go: 'drawer', cls: 'dw bottom', w: 144, h: 66, x: 0, y: -14, z: 352, t: 'rotateX(90deg)' });
+  // The records in the drawer, seen from above: their top edges, row after row, and the folders' tabs between them. One
+  // surface, not a plane per record: the drawer is seen from above, where a dozen standing planes read as one.
+  add({ go: 'drawer', cls: 'dw recs', w: 138, h: 62, x: 0, y: -40, z: 352, t: 'rotateX(90deg)',
+    html: ['FAVOURITES', 'ALBUMS', 'MIXES'].map((t, i) => `<span style="top:${8 + i * 32}%">${t}</span>`).join('') });
+  add({ go: 'drawer', cls: 'dw front', w: 150, h: 34, x: 0, y: -29, z: 318, t: 'rotateY(180deg)', html: '<i class="dw-pull"></i><span class="dw-tag">唱片 · crates</span>' });
+  // On the water round the boat: lotus leaves, and two little lamps that float there at night.
+  for (const [x, z, s, rot] of [[-230, -260, 1, 0], [214, -320, 0.9, 70], [250, 300, 1.1, 120], [-236, 330, 0.8, 200]]) {
+    add({ cls: 'lotus', w: 46 * s, h: 46 * s, x, y: WATER - 0.4, z, t: `rotateX(90deg) rotateZ(${rot}deg)` });
+  }
+  for (const [x, z] of [[-250, -220], [232, 318]]) {
+    add({ cls: 'floatlamp', w: 16, h: 14, x, y: WATER, z, origin: 'bottom',
+      html: '<svg viewBox="0 0 16 14" width="16" height="14"><path d="M1 10 q7 6 14 0 l-2 -3 h-10z" fill="#e88a9a"/><path d="M4 7 q4 -9 8 0z" fill="#f4b6c0"/><circle cx="8" cy="4" r="1.6" fill="#ffd27a"/></svg><i></i>' });
+  }
   return out;
 }
 
@@ -302,10 +462,18 @@ function karst(g, cx, base, pk, L, r) {
   if (L.ink) { g.save(); g.strokeStyle = L.ink; g.globalAlpha = 0.4; g.lineWidth = 1; g.stroke(); g.restore(); }
 }
 
+/**
+ * A canvas the lake paints once and only draws from afterwards, kept in the page's memory (willReadFrequently) rather
+ * than on the GPU (2026-11-24). On the GPU every arc of every karst's vegetation was recorded and sent as one batch the
+ * first time the painting was drawn: seven seconds for the GPU process to unpack, twenty for the first frame of the
+ * boat, the flight to the first page with it. Painted here it takes a few milliseconds, and is drawn as one image.
+ */
+const paper = (c) => c.getContext('2d', { willReadFrequently: true });
+
 function paintLayer(L, k) {
   const Wp = Math.round(2 * Math.PI * k), hY = Math.round(0.64 * k), Hp = Math.round(1.16 * k);
   const c = document.createElement('canvas'); c.width = Wp; c.height = Hp;
-  const g = c.getContext('2d'), r = rng(L.seed), peaks = [];
+  const g = paper(c), r = rng(L.seed), peaks = [];
   let u = r() * k * 0.2;
   while (u < Wp) {
     const w = k * (L.w[0] + r() * (L.w[1] - L.w[0]));
@@ -317,7 +485,7 @@ function paintLayer(L, k) {
   const mg = g.createLinearGradient(0, hY - k * L.mist, 0, hY);
   mg.addColorStop(0, 'rgba(216,224,220,0)'); mg.addColorStop(1, `rgba(216,224,220,${L.mistA})`);
   g.fillStyle = mg; g.fillRect(0, hY - k * L.mist, Wp, k * L.mist);
-  const tmp = document.createElement('canvas'); tmp.width = Wp; tmp.height = hY; tmp.getContext('2d').drawImage(c, 0, 0);
+  const tmp = document.createElement('canvas'); tmp.width = Wp; tmp.height = hY; paper(tmp).drawImage(c, 0, 0);
   g.save(); g.globalAlpha = L.refl; g.setTransform(1, 0, 0, -0.8, 0, hY * 1.8); g.drawImage(tmp, 0, 0); g.restore();
   g.save(); g.globalCompositeOperation = 'destination-out';
   for (let i = 0; i < 320; i++) { const y = hY + 2 + Math.pow(r(), 1.5) * (Hp - hY), x = r() * Wp; g.globalAlpha = 0.2 + r() * 0.55; g.fillRect(x, y, k * (0.02 + r() * 0.14), 1 + r() * 1.6); }
@@ -328,7 +496,7 @@ function paintLayer(L, k) {
 /** A layer's shape in one dark colour, laid over it as the night falls (the karsts sink into the dark, the sky stays). */
 function silhouette(Ly) {
   const s = document.createElement('canvas'); s.width = Ly.Wp; s.height = Ly.Hp;
-  const g = s.getContext('2d');
+  const g = paper(s);
   g.drawImage(Ly.c, 0, 0);
   g.globalCompositeOperation = 'source-in'; g.fillStyle = '#04070f'; g.fillRect(0, 0, Ly.Wp, Ly.Hp);
   return s;
@@ -337,7 +505,7 @@ function silhouette(Ly) {
 /** A few warm lights deep in a range of mountains: too small and too far to tell what they are (Ortis, 2026-11-22). */
 function farLights(Ly, seed, n) {
   const s = document.createElement('canvas'); s.width = Ly.Wp; s.height = Ly.Hp;
-  const g = s.getContext('2d'), r = rng(seed);
+  const g = paper(s), r = rng(seed);
   // Inside the rock, near its foot: asked of the peaks' own shapes, not read back from the painting. Reading the
   // painting (getImageData on 11,781 × 1,200 px) took 55 s in headless Chrome and froze the boat's start at night
   // (2026-11-22: the site smoke failed only after dark).
@@ -364,7 +532,7 @@ function farLights(Ly, seed, n) {
 function milkyWay(k) {
   const Wp = Math.round(2 * Math.PI * k), Hm = Math.round(1.05 * k);
   const c = document.createElement('canvas'); c.width = Wp; c.height = Hm;
-  const g = c.getContext('2d'), r = rng(97);
+  const g = paper(c), r = rng(97);
   const elAt = (az) => 0.78 * Math.sin(az - 0.55) + 0.12; // radians above the horizon
   const yAt = (az) => Hm - elAt(az) * k;                     // k px per radian at half size
   for (let pass = 0; pass < 2; pass++) {

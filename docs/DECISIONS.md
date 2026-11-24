@@ -4201,3 +4201,21 @@ days. « Less often (his sheet) » at 30 days was therefore *more* often than an
 **Decision.** `lessEvery` 120 in `server/data/pace.json` (the default in `withPace` too): about half as often as the
 rest, without taking his doubtful rows off air. If the albums' pass grows past 120 days (a bigger library), revisit:
 the test only holds the floor (≥ 90).
+
+## 2026-11-24 — The lake paints its panoramas in page memory; the boat's pages are laid onto their things
+
+**Context.** The boat's first frame took 15–25 s on the laptop: one GPU task unpacking every arc of the karsts'
+vegetation, recorded on the GPU canvas and sent in one batch the first time the panorama was drawn (WORKLOG 24/11 night).
+Separately, Ortis asked for each window as big as possible and angled, « as if the object they emanate from were really
+in this world ».
+
+**Decision.** (1) Canvases that are painted once and only drawn from afterwards (`paintLayer`, the reflection, the
+night silhouette, the far lights, the Milky Way) are 2D canvases with `willReadFrequently`, painted on the CPU in
+milliseconds and drawn as images. The lake's own canvas, redrawn every frame, stays on the GPU. (2) A page is not put
+inside the 3D scene (where it would be cut and re-sorted with every plane): it stays a screen layer, given one
+`matrix3d` that maps it onto the object's projected corners, recomputed at arrival and on resize; it closes during a
+flight. Phones keep the flat window.
+
+**Consequences.** A new painted panorama must use `paper()`, not `getContext('2d')`. A place that shows a page on its
+thing needs a rectangle (`c`, `r`, `u`, `w`, `h`) whose projected size is at least the page's readable size; the smoke
+holds ≥ 18 % of the window.

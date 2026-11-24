@@ -665,7 +665,7 @@ try {
   const covers = await a.$$eval('.room .book', (bs) => bs.filter((b) => b.querySelector('.bcover .cv-art svg') && b.querySelector('.spine')).length);
   check('the Archive: every book is a volume with a cover drawn for it, the thesis face-out', covers === books && Boolean(await a.$('.room .book.thesis.face-out')), `${covers}/${books} covers`);
   const archHead = await a.evaluate(() => ({
-    title: document.querySelector('.page-head h1')?.textContent, said: document.querySelectorAll('.page-head p, #libIntro, .room > .hint:not(#statusLine)').length,
+    title: document.querySelector('.page-head h1')?.textContent, said: document.querySelectorAll('.page-head p:not(.pf-elsewhere), #libIntro, .room > .hint:not(#statusLine)').length, // the Elsewhere links are no description
     tabs: [...document.querySelectorAll('.room-tabs a')].map((x) => x.getAttribute('href')), card: Boolean(document.querySelector('.room > .thesis-card, .room > section.thesis-card')),
   }));
   check('the Archive: its name, two rooms (the Bibliothèque, the Crates — the Photos have no tab), no descriptions, no thesis card between the shelf and the maps',
@@ -829,6 +829,28 @@ try {
   await a.click('.room-tabs a[href="portfolio/crates"]');
   await a.waitForSelector('.room .sleeve', { timeout: 8000 });
   check('the Archive: crates render as sleeves, with no play button', (await a.$$('.room .sleeve')).length >= 1 && !(await a.$('.room .sleeve button.play')));
+  // Racks of records in a drawer of folders (Ortis, 2026-11-24): the sleeves stand overlapped, and the one under the
+  // pointer is picked up, its card (title, artist, when it plays) shown.
+  const rack = await (async () => {
+    // The first folder holding two records or more; the test library's crates may hold one record in all.
+    const rows = await a.$$('.room .crate-row');
+    const at = Math.max(0, await a.evaluate(() => [...document.querySelectorAll('.room .crate-row')].findIndex((r) => r.querySelectorAll('.sleeve').length >= 2)));
+    const ss = rows[at] ? await rows[at].$$('.sleeve') : [];
+    const s = ss[1] || ss[0]; if (!s) return null;
+    await s.scrollIntoViewIfNeeded();
+    const b0 = await s.boundingBox();
+    await a.mouse.move(b0.x + 14, b0.y + b0.height * 0.6);
+    await a.waitForTimeout(450);
+    const b1 = await s.boundingBox();
+    const seen = await a.evaluate((i) => {
+      const [s0, s1] = document.querySelectorAll('.room .crate-row')[i].querySelectorAll('.sleeve'), r0 = s0.getBoundingClientRect(), r1 = s1?.getBoundingClientRect();
+      return { drawer: Boolean(document.querySelector('.room .crate-drawer .category .crate-row')), overlap: r1 ? r1.left < r0.right - 20 : 'one record', card: +getComputedStyle((s1 || s0).querySelector('.s-cap')).opacity };
+    }, at);
+    await a.mouse.move(2, 2);
+    return { ...seen, lift: Math.round(b0.y - b1.y) };
+  })();
+  check('…in a drawer of folders, standing overlapped like records in a rack; the one under the pointer is picked up, its card shown',
+    Boolean(rack) && rack.drawer && rack.overlap !== false && rack.lift >= 12 && rack.card > 0.9, JSON.stringify(rack));
   // The photos keep their room and address, without a tab (Ortis: one day on the world map).
   await a.evaluate(() => window.radioTower.router.go('portfolio/photos'));
   await a.waitForSelector('.room .ph', { timeout: 8000 });
@@ -1284,16 +1306,27 @@ try {
   // No plane drawn across the eye, at any place (2026-11-22: near the little phone, planes straddling the camera were
   // drawn 380,000 px wide and an ordinary laptop drew one frame a second; CSS 3D has no near clipping of its own).
   await bp.evaluate(() => { const b = [...document.querySelectorAll('.b-dock button')].find((x) => /Resume/.test(x.textContent)); b?.click(); });
-  const sizes = {};
-  for (const r of ['radio', 'playlists', 'antenna', 'ondes', 'booth', 'echo']) {
+  const sizes = {}, onThing = {};
+  for (const [r, k] of [['radio', 'radio'], ['playlists', 'playlists'], ['antenna', 'antenna'], ['ondes', 'ondes'], ['booth', 'booth'], ['echo', 'echo'], ['portfolio/crates', 'drawer']]) {
     await bp.evaluate((p) => window.radioTower.router.go('/' + p), r);
-    await bp.waitForFunction((p) => window.radioTower.world.current === p && !document.querySelector('.b-panel').hidden, r, { timeout: 30000 }).catch(() => {});
+    await bp.waitForFunction((p) => window.radioTower.world.current === p && !document.querySelector('.b-panel').hidden, k, { timeout: 30000 }).catch(() => {});
     await bp.waitForTimeout(400);
-    sizes[r] = await bp.evaluate(() => +[...document.querySelectorAll('.b-cam > *')].filter((e) => e.style.visibility !== 'hidden')
+    sizes[k] = await bp.evaluate(() => +[...document.querySelectorAll('.b-cam > *')].filter((e) => e.style.visibility !== 'hidden')
       .map((e) => e.getBoundingClientRect()).reduce((m, b) => Math.max(m, b.width / innerWidth, b.height / innerHeight), 0).toFixed(1));
+    if (k === 'drawer') await bp.waitForSelector('.b-panel .crate-drawer .sleeve', { timeout: 10000 }).catch(() => {});
+    onThing[k] = await bp.evaluate(() => {
+      const p = document.querySelector('.b-panel'), b = p.getBoundingClientRect();
+      return { on: p.classList.contains('on-thing') && /matrix3d/.test(p.style.transform), area: +(b.width * b.height / (innerWidth * innerHeight)).toFixed(2), racks: Boolean(p.querySelector('.crate-drawer .sleeve')) };
+    });
   }
   check('…and at every place no plane of the boat is drawn wider or taller than eight screens (the near clipping)',
-    Object.keys(sizes).length === 6 && Object.values(sizes).every((v) => v > 0 && v <= 8), JSON.stringify(sizes));
+    Object.keys(sizes).length === 7 && Object.values(sizes).every((v) => v > 0 && v <= 8), JSON.stringify(sizes));
+  // The windows on their things (Ortis, 2026-11-24: « make each window as big as possible … angle the windows to make it
+  // seem the object they emanate from are really in this world »): each page is laid onto its thing's own surface, and
+  // large; the Crates open in the drawer under Echo's desk, on their records. The phone's page stays flat (too small).
+  check('…every page is laid onto its thing, at an angle and large (the laptop, the screen, the scroll, the lantern, the paper, the drawer of records)',
+    ['radio', 'antenna', 'ondes', 'booth', 'echo', 'drawer'].every((k) => onThing[k]?.on && onThing[k].area >= 0.18) && !onThing.playlists?.on && onThing.drawer?.racks,
+    JSON.stringify(onThing));
   // The Antenna's lever (2026-11-22): beside the page, in reach; pulled, the next stream, the lever at its angle.
   await bp.evaluate(() => window.radioTower.router.go('/antenna'));
   await bp.waitForFunction(() => window.radioTower.world.current === 'antenna' && !document.querySelector('.b-panel').hidden, null, { timeout: 30000 }).catch(() => {});
@@ -1340,7 +1373,7 @@ try {
   const byThing = await bp.evaluate(() => ({ place: window.radioTower.world.current, path: location.pathname, tagged: [...new Set([...document.querySelectorAll('.b-cam [data-go]')].map((e) => e.dataset.go))].sort().join(' ') }));
   check('…and the things themselves are the way in: a click on the little phone opens Playlists, every place has its thing, and the lever does not move you',
     afterLever === 'antenna' && Boolean(phoneAt) && phoneAt.x >= 0 && byThing.place === 'playlists' && byThing.path === '/playlists'
-    && byThing.tagged === 'antenna booth echo ondes playlists radio', JSON.stringify({ afterLever, phoneAt, byThing }));
+    && byThing.tagged === 'antenna booth drawer echo ondes playlists radio', JSON.stringify({ afterLever, phoneAt, byThing }));
   await boatCtx.close();
   // The sky on the station's clock (2026-11-22), at a night given by the address: the stars out, the boat in the dark,
   // the lake listening to the visualiser (which rests behind it).
@@ -1763,6 +1796,17 @@ try {
   await m.tap('.brand-text');
   check('banner (touch): a tap outside closes it', (await mopen()) === 0);
   check('nothing overflows a 390 px phone', overflow.length === 0, overflow.join(', ') || 'every page fits');
+  // The Archive's books on a phone (Ortis, 2026-11-24: « piled up vertically instead of horizontally, bc right now you
+  // have to scroll to the side to see it »): every shelf a pile, one book above the next, nothing to scroll sideways.
+  await m.goto(dev + 'portfolio', { waitUntil: 'domcontentloaded' });
+  await m.waitForSelector('.room .shelf .book', { timeout: 10000 }).catch(() => {});
+  const pile = await m.evaluate(() => {
+    const shelves = [...document.querySelectorAll('.room .shelf')].map((s) => ({ over: s.scrollWidth - s.clientWidth, tops: [...s.querySelectorAll('.book')].map((b) => b.getBoundingClientRect().top) }));
+    return { shelves: shelves.length, books: shelves.reduce((n, s) => n + s.tops.length, 0), sideways: Math.max(0, ...shelves.map((s) => s.over)),
+      piled: shelves.every((s) => s.tops.every((t, i) => i === 0 || t > s.tops[i - 1])), doc: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+  });
+  check('on a phone the Archive\'s books lie in piles, one above the next, with nothing to scroll sideways',
+    pile.shelves >= 1 && pile.books >= 6 && pile.piled && pile.sideways <= 1 && pile.doc <= 1, JSON.stringify(pile));
   if (AXE) {
     for (const v of (await axeRun(booth)) || []) a11y.push(`booth (unlocked): ${v}`);
     check('no accessibility violations above minor (axe-core, every page + the unlocked booth)', a11y.length === 0, a11y.slice(0, 3).join(' | ') || 'contrast, names, roles, headings');

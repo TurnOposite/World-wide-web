@@ -12,7 +12,7 @@
  *
  * The router does not know: it asks show(match) for a box, as it asks the map (world.js).
  */
-import { PLACES, ORDER, FRONT, placeOf, routeOf, project, poseFor, buildBoat, depthOf, Lake, cross, norm, D2R, skyAt, skyMinutes, LEVER, leverIndex } from './scene.js';
+import { PLACES, ORDER, FRONT, placeOf, routeOf, anchorOf, quadOf, quadMatrix, project, poseFor, buildBoat, depthOf, Lake, norm, D2R, skyAt, skyMinutes, LEVER, leverIndex } from './scene.js';
 
 /** The nearest the camera stands to a place's screen, and the nearest a plane may come to the eye, as parts of P. */
 export const MIN_D = 0.16;
@@ -20,6 +20,18 @@ export const NEAR = 0.05;
 
 const SEEN = 'gt.boat.seen';
 const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+/**
+ * The hammock you sit in while time is stopped, seen from inside it: one rim of cloth sagging across the bottom of the
+ * screen, its rope, a fringe of tassels (2026-11-24: the two striped wedges up the sides read as glitches, not cloth).
+ */
+const RIM = [[-20, 205], [260, 282], [940, 282], [1220, 205]];
+const RIM_D = `M${RIM[0]} C ${RIM[1]}, ${RIM[2]}, ${RIM[3]}`;
+const rimAt = (t) => { const u = 1 - t, k = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t]; return [0, 1].map((j) => k.reduce((s, c, i) => s + c * RIM[i][j], 0)); };
+const TASSELS = Array.from({ length: 36 }, (_, i) => {
+  const [x, y] = rimAt((i + 0.5) / 36).map((v) => Math.round(v)), l = 12 + (i % 3) * 2;
+  return `<path d="M${x} ${y + 2} v7" stroke="#6f5c40" stroke-width="1.4"/><path d="M${x - 2} ${y + 9} h4 l2 ${l} h-8z" fill="#c9bfa6" fill-opacity=".9"/>`;
+}).join('');
 
 export function mountBoat({ router, player = null }) {
   const css = document.createElement('link');
@@ -39,10 +51,10 @@ export function mountBoat({ router, player = null }) {
       <canvas class="b-env" aria-hidden="true"></canvas>
       <div class="b-view" aria-hidden="true"><div class="b-cam"></div></div>
       <div class="b-hamfg" aria-hidden="true"><svg viewBox="0 0 1200 360" preserveAspectRatio="xMidYMax slice"><defs>
-        <pattern id="bHst" width="46" height="46" patternUnits="userSpaceOnUse" patternTransform="rotate(-32)"><rect width="46" height="46" fill="#38445a"/><rect width="46" height="8" fill="#d2c9b2"/><rect y="24" width="46" height="3" fill="#8fa1b4"/></pattern>
-        <pattern id="bHst2" width="46" height="46" patternUnits="userSpaceOnUse" patternTransform="rotate(28)"><rect width="46" height="46" fill="#38445a"/><rect width="46" height="8" fill="#d2c9b2"/><rect y="24" width="46" height="3" fill="#8fa1b4"/></pattern></defs>
-        <g class="b-rock anim"><path d="M-20 110 C 110 160, 250 250, 430 380 L -20 380 Z" fill="url(#bHst)"/><path d="M-20 110 C 110 160, 250 250, 430 380" fill="none" stroke="#8b7350" stroke-width="7"/>
-        <path d="M1220 190 C 1090 230, 960 300, 860 380 L 1220 380 Z" fill="url(#bHst2)"/><path d="M1220 190 C 1090 230, 960 300, 860 380" fill="none" stroke="#8b7350" stroke-width="7"/></g></svg></div>
+        <pattern id="bHst" width="44" height="26" patternUnits="userSpaceOnUse"><rect width="44" height="26" fill="#38445a"/><rect y="7" width="44" height="6" fill="#d2c9b2"/><rect y="18" width="44" height="2" fill="#8fa1b4"/></pattern>
+        <linearGradient id="bHsh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0f14" stop-opacity=".05"/><stop offset="1" stop-color="#0b0f14" stop-opacity=".6"/></linearGradient></defs>
+        <g class="b-rock anim"><path d="${RIM_D} L1220 380 L-20 380 Z" fill="url(#bHst)"/><path d="${RIM_D} L1220 380 L-20 380 Z" fill="url(#bHsh)"/>
+        <path d="${RIM_D}" fill="none" stroke="#8b7350" stroke-width="7" stroke-linecap="round"/><path d="${RIM_D}" fill="none" stroke="#c8ab78" stroke-width="2" stroke-dasharray="8 6"/>${TASSELS}</g></svg></div>
     </div>
     <div class="b-labels"></div>
     <section class="b-panel" hidden><div class="b-box" tabindex="-1"></div></section>
@@ -72,13 +84,8 @@ export function mountBoat({ router, player = null }) {
   const proj = (p, pose = cv) => project(pose, p, W, H, P);
   const pose = (k) => {
     if (k === 'lake') return lakePose();
-    const p = poseFor(k, { W, H: H - 60, P, fitW: phone ? 0.72 : 0.8, fitH: phone ? 0.46 : 0.76, minD: MIN_D * P });
-    if (k === 'antenna' && !phone) {
-      // The machines a little left of centre, so the page can stand on their right and the lever stays seen.
-      const s = PLACES.antenna, d = Math.hypot(p.x - s.c[0], p.y - s.c[1], p.z - s.c[2]), sh = 0.24 * W * d / P;
-      p.x += s.r[0] * sh; p.z += s.r[2] * sh;
-    }
-    return p;
+    // As big as the screen allows between the header and the dock (Ortis, 2026-11-24), the scene still round it.
+    return poseFor(k, { W, H, P, fitW: phone ? 0.72 : 0.86, fitH: phone ? 0.46 : 0.78, minD: MIN_D * P, shift: !phone });
   };
   function lakePose() {
     const ctr = [0, -120, 40], dir = norm([0.92, 0.17, -0.36]);
@@ -93,9 +100,9 @@ export function mountBoat({ router, player = null }) {
     for (let s = 0; s <= 300; s += 10) {
       p = { x: -22, y: -172 - s * 0.32, z: 330 + s, yaw: 6, pd: 0, roll: -4 };
       let lo = 1e9, hi = -1e9;
-      for (const k of FRONT) { const a = PLACES[k].c; const e = Math.atan2(a[1] - p.y, Math.hypot(p.z - a[2], a[0] - p.x)) / D2R; lo = Math.min(lo, e); hi = Math.max(hi, e); }
+      for (const k of FRONT) { const a = anchorOf(k); const e = Math.atan2(a[1] - p.y, Math.hypot(p.z - a[2], a[0] - p.x)) / D2R; lo = Math.min(lo, e); hi = Math.max(hi, e); }
       p.pd = (lo + hi) / 2 + 2;
-      if (FRONT.every((k) => { const q = proj(PLACES[k].c, p); return q && q.x > W * 0.1 && q.x < W * 0.9 && q.y > H * 0.2 && q.y < H * 0.78; })) break;
+      if (FRONT.every((k) => { const q = proj(anchorOf(k), p); return q && q.x > W * 0.1 && q.x < W * 0.9 && q.y > H * 0.2 && q.y < H * 0.78; })) break;
     }
     return p;
   }
@@ -169,7 +176,7 @@ export function mountBoat({ router, player = null }) {
   const hideBanner = () => { banner.classList.remove('on'); banner.classList.add('off'); setTimeout(() => { if (!banner.classList.contains('on')) banner.classList.remove('off'); }, 320); };
   function bloomAt(k) {
     if (reduced || !PLACES[k].c) return;
-    const p = proj(PLACES[k].c); if (!p) return;
+    const p = proj(anchorOf(k)); if (!p) return;
     const b = document.createElement('div'); b.className = 'b-bloom'; b.style.left = `${p.x}px`; b.style.top = `${p.y}px`;
     root.insertBefore(b, labels); requestAnimationFrame(() => b.classList.add('go'));
     setTimeout(() => b.remove(), 1000);
@@ -196,13 +203,48 @@ export function mountBoat({ router, player = null }) {
     return { x: cx - w / 2, y: cy - h / 2, w, h };
   }
   const setRect = (el, r) => Object.assign(el.style, { left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` });
+  /**
+   * The page drawn ON its thing (Ortis, 2026-11-24: « angle the windows to make it seem the object they emanate from
+   * are really in this world »): the window's four corners projected, and the page box laid onto them by one matrix3d.
+   * The box is laid out larger than it is drawn (SCALE), so more of a page fits; flat things (the paper, the drawer)
+   * keep their own proportions and are read foreshortened, as a paper on a desk is.
+   */
+  const SCALE = 0.82;
+  const onThing = (k) => !phone && !PLACES[k].flat && Boolean(PLACES[k].w);
+  function windowQuad(k) {
+    const q = quadOf(PLACES[k]).map((c) => proj(c));
+    return q.every(Boolean) ? q : null;
+  }
+  function placeOnThing(k) {
+    const q = windowQuad(k); if (!q) return false;
+    const len = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const w = Math.round((len(q[0], q[1]) + len(q[2], q[3])) / 2 / SCALE), h = Math.round(w * PLACES[k].h / PLACES[k].w);
+    Object.assign(panel.style, { left: '0px', top: '0px', width: `${w}px`, height: `${h}px`, transformOrigin: '0 0', transform: quadMatrix(w, h, q) });
+    panel.classList.add('on-thing');
+    return true;
+  }
+  function replacePanel() {
+    if (!openOn) return;
+    if (onThing(openOn) && placeOnThing(openOn)) return;
+    const f = screenRect(openOn); if (f) setRect(panel, panelRect(f));
+  }
   let openOn = null;
   function openPanel(k) {
     const from = screenRect(k); if (!from) return;
-    const to = panelRect(from, k);
     panel.dataset.place = k;
-    setRect(panel, to); panel.hidden = false; openOn = k;
-    panel.style.transition = 'none'; panel.style.opacity = '0'; panel.style.transformOrigin = '0 0';
+    panel.hidden = false; openOn = k;
+    panel.style.transition = 'none'; panel.style.opacity = '0';
+    if (onThing(k) && placeOnThing(k)) {
+      // A screen coming on: the page opens from its middle line, on the thing itself.
+      panel.style.clipPath = reduced ? 'none' : 'inset(48% 0 48% 0)';
+      void panel.offsetWidth;
+      panel.style.transition = reduced ? 'opacity .15s linear' : 'clip-path .5s cubic-bezier(.2,.85,.25,1) .05s, opacity .2s ease';
+      panel.style.clipPath = 'inset(0 0 0 0)'; panel.style.opacity = '1';
+      return;
+    }
+    panel.classList.remove('on-thing'); panel.style.clipPath = 'none';
+    const to = panelRect(from, k);
+    setRect(panel, to); panel.style.transformOrigin = '0 0';
     panel.style.transform = `translate(${from.x - to.x}px,${from.y - to.y}px) scale(${from.w / to.w},${from.h / to.h})`;
     void panel.offsetWidth;
     panel.style.transition = reduced ? 'opacity .15s linear' : 'transform .46s cubic-bezier(.2,.85,.25,1), opacity .22s ease';
@@ -211,16 +253,22 @@ export function mountBoat({ router, player = null }) {
   function closePanel() {
     if (!openOn) return;
     openOn = null;
-    panel.style.transition = 'transform .18s ease-in, opacity .18s ease-in';
-    panel.style.transformOrigin = '50% 50%'; panel.style.transform = 'scale(.97)'; panel.style.opacity = '0';
+    if (panel.classList.contains('on-thing')) { panel.style.transition = 'opacity .18s ease-in'; panel.style.opacity = '0'; }
+    else {
+      panel.style.transition = 'transform .18s ease-in, opacity .18s ease-in';
+      panel.style.transformOrigin = '50% 50%'; panel.style.transform = 'scale(.97)'; panel.style.opacity = '0';
+    }
     setTimeout(() => { if (!openOn) panel.hidden = true; }, 190);
   }
 
   /* ---- moving between places */
+  /** Where the camera is, for boat.css: the hammock stands aside when you face the desk; a thing with its page open holds still. */
+  const markPlace = (k) => { root.dataset.at = k || ''; root.classList.toggle('aft', k === 'echo' || k === 'drawer'); };
   async function goTo(k, { route = true } = {}) {
     if (busy) { queued = k; return; }
     if (k === place && mode === 'room' && !frozen && openOn) return;
     busy = true; labels.replaceChildren(); closePanel(); intro.hidden = true;
+    markPlace(k);
     root.classList.remove('seated');
     if (!frozen) freeze(true);
     showBanner(k);
@@ -247,7 +295,7 @@ export function mountBoat({ router, player = null }) {
     if (busy || arriving) return;
     if (mode === 'choosing') { pick(prev); return; }
     busy = true; prev = place === 'lake' || !place ? 'radio' : place;
-    closePanel(); intro.hidden = true; freeze(true);
+    closePanel(); intro.hidden = true; freeze(true); markPlace(null);
     say.textContent = 'Time stopped. Choose where to go.';
     const to = choosePose();
     await fly(to, flightMs(cv, to) * 0.9);
@@ -259,7 +307,7 @@ export function mountBoat({ router, player = null }) {
     labels.replaceChildren();
     const placed = [];
     const hits = (a) => placed.some((q) => a.x < q.x + q.w + 6 && a.x + a.w + 6 > q.x && a.y < q.y + q.h + 6 && a.y + a.h + 6 > q.y);
-    const pts = FRONT.map((k) => ({ k, p: proj(PLACES[k].c) })).filter((o) => o.p).sort((a, b) => a.p.y - b.p.y);
+    const pts = FRONT.map((k) => ({ k, p: proj(anchorOf(k)) })).filter((o) => o.p).sort((a, b) => a.p.y - b.p.y);
     for (const { k, p } of pts) {
       const s = PLACES[k];
       const dot = document.createElement('i'); dot.className = 'b-dot'; dot.style.left = `${p.x}px`; dot.style.top = `${p.y}px`;
@@ -296,7 +344,8 @@ export function mountBoat({ router, player = null }) {
     + '<button class="b-stop" type="button" aria-keyshortcuts="Escape"><span class="b-seal" aria-hidden="true">停</span><span class="b-stopT">Stop time</span></button>';
   dock.addEventListener('click', (e) => { const b = e.target.closest('[data-go]'); if (b) pick(b.dataset.go); });
   $('.b-stop').addEventListener('click', choose);
-  function paintDock() { dock.querySelectorAll('.b-dk').forEach((b) => b.setAttribute('aria-current', String(b.dataset.go === place && mode === 'room'))); }
+  // The drawer is part of Echo's desk: Echo is lit while the Crates are open.
+  function paintDock() { const at = place === 'drawer' ? 'echo' : place; dock.querySelectorAll('.b-dk').forEach((b) => b.setAttribute('aria-current', String(b.dataset.go === at && mode === 'room'))); }
   const typing = (t) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
   addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || document.querySelector('dialog[open]')) return;
@@ -335,7 +384,7 @@ export function mountBoat({ router, player = null }) {
       size();
       if (!tween && place) {
         Object.assign(cv, mode === 'choosing' ? choosePose() : pose(place)); applyCam();
-        if (openOn) { const f = screenRect(openOn); if (f) setRect(panel, panelRect(f)); }
+        replacePanel();
         if (mode === 'choosing') showLabels();
       }
     }, 160);
@@ -432,7 +481,7 @@ export function mountBoat({ router, player = null }) {
     showBanner(k);
     await fly(pose(k), reduced ? 0 : 2400);
     hideBanner();
-    place = k; mode = 'room'; arriving = false;
+    place = k; mode = 'room'; arriving = false; markPlace(k);
     openPanel(k); paintDock();
   }
   if (seen) Object.assign(cv, pose('radio'));
@@ -442,7 +491,7 @@ export function mountBoat({ router, player = null }) {
     intro.hidden = false;
     const go = () => { if (arriving && !intro.hidden) arrive(); };
     intro.querySelector('.b-aboard').addEventListener('click', go);
-    intro.querySelector('.b-skip').addEventListener('click', () => { if (!arriving) return; tween = null; intro.hidden = true; Object.assign(cv, pose(firstPlace || 'radio')); place = firstPlace || 'radio'; arriving = false; openPanel(place); paintDock(); });
+    intro.querySelector('.b-skip').addEventListener('click', () => { if (!arriving) return; tween = null; intro.hidden = true; Object.assign(cv, pose(firstPlace || 'radio')); place = firstPlace || 'radio'; arriving = false; markPlace(place); openPanel(place); paintDock(); });
     setTimeout(go, reduced ? 0 : 1800);
   }
   intro.querySelector('.b-aboard').addEventListener('click', () => { if (!arriving && place === 'lake') pick(prev || 'radio'); });
@@ -461,9 +510,9 @@ export function mountBoat({ router, player = null }) {
     get lastError() { return lastError; },
     /** The router's question: where does this page go? Into the panel; the camera goes to its thing. */
     show(match) {
-      const k = placeOf(match.name);
+      const k = placeOf(match.name, match.params);
       if (arriving) firstPlace = k;
-      else if (seen && place === null) { place = k; Object.assign(cv, pose(k)); applyCam(); requestAnimationFrame(() => { openPanel(k); paintDock(); }); }
+      else if (seen && place === null) { place = k; markPlace(k); Object.assign(cv, pose(k)); applyCam(); requestAnimationFrame(() => { openPanel(k); paintDock(); }); }
       else goTo(k);
       return { box, focus: () => box.focus({ preventScroll: true }) };
     },

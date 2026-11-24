@@ -216,7 +216,7 @@ export async function mount(root, ctx) {
   /**
    * A shelf holds what fits on it (2026-11-03): in a narrower window the long McGill run used to run off
    * the case's edge. The books that do not fit move up to the top shelf, beside the Livre miroir, and the
-   * top shelf's label says whose they are. Phones scroll their shelves sideways instead (rooms.css).
+   * top shelf's label says whose they are. Phones pile each shelf's books instead (rooms.css, the end).
    */
   function rebalance(rows) {
     if (rows.length < 2 || window.matchMedia('(max-width: 760px)').matches) return;

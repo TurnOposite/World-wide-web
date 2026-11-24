@@ -23,7 +23,10 @@ const TEMPLATE = `<div class="room-head">
     <div class="chips" id="catChips" role="group" aria-label="Categories"></div>
   </div>
 
-  <div id="categories"><p class="empty-room">…</p></div>
+  <div class="crate-drawer">
+    <div id="categories"><p class="empty-room">…</p></div>
+    <div class="drawer-front" aria-hidden="true"><i></i><span>唱片 · crates</span></div>
+  </div>
 
   <p class="hint">Times are in your own timezone and come from the same clock the player uses. Adding or removing music re-deals the programme, so treat anything more than a few hours out as approximate.</p>
 <dialog class="desk crate-desk" id="crateDesk" aria-labelledby="crateTitle">
@@ -78,6 +81,9 @@ export function onTower(url, origin) {
   if (!url || !origin || !url.startsWith('/') || url.startsWith('//')) return url;
   return String(origin).replace(/\/$/, '') + url;
 }
+
+/** A small steady number from a string: the same sleeve leans the same way on every visit. */
+const hashOf = (s) => [...String(s)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
 
 export async function mount(root, ctx) {
   root.insertAdjacentHTML('beforeend', TEMPLATE);
@@ -165,12 +171,15 @@ export async function mount(root, ctx) {
       ? `<img src="${esc(c.cover)}" alt="" loading="lazy" decoding="async">`
       : `<span class="gen" style="background:linear-gradient(145deg,hsl(${c.accent} 45% 32%),hsl(${(c.accent + 40) % 360} 50% 16%))">${esc(c.album === LOOSE ? c.category : initials)}</span>`;
     const next = fmtNext(crateNext(c));
+    // Records in a rack (Ortis, 2026-11-24): each sleeve stands a little askew against the one behind it, and is picked
+    // up when the pointer or the keyboard comes to it; its card (title, artist, when it plays) shows only then.
+    const tilt = ((hashOf(c.id) % 7) - 3) * 0.45;
     return (
-      `<button type="button" class="sleeve" data-id="${esc(c.id)}" data-cat="${esc(c.category)}" style="--label:hsl(${c.accent} 70% 58%)">` +
+      `<button type="button" class="sleeve" data-id="${esc(c.id)}" data-cat="${esc(c.category)}" style="--label:hsl(${c.accent} 70% 58%);--tilt:${tilt.toFixed(2)}deg">` +
       `<span class="sleeve-art"><span class="disc" aria-hidden="true"></span><span class="cover">${cover}</span></span>` +
-      `<span class="s-title">${esc(c.title)}</span><span class="s-artist">${esc(c.artist)} · ${c.tracks.length} track${c.tracks.length === 1 ? '' : 's'}</span>` +
-      (next ? `<span class="s-next${next.now ? ' now' : ''}">${esc(next.text)}</span>` : '<span class="s-next" style="color:var(--text-faint)">later this cycle</span>') +
-      `</button>`
+      `<span class="s-cap"><span class="s-title">${esc(c.title)}</span><span class="s-artist">${esc(c.artist)} · ${c.tracks.length} track${c.tracks.length === 1 ? '' : 's'}</span>` +
+      (next ? `<span class="s-next${next.now ? ' now' : ''}">${esc(next.text)}</span>` : '<span class="s-next later">later this cycle</span>') +
+      `</span></button>`
     );
   }
 
@@ -188,7 +197,7 @@ export async function mount(root, ctx) {
         const n = list.reduce((s, c) => s + c.tracks.length, 0);
         return (
           `<section class="category" data-cat="${esc(cat)}" aria-label="${esc(cat)}">` +
-          `<div class="category-head"><h3>${esc(cat)}</h3><span class="count">${n} tracks</span></div>` +
+          `<div class="category-head"><h3>${esc(cat)}</h3><span class="count">${list.length} record${list.length === 1 ? '' : 's'} · ${n} tracks</span></div>` +
           `<div class="crate-row">${list.map(sleeveHtml).join('')}</div></section>`
         );
       })

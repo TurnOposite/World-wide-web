@@ -46,10 +46,17 @@ test('every route finds its place; every place but the lake opens a page', () =>
 test('the camera looks straight at each screen: its centre in the middle of the view, its size as asked', () => {
   const W = 1440, H = 800, P = 1000;
   for (const k of ORDER.filter((x) => PLACES[x].w)) {
-    const pose = poseFor(k, { W, H, P, fitW: 0.8, fitH: 0.76 });
-    const c = project(pose, PLACES[k].c, W, H, P);
+    const pose = poseFor(k, { W, H, P, fitW: 0.8, fitH: 0.76, shift: false });
+    // What the camera frames: the screen, or the wider `view` round it (the Antenna's machines with their screen).
+    const s = PLACES[k].view || PLACES[k];
+    const c = project(pose, s.c, W, H, P);
     assert.ok(c && Math.abs(c.x - W / 2) < 0.5 && Math.abs(c.y - H / 2) < 0.5, `${k}: centre at ${c?.x}, ${c?.y}`);
-    const s = PLACES[k];
+    // A place set off centre on purpose (2026-11-24: the laptop a little left, the phone on its stand in sight) lands
+    // where its `shift` says, the camera still facing it.
+    if (PLACES[k].shift) {
+      const cs = project(poseFor(k, { W, H, P, fitW: 0.8, fitH: 0.76 }), s.c, W, H, P);
+      assert.ok(cs && Math.abs(cs.x - W / 2 - PLACES[k].shift[0] * W) < 1 && Math.abs(cs.y - H / 2 - PLACES[k].shift[1] * H) < 1, `${k}: shifted centre at ${cs?.x}, ${cs?.y}`);
+    }
     const edge = project(pose, [s.c[0] + s.r[0] * s.w / 2, s.c[1] + s.r[1] * s.w / 2, s.c[2] + s.r[2] * s.w / 2], W, H, P);
     const half = Math.abs(edge.x - W / 2);
     assert.ok(half <= 0.8 * W / 2 + 0.5, `${k}: fits the width it was given (${half.toFixed(1)})`);

@@ -91,6 +91,54 @@ html.boat-on,html.boat-on body{height:100%;overflow:hidden}
 .b-cam .rings i:nth-child(2){animation-delay:-1s}.b-cam .rings i:nth-child(3){animation-delay:-2s}
 @keyframes b-ring{0%{transform:scale(.06);opacity:.95}100%{transform:scale(1);opacity:0}}
 
+/* --- the lived-in boat (2026-11-24): rugs, a stand for the phone, the Antenna's screen, lanterns, cushions, a chest,
+   the writing desk with its drawer of records, lotus and floating lamps on the water --- */
+.b-cam .rug svg{display:block}
+.b-cam .stand{background:linear-gradient(#80593a,#5f4129);border-radius:2px}
+.b-cam .stand.back{background:linear-gradient(90deg,#4f3622,#6d4b30 50%,#4f3622);border-radius:3px 3px 0 0}
+.b-cam .stand.lip{background:linear-gradient(#8d6644,#5a3d27);border-radius:2px 2px 0 0}
+.b-cam .lt-cam{position:absolute;left:50%;top:1.5px;width:2px;height:2px;margin-left:-1px;border-radius:50%;background:#33474a}
+.b-cam .scr-frame{background:linear-gradient(#1b1f23,#111417);border-radius:5px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.09)}
+.b-cam .scr-idle{position:absolute;inset:6px;border-radius:2px;background:radial-gradient(120% 80% at 50% 115%,#2a2575,#0c0d26 62%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#bcd2ff;text-align:center}
+.b-cam .scr-idle b{font:700 15px/1 "Noto Serif SC",Georgia,serif;letter-spacing:.06em}
+.b-cam .scr-idle span{font:600 8px/1 "Source Sans 3",sans-serif;opacity:.7;letter-spacing:.08em;text-transform:uppercase}
+.b-cam .scr-foot{background:linear-gradient(90deg,#15181b,#2a2f33,#15181b)}
+.b-cam .lantlet::after,.b-cam .floatlamp i{content:"";position:absolute;left:50%;top:58%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;background:radial-gradient(circle,rgba(255,176,96,.75),rgba(255,140,60,0) 66%);opacity:0;transition:opacity 1.2s ease;pointer-events:none}
+.b-cam .floatlamp i{top:28%;width:84px;height:84px;margin:-42px 0 0 -42px}
+.b-root.night .b-cam .lantlet::after,.b-root.night .b-cam .floatlamp i{opacity:1}
+.b-root.night .b-cam .lamp-glow{width:230px;height:230px;margin:-115px 0 0 -115px;background:radial-gradient(circle,rgba(255,179,107,.8),transparent 66%)}
+.b-cam .lantlet svg{position:relative}
+.b-cam .cushion i{position:absolute;inset:0;border-radius:7px;box-shadow:inset 0 0 0 3px rgba(0,0,0,.16),inset 0 0 14px rgba(0,0,0,.34)}
+.b-cam .cushion i::after{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(circle at 50% 50%,#d4b06a 0 2.5px,transparent 3px),repeating-linear-gradient(45deg,rgba(255,255,255,.07) 0 2px,transparent 2px 8px)}
+.b-cam .cushion.side i{border-radius:2px;box-shadow:inset 0 -3px 4px rgba(0,0,0,.35)}
+.b-cam .cushion.side i::after{background:none}
+.b-cam .chest{background:linear-gradient(rgba(0,0,0,.08),rgba(0,0,0,.25)),repeating-linear-gradient(90deg,#8a5a34 0 13px,#7d5030 13px 14px)}
+.b-cam .chest.top{background:linear-gradient(90deg,#7a4c2c,#8d5b36 50%,#7a4c2c)}
+.b-cam .ch-band{position:absolute;left:0;right:0;top:16%;height:3px;background:#c9a24a;box-shadow:0 1px 0 rgba(0,0,0,.3)}
+.b-cam .ch-band.b2{top:auto;bottom:16%}
+.b-cam .ch-lock{position:absolute;left:50%;top:26%;width:9px;height:11px;margin-left:-4.5px;border-radius:2px;background:radial-gradient(circle at 50% 45%,#2a1d14 0 1.4px,transparent 1.8px),#c9a24a}
+.b-cam .tabletop.desk{background:linear-gradient(to bottom,rgba(0,0,0,.2),rgba(255,255,255,.04)),repeating-linear-gradient(90deg,#6b3f2a 0 27px,#5c3423 27px 28px)}
+.b-cam .tedge.desk{background:linear-gradient(#4f2e1f,#3b2216)}
+.b-cam .dw-hole{position:absolute;left:50%;top:2px;width:150px;height:34px;margin-left:-75px;background:#110a06}
+.b-cam .np.flat{padding-bottom:10px;box-shadow:0 0 0 .6px rgba(0,0,0,.25)}
+.b-cam .np .np-cols{flex:1;display:flex;gap:4px;padding-top:2px}
+.b-cam .np .np-cols span{flex:1;height:auto;background:repeating-linear-gradient(to bottom,#a39b8c 0 1.4px,transparent 1.4px 4px)}
+.b-cam .dw.side{background:linear-gradient(90deg,#3e2417,#5a3322)}
+.b-cam .dw.bottom{background:repeating-linear-gradient(90deg,#2e1a10 0 20px,#26150d 20px 21px)}
+/* The drawer's records seen from above: their top edges row after row, and the folders' kraft tabs standing out of them. */
+.b-cam .dw.recs{background:repeating-linear-gradient(180deg,#14110e 0 2px,#2c2622 2px 3px,#7c1f22 3px 4px,#14110e 4px 6px,#c9a24a 6px 7px,#1d1a16 7px 9px,#1f3a4c 9px 10px,#efe3c6 10px 11px);box-shadow:inset 0 0 8px rgba(0,0,0,.7)}
+.b-cam .dw.recs span{position:absolute;left:9%;height:8px;padding:0 6px;border-radius:2px 2px 0 0;background:linear-gradient(#d8b57a,#b38a52);font:700 4.8px/8px "Source Sans 3",sans-serif;letter-spacing:.08em;color:#3b2a1d;box-shadow:0 1px 0 rgba(0,0,0,.4)}
+.b-cam .dw.recs span:nth-child(2){left:38%}
+.b-cam .dw.recs span:nth-child(3){left:63%}
+.b-cam .dw.front{background:linear-gradient(#70432c,#4f2e1f);box-shadow:inset 0 0 0 2px rgba(0,0,0,.22),inset 0 2px 0 rgba(255,255,255,.08)}
+.b-cam .dw-pull{position:absolute;left:50%;top:46%;width:28px;height:5px;margin-left:-14px;border-radius:3px;background:linear-gradient(#e0c27f,#a9843d);box-shadow:0 1px 1px rgba(0,0,0,.4)}
+.b-cam .dw-tag{position:absolute;left:8px;top:5px;font:400 7px/1 "Ma Shan Zheng","KaiTi",serif;color:#efe3c6;opacity:.75;white-space:nowrap}
+.b-cam .lotus{border-radius:50%;clip-path:polygon(50% 50%,54% 0,100% 0,100% 100%,0 100%,0 0,46% 0);background:repeating-conic-gradient(from 0deg,rgba(20,40,10,.18) 0 1.5deg,transparent 1.5deg 24deg),radial-gradient(circle,#86ad66,#4c7a3a 62%,#3b6630)}
+/* Facing the desk, the hammock steps aside (it hung between the eye and the paper); a scroll with its page open holds
+   still, so the page stays on it. */
+.b-root.aft .b-cam .hm{visibility:hidden}
+.b-root[data-at="ondes"] .b-cam .sway{animation:none}
+
 /* the hammock in the foreground, while seated */
 .b-hamfg{position:absolute;left:0;right:0;bottom:0;height:42%;pointer-events:none;opacity:0;transform:translateY(60px);transition:opacity .5s ease,transform .7s cubic-bezier(.2,.8,.2,1)}
 .b-root.seated .b-hamfg{opacity:1;transform:none}
@@ -102,8 +150,21 @@ html.boat-on,html.boat-on body{height:100%;overflow:hidden}
 .b-panel[hidden]{display:none}
 .b-panel{position:absolute;z-index:5;display:flex;background:var(--bg,#0b0d10);color:var(--text,#e8edf3);box-shadow:0 22px 70px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.08);border-radius:6px;overflow:hidden}
 .b-box{flex:1;min-width:0;overflow:auto;overscroll-behavior:contain;padding:14px 16px 22px;outline:none}
-/* Smaller inside the boat (Ortis, 2026-11-22: « make everything in the window smaller so that more stuff fits »). */
-.b-box>.page{zoom:.78}
+/* Smaller inside the boat (Ortis, 2026-11-22: « make everything in the window smaller so that more stuff fits »). A page
+   laid on its thing is already drawn at boat.js's SCALE; only the flat panels (the phone) need the zoom. */
+.b-panel:not(.on-thing) .b-box>.page{zoom:.78}
+/* On its thing (2026-11-24): the page is the thing's own surface, so no card shadow; each surface has its own skin. */
+.b-panel.on-thing{border-radius:3px;box-shadow:none;backface-visibility:hidden}
+.b-panel.on-thing::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit}
+.b-panel.on-thing[data-place="radio"]{border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.6)}
+.b-panel.on-thing[data-place="radio"]::after{background:linear-gradient(118deg,rgba(255,255,255,.07),rgba(255,255,255,0) 38%),linear-gradient(to bottom,rgba(0,0,0,0) 85%,rgba(0,0,0,.18))}
+.b-panel.on-thing[data-place="antenna"]{box-shadow:0 0 0 1px rgba(125,211,252,.35),0 0 46px rgba(90,140,255,.22)}
+.b-panel.on-thing[data-place="antenna"]::after{background:repeating-linear-gradient(to bottom,rgba(255,255,255,.025) 0 1px,transparent 1px 3px)}
+.b-panel.on-thing[data-place="ondes"]{border-width:0;border-radius:0;box-shadow:inset 0 0 0 3px #4b7d6d,inset 0 0 0 4px #c9a24a}
+.b-panel.on-thing[data-place="booth"]{border-radius:10px;box-shadow:0 0 0 2px rgba(201,162,74,.8),0 0 70px rgba(255,140,60,.3)}
+.b-panel.on-thing[data-place="booth"]::after{background:radial-gradient(120% 90% at 50% 0,rgba(255,190,120,.10),rgba(255,190,120,0) 60%)}
+.b-panel.on-thing[data-place="echo"]::after{background:linear-gradient(to bottom,rgba(60,40,20,0) 70%,rgba(60,40,20,.08))}
+.b-panel.on-thing[data-place="drawer"]{border-radius:2px}
 .b-panel[data-place="playlists"]{border-radius:18px;box-shadow:0 22px 70px rgba(0,0,0,.45),0 0 0 6px #1b2022}
 .b-panel[data-place="antenna"]{background:radial-gradient(120% 80% at 50% 115%,#2a2575,#0c0d26 62%);box-shadow:0 22px 70px rgba(0,0,0,.45),0 0 0 1px rgba(125,211,252,.45)}
 .b-panel[data-place="ondes"]{border-top:12px solid #3b2a1d;border-bottom:12px solid #3b2a1d;box-shadow:0 22px 70px rgba(0,0,0,.45),inset 0 0 0 6px #4b7d6d}
@@ -177,3 +238,7 @@ html.boat-on,html.boat-on body{height:100%;overflow:hidden}
    and the banner exists only while it is shown. */
 .boat-on #minibar{-webkit-backdrop-filter:none;backdrop-filter:none;background:#0e1420}
 .b-banner:not(.on):not(.off){display:none}
+/* The drawer opens on its records (2026-11-24): the Archive's own header and the room's intro are the page's, not the
+   drawer's; the category chips stay, as the folders' index. */
+.b-panel[data-place="drawer"] .page-head,.b-panel[data-place="drawer"] .room-tabs,.b-panel[data-place="drawer"] .room-head h2,.b-panel[data-place="drawer"] #roomIntro{display:none}
+.b-panel[data-place="drawer"] .crate-drawer{margin-top:8px}
