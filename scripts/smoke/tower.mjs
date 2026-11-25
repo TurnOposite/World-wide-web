@@ -141,6 +141,14 @@ export default async function tower({ towerUrl, check, dev, browser, errors, wat
         return { ...a, on: Boolean(hit?.closest('.cast-reel')) || `${hit ? hit.className || hit.tagName : 'off screen'} (reel ${a.w} px)` };
       });
       presses.push(r.on);
+      await t.evaluate(() => {
+        const log = (window.__slideLog = []);
+        const cls = (el) => (el?.className?.baseVal ?? el?.className ?? el?.tagName ?? '?').toString().slice(0, 24);
+        for (const type of ['pointerdown', 'pointerup', 'pointercancel', 'gotpointercapture', 'lostpointercapture', 'dragstart', 'click']) {
+          document.addEventListener(type, (e) => log.push(`${type}@${cls(e.target)}:${Math.round(e.clientX)}`), { capture: true });
+        }
+        document.addEventListener('pointerup', () => setTimeout(() => log.push(`name:${document.querySelector('.cast-name b')?.textContent}`)), { capture: true });
+      });
       await t.mouse.move(r.x, r.y);
       await t.mouse.down();
       for (let i = 1; i <= 6; i++) await t.mouse.move(r.x - i * 14, r.y + 1);
@@ -151,13 +159,14 @@ export default async function tower({ towerUrl, check, dev, browser, errors, wat
     const c0 = await castNow();
     await slide();
     const c1 = await castNow();
+    const slideLog = await t.evaluate(() => (window.__slideLog || []).slice(0, 12));
     await t.click('.cast-choose').catch(() => {});
     const c2 = await castNow();
     await slide();
     const c3 = await castNow();
     const wantIcon = castIcon(CAST[1].id, 1);
     check('…the character select: a slide brings the next character; once chosen, a slide changes their clothes and not who they are', c0.name === CAST[0].name && c0.step === 'who' && c1.name === CAST[1].name && c1.step === 'who'
-      && c2.step === 'look' && c2.pressed === '0' && c3.step === 'look' && c3.name === CAST[1].name && c3.pressed === '1' && c3.label !== c2.label, JSON.stringify({ steps: [c0, c1, c2, c3], presses }));
+      && c2.step === 'look' && c2.pressed === '0' && c3.step === 'look' && c3.name === CAST[1].name && c3.pressed === '1' && c3.label !== c2.label, JSON.stringify({ steps: [c0, c1, c2, c3], presses, slideLog }));
     await t.click('.tg-joinform button[type=submit]').catch(() => {});
     await t.waitForSelector('#tgText', { timeout: 4000 }).catch(() => {});
     await t.fill('#tgText', said).catch(() => {});
