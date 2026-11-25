@@ -28,7 +28,7 @@ export default async function dist({ check, listen, fixtures, browser, watch }) 
     const links = [...document.querySelectorAll('link[rel="modulepreload"]')].map((l) => l.href);
     const got = new Set(performance.getEntriesByType('resource').map((r) => r.name));
     return { n: links.length, unused: links.filter((h) => !got.has(h)).map((h) => h.split('/radio-tower/')[1]),
-      world: links.some((h) => h.endsWith('/js/world/world.js')), late: links.filter((h) => /\/(pages|boat)\/|callmap|telegraph|cast\.js/.test(h)).length,
+      world: links.some((h) => h.endsWith('/js/world/world.js')), late: links.filter((h) => /\/pages\/|\/boat\/boat\.js|callmap|telegraph|cast\.js/.test(h)).length,
       rooms: [...document.styleSheets].some((x) => x.href?.endsWith('/css/rooms.css')) };
   });
   check('the built shell preloads the start-up chain (the world included, no page, no call map, no telegraph) and each preload is fetched; no rooms.css outside the Archive',

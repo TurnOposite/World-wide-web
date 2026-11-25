@@ -128,11 +128,15 @@ export default async function tower({ towerUrl, check, dev, browser, errors, wat
     const presses = [];
     const slide = async () => {
       const r = await t.evaluate(async () => {
+        // Only what is on screen can be slid: the reel can be below the fold once the name is typed (the second
+        // slide follows a click, which scrolls; the first did not, and missed — 2026-11-25).
+        document.querySelector('.cast-reel').scrollIntoView({ block: 'center', inline: 'center' });
         const at = () => { const b = document.querySelector('.cast-reel').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; };
         const frame = () => new Promise((f) => requestAnimationFrame(() => requestAnimationFrame(f)));
         let a = at();
         for (let i = 0; i < 40; i++) { await frame(); const b = at(); if (Math.abs(b.x - a.x) < 0.5 && Math.abs(b.y - a.y) < 0.5) break; a = b; }
-        return { ...a, on: Boolean(document.elementFromPoint(a.x + 30, a.y)?.closest('.cast-reel')) };
+        const hit = document.elementFromPoint(a.x + 30, a.y);
+        return { ...a, on: Boolean(hit?.closest('.cast-reel')) || (hit ? hit.className || hit.tagName : 'off screen') };
       });
       presses.push(r.on);
       await t.mouse.move(r.x + 30, r.y);
