@@ -4302,3 +4302,13 @@ does not show is imported dynamically** — a visualiser layer that is off by de
 arrive a moment late (the listener's face in the mini-player, after the first page is up), a stylesheet only some pages
 use (`rooms.css`, brought by the Archive as the boat brings `boat.css`). A static import added to the chain's modules
 lands on every visitor's first load.
+
+## 2026-11-25 (night) — One station clock and one pulse for the site
+
+Lighter step 5. **Paris time is read in one place**, `site/js/lib/station-time.js`: a part of the site that needs the
+hour, the broadcast day or the part of the day imports it instead of building its own `Intl.DateTimeFormat` (the
+badge and the Booth's log did; the line's 2026-11-17 clock-change bug is why one tested place is worth it). **Motion
+that follows the music or the hour comes from one loop**, `site/js/lib/pulse.js`, as CSS variables on `<html>`
+(`--bass`, `--hit`, `--sky-*`): a rule follows the music without a `requestAnimationFrame` of its own, and reduced
+motion is honoured once. It is a proposal behind `?pulse=1` until Ortis says; nobody else loads it. The boat keeps its
+own sky until his upgrade replaces it; a test holds the two equal.

@@ -3862,3 +3862,44 @@ world. It now presses on the character itself, at the reel's centre (`8e0c9d4`).
 
 **Self-test after step 4** (laptop, scratch worktree on `8e0c9d4`): **green**, 526 unit, 189/189 site, 26/26 Atelier,
 357 s, both presses on the reel. Not pushed.
+
+Steps 3 and 4 pushed at Ortis's word (`0089287..c988ab2`): GitHub run 45571144606 green in 125 s, five jobs side by
+side (phone 66 s, pages 78 s, self-test 83 s, world 95 s). Not merged to main.
+
+## 2026-11-25 (night) — Lighter, step 5: one station clock, one pulse; the sky and the bass behind ?pulse=1
+
+At Ortis's « Yes, start step 5 ».
+
+- **`site/js/lib/station-time.js`** — Paris's clock once: `parisClock`, `parisMinutes`, `broadcastDay` (05:00 →
+  05:00 by Paris's own hour), `partOfDay` (MATIN … NUIT), `skyAt` / `skyMinutes` (`?sky=HH:MM`). The date badge
+  and the Booth's line log read it (line-admin.js still exports `broadcastDay` for its callers). The sky is the
+  boat's lake, **copied**: the plan leaves the boat's code alone until his upgraded boat replaces it, and
+  `tests/site-station-time.test.js` holds the two tables equal at every quarter hour so neither drifts. 6 KB, on the
+  start-up chain through the badge, in place of the badge's own clock code.
+- **`site/js/lib/pulse.js`** — one animation loop: reads the visualiser's `listen()` each frame, hands subscribers
+  `{ t, dt, bass, hit, sky }`, writes `--bass`, `--hit` (only when they change at the second decimal) and
+  `--sky-top`, `--sky-hor`, `--sky-mist`, `--sky-dark` (twice a minute) on `<html>`. Reduced motion: bass and beat
+  stay 0, only the sky moves. Loaded by main.js only with `?pulse=1` (`world/flag.js` `pulseWanted`, kept for the
+  tab like the Atelier; `?pulse=0` off); `window.radioTower.pulse`.
+- **The proposals** (world.css, `html.pulse` only): Zone's haze takes the sky's tint from the horizon up and the top
+  down, the glass a tenth of it — the one slow layer, never with the music; the live dots (mini-player, the Radio
+  card's LIVE) breathe with the bass while the music plays. Screenshots for Ortis, off and at 06:15 / 12:00 / 18:45 /
+  23:30: `Radio Tower/Claude outputs/pulse-2026-11-25/`.
+- **Not done in this step, on purpose:** the selection shard's snap on the plain-hover lists (the Booth's queue, the
+  Crates, the Antenna's lanes, Playlists) and « click the thing, go to its place » as one router rule — the boat is one
+  of its three handlers and stays alone; both wait for Ortis's look at the pulse. Echo untouched (« plain white until
+  something better »).
+
+**Checks.** `tests/site-station-time.test.js` (Paris winter/summer, the broadcast day across both clock changes of
+2026, the part of the day, the badge, the sky equal to the boat's), `tests/site-pulse.test.js` (the bass smoothed, a
+beat gone in a third of a second, never past 1, calm with reduced motion, the four sky variables, the switch). Site
+smoke, world part: off by default (no class, no loop, `pulse.js` never fetched, no sky variables); `?pulse=1` at
+23:30 then noon (the tab remembers): the loop runs, the variables are on the page, Zone's haze has its two tint layers.
+World part alone: 52/52.
+
+**Self-test after step 5** (laptop, scratch worktree): on `f44445b` **red** in the tower part only — the first
+character slide did not bring the next character although both presses met the reel (`presses: [true, true]`), with
+its two follow-on checks; nothing of step 5 is on that path. The test now records the first slide's pointer events and
+the name just after the release (`fba60de`), and the run on it was **green**: 535 unit, 191/191 site, 26/26 Atelier, 309 s,
+the log a plain slide (down on the reel, capture, up 84 px left, « The Keeper »). So that red is not explained yet; the
+next red will carry its own events. Not pushed.
