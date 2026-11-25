@@ -4312,3 +4312,17 @@ that follows the music or the hour comes from one loop**, `site/js/lib/pulse.js`
 (`--bass`, `--hit`, `--sky-*`): a rule follows the music without a `requestAnimationFrame` of its own, and reduced
 motion is honoured once. It is a proposal behind `?pulse=1` until Ortis says; nobody else loads it. The boat keeps its
 own sky until his upgrade replaces it; a test holds the two equal.
+
+## 2026-11-25 — « Someone tuned in » trusts the browser's own word that it is the station's
+
+**Context.** Ortis wants his phone told when a device other than his laptop starts listening. The tower cannot tell
+devices apart without the browser's help: there are no accounts, and an address is not a device.
+
+**Decision.** The player says `own=1` once the Booth has been unlocked in that browser, and the tower believes it
+without a key. Sending the station key on every 15-second poll would put it in every request's address; and a false
+`own=1` gains nothing — it only keeps that one device's listening off his phone. A lasting `device` id
+(localStorage) is sent beside the per-tab `listener` id, which keeps counting what it always counted.
+
+**Consequences.** A device he never unlocked the Booth on buzzes his phone when he plays on it. Private windows
+forget both the id and the mark. If the alert must ever exclude a device he cannot unlock, a Booth switch « don't
+tell me about this device » is the place, not the tower.

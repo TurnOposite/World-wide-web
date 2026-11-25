@@ -126,6 +126,11 @@ export const config = {
   telegraphPushAllow: (process.env.TELEGRAPH_PUSH_ALLOW || '').split(',').map((s) => s.trim()).filter(Boolean),
   // At most one notification per this many seconds, each way; what arrives meanwhile goes out together.
   telegraphNotifyGapSeconds: Math.max(0, envInt('TELEGRAPH_NOTIFY_GAP_SECONDS', 60)),
+  // « Someone tuned in » (server/lib/notify.js ListenAlert): the same ntfy topic is told when a device that is not
+  // the station's own starts playing. On whenever TELEGRAPH_NOTIFY_URL is set, unless LISTEN_NOTIFY=0. The same
+  // device is told of once per LISTEN_NOTIFY_COOLDOWN_MINUTES; the gap above holds for these too.
+  listenNotify: process.env.LISTEN_NOTIFY !== '0',
+  listenNotifyCooldownMinutes: Math.max(0, envInt('LISTEN_NOTIFY_COOLDOWN_MINUTES', 30)),
   // The website's own address: where a tap on a notification leads, and who the tower says it is to a push service.
   publicSite: process.env.PUBLIC_SITE || siteFromFire(),
 

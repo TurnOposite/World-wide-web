@@ -38,6 +38,14 @@ What leaves the tower this way: the name and the start of the message, to
 ntfy.sh (a third party), for that topic. Never an address. The topic's name is
 never written in the repository, a document or a log.
 
+## A′ — Ortis is told when someone tunes in (2026-11-25)
+
+Same topic, same app, nothing more to set up: when a device that is **not one of the station's own** starts
+playing, the phone shows « Someone tuned in to the tower — An iPhone started listening. 2 listening now ». The
+station's own = every browser where the Booth was unlocked with the key at least once (unlock it once on the laptop,
+and on the phone if you do not want to be told of yourself). The same device is told of once per half hour; the
+one-a-minute rule holds. Only the kind of device leaves the tower, never an address. `LISTEN_NOTIFY=0` stops it.
+
 ## B — Your other devices, from the Booth
 
 Ortis, 2026-11-17: « the notifications should only be accessible to me, so it doesn't have to appear on the
@@ -58,6 +66,8 @@ and hands the tower this device's push subscription — only with the key. **« 
 | Line | Default | What |
 |---|---|---|
 | `TELEGRAPH_NOTIFY_URL` | unset | A: the ntfy topic's address. Unset = nothing sent |
+| `LISTEN_NOTIFY` | on | A′: `0` stops « someone tuned in » (it needs `TELEGRAPH_NOTIFY_URL` anyway) |
+| `LISTEN_NOTIFY_COOLDOWN_MINUTES` | 30 | A′: the same device is told of once per this many minutes |
 | `TELEGRAPH_PUSH` | on | B: `0` switches the Booth's « Notify this device » off |
 | `TELEGRAPH_NOTIFY_GAP_SECONDS` | 60 | at most one notification per this many seconds, each way |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | made and kept by the tower | only to bring a key pair from elsewhere |

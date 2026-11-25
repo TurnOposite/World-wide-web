@@ -291,3 +291,55 @@ test('a tower with notifications off says nothing of them and refuses subscripti
     assert.equal((await fetch(`${b}/api/telegraph`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"name":"A","text":"still works"}' })).status, 201, 'and the line itself is untouched');
   } finally { await new Promise((resolve) => s.close(resolve)); }
 });
+
+// « Notify when another device than this computer starts listening » (Ortis, 2026-11-25): ListenAlert.
+const { ListenAlert, deviceKind, listenSummary } = await import('../server/lib/notify.js');
+const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1';
+const WINDOWS = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36';
+
+test('« someone tuned in »: the kind of device only, and how many are playing', () => {
+  assert.equal(deviceKind(IPHONE), 'An iPhone');
+  assert.equal(deviceKind(WINDOWS), 'A Windows computer');
+  assert.equal(deviceKind('Mozilla/5.0 (Linux; Android 14; Pixel 8) Mobile Safari'), 'An Android phone');
+  assert.equal(deviceKind(''), 'A device');
+  assert.deepEqual(listenSummary([{ kind: 'An iPhone', playing: 2 }]), { title: 'Someone tuned in to the tower', body: 'An iPhone started listening. 2 listening now' });
+  assert.deepEqual(listenSummary([{ kind: 'An iPhone', playing: 1 }, { kind: 'A Mac', playing: 2 }]), { title: '2 devices tuned in to the tower', body: 'iPhone, Mac. 2 listening now' });
+});
+
+test('« someone tuned in »: told once when another device starts playing — not for the station\'s own, not for an open page, not on resume', async () => {
+  const now = clock();
+  const posts = [];
+  const fetchImpl = async (url, init) => { posts.push(JSON.parse(init.body)); return { ok: true }; };
+  const a = new ListenAlert({ ntfyUrl: 'https://ntfy.example/t', siteUrl: 'https://site.example/', gapMs: 0, ttlMs: 45_000, cooldownMs: 30 * 60_000, fetchImpl, now });
+  a.seen('laptop', { playing: true, own: true, ua: WINDOWS });
+  a.seen('phone', { playing: false, ua: IPHONE });
+  await a.idle();
+  assert.equal(posts.length, 0, 'the station\'s own device, and a page open without playing, say nothing');
+  a.seen('phone', { playing: true, ua: IPHONE });
+  await a.idle();
+  assert.deepEqual(posts, [{ topic: 't', title: 'Someone tuned in to the tower', message: 'An iPhone started listening. 2 listening now', tags: ['headphones'], click: 'https://site.example' }]);
+  now.advance(15_000);
+  a.seen('phone', { playing: true, ua: IPHONE });
+  now.advance(5 * 60_000);
+  a.seen('phone', { playing: true, ua: IPHONE });
+  await a.idle();
+  assert.equal(posts.length, 1, 'still listening, or paused and back within the half hour: not news');
+  now.advance(31 * 60_000);
+  a.seen('phone', { playing: true, ua: IPHONE });
+  await a.idle();
+  assert.equal(posts.length, 2, 'back after the half hour: told again');
+  assert.equal(new ListenAlert({ ntfyUrl: null }).enabled, false, 'no topic, nothing');
+});
+
+test('the tower: a phone that starts playing reaches the topic; the Booth\'s own device does not', async () => {
+  got.ntfy.length = 0;
+  const id = crypto.randomUUID();
+  await tower.get(`/api/station?listener=x&device=own-${id}&playing=1&own=1`, { headers: { 'User-Agent': WINDOWS } });
+  await tower.get(`/api/station?listener=y&device=phone-${id}`, { headers: { 'User-Agent': IPHONE } });
+  await tower.mod.listenAlert.idle();
+  assert.equal(got.ntfy.length, 0);
+  await tower.get(`/api/station?listener=y&device=phone-${id}&playing=1`, { headers: { 'User-Agent': IPHONE } });
+  await tower.mod.listenAlert.idle();
+  assert.deepEqual(got.ntfy.map((r) => [r.json.topic, r.json.title, r.json.message]), [['a-long-random-topic', 'Someone tuned in to the tower', 'An iPhone started listening. 2 listening now']]);
+  assert.equal((await tower.json('/api/status', { headers: { 'x-station-key': KEY } })).notifications.tunedIn, true);
+});

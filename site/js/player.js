@@ -237,6 +237,10 @@ export class Player extends EventTarget {
   tuneIn() {
     if (this.playing) return;
     this.playing = true;
+    // The tower hears it on the next poll (« someone tuned in », server/lib/notify.js); asked for now, after the
+    // play() below — nothing may be awaited before it on a phone.
+    this.client.listening = true;
+    queueMicrotask(() => this.refresh());
     // Music, not a UI sound: plays with the silent switch on, keeps playing
     // when the screen locks (Safari 16.4+; ignored everywhere else).
     try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* read-only on some builds */ }
@@ -273,6 +277,7 @@ export class Player extends EventTarget {
       // answers by trying the next source. Only a refusal needs the listener.
       if (e?.name !== 'NotAllowedError' || !this.playing) return;
       this.playing = false;
+      this.client.listening = false;
       this.stage?.setPlaying(false);
       this._status(refusedText, 'bad');
       this.dispatchEvent(new CustomEvent('playing', { detail: false }));
@@ -290,6 +295,7 @@ export class Player extends EventTarget {
   mute() {
     if (!this.playing) return;
     this.playing = false;
+    this.client.listening = false;
     this.audio.pause();
     this.stage?.setPlaying(false);
     this._status('the tower kept broadcasting — tune back in to land where it is now');

@@ -173,6 +173,109 @@ export class PushStore {
   }
 }
 
+/** Post one notification to an ntfy topic. Throws on failure; callers warn once. */
+async function postNtfy(target, fetchImpl, payload) {
+  const res = await fetchImpl(target.base, {
+    method: 'POST',
+    signal: AbortSignal.timeout(10_000),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ topic: target.topic, ...payload }),
+  });
+  if (!res.ok) throw new Error(`status ${res.status}`);
+}
+
+/** What kind of device, from its User-Agent — never more than the kind: no model, no version, no address. */
+export function deviceKind(ua = '') {
+  const s = String(ua);
+  if (/iPhone/i.test(s)) return 'An iPhone';
+  if (/iPad/i.test(s)) return 'An iPad';
+  if (/Android/i.test(s)) return /Mobile/i.test(s) ? 'An Android phone' : 'An Android tablet';
+  if (/Macintosh|Mac OS X/i.test(s)) return 'A Mac';
+  if (/Windows/i.test(s)) return 'A Windows computer';
+  if (/CrOS/i.test(s)) return 'A Chromebook';
+  if (/Linux/i.test(s)) return 'A Linux computer';
+  return 'A device';
+}
+
+/** What a « someone tuned in » notification says. */
+export function listenSummary(items) {
+  const now = items.at(-1).playing;
+  const tail = `${now} listening now`;
+  if (items.length === 1) return { title: 'Someone tuned in to the tower', body: `${items[0].kind} started listening. ${tail}` };
+  const kinds = [...new Set(items.map((i) => i.kind.replace(/^An? /, '')))];
+  return { title: `${items.length} devices tuned in to the tower`, body: cut(`${kinds.join(', ')}. ${tail}`, 120) };
+}
+
+/**
+ * « Notify [my phone] when another device than this computer starts listening » (Ortis, 2026-11-25).
+ *
+ * The player says, on each /api/station poll, whether it is playing (`playing=1`) and whether this browser is the
+ * station's own (`own=1`: the Booth was unlocked here with the key once). A device that was not playing a moment
+ * ago and is now is « tuned in »: unless it is the station's own, the ntfy topic is told — the kind of device and
+ * how many are playing. The same device is told of once per `cooldownMs` (pausing and resuming is not news), and
+ * the line's rule holds here too: at most one notification per gap, what came meanwhile together.
+ *
+ * `own=1` cannot be checked — anyone can send it — and it does not need to be: all it does is keep that one device
+ * quiet. Nothing here is written to disk.
+ */
+export class ListenAlert {
+  constructor({ ntfyUrl, siteUrl = null, gapMs = 60_000, ttlMs = 45_000, cooldownMs = 30 * 60_000, maxIds = 5000, fetchImpl = globalThis.fetch, now = Date.now, setTimer = setTimeout } = {}) {
+    this.ntfy = ntfyUrl ? ntfyTarget(ntfyUrl) : null;
+    this.siteUrl = siteUrl ? String(siteUrl).replace(/\/+$/, '') : null;
+    this.ttlMs = ttlMs;
+    this.cooldownMs = cooldownMs;
+    this.maxIds = maxIds;
+    this.fetchImpl = fetchImpl;
+    this.now = now;
+    this.lastPlaying = new Map(); // device -> last poll that said playing (Map order: least recent first)
+    this.told = new Map(); // device -> when the phone was last told of it
+    this._warned = false;
+    this.batch = new Batcher({ gapMs, now, setTimer, send: (items) => this._send(items) });
+  }
+
+  get enabled() { return Boolean(this.ntfy); }
+
+  _touch(map, key, t) {
+    map.delete(key);
+    map.set(key, t);
+    while (map.size > this.maxIds) map.delete(map.keys().next().value);
+  }
+
+  /** How many devices are playing right now. */
+  playing() {
+    const cutoff = this.now() - this.ttlMs;
+    for (const [id, t] of this.lastPlaying) { if (t < cutoff) this.lastPlaying.delete(id); else break; }
+    return this.lastPlaying.size;
+  }
+
+  /** One poll from one device. */
+  seen(id, { playing = false, own = false, ua = '' } = {}) {
+    if (!this.ntfy || !playing || !id || typeof id !== 'string') return;
+    const key = id.slice(0, 64);
+    const t = this.now();
+    const last = this.lastPlaying.get(key);
+    this._touch(this.lastPlaying, key, t);
+    if (last !== undefined && t - last <= this.ttlMs) return; // still the same listening
+    if (own) return;
+    const told = this.told.get(key);
+    if (told !== undefined && t - told < this.cooldownMs) return;
+    this._touch(this.told, key, t);
+    this.batch.add({ kind: deviceKind(ua), playing: this.playing() });
+  }
+
+  async _send(items) {
+    const { title, body } = listenSummary(items);
+    try {
+      await postNtfy(this.ntfy, this.fetchImpl, { title, message: body, tags: ['headphones'], ...(this.siteUrl ? { click: this.siteUrl } : {}) });
+    } catch (err) {
+      if (!this._warned) console.warn(`[notify] the « someone tuned in » notification did not go: ${err.message}`);
+      this._warned = true;
+    }
+  }
+
+  idle() { return this.batch.idle(); }
+}
+
 export class LineNotifier {
   /**
    * @param {object} o
@@ -211,13 +314,7 @@ export class LineNotifier {
   async _ntfy(items) {
     const { title, body } = summarise(items);
     try {
-      const res = await this.fetchImpl(this.ntfy.base, {
-        method: 'POST',
-        signal: AbortSignal.timeout(10_000),
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: this.ntfy.topic, title, message: body, tags: ['radio'], ...(this.siteUrl ? { click: `${this.siteUrl}/antenna` } : {}) }),
-      });
-      if (!res.ok) throw new Error(`status ${res.status}`);
+      await postNtfy(this.ntfy, this.fetchImpl, { title, message: body, tags: ['radio'], ...(this.siteUrl ? { click: `${this.siteUrl}/antenna` } : {}) });
     } catch (err) {
       // Never the address: the topic's name is the secret.
       if (!this._warned) console.warn(`[notify] the notification to the station's phone did not go: ${err.message}`);

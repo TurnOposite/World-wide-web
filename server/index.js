@@ -20,7 +20,7 @@ import { RateLimiter, rateLimit, isLoopback } from './lib/ratelimit.js';
 import { apiRouter } from './routes/api.js';
 import { Collections, isPrivatePath } from './lib/collections.js';
 import { Telegraph, dailyReset } from './lib/telegraph.js';
-import { LineNotifier, PushStore } from './lib/notify.js';
+import { LineNotifier, ListenAlert, PushStore } from './lib/notify.js';
 import { readCommit, readRepo } from './lib/commit.js';
 
 const VERSION = '0.1.0';
@@ -105,6 +105,10 @@ function makeNotifier() {
   return new LineNotifier({ ntfyUrl: config.telegraphNotifyUrl, push, siteUrl: config.publicSite, gapMs: config.telegraphNotifyGapSeconds * 1000 });
 }
 const notifier = makeNotifier();
+// « Someone tuned in », to the same phone — independent of the line: it needs only the ntfy topic.
+const listenAlert = config.telegraphNotifyUrl && config.listenNotify
+  ? new ListenAlert({ ntfyUrl: config.telegraphNotifyUrl, siteUrl: config.publicSite, gapMs: config.telegraphNotifyGapSeconds * 1000, ttlMs: config.listenerTtlMs, cooldownMs: config.listenNotifyCooldownMinutes * 60_000 })
+  : null;
 
 const state = {
   version: VERSION,
@@ -180,7 +184,7 @@ export function createApp({ now } = {}) {
     const limiter = new RateLimiter({ capacity: config.rateBurst, refillPerSec: config.ratePerSecond > 0 ? config.ratePerSecond : 5, now });
     app.use('/api', rateLimit(limiter, { skip: (req) => isLoopback(req.ip) }));
   }
-  app.use('/api', apiRouter({ station, listeners, config, state, rescan, collections, channels, telegraph, notifier, now }));
+  app.use('/api', apiRouter({ station, listeners, config, state, rescan, collections, channels, telegraph, notifier, listenAlert, now }));
 
   // The files behind the University / Photos / Crates pages. Read-only, and
   // narrower than express.static on its own: `_review/` and `_incoming/` are
@@ -251,7 +255,7 @@ export function createApp({ now } = {}) {
   return app;
 }
 
-export { station, channels, listeners, state, rescan, collections, telegraph, notifier };
+export { station, channels, listeners, state, rescan, collections, telegraph, notifier, listenAlert };
 
 // A manually-built `file://${resolved}` string does not percent-encode the
 // path, but import.meta.url always does — so this comparison silently failed

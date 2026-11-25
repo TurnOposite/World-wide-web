@@ -18,6 +18,26 @@ import { GitHubControl, LocalControl, StaticControl, EMPTY_CONTROL, ControlError
 const TOKEN_KEY = 'radiotower.githubToken';
 const CHANNEL_KEY = 'radiotower.channel';
 const STATION_KEYS = 'radiotower.stationKeys';
+const DEVICE_KEY = 'radiotower.device';
+const OWN_DEVICE_KEY = 'radiotower.ownDevice';
+
+/**
+ * This browser, for « someone tuned in » (server/lib/notify.js ListenAlert): a lasting random id, so pausing,
+ * reloading or a second tab is not a new device; and whether it is the station's own — the Booth was unlocked here
+ * with the key at least once, so its own listening never buzzes the station's phone. Private mode: this visit only.
+ */
+export const deviceStore = {
+  _mem: { id: null, own: false },
+  id() {
+    try {
+      let id = localStorage.getItem(DEVICE_KEY);
+      if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem(DEVICE_KEY, id); }
+      return id;
+    } catch { return (this._mem.id ??= Math.random().toString(36).slice(2) + Date.now().toString(36)); }
+  },
+  get own() { try { return localStorage.getItem(OWN_DEVICE_KEY) === '1' || this._mem.own; } catch { return this._mem.own; } },
+  markOwn() { this._mem.own = true; try { localStorage.setItem(OWN_DEVICE_KEY, '1'); } catch { /* this visit only */ } },
+};
 const CONTROL_POLL_MS = 20_000;
 
 /** Small event emitter — the site has no framework and needs only this much. */
@@ -252,6 +272,7 @@ class TowerClient extends Emitter {
     this.key = null;
     this.refused = false; // the tower turned the last key down
     this.listenerId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    this.listening = false; // the player sets it while the audio plays
     this._look = null;
     this.channel = null; // null = the server's default; set by setChannel()
     this._channels = null;
@@ -292,7 +313,8 @@ class TowerClient extends Emitter {
       path += `${path.includes('?') ? '&' : '?'}channel=${encodeURIComponent(this.channel)}`;
     }
     const sep = path.includes('?') ? '&' : '?';
-    const url = path.startsWith('/api/station') ? `${this.origin}${path}${sep}listener=${this.listenerId}` : `${this.origin}${path}`;
+    const who = () => `listener=${this.listenerId}&device=${encodeURIComponent(deviceStore.id())}${this.listening ? '&playing=1' : ''}${this.key || deviceStore.own ? '&own=1' : ''}`;
+    const url = path.startsWith('/api/station') ? `${this.origin}${path}${sep}${who()}` : `${this.origin}${path}`;
     const res = await fetch(url, { cache: 'no-store' });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw Object.assign(new Error(body.error || `status ${res.status}`), { status: res.status, body });
@@ -336,6 +358,7 @@ class TowerClient extends Emitter {
       throw new ControlError('The station refused that key. Unlock with the current one.', { status: 401, code: out.error });
     }
     if (!res.ok) throw new ControlError(out.detail || out.error || `status ${res.status}`, { status: res.status, code: out.error });
+    if (this.key) deviceStore.markOwn();
     this.emit('control', { doc: null, status: 'applied' });
     return out;
   }
@@ -351,7 +374,7 @@ class TowerClient extends Emitter {
     try {
       res = await fetch(`${this.origin}/api/key`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-station-key': this.key }, body: '{}' });
     } catch { return 'unknown'; }
-    if (res.ok) return 'ok';
+    if (res.ok) { deviceStore.markOwn(); return 'ok'; }
     const out = await res.json().catch(() => ({}));
     if (res.status === 401 && out.error === 'bad_key') {
       if (this.remembered) stationKeyStore.set(this.origin, null);

@@ -58,7 +58,7 @@ function receiveBody(req, file, max) {
  * @param {Function} ctx.rescan
  */
 export function apiRouter(ctx) {
-  const { station, listeners, config, state, collections, channels = null, telegraph = null, notifier = null } = ctx;
+  const { station, listeners, config, state, collections, channels = null, telegraph = null, notifier = null, listenAlert = null } = ctx;
 
   /**
    * Which clock a request is asking about. No `channel` — the tower's
@@ -142,6 +142,13 @@ export function apiRouter(ctx) {
     const now = Date.now();
 
     if (req.query.listener) listeners.ping(String(req.query.listener));
+    // « Someone tuned in »: `device` is this browser's lasting id (the listener id is one tab's), `playing=1` while
+    // the audio plays, `own=1` on the station's own devices. Never in the answer's way.
+    if (listenAlert && req.query.device) {
+      try {
+        listenAlert.seen(String(req.query.device), { playing: req.query.playing === '1', own: req.query.own === '1', ua: req.get('user-agent') });
+      } catch (err) { console.warn(`[notify] ${err.message}`); }
+    }
 
     // The body is built in lib/payloads.js so the static site's in-browser
     // station (site/js/engine/cloud.js) serves the identical shape.
@@ -512,7 +519,7 @@ export function apiRouter(ctx) {
           nextReset: day === null ? null : telegraph.dayStart(day + 26 * 3600_000),
         }
         : null,
-      notifications: { ortis: Boolean(notifier?.ntfy), listeners: notifier?.push ? notifier.push.size : null },
+      notifications: { ortis: Boolean(notifier?.ntfy), listeners: notifier?.push ? notifier.push.size : null, tunedIn: Boolean(listenAlert?.enabled) },
     });
   });
 

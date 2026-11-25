@@ -3915,3 +3915,21 @@ no annotations. Read from the job logs (signed in with git's own GitHub credenti
   character slide green); Atelier 26/26; « the tower is sound ».
 - `test` 11 s — « Green: the self-test and every part of the site smoke passed ».
 Neither fallback warning (ffmpeg from apt, Playwright's Chromium) fired: the runner had the static ffmpeg and Chrome.
+
+## 2026-11-25 — « someone tuned in » on his phone
+
+Ortis: « use the same app that notifies my phone when someone chats to also notify when another device than this
+computer starts listening ». The ntfy topic that carries the line's messages (`TELEGRAPH_NOTIFY_URL`, on the tower
+since 16/11) now also gets « Someone tuned in to the tower — An iPhone started listening. 2 listening now ».
+
+- **The player** sends, on its /api/station poll, `device=` (a lasting random id in this browser, so a reload or a
+  second tab is not a new device), `playing=1` while the audio plays (and polls at once on Tune in), and `own=1` once
+  the Booth has been unlocked here with the key (`radiotower.ownDevice`, kept even when the key is not).
+- **The tower** (`ListenAlert`, `server/lib/notify.js`): a device that was not playing and now is, not `own`, not told
+  of in the last 30 min → the topic. The line's one-a-minute gap holds. Only the device's kind (iPhone, Android phone,
+  Mac, Windows computer…) from its User-Agent; nothing written to disk. `LISTEN_NOTIFY=0` turns it off,
+  `LISTEN_NOTIFY_COOLDOWN_MINUTES` changes the half hour. `/api/status` says `notifications.tunedIn`.
+- **Assumption:** « this computer » = every browser where he unlocked the Booth. The laptop must have been unlocked
+  once since this lands; his phone too, if he does not want to be told of himself.
+- **Tests:** three in `tests/notify.test.js` (the wording, the rules with a fake clock, the tower end to end).
+  Not seen: a real ntfy delivery for this one (the tower has not been sent the code).
