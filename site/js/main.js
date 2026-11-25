@@ -99,7 +99,7 @@ async function boot() {
   const player = new Player(client, $('audio'), { stage });
   player.start();
   stage.start();
-  mountMinibar({ player, stage });
+  const minibar = mountMinibar({ player, stage });
   mountCaption(player);
 
   // Zone's visualiser belongs to Zone: on every Echo route it is hidden (CSS, body.on-echo)
@@ -244,6 +244,8 @@ async function boot() {
   // The map's editor, only for a tab that asked (?atelier=1); it never loads for anyone else.
   const atelier = world && atelierOn ? await (await import('./world/atelier.js')).mountAtelier({ world, published, draft, toast }) : null;
   await router.start();
+  // The first page is up: now the mini-player may fetch the listener's face (Lighter step 4).
+  minibar.showFace();
 
   // Keys: V visuals, F full screen, M tune in / mute. Never while typing.
   document.addEventListener('keydown', (e) => {

@@ -31,6 +31,7 @@ import { execFileSync } from 'node:child_process';
 import { atomFeed, articleShell } from './site-echo.mjs';
 import { buildView } from './site-collections.mjs';
 import { assemble } from './site-past.mjs';
+import { startupModules, withPreloads } from './site-preload.mjs';
 import { resolveLayout } from '../site/js/world/model.js';
 import { RETIRED } from '../site/js/refs.js';
 import { pressGroups } from '../site/js/ui/press.js';
@@ -130,7 +131,8 @@ export async function build({ base = process.env.SITE_BASE || '/', repo = proces
   }
 
   // 4. <base>, and a shell at every route
-  const shell = shellFor(await fsp.readFile(path.join(SITE, 'index.html'), 'utf8'), { base, siteUrl });
+  // …with the start-up chain asked for at once (scripts/site-preload.mjs), so every route's shell has it.
+  const shell = withPreloads(shellFor(await fsp.readFile(path.join(SITE, 'index.html'), 'utf8'), { base, siteUrl }), startupModules(DIST));
   await fsp.writeFile(path.join(DIST, 'index.html'), shell);
   const texts = JSON.parse(await fsp.readFile(path.join(DIST, 'data/texts.json'), 'utf8')).texts;
   const echo = JSON.parse(await fsp.readFile(path.join(DIST, 'data/echo.json'), 'utf8')).articles;

@@ -510,6 +510,10 @@ export default async function pages({ check, AXE, axeRun, devServer, dev, browse
   await a.waitForSelector('.room .book', { timeout: 8000 });
   const books = (await a.$$('.room .book')).length;
   check('the Archive: the library puts every book on a shelf', books >= 20, `${books} spines`);
+  // rooms.css left the shell (Lighter step 4): the Archive brings it, once, and it dresses the room.
+  const sheet = await a.evaluate(() => ({ links: document.querySelectorAll('link[href$="css/rooms.css"]').length,
+    rules: [...document.styleSheets].find((x) => x.href?.endsWith('/css/rooms.css'))?.cssRules.length || 0 }));
+  check('the Archive brings rooms.css with it, once, whole', sheet.links === 1 && sheet.rules > 100, JSON.stringify(sheet));
   const covers = await a.$$eval('.room .book', (bs) => bs.filter((b) => b.querySelector('.bcover .cv-art svg') && b.querySelector('.spine')).length);
   check('the Archive: every book is a volume with a cover drawn for it, the thesis face-out', covers === books && Boolean(await a.$('.room .book.thesis.face-out')), `${covers}/${books} covers`);
   const archHead = await a.evaluate(() => ({

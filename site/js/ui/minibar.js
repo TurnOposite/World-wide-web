@@ -3,8 +3,6 @@
  * station directly, so it is always showing what this listener hears.
  */
 import { fmt, artistOf } from './util.js';
-import { identity, initial, loadBank } from './telegraph.js';
-import { castFace, castLabel } from './cast.js';
 
 export function mountMinibar({ player, stage }) {
   const $ = (id) => document.getElementById(id);
@@ -39,34 +37,44 @@ export function mountMinibar({ player, stage }) {
   });
 
   // The listener's character stands by the button once they have one (Ortis, 2026-11-11), and leads to the
-  // Antenna, where it is changed. Nobody chosen, nothing shown: the bar is as it was.
+  // Antenna, where it is changed. Nobody chosen, nothing shown: the bar is as it was. The line and the cast
+  // (≈ 35 KB) are asked for once the first page is up (main.js calls showFace), never on the way to the first frame
+  // (Lighter step 4): measured on a phone, an idle callback fired during the network waits and took their bandwidth.
   const me = $('mbMe');
-  const paintMe = async (who = identity.get()) => {
-    if (!me) return;
-    me.replaceChildren();
-    me.hidden = !who;
-    bar.classList.toggle('has-me', Boolean(who));
-    if (!who) return;
-    me.setAttribute('aria-label', `On the telegraph line as ${who.name}${castLabel(who.icon) ? ` — ${castLabel(who.icon)}` : ''}. Open the Antenna`);
-    me.title = `${who.name} — on the telegraph line`;
-    const face = castFace(who.icon, 'mb-face', 34);
-    if (face) { me.append(face); return; }
-    const letter = document.createElement('span');
-    letter.className = 'mb-face mb-letter';
-    letter.textContent = initial(who.name);
-    me.append(letter);
-    const bank = who.icon ? await loadBank() : [];
-    if (identity.get() !== who || !bank.some((i) => i.file === who.icon)) return;
-    const img = document.createElement('img');
-    img.className = 'mb-face';
-    img.alt = '';
-    img.width = 34;
-    img.height = 34;
-    img.src = new URL(`assets/telegraph/${who.icon}`, document.baseURI).href;
-    me.replaceChildren(img);
+  let asked = false;
+  const showFace = () => {
+    if (asked || !me) return;
+    asked = true;
+    Promise.all([import('./telegraph.js'), import('./cast.js')]).then(([line, cast]) => faces(line, cast), () => { /* offline: no face */ });
   };
-  identity.on(paintMe);
-  paintMe();
+  const faces = ({ identity, initial, loadBank }, { castFace, castLabel }) => {
+    const paintMe = async (who = identity.get()) => {
+      if (!me) return;
+      me.replaceChildren();
+      me.hidden = !who;
+      bar.classList.toggle('has-me', Boolean(who));
+      if (!who) return;
+      me.setAttribute('aria-label', `On the telegraph line as ${who.name}${castLabel(who.icon) ? ` — ${castLabel(who.icon)}` : ''}. Open the Antenna`);
+      me.title = `${who.name} — on the telegraph line`;
+      const face = castFace(who.icon, 'mb-face', 34);
+      if (face) { me.append(face); return; }
+      const letter = document.createElement('span');
+      letter.className = 'mb-face mb-letter';
+      letter.textContent = initial(who.name);
+      me.append(letter);
+      const bank = who.icon ? await loadBank() : [];
+      if (identity.get() !== who || !bank.some((i) => i.file === who.icon)) return;
+      const img = document.createElement('img');
+      img.className = 'mb-face';
+      img.alt = '';
+      img.width = 34;
+      img.height = 34;
+      img.src = new URL(`assets/telegraph/${who.icon}`, document.baseURI).href;
+      me.replaceChildren(img);
+    };
+    identity.on(paintMe);
+    paintMe();
+  };
 
   // The little spectrum repaints with the stage, at most ~30 fps.
   let last = 0;
@@ -78,4 +86,5 @@ export function mountMinibar({ player, stage }) {
   };
   requestAnimationFrame(loop);
   paint();
+  return { showFace };
 }

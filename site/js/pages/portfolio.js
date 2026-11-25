@@ -7,6 +7,8 @@
  * photographs on the world map one day, not in a tab here. /echo/archives, the old Archives' address,
  * mounts this page and moves to /portfolio.
  */
+import { stylesheet } from '../ui/util.js';
+
 export const title = 'Archive';
 
 const ROOMS = {
@@ -29,6 +31,9 @@ export async function mount(root, ctx) {
     return;
   }
   const room = ROOMS[ctx.params.room] ? ctx.params.room : 'library';
+  // The rooms bring their own sheet (65 KB the other pages never use; Lighter step 4), as the boat brings
+  // boat.css. Waited for, so a room is never seen undressed; a sheet that fails does not hold it back.
+  await stylesheet('css/rooms.css');
   // In the world the Archive stands on Echo (E-04): rooms.css dresses it in the Gazette's paper there.
   root.classList.add('pf');
   root.innerHTML = `<div class="page-head"><h1>Archive</h1>

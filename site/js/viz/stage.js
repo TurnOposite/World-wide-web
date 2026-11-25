@@ -19,7 +19,10 @@
  */
 import { palette, lookParams, NEUTRAL_LOOK, bands, OnsetDetector, squirclePoint, magAt, clamp, lerp, TIERS, nextTier } from '../lib/viz-core.js';
 import { coverLook } from '../lib/cover-palette.js';
-import { CallMap, paintCallMap, fitRadius } from './callmap.js';
+// The call map (./callmap.js, 27 KB) is asked for the first time its layer is on: no look but Canopy has it,
+// so a first visit never waits for it (Lighter step 4).
+let callmapLib = null, callmapAsked = false;
+const askCallmap = () => { if (!callmapAsked) { callmapAsked = true; import('./callmap.js').then((m) => { callmapLib = m; }, () => { /* offline: no Canopy this visit */ }); } };
 
 const TAU = Math.PI * 2;
 
@@ -596,7 +599,9 @@ export class Stage {
    * clear of the mini-player.
    */
   _callmap(ctx, w, h, ts, dt, s, master) {
-    if (!this.callmap) this.callmap = new CallMap();
+    if (!callmapLib) { askCallmap(); return; }
+    if (!this.callmap) this.callmap = new callmapLib.CallMap();
+    const { paintCallMap, fitRadius } = callmapLib;
     const map = this.callmap;
     if (this.available && this.playing) map.pushFrame(this.fluxBins, ts, this.ac.sampleRate, this.raw.fftSize);
     else map.idle(ts, dt);

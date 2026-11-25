@@ -22,6 +22,17 @@ export default async function dist({ check, listen, fixtures, browser, watch }) 
   // A text opens in the Articles window since 2026-11-03 (its list went into the Livre miroir).
   check('the built site answers a cold deep link under /<repo>/, in the world as shipped', dh === 'Opal Orre' && dWorld === 'articles', `${dh || 'no heading'}, ${dWorld}`);
   check('…and knows which repository its booth writes to', cfg?.owner === 'ortis' && cfg?.repo === 'radio-tower');
+  // Lighter step 4: the shell asks for the start-up chain at once, every preload is a module the page then uses, and
+  // the rooms' sheet stays with the rooms.
+  const pre = await d.evaluate(() => {
+    const links = [...document.querySelectorAll('link[rel="modulepreload"]')].map((l) => l.href);
+    const got = new Set(performance.getEntriesByType('resource').map((r) => r.name));
+    return { n: links.length, unused: links.filter((h) => !got.has(h)).map((h) => h.split('/radio-tower/')[1]),
+      world: links.some((h) => h.endsWith('/js/world/world.js')), late: links.filter((h) => /\/(pages|boat)\/|callmap|telegraph|cast\.js/.test(h)).length,
+      rooms: [...document.styleSheets].some((x) => x.href?.endsWith('/css/rooms.css')) };
+  });
+  check('the built shell preloads the start-up chain (the world included, no page, no call map, no telegraph) and each preload is fetched; no rooms.css outside the Archive',
+    pre.n >= 25 && pre.world && pre.late === 0 && pre.unused.length === 0 && !pre.rooms, JSON.stringify(pre));
   // « …and so does its classic shell, under ?classic=1 » left with that shell on 2026-11-25.
   // The go-live checker (GO-LIVE §4) against the same build on a Pages-shaped
   // server with a stand-in GitHub API: nothing to fail on a site that works.

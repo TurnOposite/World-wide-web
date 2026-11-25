@@ -38,6 +38,26 @@ export function fmtSpan(sec) {
 /** Wall-clock time in the listener's own zone. */
 export const clock = (ms) => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+/**
+ * A stylesheet a page brings with it (rooms.css, the Archive's rooms): added once, and the promise settles when it
+ * has loaded — or failed, so a page is never held back by a missing sheet. Relative to <base>, like the shell's.
+ */
+const sheets = new Map();
+export function stylesheet(href) {
+  if (!sheets.has(href)) {
+    sheets.set(href, new Promise((done) => {
+      const url = new URL(href, document.baseURI).href;
+      const had = [...document.querySelectorAll('link[rel="stylesheet"]')].find((l) => l.href === url);
+      if (had) { done(); return; }
+      const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: url });
+      link.addEventListener('load', () => done(), { once: true });
+      link.addEventListener('error', () => done(), { once: true });
+      document.head.append(link);
+    }));
+  }
+  return sheets.get(href);
+}
+
 export function toast(text, ms = 3200) {
   const el = document.getElementById('toast');
   if (!el) return;
