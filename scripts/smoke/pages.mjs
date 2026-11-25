@@ -14,9 +14,13 @@ export default async function pages({ check, AXE, axeRun, devServer, dev, browse
   // arrows and Esc) and its mark. The world draws its own way round (the tags, the Zone|Echo switch: scripts/smoke/world.mjs);
   // the banner stays in the document under it, hidden and inert, and is no longer checked.
 
-  const title = await a.textContent('#rTitle');
-  const expected = await a.evaluate(() => window.radioTower.client.engine.station.at(window.radioTower.client.now()).track.title);
-  check('the on-air card shows what the in-browser clock computes', title === expected, title);
+  // The card and the clock read at the same instant (read apart, a track change between them was a red: 2026-11-25);
+  // at a change itself the card has a second to follow, as it does for a listener.
+  const cardNow = () => a.evaluate(() => ({ card: document.querySelector('#rTitle')?.textContent, clock: window.radioTower.client.engine.station.at(window.radioTower.client.now()).track.title }));
+  let card = await cardNow();
+  if (card.card !== card.clock) { await a.waitForTimeout(1200); card = await cardNow(); }
+  const title = card.card;
+  check('the on-air card shows what the in-browser clock computes', card.card === card.clock, JSON.stringify(card));
   check('the station says it has no server rather than faking a listener count', /no server/.test(await a.textContent('#rMode')));
 
   await a.click('#rTune');
