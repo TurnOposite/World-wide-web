@@ -4291,3 +4291,14 @@ read as a hairline at the window's scale (world.js draws pages smaller or larger
 the live site. **TESTS-REVIEW §3:** a source-text assertion goes when the smoke checks the behaviour, becomes a run of
 the code where it can (the service worker in a `vm` sandbox), and stays as text only where no run reaches it (the 05:00
 rollover, a removed sentence, CSS rules, fire.yml).
+
+## 2026-11-25 (evening) — The start-up chain is preloaded by the build; what a first visit does not show loads later
+
+Lighter step 4. Without a bundler (BRIEF.md), the build's copy step writes `<link rel="modulepreload">` for every
+module reachable by static imports from `js/main.js` and `js/world/world.js`: the browser asks for the chain at once
+instead of finding it four levels deep. The list is derived from the import lines at build time, never kept by hand, so
+a new static import is preloaded on the next build. The rule that follows for the code: **a module that a first visit
+does not show is imported dynamically** — a visualiser layer that is off by default (the call map), a detail that can
+arrive a moment late (the listener's face in the mini-player, after the first page is up), a stylesheet only some pages
+use (`rooms.css`, brought by the Archive as the boat brings `boat.css`). A static import added to the chain's modules
+lands on every visitor's first load.

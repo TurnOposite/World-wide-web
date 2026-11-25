@@ -3808,3 +3808,57 @@ follow from it (the same character comes back). Waiting for the camera to land d
 what takes the drag in the world after four parts have run (world.js's own drag/swipe over a window, or the window's
 fit changing under the pointer). Once, under load, the Crates' drawer hover read its card at 0.10 (pages part; green in
 the three runs before). Not pushed; nothing of step 3 is on GitHub.
+
+**Step 3, the red closed** (later on 2026-11-25): the character slide in the `tower` part. Two causes, two commits.
+The reel took a slide only if the pointer was let go over it: in a window drawn smaller, or a long gesture, the slide
+was lost — a listener's bug too; the reel now captures the pointer (`ec9ef2a`, cast.js; the reel holds only faces, so
+no button's click is redirected). That fixed the clothes slide but not the first one: it follows typing the name, while
+the join form opens and the window scrolls to the field, and under a full run's load the test measured the reel before
+it settled. The test now slides where the reel is once it holds still two frames apart, and the detail says whether the
+press met the reel (`1ffa20e`). **Self-test** (laptop, scratch worktree on `1ffa20e`): **green**, 187/187 site,
+26/26 Atelier, 315 s.
+
+## 2026-11-25 (evening) — Lighter, step 4: a faster first load, no bundler
+
+At Ortis's « slide then 4 ».
+
+- **The chain asked for at once.** `scripts/site-preload.mjs` reads the static import lines from `js/main.js` and
+  `js/world/world.js` (imported by main.js always, unless `?boat=1`) and the build writes one
+  `<link rel="modulepreload">` per module into every route's shell, at the end of `<head>`: 35 modules. The source
+  does not change. A dynamic import elsewhere (a page, the boat, the Atelier) stays out.
+- **Out of the start-up chain.** The call map (`viz/callmap.js`, 27 KB) is fetched the first time its layer is on —
+  only the Canopy look has it. The mini-player's face (`ui/telegraph.js` + `ui/cast.js`, ≈ 35 KB) is fetched once
+  the first page is up (`main.js` calls `minibar.showFace()` after `router.start()`); an idle callback was tried
+  first and, on the phone profile, fired during the network waits and took the world's bandwidth.
+- **rooms.css with the rooms.** Out of the shell (65 KB): the Archive (`pages/portfolio.js`) asks for it through
+  `ui/util.js` `stylesheet()` — once, waited for so a room is never seen undressed, never held back by a failure.
+  Every rule in it is scoped to `.room`, `.pf`, `.mirror-book`, `.map-close` or `.w-echo-d`: no other page
+  loses a style.
+
+**Measured** (`dist/` served locally, Chrome as a phone: 390×844, slow 4G = 150 ms / 1.6 Mb/s, CPU ×4, service worker
+off, median of 5 cold loads, until the world's window holds its page): first frame **7.26 s → 6.38 s** (−12 %); JS
+**461 → 399 KB** (39 → 36 files); CSS **195 → 130 KB**; requests **57 → 53**. Left on the way: `pages/radio.js`
+(11 KB, the home page itself, found after main.js asks for it).
+
+**Checks.** `tests/site-preload.test.js` (the chain holds main.js, the world, the clock, the stage, the mini-player;
+not the call map, the telegraph, the cast, any page, the boat, the Atelier; the shell gets each preload once, in
+`<head>`; rooms.css is not in the shell). Site smoke: `dist` — the built shell preloads the chain and the page
+fetches every preload, no rooms.css on a text's page; `pages` — the Archive brings rooms.css, once, whole.
+
+**The slide, the real cause** (same evening). The first full run of step 4 (`1627a87`) had the slide red again, and
+the new detail said why: `presses: [false, true]` — the first press landed outside the screen. After the name is
+typed the reel can be below the fold of the window; the second slide follows a click on « Choose », and Playwright
+scrolls what it clicks, so it always hit. The test now brings the reel on screen before it slides (`scrollIntoView`,
+as a person scrolls to see it) and the detail names what a missed press met. The green of `1ffa20e` was a run where the
+reel happened to be in view. The pointer capture (`ec9ef2a`) stays: a slide ending off the reel is a real case.
+Same run: the new preload check counted `js/boat/flag.js` as « the boat » — it is main.js's own (`?boat=1` asked?) and
+belongs in the chain; the check now names `boat/boat.js`. And once, the on-air card and the clock were read apart and
+a track change fell between them; they are now read at the same instant, with a second to follow a change, both in the
+detail (`pages.mjs`).
+The next run (`1fd5219`) said it once more: `presses: ["cast-arrow", true]`. The test pressed 30 px right of the reel's
+centre, and in a window drawn smaller that point is the « next » arrow beside the reel — a coin toss on the window's
+size, which is why the check passed alone and failed in some full runs from the day the tower part moved onto the
+world. It now presses on the character itself, at the reel's centre (`8e0c9d4`).
+
+**Self-test after step 4** (laptop, scratch worktree on `8e0c9d4`): **green**, 526 unit, 189/189 site, 26/26 Atelier,
+357 s, both presses on the reel. Not pushed.
