@@ -131,17 +131,19 @@ export default async function tower({ towerUrl, check, dev, browser, errors, wat
         // Only what is on screen can be slid: the reel can be below the fold once the name is typed (the second
         // slide follows a click, which scrolls; the first did not, and missed — 2026-11-25).
         document.querySelector('.cast-reel').scrollIntoView({ block: 'center', inline: 'center' });
-        const at = () => { const b = document.querySelector('.cast-reel').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; };
+        const at = () => { const b = document.querySelector('.cast-reel').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2, w: Math.round(b.width) }; };
         const frame = () => new Promise((f) => requestAnimationFrame(() => requestAnimationFrame(f)));
         let a = at();
         for (let i = 0; i < 40; i++) { await frame(); const b = at(); if (Math.abs(b.x - a.x) < 0.5 && Math.abs(b.y - a.y) < 0.5) break; a = b; }
-        const hit = document.elementFromPoint(a.x + 30, a.y);
-        return { ...a, on: Boolean(hit?.closest('.cast-reel')) || (hit ? hit.className || hit.tagName : 'off screen') };
+        // On the character itself: 30 px right of it was the « next » arrow once the window was drawn smaller
+        // (presses ["cast-arrow", true], 2026-11-25).
+        const hit = document.elementFromPoint(a.x, a.y);
+        return { ...a, on: Boolean(hit?.closest('.cast-reel')) || `${hit ? hit.className || hit.tagName : 'off screen'} (reel ${a.w} px)` };
       });
       presses.push(r.on);
-      await t.mouse.move(r.x + 30, r.y);
+      await t.mouse.move(r.x, r.y);
       await t.mouse.down();
-      for (let i = 1; i <= 6; i++) await t.mouse.move(r.x + 30 - i * 14, r.y + 1);
+      for (let i = 1; i <= 6; i++) await t.mouse.move(r.x - i * 14, r.y + 1);
       await t.mouse.up();
       await t.waitForTimeout(120);
     };
