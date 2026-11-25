@@ -283,7 +283,11 @@ export class CastPicker {
     // The slide. The stage's touch-action (site.css) keeps the page's own up-and-down scroll and tells the
     // world this gesture is taken (world.js ownsSwipe), so a slide here never changes side.
     let from = null;
-    this.reel.addEventListener('pointerdown', (e) => { from = { x: e.clientX, y: e.clientY, id: e.pointerId }; });
+    // Captured: a slide that ends off the reel (a window drawn smaller, a long gesture) still ends here.
+    this.reel.addEventListener('pointerdown', (e) => {
+      from = { x: e.clientX, y: e.clientY, id: e.pointerId };
+      try { this.reel.setPointerCapture(e.pointerId); } catch { /* an old browser: the slide must end on the reel */ }
+    });
     const end = (e) => {
       if (!from || e.pointerId !== from.id) return;
       const by = swipe(e.clientX - from.x, e.clientY - from.y);
