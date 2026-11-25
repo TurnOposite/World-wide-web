@@ -4275,3 +4275,19 @@ throw ended the smoke). Each part prints its count and time.
 The laptop's Chrome is its bottleneck (a second Chrome open slows a run by minutes), and most red runs this month were
 timing reads in this very smoke; three pages fighting for one CPU would make more of them. `--only` is there for
 whoever wants one part. Revisit if a laptop run ever matters more than GitHub's.
+
+## 2026-11-25 — One face: the Pi-era player and the classic shell retired; the smoke checks what the code does
+
+Lighter step 3, each retirement at Ortis's word (2026-11-24). **The Pi-era player** (`public/`, B6) went to
+`archive/pi-player-2026-11-25/` once its checks of the tower itself had moved onto the website in tower mode (the site
+smoke's `tower` part) and passed against a test tower. The three modules the site copied from it are the originals now;
+without `SITE_DIR` the tower serves its API only. **The classic shell** (`?classic=1`, `?world=0`, config.json's
+`world`) is gone: the world is the site. Its markup and the no-world code path stay, because the boat (`?boat=1`) stands
+instead of the world and uses them; removing the banner's code and CSS is not done. Old `?classic=1` links open the
+world. The smoke's `classic` part runs on the world as `pages`; checks that pinned only the classic shell's own chrome
+(the banner, the rubriques line, the classic phone pass) went with it, each named where it stood. A rule drawn 1 px is
+read as a hairline at the window's scale (world.js draws pages smaller or larger), not as exactly `1px`.
+**The claude.ai preview build** went to `archive/claude-preview-2026-11-25/`. **The go-live checker** stays, aimed at
+the live site. **TESTS-REVIEW §3:** a source-text assertion goes when the smoke checks the behaviour, becomes a run of
+the code where it can (the service worker in a `vm` sandbox), and stays as text only where no run reaches it (the 05:00
+rollover, a removed sentence, CSS rules, fire.yml).

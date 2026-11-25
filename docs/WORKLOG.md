@@ -3757,3 +3757,54 @@ step 1 alone and 5–7.5 for the month before. `scope` 12 s; then side by side `
 88 s), `site (classic)` 1.5 (the smoke 81 s), `site (world)` 1.4 (76 s), `site (phone)` 1.5 (66 s); `test` 12 s.
 Setup 2–14 s a job (ffmpeg from the cache). The smoke steps' lengths say the parts ran their checks (a skip takes
 two seconds); their counts are in the logs, which need a GitHub login.
+
+## 2026-11-25 — Lighter, step 3: fewer tests, same promises
+
+At Ortis's word (2026-11-24, « Yes, start step 3 », and his three answers: retire the classic shell, aim the go-live
+checker at the live site, retire the claude.ai preview build). On `claude/lighter-2026-11-24`, not pushed.
+
+- **The timing reads** (`db02f78`): the two reds of 17/11 (the music across pages, « plays on ») read the player at a
+  track change; they now wait until the track on air is more than 2 s from either end. The booth's permutation check
+  re-reads the fence with the queue it compares, and a red one prints the ids before and after, the multiset and the
+  fence (the 22/11 red, « slid 0 », is not explained by the slide fix alone; the next red will say why).
+- **The claude.ai preview build** (`39c23c8`): `site-preview.mjs`, `preview-smoke.mjs`, the artifact control plane and
+  its six unit tests to `archive/claude-preview-2026-11-25/`; the router's hash mode, the preview note, the build's
+  `past`/`shells` options gone. Nothing ran or published it.
+- **The go-live checker** (`4942b3c`): kept, aimed at the live site (deploy/fire.json's `site` by default), no Pages
+  wording; in tower mode it also asks the tower (on the air, CORS, the track on air streams, the same commit). 4 new
+  tests. Against the live site: 13/13.
+- **B6, the Pi-era player** (`5dcd335`): browser-smoke's checks of the tower itself are the site smoke's `tower` part
+  (a listener in step with the tower's own stream, the rollover, a booth move the tower records, « Back to the station
+  clock »), proved against a test tower 35/35 before anything moved. `site/js/lib/{viz-core,cover-palette,queue-core}.js`
+  are the originals; `static-cache.test.js` pins the cache rule on the site served through `SITE_DIR`; without
+  `SITE_DIR` the tower serves its API and a one-line root. Stage 6 left `build-test.sh`. `public/`, browser-smoke,
+  backdrops.test.js, devReload.js → `archive/pi-player-2026-11-25/` (README: where each promise went; four tests of the
+  old pages went with it). dj/'s fence covers `../site/**` where it covered `../public/**`. Self-test on that commit, in
+  a scratch worktree: green, 528 unit, 207/207 site (classic 90, world 49, phone 22, dist 5, tower 40), 26/26 Atelier,
+  9 min 44 s.
+- **The classic shell** (this commit): `?classic=1`, `?world=0` and config.json's `world` are gone (`world/flag.js`
+  keeps the Atelier's switch); the world is the site and only the boat stands instead of it, so main.js's no-world path
+  stays — for the boat. The smoke's `classic` part is `pages` now and runs on the world: the banner's eleven checks went
+  with the banner (the world's tags and switch are the world part's), the rest read the page in its window
+  (`.w-box > .page` where `#view` was) and go from page to page by the world's tags (`harness.mjs` `tab`). The phone's
+  classic pass (19 cold loads with axe, the banner by touch) went: the world's pass at the end of the same part loads
+  the same addresses and checks the same two things. R9's print check had the classic print as its yardstick; that
+  print's numbers on every run of 24–25/11 are the yardstick now, the part that does not hang on a machine's fonts.
+  New: an old `?classic=1` link, and a tab that remembered the classic shell, both open the world.
+- **TESTS-REVIEW §3**: the service worker is run, not read (`vm`, a stand-in `self`: no fetch handler, a push always
+  shows, an address off the site becomes the Antenna, an open page is posted `go` and focused); the page's half is a new
+  world-part check (a `go` message moves the page by its router, same `<audio>`). Retired where the smoke checks the
+  behaviour: the bell (push.js, telegraph.js, line-admin.js, transport.js, main.js — the tower part's three bell checks),
+  a stranger's text as text (the tower part posts one), the restored list (the tower part puts one back), which page
+  carries the Spotify deck (the pages part opens the three), cast.js's « builds with nodes ». Kept as text, because no
+  run reaches them: the 05:00 rollover's use in the poll (no run crosses 05:00), the sentence Ortis removed, the build
+  listing site-telegraph.mjs, the CSS rules (reduced motion, the shared phone breakpoint), fire.yml.
+
+**Self-test after** (laptop, scratch worktree on `4b766a7`): **red, not finished.** 523 unit green; pages 77, world 49,
+phone 16, dist 4 green; Atelier 26/26. The `tower` part, now on the world shell (it opened the classic shell first until
+this step), fails three checks in every full run and none run alone (`--only tower` against a test tower: 35/35): the
+line's character select — a mouse slide on `.cast-reel` does not bring the next character — and the two checks that
+follow from it (the same character comes back). Waiting for the camera to land did not change it. To look at first:
+what takes the drag in the world after four parts have run (world.js's own drag/swipe over a window, or the window's
+fit changing under the pointer). Once, under load, the Crates' drawer hover read its card at 0.10 (pages part; green in
+the three runs before). Not pushed; nothing of step 3 is on GitHub.
