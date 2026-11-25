@@ -123,8 +123,18 @@ export default async function tower({ towerUrl, check, dev, browser, errors, wat
     const said = `selftest ${Date.now()} <img src=x onerror="window.__tgHit=1"> https://example.test/x`;
     await t.fill('#tgName', 'Self <b>test</b>').catch(() => {});
     // The character select (Ortis, 2026-11-11): a slide changes who; once chosen, the same slide changes their clothes.
+    // The join form opens with a transition and focusing the name can scroll the window: the finger goes where the
+    // reel IS, once it holds still (two frames apart), as a person's would. `on` says whether the press met the reel.
+    const presses = [];
     const slide = async () => {
-      const r = await t.evaluate(() => { const b = document.querySelector('.cast-reel').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; });
+      const r = await t.evaluate(async () => {
+        const at = () => { const b = document.querySelector('.cast-reel').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; };
+        const frame = () => new Promise((f) => requestAnimationFrame(() => requestAnimationFrame(f)));
+        let a = at();
+        for (let i = 0; i < 40; i++) { await frame(); const b = at(); if (Math.abs(b.x - a.x) < 0.5 && Math.abs(b.y - a.y) < 0.5) break; a = b; }
+        return { ...a, on: Boolean(document.elementFromPoint(a.x + 30, a.y)?.closest('.cast-reel')) };
+      });
+      presses.push(r.on);
       await t.mouse.move(r.x + 30, r.y);
       await t.mouse.down();
       for (let i = 1; i <= 6; i++) await t.mouse.move(r.x + 30 - i * 14, r.y + 1);
@@ -141,7 +151,7 @@ export default async function tower({ towerUrl, check, dev, browser, errors, wat
     const c3 = await castNow();
     const wantIcon = castIcon(CAST[1].id, 1);
     check('…the character select: a slide brings the next character; once chosen, a slide changes their clothes and not who they are', c0.name === CAST[0].name && c0.step === 'who' && c1.name === CAST[1].name && c1.step === 'who'
-      && c2.step === 'look' && c2.pressed === '0' && c3.step === 'look' && c3.name === CAST[1].name && c3.pressed === '1' && c3.label !== c2.label, JSON.stringify([c0, c1, c2, c3]));
+      && c2.step === 'look' && c2.pressed === '0' && c3.step === 'look' && c3.name === CAST[1].name && c3.pressed === '1' && c3.label !== c2.label, JSON.stringify({ steps: [c0, c1, c2, c3], presses }));
     await t.click('.tg-joinform button[type=submit]').catch(() => {});
     await t.waitForSelector('#tgText', { timeout: 4000 }).catch(() => {});
     await t.fill('#tgText', said).catch(() => {});
