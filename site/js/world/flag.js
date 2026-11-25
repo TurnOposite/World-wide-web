@@ -13,10 +13,23 @@
  * the map is saved into the repository and published.
  */
 export function atelierWanted({ search = '', storage = null } = {}) {
-  const v = new URLSearchParams(search).get('atelier');
+  return tabSwitch('atelier', { search, storage });
+}
+
+/**
+ * The pulse (lib/pulse.js, Lighter step 5): the sky of the hour and the bass, shared by the whole site — a proposal
+ * Ortis looks at behind `?pulse=1` (`?pulse=0` off), remembered for the tab like the Atelier.
+ */
+export function pulseWanted({ search = '', storage = null } = {}) {
+  return tabSwitch('pulse', { search, storage });
+}
+
+/** `?name=1` on, `?name=0` off, kept in sessionStorage for the tab; off by default. */
+function tabSwitch(name, { search, storage }) {
+  const v = new URLSearchParams(search).get(name);
   try {
-    if (v === '1' || v === '0') storage?.setItem('gt.atelier', v);
+    if (v === '1' || v === '0') storage?.setItem(`gt.${name}`, v);
   } catch { /* private mode: this page only */ }
   if (v === '1' || v === '0') return v === '1';
-  try { return storage?.getItem('gt.atelier') === '1'; } catch { return false; }
+  try { return storage?.getItem(`gt.${name}`) === '1'; } catch { return false; }
 }

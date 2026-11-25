@@ -14,7 +14,7 @@ import { VisualsPanel } from './ui/visuals.js';
 import { toast, esc } from './ui/util.js';
 import { initBanner, markHalf } from './ui/banner.js';
 import { ONDES_LABEL } from './labels.js';
-import { atelierWanted } from './world/flag.js';
+import { atelierWanted, pulseWanted } from './world/flag.js';
 import { boatWanted } from './boat/flag.js';
 import { DISTRICTS, PHONE_MEDIA } from './world/layout.js';
 import { DRAFT_KEY, applyPages, mergeDraft, resolveLayout } from './world/model.js';
@@ -246,6 +246,13 @@ async function boot() {
   await router.start();
   // The first page is up: now the mini-player may fetch the listener's face (Lighter step 4).
   minibar.showFace();
+  // ?pulse=1 (Lighter step 5): one loop gives the page the sky of the hour and the bass (lib/pulse.js; the rules that
+  // read them are html.pulse's in world.css). A proposal until Ortis says: nobody else loads the file.
+  if (wantWorld && pulseWanted({ search: location.search, storage: session })) {
+    document.documentElement.classList.add('pulse');
+    const { createPulse } = await import('./lib/pulse.js');
+    ctx.pulse = createPulse({ listen: (ts) => stage.listen(ts) }).start();
+  }
 
   // Keys: V visuals, F full screen, M tune in / mute. Never while typing.
   document.addEventListener('keydown', (e) => {
@@ -264,7 +271,7 @@ async function boot() {
   } catch { /* no service workers here (a private window, an old browser): nothing to listen to */ }
 
   // For the e2e tests and for curious listeners with a console open.
-  globalThis.radioTower = { client, player, stage, settings, router, world, atelier };
+  globalThis.radioTower = { client, player, stage, settings, router, world, atelier, pulse: ctx.pulse || null };
 }
 
 boot();

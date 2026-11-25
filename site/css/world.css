@@ -491,3 +491,20 @@ body.on-echo .w-badge{visibility:hidden}
 body.on-echo .w-aboard{background:var(--w-paper);color:var(--w-ink);border-color:var(--w-rule)}
 /* No boat on a phone (Ortis, 2026-11-22): the way aboard is not offered there (boat/flag.js refuses it too). */
 @media (max-width:760px),(max-height:500px){.w-aboard{display:none}}
+
+/* ---- ?pulse=1 (Lighter step 5, a proposal for Ortis): lib/pulse.js writes the sky of the hour (--sky-top, --sky-hor,
+   --sky-dark) and the music's low end (--bass, --hit) on <html>. Off without the switch: nothing here applies. ---- */
+/* Zone keeps the station's time, as the boat's lake does: the haze takes the sky's tint from the horizon up and from
+   the top down, the glass a tenth of it. The one slow ambient layer; it changes over minutes, never with the music. */
+html.pulse .w-dark{background:
+  linear-gradient(0deg,color-mix(in srgb,var(--sky-hor,#1b2550) 20%,transparent),transparent 45%),
+  linear-gradient(180deg,color-mix(in srgb,var(--sky-top,#03050f) 16%,transparent),transparent 40%),
+  radial-gradient(ellipse 80% 55% at 30% 115%,rgba(90,174,191,.18),transparent 70%),
+  radial-gradient(ellipse 60% 40% at 85% -10%,rgba(176,106,155,.12),transparent 70%),
+  rgba(12,14,24,.55)}
+html.pulse .w-root{--w-glass:color-mix(in srgb,var(--sky-top,#161d32) 10%,rgba(22,29,50,.74))}
+@media (max-width:760px),(max-height:500px){html.pulse .w-root{--w-glass:color-mix(in srgb,var(--sky-top,#161d32) 10%,rgba(22,29,50,.88))}}
+/* The live dots breathe with the bass, as the lake's ripples do — only while the music plays; at rest they are still
+   (and with reduced motion the pulse writes 0, so they are still too). */
+html.pulse body.playing .mb-live .dot,html.pulse body.playing .badge .pulse{transform:scale(calc(1 + var(--bass,0) * .6))}
+html.pulse body.playing .mb-live .dot{box-shadow:0 0 calc(var(--hit,0) * 10px) currentColor}

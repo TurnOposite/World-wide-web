@@ -725,6 +725,34 @@ export default async function world({ ROOT, check, AXE, axeRun, dev, browser, wa
   check('…and on Echo the ash lies still: drawn once, never moving', stillAsh.drawn > 0 && stillAsh.still, JSON.stringify(stillAsh));
   await still.context().close();
 
+  // ?pulse=1 (Lighter step 5, a proposal): one loop gives the page the sky of the hour and the bass. Off by default —
+  // and then its file is not even fetched; on, Zone takes the sky's tint (?sky=HH:MM shows another hour).
+  const pctx = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+  const pw = await pctx.newPage();
+  watch(pw, 'pulse');
+  const skyOf = (hhmm) => pw.evaluate(async (hhmm) => {
+    await new Promise((r) => setTimeout(r, 300));
+    const css = getComputedStyle(document.documentElement);
+    return { hhmm, cls: document.documentElement.classList.contains('pulse'), top: css.getPropertyValue('--sky-top').trim(), dark: Number(css.getPropertyValue('--sky-dark')),
+      bass: css.getPropertyValue('--bass').trim(), frames: window.radioTower.pulse?.state.t > 0, haze: getComputedStyle(document.querySelector('.w-dark')).backgroundImage.split('gradient').length - 1 };
+  }, hhmm);
+  await pw.goto(dev + 'radio', { waitUntil: 'domcontentloaded' });
+  await pw.waitForFunction(() => window.radioTower?.world?.current, null, { timeout: 15000 }).catch(() => {});
+  await pw.waitForTimeout(300);
+  const off = await pw.evaluate(() => ({ cls: document.documentElement.classList.contains('pulse'), pulse: window.radioTower.pulse,
+    fetched: performance.getEntriesByType('resource').some((r) => r.name.endsWith('/js/lib/pulse.js')), sky: getComputedStyle(document.documentElement).getPropertyValue('--sky-top') }));
+  check('the pulse is off by default: no class, no loop, its file never fetched, no sky on the page', !off.cls && !off.pulse && !off.fetched && !off.sky, JSON.stringify(off));
+  await pw.goto(dev + 'radio?pulse=1&sky=23:30', { waitUntil: 'domcontentloaded' });
+  await pw.waitForFunction(() => window.radioTower?.pulse && window.radioTower.world?.current, null, { timeout: 15000 }).catch(() => {});
+  const pNight = await skyOf("23:30");
+  await pw.goto(dev + 'radio?sky=12:00', { waitUntil: 'domcontentloaded' });
+  await pw.waitForFunction(() => window.radioTower?.pulse && window.radioTower.world?.current, null, { timeout: 15000 }).catch(() => {});
+  const pNoon = await skyOf("12:00");
+  check('?pulse=1: the loop runs, the page carries the sky of the hour and the bass, Zone\'s haze takes the tint — and the tab remembers it (night 23:30, then noon)',
+    pNight.cls && pNight.frames && pNight.dark > 0.7 && /^#[0-9a-f]{6}$/.test(pNight.top) && pNight.bass !== '' && pNight.haze === 4
+      && pNoon.cls && pNoon.dark < 0.05 && pNoon.top !== pNight.top, JSON.stringify([pNight, pNoon]));
+  await pctx.close();
+
   // Until 2026-11-24 this check also held the phone's findings (scripts/smoke/phone.mjs has its own now).
   if (AXE) check('world shell: no accessibility violations above minor (desktop: every cold-link address, the Une, Radio)', worldA11y.length === 0, worldA11y.slice(0, 3).join(' | ') || 'names, roles, landmarks, contrast');
 }

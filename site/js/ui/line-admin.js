@@ -34,7 +34,6 @@ export const PAGE = 50;
 /** A phone's size, as the world reads it (world/layout.js): no notifications offered there. */
 const phoneSized = () => Boolean(globalThis.matchMedia?.(PHONE_MEDIA).matches);
 
-const PARIS = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' });
 
 /**
  * The broadcast day a message belongs to (YYYY-MM-DD): a day runs 05:00 → 05:00 on Paris's clocks, like the
@@ -44,14 +43,8 @@ const PARIS = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year:
  * an hour off (05:00–06:00 filed under the wrong day — found 2026-11-17 by checking it against the tower's
  * calendar, server/lib/programme.js makeCalendar, which tests/site-line-admin.test.js now does for two years).
  */
-export function broadcastDay(t, startHour = 5) {
-  const p = Object.fromEntries(PARIS.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
-  const date = `${p.year}-${p.month}-${p.day}`;
-  if (Number(p.hour) >= startHour) return date;
-  const before = new Date(`${date}T12:00:00Z`);
-  before.setUTCDate(before.getUTCDate() - 1);
-  return before.toISOString().slice(0, 10);
-}
+import { broadcastDay } from '../lib/station-time.js';
+export { broadcastDay };
 
 /** Entries (newest first, as the tower sends them) in groups by broadcast day, newest day first. */
 export function groupByDay(entries) {

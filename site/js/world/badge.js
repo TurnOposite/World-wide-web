@@ -4,22 +4,20 @@
  * clock, Paris time, never the visitor's; the day turns at 05:00 like the broadcast day, so the small hours are still
  * the night of the day before. Echo prints its date under its own masthead, so the badge is Zone's only.
  */
-const PARTS = [
-  { from: 5, word: 'MATIN', jp: '朝' },
-  { from: 12, word: 'APRÈS-MIDI', jp: '午後' },
-  { from: 18, word: 'SOIR', jp: '夕方' },
-  { from: 22, word: 'NUIT', jp: '夜' },
-];
-const FMT = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short', day: 'numeric', hour: 'numeric', hourCycle: 'h23' });
+import { broadcastDay, partOfDay } from '../lib/station-time.js';
 
-/** What the badge says at instant `ms`: the broadcast day's number and weekday, and the part of the day. Pure. */
+// The weekday of a calendar date, in French: the date is read at noon UTC, so no clock change can move it.
+const WEEKDAY = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', weekday: 'short' });
+
+/**
+ * What the badge says at instant `ms`: the broadcast day's number and weekday, and the part of the day. Pure.
+ * From the station clock (lib/station-time.js) since 2026-11-25, the one the line's log uses: the same answers as
+ * the badge's own reading gave, from one place.
+ */
 export function badgeFor(ms) {
-  const hourNow = Number(FMT.formatToParts(new Date(ms)).find((p) => p.type === 'hour').value);
-  // Before 05:00 it is still the night of the day before, as on the station's calendar.
-  const dayMs = hourNow < 5 ? ms - 5 * 3600_000 : ms;
-  const parts = Object.fromEntries(FMT.formatToParts(new Date(dayMs)).map((p) => [p.type, p.value]));
-  const part = hourNow < 5 ? PARTS[3] : [...PARTS].reverse().find((p) => hourNow >= p.from);
-  return { day: Number(parts.day), weekday: parts.weekday.replace('.', '').toUpperCase(), word: part.word, jp: part.jp };
+  const day = broadcastDay(ms);
+  const part = partOfDay(ms);
+  return { day: Number(day.slice(8)), weekday: WEEKDAY.format(new Date(`${day}T12:00:00Z`)).replace('.', '').toUpperCase(), word: part.word, jp: part.jp };
 }
 
 export function mountBadge({ now = () => Date.now() } = {}) {
