@@ -3903,3 +3903,15 @@ its two follow-on checks; nothing of step 5 is on that path. The test now record
 the name just after the release (`fba60de`), and the run on it was **green**: 535 unit, 191/191 site, 26/26 Atelier, 309 s,
 the log a plain slide (down on the reel, capture, up 84 px left, « The Keeper »). So that red is not explained yet; the
 next red will carry its own events. Not pushed.
+
+**Step 5 on GitHub** (pushed at Ortis's word, `c988ab2..4b66e0a`): run 45574340305, **green in 134 s**, first attempt,
+no annotations. Read from the job logs (signed in with git's own GitHub credential, 2026-11-25):
+- `scope` 14 s — « A full run: code changed since the last green commit c988ab2 ».
+- `site (phone)` 66 s — 17/17 (16 checks in 42 s). `site (pages)` 89 s — 79/79 (78 in 45 s). `site (world)` 97 s —
+  52/52 (51 in 75 s), the pulse's two checks among them.
+- `self-test` 102 s — ffmpeg 7.0.2 static from the cache (setup 18 s, the apt fallback never ran), node v22.23.5; all
+  JavaScript and shell parse; **535 unit tests**; the test tower (memory 88 MB, `/api/station` 0.5 ms); the schedule
+  deterministic over 2857 instants; site smoke `dist` + `tower` 46/46 (the tower part's 40 checks in 32 s, the
+  character slide green); Atelier 26/26; « the tower is sound ».
+- `test` 11 s — « Green: the self-test and every part of the site smoke passed ».
+Neither fallback warning (ffmpeg from apt, Playwright's Chromium) fired: the runner had the static ffmpeg and Chrome.
