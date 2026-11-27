@@ -120,10 +120,12 @@ above like this — verified in Chromium at phone size (`scripts/site-smoke.mjs`
 - **Screen lock / silent switch (3):** the visualiser taps the music through
   Web Audio, which iOS treats as a UI sound — muted by the silent switch,
   suspended when the screen locks. `tuneIn()` sets
-  `navigator.audioSession.type = 'playback'` (Safari 16.4+) inside the tap, and
-  on an iOS without that API `webAudioIsSafe()` keeps the music off Web Audio
-  altogether (visuals idle, music plays). Media Session metadata and
-  play/pause handlers are set.
+  `navigator.audioSession.type = 'playback'` (Safari 16.4+) inside the tap.
+  **That was not enough:** on 2026-11-27 a listener's phone stopped the music
+  on lock. Since then `webAudioIsSafe()` keeps the music off Web Audio on
+  **every phone and tablet** (iOS, Android, any `Mobi` user agent): visuals
+  idle there, music plays straight from the `<audio>`. Only a computer taps
+  it. Media Session metadata and play/pause handlers are set.
 - **Re-join, not resume (4):** `visibilitychange` → refresh → join at live.
 
 Add to the checklist below, on the iPhone: **silent switch on** (step 1 must

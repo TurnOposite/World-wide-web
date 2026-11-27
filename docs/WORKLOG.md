@@ -3933,3 +3933,20 @@ since 16/11) now also gets « Someone tuned in to the tower — An iPhone starte
   once since this lands; his phone too, if he does not want to be told of himself.
 - **Tests:** three in `tests/notify.test.js` (the wording, the rules with a fake clock, the tower end to end).
   Not seen: a real ntfy delivery for this one (the tower has not been sent the code).
+
+## 2026-11-27 — the music keeps playing when a phone's screen locks
+
+Ortis: his girlfriend's phone stops the music when she locks it. Cause, as far as the laptop can tell: on a phone the
+visualiser routed the music through Web Audio (`createMediaElementSource`), and a locked phone may suspend that graph
+while the `<audio>` element goes on "playing" into it. iOS 16.4+ had been let through on `audioSession.type =
+'playback'`; Android always had been.
+
+- `webAudioIsSafe()` (`site/js/player.js`) now answers no on every phone and tablet (iOS, Android, `Mobi`,
+  `userAgentData.mobile`). There the music plays straight from the `<audio>` element, which is what a lock screen
+  treats as media; the visuals run in their idle mode. Computers are unchanged.
+- `Stage.attach()` (`site/js/viz/stage.js`): if the system suspends the graph while the radio is on, it asks for it
+  back (`onstatechange` → `resume()`), for computers.
+- Test: `tests/site-modules.test.js` — the iPhone-with-audioSession and Android cases now expect no; a PC and an
+  Android tablet added. Skill `tower-mobile-check`, hazard 3, updated.
+- **Not seen:** a real phone, locked for a minute. Which phone she has is not known here. The visuals on a phone no
+  longer react to the music — the price, music first.

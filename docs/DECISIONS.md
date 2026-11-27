@@ -4326,3 +4326,15 @@ without a key. Sending the station key on every 15-second poll would put it in e
 **Consequences.** A device he never unlocked the Booth on buzzes his phone when he plays on it. Private windows
 forget both the id and the mark. If the alert must ever exclude a device he cannot unlock, a Booth switch « don't
 tell me about this device » is the place, not the tower.
+
+## 2026-11-27 — On a phone, the music never goes through Web Audio
+
+**Context.** A listener's phone stopped the music when its screen locked. The visualiser had the music go through an
+AudioContext on every phone but old iPhones; a locked phone may suspend that context, and once an `<audio>` has a
+MediaElementSource it can never be taken off it again.
+
+**Decision.** `webAudioIsSafe()` says no on every phone and tablet. The music plays straight from the `<audio>`
+element; the visuals idle there. Music first (`tower-mobile-check`, hazard 3).
+
+**Consequences.** On a phone the visualiser no longer pulses with the music. If that is wanted back on one platform, it
+needs a locked phone proving the music survives, not a reading of the API.

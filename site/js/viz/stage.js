@@ -109,6 +109,10 @@ export class Stage {
       this.specBins = new Uint8Array(this.spec.frequencyBinCount);
       this.fluxBins = new Uint8Array(this.raw.frequencyBinCount);
       this.waveBins = new Uint8Array(this.raw.fftSize);
+      // The music goes through this graph now: if the system suspends it while
+      // the radio is on (another app took the audio, a power-saving pause), ask
+      // it back, or the <audio> plays on into silence.
+      this.ac.onstatechange = () => { if (this.playing && this.ac.state !== 'running' && this.ac.state !== 'closed') this.ac.resume().catch(() => {}); };
       this.available = true;
     } catch (err) {
       console.warn('[stage] no audio graph — visuals will idle', err);

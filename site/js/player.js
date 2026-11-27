@@ -23,18 +23,24 @@ const DRIFT_TOLERANCE = 2.0;
 /**
  * May this browser's music go through Web Audio (for the visualiser)?
  *
- * On an iPhone, audio routed through an AudioContext is treated as a UI sound
- * unless the page says otherwise: the silent switch mutes it and a locked
- * screen suspends it — the music would stop in the listener's pocket. Safari
- * 16.4+ lets the page declare itself music (`navigator.audioSession.type =
- * 'playback'`, done in tuneIn()); older iOS cannot, so there the visuals idle
- * and the music plays straight from the <audio> element, untouched. Music
- * first: .claude/skills/tower-mobile-check, hazard 3.
+ * Not on a phone or a tablet. Audio routed through an AudioContext is the
+ * page's sound, not a media player's: when the screen locks, the system may
+ * suspend the context, and the <audio> element goes on "playing" into a
+ * silent graph — the music stops in the listener's pocket. Until 2026-11-27
+ * iOS 16.4+ was let through on the strength of `navigator.audioSession.type =
+ * 'playback'` (still set in tuneIn()); a listener's phone stopped on lock all
+ * the same, and a created MediaElementSource can never be undone, so there is
+ * no taking it back once the screen is off. A phone therefore plays straight
+ * from the <audio> element, untouched, and the visuals idle. Music first:
+ * .claude/skills/tower-mobile-check, hazard 3.
  */
 export function webAudioIsSafe(nav = globalThis.navigator) {
   if (!nav) return true;
-  const ios = /iPad|iPhone|iPod/.test(nav.userAgent || '') || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1);
-  return !ios || Boolean(nav.audioSession);
+  const ua = nav.userAgent || '';
+  const ios = /iPad|iPhone|iPod/.test(ua) || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1);
+  const android = /Android/i.test(ua);
+  const mobile = Boolean(nav.userAgentData?.mobile) || /Mobi/i.test(ua);
+  return !(ios || android || mobile);
 }
 
 import { artistOf } from './ui/util.js';
