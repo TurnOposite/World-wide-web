@@ -519,7 +519,7 @@ export function apiRouter(ctx) {
           nextReset: day === null ? null : telegraph.dayStart(day + 26 * 3600_000),
         }
         : null,
-      notifications: { ortis: Boolean(notifier?.ntfy), listeners: notifier?.push ? notifier.push.size : null, tunedIn: Boolean(listenAlert?.enabled) },
+      notifications: { ortis: Boolean(notifier?.ntfy), listeners: notifier?.push ? notifier.push.size : null, tunedIn: Boolean(listenAlert?.enabled), replies: Boolean(notifier?.replyUrl) },
     });
   });
 

@@ -289,6 +289,7 @@ export class LineNotifier {
     if (ntfyUrl && !this.ntfy) console.warn('[notify] TELEGRAPH_NOTIFY_URL is not an address like https://ntfy.sh/<topic>: no notification will be sent');
     this.push = push;
     this.siteUrl = siteUrl ? String(siteUrl).replace(/\/+$/, '') : null;
+    this.replyUrl = null; // set by the server when a reply topic is listened to
     this.fetchImpl = fetchImpl;
     this._warned = false;
     // Whoever tries to subscribe over and over: a few times, then one more every two minutes.
@@ -314,7 +315,9 @@ export class LineNotifier {
   async _ntfy(items) {
     const { title, body } = summarise(items);
     try {
-      await postNtfy(this.ntfy, this.fetchImpl, { title, message: body, tags: ['radio'], ...(this.siteUrl ? { click: `${this.siteUrl}/antenna` } : {}) });
+      // With a reply topic (server/lib/reply.js): a « Reply » button, to ntfy's own page for it — a box and Send.
+      const actions = this.replyUrl ? [{ action: 'view', label: 'Reply', url: this.replyUrl, clear: true }] : undefined;
+      await postNtfy(this.ntfy, this.fetchImpl, { title, message: body, tags: ['radio'], ...(this.siteUrl ? { click: `${this.siteUrl}/antenna` } : {}), ...(actions ? { actions } : {}) });
     } catch (err) {
       // Never the address: the topic's name is the secret.
       if (!this._warned) console.warn(`[notify] the notification to the station's phone did not go: ${err.message}`);

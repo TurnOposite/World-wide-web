@@ -21,6 +21,7 @@ import { apiRouter } from './routes/api.js';
 import { Collections, isPrivatePath } from './lib/collections.js';
 import { Telegraph, dailyReset } from './lib/telegraph.js';
 import { LineNotifier, ListenAlert, PushStore } from './lib/notify.js';
+import { ReplyListener } from './lib/reply.js';
 import { readCommit, readRepo } from './lib/commit.js';
 
 const VERSION = '0.1.0';
@@ -109,6 +110,21 @@ const notifier = makeNotifier();
 const listenAlert = config.telegraphNotifyUrl && config.listenNotify
   ? new ListenAlert({ ntfyUrl: config.telegraphNotifyUrl, siteUrl: config.publicSite, gapMs: config.telegraphNotifyGapSeconds * 1000, ttlMs: config.listenerTtlMs, cooldownMs: config.listenNotifyCooldownMinutes * 60_000 })
   : null;
+
+// Replies from the phone (server/lib/reply.js): what is published on TELEGRAPH_REPLY_URL goes on the line as the
+// station's own, under the name and picture of the station's last message there. The station's words notify nobody.
+function replyToLine(text) {
+  if (!telegraph) return null;
+  const last = [...telegraph.messages].reverse().find((m) => m.host);
+  const out = telegraph.post({ name: last?.name || config.telegraphReplyName, icon: last?.icon ?? null, text, who: 'reply-topic', host: true });
+  if (!out.ok) console.warn(`[reply] not put on the line: ${out.error}`);
+  else notifier?.message(out.message);
+  return out;
+}
+const reply = telegraph && config.telegraphReplyUrl
+  ? new ReplyListener({ url: config.telegraphReplyUrl, notifyUrl: config.telegraphNotifyUrl, onText: replyToLine })
+  : null;
+if (notifier && reply?.enabled) notifier.replyUrl = reply.webUrl;
 
 const state = {
   version: VERSION,
@@ -255,7 +271,7 @@ export function createApp({ now } = {}) {
   return app;
 }
 
-export { station, channels, listeners, state, rescan, collections, telegraph, notifier, listenAlert };
+export { station, channels, listeners, state, rescan, collections, telegraph, notifier, listenAlert, reply, replyToLine };
 
 // A manually-built `file://${resolved}` string does not percent-encode the
 // path, but import.meta.url always does — so this comparison silently failed
@@ -290,6 +306,9 @@ if (isMain) {
   // accepting connections. Awaiting it here would restore exactly the bug the
   // warm-up state was built to fix.
   rescan().catch((err) => console.error('[library] initial scan failed:', err.message));
+
+  // Only a running tower listens to the reply topic: a test that imports this module opens no stream.
+  reply?.start();
 
   if (config.autoRescanMinutes > 0) {
     setInterval(() => {

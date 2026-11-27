@@ -213,6 +213,6 @@ test('the tower says its commit to anyone, and its status only to the key', asyn
   assert.equal(s.line.silenced, 0);
   assert.equal(s.line.keepDays, 0);
   assert.ok(s.line.nextReset > s.now && s.line.nextReset - s.line.dayStarted >= 23 * 3600_000 && s.line.nextReset - s.line.dayStarted <= 25 * 3600_000, 'the next 05:00 Paris');
-  assert.deepEqual(s.notifications, { ortis: false, listeners: 0, tunedIn: false });
+  assert.deepEqual(s.notifications, { ortis: false, listeners: 0, tunedIn: false, replies: false });
   assert.doesNotMatch(JSON.stringify(s), new RegExp(KEY), 'and never the key itself');
 });

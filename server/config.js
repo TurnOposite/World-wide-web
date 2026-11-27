@@ -130,6 +130,11 @@ export const config = {
   // the station's own starts playing. On whenever TELEGRAPH_NOTIFY_URL is set, unless LISTEN_NOTIFY=0. The same
   // device is told of once per LISTEN_NOTIFY_COOLDOWN_MINUTES; the gap above holds for these too.
   listenNotify: process.env.LISTEN_NOTIFY !== '0',
+  // Replies from the phone (server/lib/reply.js): a second ntfy topic, read by the tower; what is published there
+  // goes on the line as the station's. Unset = off. Its name is a secret like the first one's, and must differ from it.
+  telegraphReplyUrl: process.env.TELEGRAPH_REPLY_URL || null,
+  // The name a reply goes out under when the station has said nothing on the line yet.
+  telegraphReplyName: process.env.TELEGRAPH_REPLY_NAME || 'The station',
   listenNotifyCooldownMinutes: Math.max(0, envInt('LISTEN_NOTIFY_COOLDOWN_MINUTES', 30)),
   // The website's own address: where a tap on a notification leads, and who the tower says it is to a push service.
   publicSite: process.env.PUBLIC_SITE || siteFromFire(),

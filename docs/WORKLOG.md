@@ -3950,3 +3950,21 @@ while the `<audio>` element goes on "playing" into it. iOS 16.4+ had been let th
   Android tablet added. Skill `tower-mobile-check`, hazard 3, updated.
 - **Not seen:** a real phone, locked for a minute. Which phone she has is not known here. The visuals on a phone no
   longer react to the music — the price, music first.
+
+## 2026-11-27 — replying to the line from the phone
+
+Ortis, 2026-11-25: « let me know if there's a way to reply to the chat I received a notification about directly
+through my phone without looking at the website », then « Yes, build it » to the reply topic. A second ntfy topic,
+`TELEGRAPH_REPLY_URL`, read by the tower (`server/lib/reply.js`, ntfy's JSON stream): what is published there goes
+on the line as the station's own message, under the name and picture of the station's last message on the line
+(else `TELEGRAPH_REPLY_NAME`, « The station »), and notifies nobody. The line's notifications get a « Reply »
+button to ntfy's page for that topic. ntfy's documentation does not say whether its iPhone app shows these
+buttons, so `docs/NOTIFICATIONS.md` (A″) also gives an iPhone Shortcut (Ask for Input → POST to the topic).
+
+- Nothing replayed: the first stream asks `since=<start, unix seconds>`, a reconnection `since=<last id>`; a
+  message seen twice goes on once. Silent > 2 min = reopened; failures back off to 5 min; one warning, never the
+  address. The reply topic may not be the notification topic (the station would answer itself): replies off.
+- Only a running tower opens the stream (`isMain`): tests import the server without it.
+- `/api/status` says `notifications.replies`.
+- **Tests:** `tests/reply.test.js` (3: the stream against a stand-in ntfy, the topic checks, the tower end to end).
+  Not seen: ntfy.sh itself, the button on his iPhone, the Shortcut. **Off until Ortis sets the topic on the tower.**

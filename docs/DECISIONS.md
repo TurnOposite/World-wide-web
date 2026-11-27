@@ -4338,3 +4338,17 @@ element; the visuals idle there. Music first (`tower-mobile-check`, hazard 3).
 
 **Consequences.** On a phone the visualiser no longer pulses with the music. If that is wanted back on one platform, it
 needs a locked phone proving the music survives, not a reading of the API.
+
+## 2026-11-27 — The phone speaks as the station through a second secret topic, not with the station key
+
+**Context.** Ortis wants to answer the line from the notification, not from the site. An ntfy notification takes no
+typed text; the phone needs somewhere to send words that the tower trusts as the station's.
+
+**Decision.** A second ntfy topic that the tower reads. Its name is the credential, like the notification topic's.
+Not the station key in a Shortcut: a key on the phone can reorder the queue and silence listeners, and a lost
+phone would mean rotating it everywhere; a reply topic can only say things, and is changed with one line. The
+tower opens the stream outward, so nothing new listens on the tower.
+
+**Consequences.** Whoever learns the reply topic can speak as the station until it is changed (the station's
+messages can be taken off the line from the Booth as any other). What is sent passes through ntfy.sh. If the
+station ever needs to tell several people's replies apart, this is the wrong tool: it has one voice.

@@ -46,6 +46,42 @@ station's own = every browser where the Booth was unlocked with the key at least
 and on the phone if you do not want to be told of yourself). The same device is told of once per half hour; the
 one-a-minute rule holds. Only the kind of device leaves the tower, never an address. `LISTEN_NOTIFY=0` stops it.
 
+## A″ — Ortis replies from the phone (2026-11-27)
+
+Ortis, 2026-11-25: « reply to the chat I received a notification about directly through my phone without looking
+at the website ». A **second** ntfy topic is the station's mouth: the tower listens to it, and whatever is
+published there goes on the telegraph line as the station's own message, under the name and picture of your last
+message on the line (or « The station » if you have not spoken today). It notifies nobody.
+
+**Not on yet: one step on the tower, then pick a way to send.**
+
+1. Choose a second topic name nobody can guess, different from the first (whoever knows it can speak as the
+   station). Give it to the tower, as you did the first. **PowerShell on the laptop:**
+
+```powershell
+ssh -i $env:USERPROFILE\.ssh\radio-tower ubuntu@129.151.227.129
+```
+
+   then, **bash on the tower** (replace `YOUR-REPLY-TOPIC`):
+
+```bash
+echo 'TELEGRAPH_REPLY_URL=https://ntfy.sh/YOUR-REPLY-TOPIC' | sudo tee -a /etc/radio-tower.env >/dev/null && sudo systemctl restart radio-tower
+```
+
+2. Ways to send — nothing to subscribe to in the ntfy app:
+   - **The « Reply » button** on the line's notifications opens ntfy's own page for the reply topic: type, send.
+     ntfy's documentation does not say whether its iPhone app shows these buttons; on Android and the ntfy web
+     app it does. If your notification has no button, use the Shortcut.
+   - **An iPhone Shortcut** (works without the button): Shortcuts → **+** → *Ask for Input* (Text, prompt
+     « Reply on the line ») → *Get Contents of URL*: `https://ntfy.sh/YOUR-REPLY-TOPIC`, Method **POST**, Request
+     Body **File**, the file = *Provided Input*. Name it « Reply on the line »; put it on the Home Screen, the lock
+     screen's widgets or the Action button, or say it to Siri.
+   - Anywhere else: `curl -d "your words" https://ntfy.sh/YOUR-REPLY-TOPIC`.
+
+To check: `/api/status` (the Booth's Status side) says `replies: true`. To stop: remove the line and restart.
+What leaves the tower: nothing new — it only reads the reply topic. What you publish there passes through
+ntfy.sh. The topic's name is never written in the repository, a document or a log.
+
 ## B — Your other devices, from the Booth
 
 Ortis, 2026-11-17: « the notifications should only be accessible to me, so it doesn't have to appear on the
@@ -68,6 +104,8 @@ and hands the tower this device's push subscription — only with the key. **« 
 | `TELEGRAPH_NOTIFY_URL` | unset | A: the ntfy topic's address. Unset = nothing sent |
 | `LISTEN_NOTIFY` | on | A′: `0` stops « someone tuned in » (it needs `TELEGRAPH_NOTIFY_URL` anyway) |
 | `LISTEN_NOTIFY_COOLDOWN_MINUTES` | 30 | A′: the same device is told of once per this many minutes |
+| `TELEGRAPH_REPLY_URL` | unset | A″: the reply topic's address. Unset = no replies. Must differ from `TELEGRAPH_NOTIFY_URL` |
+| `TELEGRAPH_REPLY_NAME` | The station | A″: the name a reply goes under before the station has said anything on the line |
 | `TELEGRAPH_PUSH` | on | B: `0` switches the Booth's « Notify this device » off |
 | `TELEGRAPH_NOTIFY_GAP_SECONDS` | 60 | at most one notification per this many seconds, each way |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | made and kept by the tower | only to bring a key pair from elsewhere |
