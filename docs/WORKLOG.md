@@ -3968,3 +3968,11 @@ buttons, so `docs/NOTIFICATIONS.md` (A″) also gives an iPhone Shortcut (Ask fo
 - `/api/status` says `notifications.replies`.
 - **Tests:** `tests/reply.test.js` (3: the stream against a stand-in ntfy, the topic checks, the tower end to end).
   Not seen: ntfy.sh itself, the button on his iPhone, the Shortcut. **Off until Ortis sets the topic on the tower.**
+
+**Later on 27/11 — the reply topic's first GitHub run was red, in the Crates drawer.** `f1c4b57` reached main;
+GitHub's « site (pages) » job failed one check, « …in a drawer of folders … the one under the pointer is picked up »
+(`"lift":-12`: the sleeve moved down 12 px in the 450 ms wait instead of up; the page scrolled under the pointer).
+Neither `da94716` (the locked-phone fix, whose own run was cancelled by this push) nor `f1c4b57` touches the
+Crates room; the check passed in every laptop run that day. No re-run button without a GitHub sign-in: this line is
+the commit that runs the self-test again (ci-scope compares with the last green, `c11f265`, so the browsers run).
+If it is red there again, it is real and the drawer's hover needs looking at.
